@@ -305,13 +305,13 @@ export default function App() {
           <HeaderScene />
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl relative z-10" aria-label="Toggle sidebar">&#9776;</button>
           <div className="flex items-center gap-2.5 flex-1 min-w-0 relative z-10">
-            <img src="/logo.svg" alt="Th3rdAI" className="w-8 h-8" />
+            <img src="/logo.svg" alt="Th3rdAI" className="w-14 h-14" />
             <div>
               <h1 className="text-lg font-bold leading-tight">
                 <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">Th3rdAI</span>
                 <span className="text-slate-300 ml-1.5 font-medium text-base">Code Companion</span>
               </h1>
-              <p className="text-xs text-slate-500 truncate">PM's Technical Translator</p>
+              <p className="text-xs text-slate-500 truncate">Product Manager and Technical Translator</p>
             </div>
           </div>
           <div className="flex items-center gap-2 relative z-10">
@@ -332,7 +332,7 @@ export default function App() {
                 connected ? 'text-green-400 border-green-500/30 hover:bg-green-500/10' : 'text-red-400 border-red-500/30 hover:bg-red-500/10'
               }`}>
               <OrbitingBadge status={streaming ? 'streaming' : connected ? 'online' : 'offline'} size={24} />
-              {connected ? `${models.length} model${models.length !== 1 ? 's' : ''}` : 'Offline'}
+              Settings
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
             <button onClick={fetchModels} disabled={refreshing}

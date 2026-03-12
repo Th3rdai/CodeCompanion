@@ -1,13 +1,33 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Runtime data
 logs/
 history/
-.cc-config.json
 *.log
+
+# Config with secrets
+.cc-config.json
+.env
+.env.local
+
+# OS files
+.DS_Store
+
+# Python
 *.pyc
 __pycache__/
-.DS_Store
-# AI agent skill directories
+
+# Backups
+*.backup
+
+# Archives
+!ARCHIVES/
+
+# AI agent/IDE config directories
 .agent/
 .claude/
 .codebuddy/
@@ -22,14 +42,3 @@ __pycache__/
 .roo/
 .trae/
 .windsurf/
-
-# Internal/shared (uncomment if not needed)
-# _config/
-# shared/
-# skills/
-# stages/
-*.backup
-
-# Environment variables (may contain Spline scene URLs)
-.env
-.env.local
