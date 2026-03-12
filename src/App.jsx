@@ -11,6 +11,12 @@ import Splite from './components/ui/Splite';
 import SplashScreen from './components/3d/SplashScreen';
 import HeaderScene from './components/3d/HeaderScene';
 import EmptyStateScene from './components/3d/EmptyStateScene';
+import ParticleField from './components/3d/ParticleField';
+import FloatingGeometry from './components/3d/FloatingGeometry';
+import TypingIndicator3D from './components/3d/TypingIndicator3D';
+import ParticleBurst from './components/3d/ParticleBurst';
+import TokenCounter from './components/3d/TokenCounter';
+import OrbitingBadge from './components/3d/OrbitingBadge';
 
 const MODES = [
   { id: 'chat',           label: 'Chat',        icon: '💬', desc: 'Freeform conversation',   placeholder: "Ask me anything — tech concepts, PM advice, or just say hello..." },
@@ -85,6 +91,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
+  const [sendBurst, setSendBurst] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -201,6 +208,7 @@ export default function App() {
     const userMsg = { role: 'user', content };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null);
+    setSendBurst(true); setTimeout(() => setSendBurst(false), 100);
 
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -323,7 +331,7 @@ export default function App() {
               className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
                 connected ? 'text-green-400 border-green-500/30 hover:bg-green-500/10' : 'text-red-400 border-red-500/30 hover:bg-red-500/10'
               }`}>
-              <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400 glow-pulse' : 'bg-red-400'}`} />
+              <OrbitingBadge status={streaming ? 'streaming' : connected ? 'online' : 'offline'} size={24} />
               {connected ? `${models.length} model${models.length !== 1 ? 's' : ''}` : 'Offline'}
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
@@ -369,10 +377,11 @@ export default function App() {
           {/* Main chat area */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Mode Tabs */}
-            <div className="glass border-b border-slate-700/30 px-4 py-2 flex gap-2 overflow-x-auto">
+            <div className="glass border-b border-slate-700/30 px-4 py-2 flex gap-2 overflow-x-auto relative overflow-hidden">
+              <FloatingGeometry shapeCount={5} />
               {MODES.map(m => (
                 <button key={m.id} onClick={() => setMode(m.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all
+                  className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all
                     ${mode === m.id
                       ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
                       : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}>
@@ -400,16 +409,15 @@ export default function App() {
                   )}
                 </div>
               ))}
-              {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator />}
+              {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D />}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Stats */}
+            {/* Stats — holographic token counter */}
             {stats && (
               <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
                 <span>Model: <strong className="text-slate-400">{selectedModel}</strong></span>
-                {stats.tokens && <span>Tokens: {stats.tokens}</span>}
-                {stats.duration && <span>Time: {stats.duration}s</span>}
+                <TokenCounter tokens={stats.tokens} duration={stats.duration} />
               </div>
             )}
 
@@ -445,7 +453,8 @@ export default function App() {
                     <span className="text-[10px] text-slate-500">Enter to send · Shift+Enter for new line · Drag files to attach</span>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-2 relative">
+                  <ParticleBurst trigger={sendBurst} />
                   <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel}
                     className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
                     {streaming ? '...' : 'Send'}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import ContextMenu from './ContextMenu';
+import ParticleField from './3d/ParticleField';
 
 export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, onRename, onExport, onArchive, open, onClose, showArchived, onToggleArchived, modes }) {
   const [search, setSearch] = useState('');
@@ -39,10 +40,11 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
     <>
       {open && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={onClose} />}
       <nav aria-label="Conversations"
-        className={`fixed lg:relative top-0 left-0 h-full w-72 glass-heavy border-r border-slate-700/30 z-40 flex flex-col transition-transform duration-200
+        className={`fixed lg:relative top-0 left-0 h-full w-72 glass-heavy border-r border-slate-700/30 z-40 flex flex-col transition-transform duration-200 overflow-hidden
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <ParticleField particleCount={300} speed={0.15} color="#6366f1" />
 
-        <div className="p-4 border-b border-slate-700/30 space-y-2">
+        <div className="p-4 border-b border-slate-700/30 space-y-2 relative z-10">
           <button onClick={onNew}
             className="w-full btn-neon text-white rounded-lg py-2.5 px-4 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400">
             + New Conversation
@@ -53,7 +55,7 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
             className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500" />
         </div>
 
-        <div className="px-4 pt-2 pb-1 flex items-center gap-2">
+        <div className="px-4 pt-2 pb-1 flex items-center gap-2 relative z-10">
           <button onClick={onToggleArchived}
             className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
               showArchived
@@ -65,7 +67,7 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
           <span className="text-xs text-slate-600">{filtered.length} chat{filtered.length !== 1 ? 's' : ''}</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin p-2">
+        <div className="flex-1 overflow-y-auto scrollbar-thin p-2 relative z-10">
           {filtered.length === 0 && (
             <p className="text-center text-slate-400 text-sm py-8">
               {search ? 'No chats match your search. Try different keywords.'
