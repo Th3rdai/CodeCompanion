@@ -1,0 +1,31 @@
+node_modules/
+dist/
+logs/
+history/
+.cc-config.json
+*.log
+*.pyc
+__pycache__/
+.DS_Store
+# AI agent skill directories
+.agent/
+.claude/
+.codebuddy/
+.codex/
+.continue/
+.cursor/
+.gemini/
+.github/
+.kiro/
+.opencode/
+.qoder/
+.roo/
+.trae/
+.windsurf/
+
+# Internal/shared (uncomment if not needed)
+# _config/
+# shared/
+# skills/
+# stages/
+*.backup

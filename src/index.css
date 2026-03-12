@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+@theme {
+  --color-base: #0f172a;
+  --color-surface: #1e293b;
+  --color-surface-light: #334155;
+  --color-brand: #8b5cf6;
+  --color-cyan: #06b6d4;
+  --color-neon: #a855f7;
+  --color-neon-glow: rgba(168, 85, 247, 0.4);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+/* ── Base ────────────────────────────── */
+body {
+  background: var(--color-base);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+}
+
+/* ── Animations ──────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 5px var(--color-neon-glow), 0 0 10px var(--color-neon-glow); }
+  50% { box-shadow: 0 0 15px var(--color-neon-glow), 0 0 30px var(--color-neon-glow), 0 0 45px var(--color-neon-glow); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes border-glow {
+  0%, 100% { border-color: rgba(139, 92, 246, 0.3); }
+  50% { border-color: rgba(139, 92, 246, 0.7); }
+}
+
+.fade-in { animation: fadeIn 0.3s ease-out; }
+.typing-dot { animation: pulse-dot 1.4s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.spin { animation: spin 1s linear infinite; }
+.glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+.border-glow { animation: border-glow 3s ease-in-out infinite; }
+
+/* ── Futuristic Glass Effects ────────── */
+.glass {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+.glass-heavy {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+.glass-neon {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.1), inset 0 0 15px rgba(139, 92, 246, 0.05);
+}
+
+/* ── Neon Accents ────────────────────── */
+.neon-border {
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 5px rgba(139, 92, 246, 0.2), inset 0 0 5px rgba(139, 92, 246, 0.05);
+}
+.neon-text {
+  text-shadow: 0 0 10px rgba(139, 92, 246, 0.5), 0 0 20px rgba(139, 92, 246, 0.3);
+}
+.neon-glow-sm {
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+}
+
+/* ── Scrollbar ───────────────────────── */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* ── Prose (markdown) ────────────────── */
+.prose h2 { font-size: 1.15rem; font-weight: 700; margin-top: 1.2rem; margin-bottom: 0.5rem; color: #c4b5fd; }
+.prose h3 { font-size: 1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.4rem; color: #e2e8f0; }
+.prose p { margin-bottom: 0.6rem; line-height: 1.6; }
+.prose ul, .prose ol { margin-left: 1.2rem; margin-bottom: 0.6rem; }
+.prose li { margin-bottom: 0.3rem; line-height: 1.5; }
+.prose strong { color: #e2e8f0; }
+.prose code { background: #334155; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.85em; }
+.prose pre { background: #1a1a2e; border-radius: 0.5rem; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; border: 1px solid rgba(139, 92, 246, 0.15); }
+.prose pre code { background: none; padding: 0; font-size: 0.85em; }
+
+/* ── Context Menu ────────────────────── */
+.context-menu { position: fixed; z-index: 60; }
+
+/* ── Drop Zone ───────────────────────── */
+.drop-zone-active { border-color: #8b5cf6 !important; background: rgba(139, 92, 246, 0.08) !important; }
+
+/* ── Accessibility ───────────────────── */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+*:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; border-radius: 4px; }
+button:focus-visible, a:focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; }
+.skip-link { position: absolute; top: -40px; left: 0; background: #8b5cf6; color: white; padding: 8px 16px; z-index: 100; transition: top 0.2s; }
+.skip-link:focus { top: 0; }
+
+/* ── Futuristic Button Styles ────────── */
+.btn-neon {
+  position: relative;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.8), rgba(109, 40, 217, 0.9));
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+.btn-neon:hover {
+  box-shadow: 0 0 25px rgba(139, 92, 246, 0.5), 0 4px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(167, 139, 250, 0.8);
+  transform: translateY(-1px);
+}
+.btn-neon:active {
+  transform: translateY(0);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+/* ── Futuristic Input Styles ─────────── */
+.input-glow {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  transition: all 0.2s ease;
+}
+.input-glow:focus {
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.15), 0 0 20px rgba(139, 92, 246, 0.05);
+}
+
+/* ── Gradient Mesh Background ────────── */
+.mesh-gradient {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.08), transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06), transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(139, 92, 246, 0.04), transparent 50%);
+}

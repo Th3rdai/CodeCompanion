@@ -1,0 +1,37 @@
+{
+  "name": "code-companion",
+  "version": "1.0.0",
+  "description": "PM's Code Companion — powered by local Ollama LLMs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev:server": "node server.js",
+    "dev:client": "npx vite",
+    "dev": "npx vite & node server.js",
+    "build": "npx vite build",
+    "preview": "npx vite build && node server.js",
+    "mcp": "node mcp-server.js",
+    "mcp:inspect": "npx @modelcontextprotocol/inspector node mcp-server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@tailwindcss/vite": "^4.2.1",
+    "@vitejs/plugin-react": "^5.1.4",
+    "autoprefixer": "^10.4.27",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "express": "^4.18.2",
+    "highlight.js": "^11.11.1",
+    "lucide-react": "^0.577.0",
+    "marked": "^17.0.4",
+    "postcss": "^8.5.8",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.2.1",
+    "uuid": "^9.0.0",
+    "vite": "^7.3.1",
+    "zod": "^4.3.6"
+  }
+}
