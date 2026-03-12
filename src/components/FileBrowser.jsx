@@ -7,7 +7,7 @@ function FileTreeNode({ node, depth, onFileClick }) {
   if (node.type === 'dir') {
     return (
       <div role="treeitem" aria-expanded={open} aria-label={`Folder: ${node.name}`}>
-        <button className="w-full flex items-center gap-1 py-1.5 px-2 hover:bg-violet-500/10 rounded cursor-pointer text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-colors"
+        <button className="w-full flex items-center gap-1 py-1.5 px-2 hover:bg-indigo-500/10 rounded cursor-pointer text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-colors"
           style={{ paddingLeft: indent }}
           onClick={() => setOpen(!open)}
           onKeyDown={e => { if (e.key === 'ArrowRight' && !open) setOpen(true); if (e.key === 'ArrowLeft' && open) setOpen(false); }}>
@@ -28,7 +28,7 @@ function FileTreeNode({ node, depth, onFileClick }) {
   const extColor = extColors[node.ext] || 'text-slate-400';
 
   return (
-    <button role="treeitem" className="w-full flex items-center gap-1.5 py-1.5 px-2 hover:bg-violet-500/10 rounded cursor-pointer text-sm group focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-colors"
+    <button role="treeitem" className="w-full flex items-center gap-1.5 py-1.5 px-2 hover:bg-indigo-500/10 rounded cursor-pointer text-sm group focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-colors"
       style={{ paddingLeft: indent }}
       onClick={() => onFileClick(node)}
       aria-label={`File: ${node.name}`}>
@@ -78,7 +78,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
     <div className="w-80 glass-heavy border-l border-slate-700/30 flex flex-col h-full">
       <div className="p-3 border-b border-slate-700/30 flex items-center gap-2">
         <span className="text-sm font-medium text-slate-200 flex-1">📂 File Browser</span>
-        <button onClick={loadTree} className="text-slate-400 hover:text-violet-300 text-sm transition-colors" title="Refresh" aria-label="Refresh file tree">&#x27F3;</button>
+        <button onClick={loadTree} className="text-slate-400 hover:text-indigo-300 text-sm transition-colors" title="Refresh" aria-label="Refresh file tree">&#x27F3;</button>
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm transition-colors" title="Close" aria-label="Close file browser">✕</button>
       </div>
 
@@ -109,7 +109,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
       {preview && (
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-slate-700/30 flex items-center gap-2">
-            <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-violet-300 text-xs transition-colors">← Back</button>
+            <button onClick={() => setPreview(null)} className="text-slate-400 hover:text-indigo-300 text-xs transition-colors">← Back</button>
             <span className="text-sm text-slate-200 truncate flex-1">{preview.name}</span>
             <span className="text-[10px] text-slate-500">{preview.lines} lines</span>
           </div>

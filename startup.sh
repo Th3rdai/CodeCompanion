@@ -1,9 +1,9 @@
 #!/bin/bash
 # ─────────────────────────────────────────────
-#  Code Companion — Startup Script
+#  Th3rdAI Code Companion — Startup Script
 # ─────────────────────────────────────────────
 
-APP_NAME="Code Companion"
+APP_NAME="Th3rdAI Code Companion"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT=3000
 LOG_DIR="$APP_DIR/logs"

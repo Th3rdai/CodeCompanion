@@ -20,7 +20,7 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className="text-xs text-slate-400 hover:text-violet-300 px-2 py-1 rounded-lg transition-colors"
+      className="text-xs text-slate-400 hover:text-indigo-300 px-2 py-1 rounded-lg transition-colors"
       aria-label="Copy to clipboard">
       {copied ? '✓' : '📋'}
     </button>
@@ -130,20 +130,20 @@ export default function McpServerPanel() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">Endpoint URL</label>
               <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2">
-                <code className="flex-1 text-xs text-violet-300 font-mono">http://localhost:3000/mcp</code>
+                <code className="flex-1 text-xs text-indigo-300 font-mono">http://localhost:3000/mcp</code>
                 <CopyButton text="http://localhost:3000/mcp" />
               </div>
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1">Stdio Command</label>
               <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2">
-                <code className="flex-1 text-xs text-violet-300 font-mono">node mcp-server.js</code>
+                <code className="flex-1 text-xs text-indigo-300 font-mono">node mcp-server.js</code>
                 <CopyButton text="node mcp-server.js" />
               </div>
             </div>
             <div>
               <button onClick={() => setExpandedConfig(!expandedConfig)}
-                className="text-xs text-violet-300 hover:text-violet-200 font-medium">
+                className="text-xs text-indigo-300 hover:text-indigo-200 font-medium">
                 {expandedConfig ? '▼' : '▶'} Claude Desktop Configuration
               </button>
               {expandedConfig && (
@@ -188,15 +188,15 @@ export default function McpServerPanel() {
           <h3 className="text-sm font-semibold text-slate-200 mb-3">Usage Statistics</h3>
           <div className="grid grid-cols-3 gap-2">
             <div className="text-center">
-              <div className="text-lg font-bold text-violet-400">{stats.totalCalls || 0}</div>
+              <div className="text-lg font-bold text-indigo-400">{stats.totalCalls || 0}</div>
               <div className="text-xs text-slate-500">Total Calls</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-violet-400">{stats.callsToday || 0}</div>
+              <div className="text-lg font-bold text-indigo-400">{stats.callsToday || 0}</div>
               <div className="text-xs text-slate-500">Today</div>
             </div>
             <div className="text-center">
-              <div className="text-lg font-bold text-violet-400">{stats.lastCallAt ? new Date(stats.lastCallAt).toLocaleTimeString() : '—'}</div>
+              <div className="text-lg font-bold text-indigo-400">{stats.lastCallAt ? new Date(stats.lastCallAt).toLocaleTimeString() : '—'}</div>
               <div className="text-xs text-slate-500">Last Call</div>
             </div>
           </div>

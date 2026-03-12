@@ -44,7 +44,7 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
 
         <div className="p-4 border-b border-slate-700/30 space-y-2">
           <button onClick={onNew}
-            className="w-full btn-neon text-white rounded-lg py-2.5 px-4 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-violet-400">
+            className="w-full btn-neon text-white rounded-lg py-2.5 px-4 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400">
             + New Conversation
           </button>
           <label htmlFor="sidebar-search" className="sr-only">Search conversations</label>
@@ -57,7 +57,7 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
           <button onClick={onToggleArchived}
             className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
               showArchived
-                ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
+                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
                 : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
             }`}>
             {showArchived ? '📦 Archived' : '💬 Active'}
@@ -77,15 +77,15 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
             <div key={h.id}
               className={`group flex items-center gap-2 rounded-lg px-3 py-2.5 mb-1 cursor-pointer transition-colors
                 ${activeId === h.id
-                  ? 'bg-violet-600/20 border border-violet-500/30 neon-glow-sm'
-                  : 'hover:bg-violet-500/10'}`}
+                  ? 'bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm'
+                  : 'hover:bg-indigo-500/10'}`}
               onClick={() => { onSelect(h.id); onClose(); }}
               onContextMenu={(e) => handleContextMenu(e, h)}>
               <span className="text-sm">{modes?.find(m => m.id === h.mode)?.icon || '💬'}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-sm text-slate-200 truncate">{h.title || 'Untitled'}</div>
                 <div className="text-xs text-slate-500">
-                  {h.model && <span className="text-violet-400">{h.model.split(':')[0]}</span>}
+                  {h.model && <span className="text-indigo-400">{h.model.split(':')[0]}</span>}
                   {h.model && ' · '}{new Date(h.createdAt).toLocaleDateString()}
                 </div>
               </div>

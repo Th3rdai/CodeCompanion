@@ -151,7 +151,7 @@ function registerAllTools(server, deps, disabledTools = []) {
   );
 
   register('codecompanion_get_status',
-    'Returns Ollama connection status and current Code Companion configuration.',
+    'Returns Ollama connection status and current Th3rdAI Code Companion configuration.',
     getStatusSchema,
     async () => {
       try {
@@ -159,7 +159,7 @@ function registerAllTools(server, deps, disabledTools = []) {
         const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
         const status = await checkConnection(ollamaUrl);
 
-        const response = `Code Companion Status:
+        const response = `Th3rdAI Code Companion Status:
 - Ollama: ${status.connected ? `Connected (${status.modelCount} model${status.modelCount !== 1 ? 's' : ''})` : 'Disconnected'}
 - Ollama URL: ${ollamaUrl}
 - Project Folder: ${config.projectFolder || 'Not set'}
@@ -180,7 +180,7 @@ function registerAllTools(server, deps, disabledTools = []) {
         const config = getConfig();
         const projectFolder = config.projectFolder;
         if (!projectFolder) {
-          return { isError: true, content: [{ type: 'text', text: 'Error: No project folder configured. Set one in Code Companion settings.' }] };
+          return { isError: true, content: [{ type: 'text', text: 'Error: No project folder configured. Set one in Th3rdAI Code Companion settings.' }] };
         }
 
         const targetFolder = subPath
@@ -232,7 +232,7 @@ function registerAllTools(server, deps, disabledTools = []) {
   );
 
   register('codecompanion_list_conversations',
-    'Lists saved conversation history from the Code Companion web UI (read-only).',
+    'Lists saved conversation history from the Th3rdAI Code Companion web UI (read-only).',
     listConversationsSchema,
     async () => {
       try {

@@ -20,9 +20,9 @@ const MODES = [
 function TypingIndicator() {
   return (
     <div className="flex items-center gap-1.5 p-3">
-      <div className="w-2 h-2 bg-violet-400 rounded-full typing-dot" />
-      <div className="w-2 h-2 bg-violet-400 rounded-full typing-dot" />
-      <div className="w-2 h-2 bg-violet-400 rounded-full typing-dot" />
+      <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+      <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+      <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
     </div>
   );
 }
@@ -32,8 +32,8 @@ function AttachedFiles({ files, onRemove }) {
   return (
     <div className="flex flex-wrap gap-1.5 mb-2">
       {files.map((f, i) => (
-        <div key={i} className="flex items-center gap-1.5 bg-violet-600/15 border border-violet-500/30 rounded-lg px-2.5 py-1 text-xs">
-          <span className="text-violet-400">📄</span>
+        <div key={i} className="flex items-center gap-1.5 bg-indigo-600/15 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-xs">
+          <span className="text-indigo-400">📄</span>
           <span className="text-slate-300 max-w-[120px] truncate">{f.name}</span>
           <span className="text-slate-600">{f.lines ? `${f.lines}L` : ''}</span>
           <button onClick={() => onRemove(i)} className="text-slate-500 hover:text-red-400 ml-0.5" aria-label={`Remove ${f.name}`}>✕</button>
@@ -48,7 +48,7 @@ function CopyButton({ text }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className="glass text-xs text-slate-400 hover:text-violet-300 px-2 py-1 rounded-lg transition-colors"
+      className="glass text-xs text-slate-400 hover:text-indigo-300 px-2 py-1 rounded-lg transition-colors"
       aria-label="Copy to clipboard">
       {copied ? '✓ Copied' : '📋 Copy'}
     </button>
@@ -277,14 +277,20 @@ export default function App() {
         {/* Header */}
         <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex items-center gap-3">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl" aria-label="Toggle sidebar">&#9776;</button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-slate-100 neon-text">Code Companion</h1>
-            <p className="text-xs text-slate-400 truncate">PM's Technical Translator</p>
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <img src="/logo.svg" alt="Th3rdAI" className="w-8 h-8" />
+            <div>
+              <h1 className="text-lg font-bold leading-tight">
+                <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">Th3rdAI</span>
+                <span className="text-slate-300 ml-1.5 font-medium text-base">Code Companion</span>
+              </h1>
+              <p className="text-xs text-slate-500 truncate">PM's Technical Translator</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowFileBrowser(!showFileBrowser)}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
-                ${showFileBrowser ? 'text-violet-300 border-violet-500/30 bg-violet-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-violet-500/10'}`}
+                ${showFileBrowser ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
               title="File Browser">
               📂 Files
             </button>
@@ -297,7 +303,7 @@ export default function App() {
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
             <button onClick={fetchModels} disabled={refreshing}
-              className="text-slate-400 hover:text-violet-300 text-sm px-2 py-1.5 rounded-lg hover:bg-violet-500/10 transition-colors disabled:opacity-50" title="Refresh models">
+              className="text-slate-400 hover:text-indigo-300 text-sm px-2 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors disabled:opacity-50" title="Refresh models">
               <span className={refreshing ? 'inline-block spin' : ''}>&#x27F3;</span>
             </button>
             <label htmlFor="model-select" className="sr-only">Select AI model</label>
@@ -310,7 +316,7 @@ export default function App() {
         </header>
 
         {/* Animated beam accent */}
-        <Splite color="#8b5cf6" height={1} speed={2} />
+        <Splite color="#6366f1" height={1} speed={2} />
 
         {/* Offline Banner */}
         {!connected && (
@@ -326,10 +332,10 @@ export default function App() {
 
         {/* Drag overlay */}
         {dragging && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center bg-base/80 border-2 border-dashed border-violet-500 rounded-2xl m-2 pointer-events-none">
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-base/80 border-2 border-dashed border-indigo-500 rounded-2xl m-2 pointer-events-none">
             <div className="text-center">
               <div className="text-4xl mb-2">📄</div>
-              <p className="text-violet-300 font-medium neon-text">Drop files here to attach</p>
+              <p className="text-indigo-300 font-medium neon-text">Drop files here to attach</p>
             </div>
           </div>
         )}
@@ -343,8 +349,8 @@ export default function App() {
                 <button key={m.id} onClick={() => setMode(m.id)}
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all
                     ${mode === m.id
-                      ? 'bg-violet-600/30 text-violet-300 border border-violet-500/40 font-medium neon-glow-sm'
-                      : 'text-slate-400 hover:bg-violet-500/10 hover:text-slate-200'}`}>
+                      ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
+                      : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}>
                   <span>{m.icon}</span><span>{m.label}</span>
                 </button>
               ))}
@@ -361,7 +367,7 @@ export default function App() {
                     {connected && selectedModel && (
                       <div className="inline-flex items-center gap-2 glass rounded-lg px-3 py-1.5 text-xs text-slate-400 mb-6">
                         <div className="w-2 h-2 bg-green-400 rounded-full" />
-                        Using <strong className="text-violet-400">{selectedModel.split(':')[0]}</strong>
+                        Using <strong className="text-indigo-400">{selectedModel.split(':')[0]}</strong>
                       </div>
                     )}
                     {!connected && (
@@ -369,11 +375,11 @@ export default function App() {
                         className="mb-6 btn-neon text-white text-sm px-4 py-2 rounded-lg transition-colors">Connect to Ollama</button>
                     )}
                     <div className="grid grid-cols-2 gap-2 text-left text-xs">
-                      {mode === 'chat' && <><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> What does "microservices" mean?</div><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Help me prep for a sprint planning meeting</div></>}
-                      {mode === 'explain' && <><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Paste a function and ask what it does</div><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Paste an API endpoint for a summary</div></>}
-                      {mode === 'bugs' && <><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Paste code your team wrote for review</div><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Check for security issues before launch</div></>}
-                      {mode === 'refactor' && <><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Paste messy code for improvement</div><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Modernize legacy code snippets</div></>}
-                      {(mode === 'translate-tech' || mode === 'translate-biz') && <><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Translate a PR for stakeholders</div><div className="glass rounded-lg p-3"><span className="text-violet-400">Try:</span> Turn a feature request into specs</div></>}
+                      {mode === 'chat' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> What does "microservices" mean?</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Help me prep for a sprint planning meeting</div></>}
+                      {mode === 'explain' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste a function and ask what it does</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste an API endpoint for a summary</div></>}
+                      {mode === 'bugs' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste code your team wrote for review</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Check for security issues before launch</div></>}
+                      {mode === 'refactor' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste messy code for improvement</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Modernize legacy code snippets</div></>}
+                      {(mode === 'translate-tech' || mode === 'translate-biz') && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Translate a PR for stakeholders</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Turn a feature request into specs</div></>}
                     </div>
                   </div>
                 </div>
@@ -412,19 +418,19 @@ export default function App() {
                   <div className="flex items-center gap-1.5 pl-1">
                     <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue" className="hidden" onChange={handleFileUpload} />
                     <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📎 Upload
                     </button>
                     <button onClick={handlePaste} title="Paste text from clipboard"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📋 Paste
                     </button>
                     <button onClick={handleCopyLastResponse} title="Copy last AI response to clipboard"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📑 Copy Response
                     </button>
                     <button onClick={handleClearInput} title="Clear input text and attached files"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/40">
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       🧹 Clear
                     </button>
                     <span className="flex-1" />

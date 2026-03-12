@@ -104,9 +104,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
             <div className="mb-5 p-3 glass rounded-lg text-xs text-slate-400">
               <strong className="text-slate-300">Quick help:</strong>
               <ul className="mt-1.5 space-y-1">
-                <li>Same machine Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-violet-300">http://localhost:11434</code></li>
-                <li>Network Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-violet-300">http://192.168.x.x:11434</code></li>
-                <li>Project folder example: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-violet-300">~/projects/my-app</code></li>
+                <li>Same machine Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code></li>
+                <li>Network Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
+                <li>Project folder example: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">~/projects/my-app</code></li>
               </ul>
             </div>
           </div>

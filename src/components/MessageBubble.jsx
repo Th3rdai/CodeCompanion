@@ -18,7 +18,7 @@ export default function MessageBubble({ role, content, streaming }) {
     <div className={`fade-in mb-4 flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
         isUser
-          ? 'glass-neon border border-violet-500/30'
+          ? 'glass-neon border border-indigo-500/30'
           : 'glass border border-slate-700/30'
       }`}>
         {isUser ? (

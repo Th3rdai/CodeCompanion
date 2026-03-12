@@ -491,13 +491,13 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   const config = getConfig();
-  log('INFO', `Code Companion started on http://localhost:${PORT}`);
+  log('INFO', `Th3rdAI Code Companion started on http://localhost:${PORT}`);
   log('INFO', `Ollama endpoint: ${config.ollamaUrl}`);
   log('INFO', `History dir: ${path.join(__dirname, 'history')}`);
   log('INFO', `Log dir: ${logDir}`);
   log('INFO', `MCP HTTP server: enabled at /mcp`);
   log('INFO', `Debug mode: ${DEBUG ? 'ON' : 'OFF (set DEBUG=1 to enable console debug output)'}`);
-  console.log(`\n  Code Companion running at http://localhost:${PORT}`);
+  console.log(`\n  Th3rdAI Code Companion running at http://localhost:${PORT}`);
   console.log(`  Ollama endpoint: ${config.ollamaUrl}`);
   console.log(`  MCP HTTP server: /mcp`);
   console.log(`  Logs: ${logDir}`);

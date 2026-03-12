@@ -17,7 +17,7 @@ export default function ContextMenu({ x, y, items, onClose }) {
       ) : (
         <button key={i} onClick={() => { item.action(); onClose(); }}
           className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2.5
-            ${item.danger ? 'text-red-400 hover:bg-red-500/10' : 'text-slate-300 hover:bg-violet-500/10 hover:text-white'}`}>
+            ${item.danger ? 'text-red-400 hover:bg-red-500/10' : 'text-slate-300 hover:bg-indigo-500/10 hover:text-white'}`}>
           <span className="w-5 text-center">{item.icon}</span>{item.label}
         </button>
       ))}

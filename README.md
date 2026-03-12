@@ -1,8 +1,8 @@
-# Code Companion — PM's Technical Translator
+# Th3rdAI Code Companion — PM's Technical Translator
 
 A locally-hosted AI assistant that translates between technical and business language, powered by [Ollama](https://ollama.com) LLMs. Built for Product Managers who work closely with engineering teams.
 
-Code Companion also implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), acting as both an **MCP server** (exposing its tools to other AI agents) and an **MCP client** (connecting to external MCP servers like GitHub, Archon, etc.).
+Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), acting as both an **MCP server** (exposing its tools to other AI agents) and an **MCP client** (connecting to external MCP servers like GitHub, Archon, etc.).
 
 ## Features
 
@@ -41,7 +41,7 @@ npm run preview      # Build + serve
 
 ## MCP Server
 
-Code Companion exposes 11 tools via MCP that other AI agents can use:
+Th3rdAI Code Companion exposes 11 tools via MCP that other AI agents can use:
 
 | Tool | Description |
 |------|-------------|
@@ -90,7 +90,7 @@ Add this to your Claude Desktop `claude_desktop_config.json`:
 
 ## MCP Clients (External Tools)
 
-Code Companion can connect to external MCP servers and let Ollama use their tools during chat. Configure these in **Settings → MCP Clients**.
+Th3rdAI Code Companion can connect to external MCP servers and let Ollama use their tools during chat. Configure these in **Settings → MCP Clients**.
 
 ### Adding GitHub
 
@@ -108,7 +108,7 @@ Any MCP server that supports stdio or HTTP transport can be added. For HTTP serv
 
 ### How Tool Calling Works
 
-When external MCP servers are connected, Code Companion enriches the Ollama system prompt with available tool descriptions. The model can then call tools using a `TOOL_CALL:` pattern, which Code Companion parses and executes automatically — up to 5 rounds per request. The flexible parser handles both JSON and Python-style argument formats that small models tend to produce.
+When external MCP servers are connected, Th3rdAI Code Companion enriches the Ollama system prompt with available tool descriptions. The model can then call tools using a `TOOL_CALL:` pattern, which Th3rdAI Code Companion parses and executes automatically — up to 5 rounds per request. The flexible parser handles both JSON and Python-style argument formats that small models tend to produce.
 
 ## Project Structure
 
