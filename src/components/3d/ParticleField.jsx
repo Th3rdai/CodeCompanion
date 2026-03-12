@@ -1,16 +1,18 @@
 import { useEffect, useRef } from 'react';
+import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function ParticleField({
   particleCount = 600,
   speed = 0.3,
   color = '#6366f1',
 }) {
+  const { enabled } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
   const rendererRef = useRef(null);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
 
@@ -136,7 +138,9 @@ export default function ParticleField({
         cleanup.then((fn) => fn?.());
       }
     };
-  }, [particleCount, speed, color]);
+  }, [particleCount, speed, color, enabled]);
+
+  if (!enabled) return null;
 
   return (
     <div

@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
+  const { enabled } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
   const particlesRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
 
@@ -143,6 +145,8 @@ export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
       }
     }
   }, [trigger, isActive]);
+
+  if (!enabled) return null;
 
   return (
     <div

@@ -1,5 +1,6 @@
 import SplineScene from './SplineScene';
 import Spline3DError from './Spline3DError';
+import { use3DEffects } from '../../contexts/Effects3DContext';
 
 /**
  * Ambient 3D background that renders behind the app header.
@@ -10,11 +11,11 @@ import Spline3DError from './Spline3DError';
  * with header buttons on top of this.
  */
 export default function HeaderScene() {
+  const { enabled } = use3DEffects();
   const sceneUrl = import.meta.env.VITE_SPLINE_HEADER_SCENE || '';
 
-  // Don't render anything if no scene URL is set
-  // (the existing glass-heavy header looks great on its own)
-  if (!sceneUrl) return null;
+  // Don't render anything if disabled or no scene URL is set
+  if (!enabled || !sceneUrl) return null;
 
   return (
     <div

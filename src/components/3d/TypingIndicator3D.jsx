@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react';
+import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function TypingIndicator3D() {
+  const { enabled } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
 
   const colors = ['#6366f1', '#a855f7', '#60a5fa'];
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
 
@@ -91,7 +93,17 @@ export default function TypingIndicator3D() {
         cleanup.then((fn) => fn?.());
       }
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) {
+    return (
+      <div className="flex items-center gap-1.5 p-3">
+        <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+        <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+        <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+      </div>
+    );
+  }
 
   return (
     <div

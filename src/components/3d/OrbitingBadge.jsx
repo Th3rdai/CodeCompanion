@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function OrbitingBadge({ status = 'online', size = 40 }) {
+  const { enabled } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
 
@@ -18,7 +20,7 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
   };
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
     }
 
@@ -134,7 +136,21 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
         cleanup.then((fn) => fn?.());
       }
     };
-  }, [status, size]);
+  }, [status, size, enabled]);
+
+  if (!enabled) {
+    const dotColor = getColor();
+    return (
+      <span style={{
+        display: 'inline-block',
+        width: 10,
+        height: 10,
+        borderRadius: '50%',
+        backgroundColor: dotColor,
+        boxShadow: `0 0 6px ${dotColor}`,
+      }} />
+    );
+  }
 
   return (
     <div

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function TokenCounter({ tokens = 0, duration = 0 }) {
+  const { enabled } = use3DEffects();
   const containerRef = useRef(null);
   const [displayTokens, setDisplayTokens] = useState(0);
   const [opacity, setOpacity] = useState(0);
@@ -114,6 +116,14 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
       ctx.fillText(`${duration.toFixed(2)}s`, width / 2, height / 2 + 12);
     }
   }, [displayTokens, opacity, duration]);
+
+  if (!enabled) {
+    return (
+      <span className="text-xs text-slate-400">
+        {tokens} tokens{duration ? ` · ${duration}s` : ''}
+      </span>
+    );
+  }
 
   return (
     <div

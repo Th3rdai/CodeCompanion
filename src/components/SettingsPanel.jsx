@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import McpServerPanel from './McpServerPanel';
 import McpClientPanel from './McpClientPanel';
+import { use3DEffects } from '../contexts/Effects3DContext';
 
 export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose }) {
   const [activeTab, setActiveTab] = useState('general');
@@ -15,6 +16,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
   const [ghValidating, setGhValidating] = useState(false);
   const [ghResult, setGhResult] = useState(null);
+  const { enabled: effects3D, setEnabled: setEffects3D } = use3DEffects();
 
   useEffect(() => {
     fetchGhTokenStatus();
@@ -152,6 +154,26 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                   {folderResult.ok ? `Found ${folderResult.count} items in folder.` : `Error: ${folderResult.error}`}
                 </div>
               )}
+            </div>
+
+            {/* 3D Effects Toggle */}
+            <div className="glass rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-200">3D Visual Effects</p>
+                <p className="text-xs text-slate-500 mt-0.5">Animated backgrounds, particle effects, and holographic elements</p>
+              </div>
+              <button
+                onClick={() => setEffects3D(!effects3D)}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+                  effects3D ? 'bg-indigo-600' : 'bg-slate-600'
+                }`}
+                role="switch"
+                aria-checked={effects3D}
+                aria-label="Toggle 3D effects">
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                  effects3D ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
             </div>
 
             <div className="mb-5 p-3 glass rounded-lg text-xs text-slate-400">
