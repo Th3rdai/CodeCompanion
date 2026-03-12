@@ -9,6 +9,7 @@ const { initHistory, listConversations, getConversation, saveConversation, delet
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
 const { buildFileTree, readProjectFile, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
+const { cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken } = require('./lib/github');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 const { registerAllTools } = require('./mcp/tools');
@@ -416,6 +417,108 @@ app.post('/api/files/upload', (req, res) => {
   if (!name || content === undefined) return res.status(400).json({ error: 'Missing name or content' });
   debug('File uploaded via chat', { name, size: content.length });
   res.json({ name, size: content.length, content });
+});
+
+// ── GitHub Integration API ───────────────────────────
+
+// POST /api/github/clone — clone a repo by URL
+app.post('/api/github/clone', (req, res) => {
+  const { url: repoUrl } = req.body;
+  if (!repoUrl) return res.status(400).json({ error: 'Missing repo URL' });
+
+  const config = getConfig();
+  const token = config.githubToken || '';
+
+  log('INFO', `Cloning GitHub repo: ${repoUrl}`);
+  const result = cloneRepo(__dirname, repoUrl, token);
+
+  if (result.success) {
+    log('INFO', `Clone success: ${result.owner}/${result.repo} → ${result.localPath}`);
+    debug('Clone result', result);
+  } else {
+    log('ERROR', `Clone failed: ${result.error}`);
+  }
+
+  res.json(result);
+});
+
+// GET /api/github/repos — list cloned repos
+app.get('/api/github/repos', (req, res) => {
+  try {
+    const repos = listClonedRepos(__dirname);
+    res.json({ repos });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/github/repos/:dirName — delete a cloned repo
+app.delete('/api/github/repos/:dirName', (req, res) => {
+  const result = deleteClonedRepo(__dirname, req.params.dirName);
+  res.json(result);
+});
+
+// POST /api/github/open — set a cloned repo as the active project folder
+app.post('/api/github/open', (req, res) => {
+  const { dirName } = req.body;
+  if (!dirName) return res.status(400).json({ error: 'Missing dirName' });
+
+  const fullPath = path.join(__dirname, 'github-repos', dirName);
+  if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Cloned repo not found' });
+
+  const config = getConfig();
+  config.projectFolder = fullPath;
+  updateConfig(config);
+
+  log('INFO', `Project folder set to cloned repo: ${fullPath}`);
+  res.json({ success: true, projectFolder: fullPath });
+});
+
+// GET /api/github/browse — list user's GitHub repos (requires token)
+app.get('/api/github/browse', async (req, res) => {
+  const config = getConfig();
+  const token = config.githubToken;
+  if (!token) return res.status(401).json({ error: 'No GitHub token configured. Add one in Settings → GitHub.' });
+
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const repos = await listUserRepos(token, page);
+    res.json({ repos });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/github/token — validate and save GitHub token
+app.post('/api/github/token', async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    // Clear token
+    const config = getConfig();
+    config.githubToken = '';
+    updateConfig(config);
+    return res.json({ valid: true, message: 'Token cleared' });
+  }
+
+  const result = await validateToken(token);
+  if (result.valid) {
+    const config = getConfig();
+    config.githubToken = token;
+    updateConfig(config);
+    log('INFO', `GitHub token saved for user: ${result.username}`);
+  }
+  res.json(result);
+});
+
+// GET /api/github/token/status — check if a token is configured
+app.get('/api/github/token/status', async (req, res) => {
+  const config = getConfig();
+  const token = config.githubToken;
+  if (!token) return res.json({ configured: false });
+
+  const result = await validateToken(token);
+  res.json({ configured: true, ...result });
 });
 
 // ── GET /api/logs ────────────────────────────────────

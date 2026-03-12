@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import McpServerPanel from './McpServerPanel';
 import McpClientPanel from './McpClientPanel';
 
@@ -9,6 +9,58 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [folderResult, setFolderResult] = useState(null);
+
+  // GitHub token state
+  const [ghToken, setGhToken] = useState('');
+  const [ghTokenStatus, setGhTokenStatus] = useState(null);
+  const [ghValidating, setGhValidating] = useState(false);
+  const [ghResult, setGhResult] = useState(null);
+
+  useEffect(() => {
+    fetchGhTokenStatus();
+  }, []);
+
+  async function fetchGhTokenStatus() {
+    try {
+      const res = await fetch('/api/github/token/status');
+      const data = await res.json();
+      setGhTokenStatus(data);
+    } catch {}
+  }
+
+  async function handleValidateGhToken() {
+    if (!ghToken.trim()) return;
+    setGhValidating(true);
+    setGhResult(null);
+    try {
+      const res = await fetch('/api/github/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: ghToken }),
+      });
+      const data = await res.json();
+      setGhResult(data);
+      if (data.valid) {
+        setGhToken('');
+        fetchGhTokenStatus();
+      }
+    } catch (err) {
+      setGhResult({ valid: false, error: err.message });
+    }
+    setGhValidating(false);
+  }
+
+  async function handleRemoveGhToken() {
+    try {
+      await fetch('/api/github/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: '' }),
+      });
+      setGhTokenStatus(null);
+      setGhResult(null);
+    } catch {}
+  }
 
   async function handleTest() {
     setTesting(true); setTestResult(null);
@@ -49,6 +101,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
         <div className="flex gap-1 mb-6 p-1 glass rounded-lg">
           {[
             { id: 'general', label: 'General' },
+            { id: 'github', label: 'GitHub' },
             { id: 'mcp-server', label: 'MCP Server' },
             { id: 'mcp-clients', label: 'MCP Clients' },
           ].map(tab => (
@@ -108,6 +161,70 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                 <li>Network Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
                 <li>Project folder example: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">~/projects/my-app</code></li>
               </ul>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'github' && (
+          <div className="space-y-5">
+            {/* Current token status */}
+            {ghTokenStatus?.configured && ghTokenStatus?.valid ? (
+              <div className="glass rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 bg-green-400 rounded-full glow-pulse" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-200">Connected as <span className="text-indigo-300">{ghTokenStatus.username}</span></p>
+                      <p className="text-xs text-slate-500 mt-0.5">Personal Access Token active</p>
+                    </div>
+                  </div>
+                  <button onClick={handleRemoveGhToken}
+                    className="text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors">
+                    Remove Token
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="glass rounded-lg p-4 text-center">
+                <p className="text-sm text-slate-300 mb-1">No GitHub token configured</p>
+                <p className="text-xs text-slate-500">Add a token below to clone private repos and browse your account.</p>
+              </div>
+            )}
+
+            {/* Token input */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                {ghTokenStatus?.configured ? 'Replace Token' : 'Personal Access Token'}
+              </label>
+              <div className="flex gap-2">
+                <input type="password" value={ghToken} onChange={e => setGhToken(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleValidateGhToken()}
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
+                <button onClick={handleValidateGhToken} disabled={ghValidating || !ghToken.trim()}
+                  className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
+                  {ghValidating ? <span className="inline-block spin">&#x27F3;</span> : 'Validate & Save'}
+                </button>
+              </div>
+              {ghResult && (
+                <div className={`mt-2 p-2.5 rounded-lg text-xs ${ghResult.valid
+                  ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                  {ghResult.valid ? `Token valid! Connected as ${ghResult.username}.` : `Invalid: ${ghResult.error}`}
+                </div>
+              )}
+            </div>
+
+            {/* Help */}
+            <div className="glass rounded-lg p-3 text-xs text-slate-500">
+              <p className="font-medium text-slate-400 mb-1.5">How to create a token:</p>
+              <ol className="space-y-1 list-decimal list-inside">
+                <li>Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</li>
+                <li>Click "Generate new token (classic)"</li>
+                <li>Select the <code className="bg-slate-700/50 px-1 py-0.5 rounded text-indigo-300">repo</code> scope (full control of private repos)</li>
+                <li>Copy the token and paste it above</li>
+              </ol>
+              <p className="mt-2 text-amber-400/70">Your token is stored locally and never sent to any third party.</p>
             </div>
           </div>
         )}

@@ -5,6 +5,7 @@ import Toast from './components/Toast';
 import RenameModal from './components/RenameModal';
 import SettingsPanel from './components/SettingsPanel';
 import FileBrowser from './components/FileBrowser';
+import GitHubPanel from './components/GitHubPanel';
 import Sidebar from './components/Sidebar';
 import Splite from './components/ui/Splite';
 import SplashScreen from './components/3d/SplashScreen';
@@ -76,6 +77,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showFileBrowser, setShowFileBrowser] = useState(false);
+  const [showGitHub, setShowGitHub] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [renaming, setRenaming] = useState(null);
   const [stats, setStats] = useState(null);
@@ -305,7 +307,13 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2 relative z-10">
-            <button onClick={() => setShowFileBrowser(!showFileBrowser)}
+            <button onClick={() => { setShowGitHub(!showGitHub); if (!showGitHub) setShowFileBrowser(false); }}
+              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
+                ${showGitHub ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
+              title="GitHub Repos">
+              🐙 GitHub
+            </button>
+            <button onClick={() => { setShowFileBrowser(!showFileBrowser); if (!showFileBrowser) setShowGitHub(false); }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
                 ${showFileBrowser ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
               title="File Browser">
@@ -446,6 +454,20 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* GitHub Panel (right panel) */}
+          {showGitHub && (
+            <aside className="w-80 border-l border-slate-700/30 glass" aria-label="GitHub repos">
+              <GitHubPanel
+                onRepoOpened={(folder) => {
+                  setProjectFolder(folder);
+                  setShowGitHub(false);
+                  setShowFileBrowser(true);
+                }}
+                onClose={() => setShowGitHub(false)}
+              />
+            </aside>
+          )}
 
           {/* File Browser (right panel) */}
           {showFileBrowser && (
