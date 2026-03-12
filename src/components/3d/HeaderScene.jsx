@@ -1,0 +1,33 @@
+import SplineScene from './SplineScene';
+import Spline3DError from './Spline3DError';
+
+/**
+ * Ambient 3D background that renders behind the app header.
+ * Sits absolutely positioned behind the glass-heavy header,
+ * visible through the translucent glass effect.
+ *
+ * Designed to be subtle and non-distracting — users interact
+ * with header buttons on top of this.
+ */
+export default function HeaderScene() {
+  const sceneUrl = import.meta.env.VITE_SPLINE_HEADER_SCENE || '';
+
+  // Don't render anything if no scene URL is set
+  // (the existing glass-heavy header looks great on its own)
+  if (!sceneUrl) return null;
+
+  return (
+    <div
+      className="absolute inset-0 overflow-hidden pointer-events-none"
+      style={{ zIndex: 0 }}
+      aria-hidden="true"
+    >
+      <Spline3DError>
+        <SplineScene
+          scene={sceneUrl}
+          className="w-full h-full opacity-40"
+        />
+      </Spline3DError>
+    </div>
+  );
+}

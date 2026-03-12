@@ -29,3 +29,7 @@ __pycache__/
 # skills/
 # stages/
 *.backup
+
+# Environment variables (may contain Spline scene URLs)
+.env
+.env.local

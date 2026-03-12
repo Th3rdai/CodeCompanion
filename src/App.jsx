@@ -7,6 +7,9 @@ import SettingsPanel from './components/SettingsPanel';
 import FileBrowser from './components/FileBrowser';
 import Sidebar from './components/Sidebar';
 import Splite from './components/ui/Splite';
+import SplashScreen from './components/3d/SplashScreen';
+import HeaderScene from './components/3d/HeaderScene';
+import EmptyStateScene from './components/3d/EmptyStateScene';
 
 const MODES = [
   { id: 'chat',           label: 'Chat',        icon: '💬', desc: 'Freeform conversation',   placeholder: "Ask me anything — tech concepts, PM advice, or just say hello..." },
@@ -56,6 +59,9 @@ function CopyButton({ text }) {
 }
 
 export default function App() {
+  const [splashDismissed, setSplashDismissed] = useState(
+    () => sessionStorage.getItem('th3rdai_splash_dismissed') === 'true'
+  );
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [connected, setConnected] = useState(false);
@@ -262,6 +268,16 @@ export default function App() {
 
   const currentMode = MODES.find(m => m.id === mode);
 
+  // Splash screen — shown once per browser session
+  if (!splashDismissed) {
+    return (
+      <SplashScreen onDismiss={() => {
+        sessionStorage.setItem('th3rdai_splash_dismissed', 'true');
+        setSplashDismissed(true);
+      }} />
+    );
+  }
+
   return (
     <div className="h-screen flex mesh-gradient">
       <a href="#chat-input" className="skip-link">Skip to chat input</a>
@@ -275,9 +291,10 @@ export default function App() {
         onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
 
         {/* Header */}
-        <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl" aria-label="Toggle sidebar">&#9776;</button>
-          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex items-center gap-3 relative overflow-hidden">
+          <HeaderScene />
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl relative z-10" aria-label="Toggle sidebar">&#9776;</button>
+          <div className="flex items-center gap-2.5 flex-1 min-w-0 relative z-10">
             <img src="/logo.svg" alt="Th3rdAI" className="w-8 h-8" />
             <div>
               <h1 className="text-lg font-bold leading-tight">
@@ -287,7 +304,7 @@ export default function App() {
               <p className="text-xs text-slate-500 truncate">PM's Technical Translator</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative z-10">
             <button onClick={() => setShowFileBrowser(!showFileBrowser)}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
                 ${showFileBrowser ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
@@ -359,30 +376,13 @@ export default function App() {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
               {messages.length === 0 && (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center max-w-md">
-                    <div className="text-5xl mb-4">{currentMode?.icon}</div>
-                    <h2 className="text-xl font-bold text-slate-200 mb-2 neon-text">{currentMode?.label}</h2>
-                    <p className="text-slate-400 mb-4">{currentMode?.desc}</p>
-                    {connected && selectedModel && (
-                      <div className="inline-flex items-center gap-2 glass rounded-lg px-3 py-1.5 text-xs text-slate-400 mb-6">
-                        <div className="w-2 h-2 bg-green-400 rounded-full" />
-                        Using <strong className="text-indigo-400">{selectedModel.split(':')[0]}</strong>
-                      </div>
-                    )}
-                    {!connected && (
-                      <button onClick={() => setShowSettings(true)}
-                        className="mb-6 btn-neon text-white text-sm px-4 py-2 rounded-lg transition-colors">Connect to Ollama</button>
-                    )}
-                    <div className="grid grid-cols-2 gap-2 text-left text-xs">
-                      {mode === 'chat' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> What does "microservices" mean?</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Help me prep for a sprint planning meeting</div></>}
-                      {mode === 'explain' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste a function and ask what it does</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste an API endpoint for a summary</div></>}
-                      {mode === 'bugs' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste code your team wrote for review</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Check for security issues before launch</div></>}
-                      {mode === 'refactor' && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Paste messy code for improvement</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Modernize legacy code snippets</div></>}
-                      {(mode === 'translate-tech' || mode === 'translate-biz') && <><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Translate a PR for stakeholders</div><div className="glass rounded-lg p-3"><span className="text-indigo-400">Try:</span> Turn a feature request into specs</div></>}
-                    </div>
-                  </div>
-                </div>
+                <EmptyStateScene
+                  mode={mode}
+                  currentMode={currentMode}
+                  connected={connected}
+                  selectedModel={selectedModel}
+                  onSettingsClick={() => setShowSettings(true)}
+                />
               )}
               {messages.map((msg, i) => (
                 <div key={i} className="relative group">
