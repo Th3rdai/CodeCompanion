@@ -4,6 +4,7 @@ import MessageBubble from './components/MessageBubble';
 import Toast from './components/Toast';
 import RenameModal from './components/RenameModal';
 import SettingsPanel from './components/SettingsPanel';
+import CreateWizard from './components/CreateWizard';
 import FileBrowser from './components/FileBrowser';
 import GitHubPanel from './components/GitHubPanel';
 import Sidebar from './components/Sidebar';
@@ -25,6 +26,7 @@ const MODES = [
   { id: 'refactor',       label: 'Refactor',    icon: '✨', desc: 'Improve this code',       placeholder: "Paste code here and I'll suggest improvements with explanations..." },
   { id: 'translate-tech', label: 'Tech → Biz',  icon: '📋', desc: 'Technical to business',   placeholder: "Paste a technical spec, PR description, or code...\nI'll translate it into business language." },
   { id: 'translate-biz',  label: 'Biz → Tech',  icon: '🔧', desc: 'Business to technical',   placeholder: "Describe a feature request or product requirement...\nI'll produce technical specs." },
+  { id: 'create',         label: 'Create',      icon: '🛠️', desc: 'Scaffold a new project',  placeholder: "Use the Create wizard to scaffold a new workspace..." },
 ];
 
 function TypingIndicator() {
@@ -92,6 +94,7 @@ export default function App() {
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [sendBurst, setSendBurst] = useState(false);
+  const [createModeAllowedRoots, setCreateModeAllowedRoots] = useState([]);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -108,6 +111,7 @@ export default function App() {
       const data = await res.json();
       setOllamaUrl(data.ollamaUrl || '');
       setProjectFolder(data.projectFolder || '');
+      setCreateModeAllowedRoots(Array.isArray(data.createModeAllowedRoots) ? data.createModeAllowedRoots : []);
     } catch {}
   }
 
@@ -137,6 +141,31 @@ export default function App() {
       await fetchModels();
       if (newFolder) setShowFileBrowser(true);
     } catch {}
+  }
+
+  async function handleCreateSuccess(createdProject) {
+    if (!createdProject?.projectFolder) return;
+
+    try {
+      const res = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectFolder: createdProject.projectFolder })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to persist the new project folder.');
+      }
+    } catch {
+      setProjectFolder(createdProject.projectFolder);
+      showToast('Project created, but the file browser could not be switched automatically.');
+      return;
+    }
+
+    setProjectFolder(createdProject.projectFolder);
+    setShowFileBrowser(true);
+    setShowGitHub(false);
+    showToast(`Project created: ${createdProject.projectFolder}`);
   }
 
   async function loadConversation(id) {
@@ -252,11 +281,13 @@ export default function App() {
   }
 
   // Drag and drop
-  function handleDragEnter(e) { e.preventDefault(); dragCounter.current++; setDragging(true); }
-  function handleDragLeave(e) { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setDragging(false); }
-  function handleDragOver(e) { e.preventDefault(); }
+  function handleDragEnter(e) { e.preventDefault(); if (mode === 'create') return; dragCounter.current++; setDragging(true); }
+  function handleDragLeave(e) { e.preventDefault(); if (mode === 'create') return; dragCounter.current--; if (dragCounter.current === 0) setDragging(false); }
+  function handleDragOver(e) { e.preventDefault(); if (mode === 'create') return; }
   function handleDrop(e) {
-    e.preventDefault(); dragCounter.current = 0; setDragging(false);
+    e.preventDefault();
+    if (mode === 'create') return;
+    dragCounter.current = 0; setDragging(false);
     Array.from(e.dataTransfer.files).forEach(file => {
       const reader = new FileReader();
       reader.onload = (ev) => { attachFile({ name: file.name, content: ev.target.result, lines: ev.target.result.split('\n').length }); };
@@ -390,78 +421,87 @@ export default function App() {
               ))}
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
-              {messages.length === 0 && (
-                <EmptyStateScene
-                  mode={mode}
-                  currentMode={currentMode}
-                  connected={connected}
-                  selectedModel={selectedModel}
-                  onSettingsClick={() => setShowSettings(true)}
-                />
-              )}
-              {messages.map((msg, i) => (
-                <div key={i} className="relative group">
-                  <MessageBubble role={msg.role} content={msg.content} />
-                  {msg.role === 'assistant' && !streaming && (
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
+            {mode === 'create' ? (
+              <CreateWizard
+                defaultOutputRoot={createModeAllowedRoots[0] || ''}
+                onCreated={handleCreateSuccess}
+              />
+            ) : (
+              <>
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
+                  {messages.length === 0 && (
+                    <EmptyStateScene
+                      mode={mode}
+                      currentMode={currentMode}
+                      connected={connected}
+                      selectedModel={selectedModel}
+                      onSettingsClick={() => setShowSettings(true)}
+                    />
                   )}
+                  {messages.map((msg, i) => (
+                    <div key={i} className="relative group">
+                      <MessageBubble role={msg.role} content={msg.content} />
+                      {msg.role === 'assistant' && !streaming && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
+                      )}
+                    </div>
+                  ))}
+                  {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D />}
+                  <div ref={messagesEndRef} />
                 </div>
-              ))}
-              {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D />}
-              <div ref={messagesEndRef} />
-            </div>
 
-            {/* Stats — holographic token counter */}
-            {stats && (
-              <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
-                <span>Model: <strong className="text-slate-400">{selectedModel}</strong></span>
-                <TokenCounter tokens={stats.tokens} duration={stats.duration} />
-              </div>
-            )}
+                {/* Stats — holographic token counter */}
+                {stats && (
+                  <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
+                    <span>Model: <strong className="text-slate-400">{selectedModel}</strong></span>
+                    <TokenCounter tokens={stats.tokens} duration={stats.duration} />
+                  </div>
+                )}
 
-            {/* Input */}
-            <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
-              <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
-              <div className="flex gap-2">
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <label htmlFor="chat-input" className="sr-only">Type your message</label>
-                  <textarea id="chat-input" ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-                    placeholder={connected ? (attachedFiles.length > 0 ? 'Add a message about the attached files, or just hit Send...' : currentMode?.placeholder) : 'Connect to Ollama first (click the status button in the header)...'}
-                    rows={4} disabled={streaming || !connected}
-                    className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
-                  <div className="flex items-center gap-1.5 pl-1">
-                    <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue" className="hidden" onChange={handleFileUpload} />
-                    <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📎 Upload
-                    </button>
-                    <button onClick={handlePaste} title="Paste text from clipboard"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📋 Paste
-                    </button>
-                    <button onClick={handleCopyLastResponse} title="Copy last AI response to clipboard"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📑 Copy Response
-                    </button>
-                    <button onClick={handleClearInput} title="Clear input text and attached files"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      🧹 Clear
-                    </button>
-                    <span className="flex-1" />
-                    <span className="text-[10px] text-slate-500">Enter to send · Shift+Enter for new line · Drag files to attach</span>
+                {/* Input */}
+                <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
+                  <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
+                  <div className="flex gap-2">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label htmlFor="chat-input" className="sr-only">Type your message</label>
+                      <textarea id="chat-input" ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                        placeholder={connected ? (attachedFiles.length > 0 ? 'Add a message about the attached files, or just hit Send...' : currentMode?.placeholder) : 'Connect to Ollama first (click the status button in the header)...'}
+                        rows={4} disabled={streaming || !connected}
+                        className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
+                      <div className="flex items-center gap-1.5 pl-1">
+                        <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue" className="hidden" onChange={handleFileUpload} />
+                        <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                          📎 Upload
+                        </button>
+                        <button onClick={handlePaste} title="Paste text from clipboard"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                          📋 Paste
+                        </button>
+                        <button onClick={handleCopyLastResponse} title="Copy last AI response to clipboard"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                          📑 Copy Response
+                        </button>
+                        <button onClick={handleClearInput} title="Clear input text and attached files"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                          🧹 Clear
+                        </button>
+                        <span className="flex-1" />
+                        <span className="text-[10px] text-slate-500">Enter to send · Shift+Enter for new line · Drag files to attach</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 relative">
+                      <ParticleBurst trigger={sendBurst} />
+                      <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel}
+                        className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
+                        {streaming ? '...' : 'Send'}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 relative">
-                  <ParticleBurst trigger={sendBurst} />
-                  <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel}
-                    className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
-                    {streaming ? '...' : 'Send'}
-                  </button>
-                </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* GitHub Panel (right panel) */}

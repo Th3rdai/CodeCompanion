@@ -6,6 +6,7 @@ const path = require('path');
 const { createLogger } = require('./lib/logger');
 const { initConfig, getConfig, updateConfig } = require('./lib/config');
 const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
+const { ScaffolderError, scaffoldProject } = require('./lib/icm-scaffolder');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
 const { buildFileTree, readProjectFile, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
@@ -84,6 +85,34 @@ app.post('/api/config', (req, res) => {
 
   updateConfig(config);
   res.json(getConfig());
+});
+
+// ── POST /api/create-project ──────────────────────────
+
+app.post('/api/create-project', (req, res) => {
+  const { name, description, role, audience, tone, stages, outputRoot, overwrite } = req.body;
+
+  try {
+    const result = scaffoldProject({
+      config: getConfig(),
+      name,
+      description,
+      role,
+      audience,
+      tone,
+      stages,
+      outputRoot,
+      overwrite
+    });
+
+    log('INFO', `Create mode scaffolded project: ${result.projectPath}`);
+    res.status(201).json(result);
+  } catch (err) {
+    const status = err instanceof ScaffolderError ? err.status : 500;
+    const code = err instanceof ScaffolderError ? err.code : 'CREATE_FAILED';
+    log('ERROR', 'Create mode scaffolding failed', { code, error: err.message });
+    res.status(status).json({ success: false, code, error: err.message });
+  }
 });
 
 // ── GET /api/models ──────────────────────────────────
