@@ -5,6 +5,7 @@ import Toast from './components/Toast';
 import RenameModal from './components/RenameModal';
 import SettingsPanel from './components/SettingsPanel';
 import CreateWizard from './components/CreateWizard';
+import DashboardPanel from './components/DashboardPanel';
 import FileBrowser from './components/FileBrowser';
 import GitHubPanel from './components/GitHubPanel';
 import Sidebar from './components/Sidebar';
@@ -26,6 +27,7 @@ const MODES = [
   { id: 'refactor',       label: 'Refactor',    icon: '✨', desc: 'Improve this code',       placeholder: "Paste code here and I'll suggest improvements with explanations..." },
   { id: 'translate-tech', label: 'Tech → Biz',  icon: '📋', desc: 'Technical to business',   placeholder: "Paste a technical spec, PR description, or code...\nI'll translate it into business language." },
   { id: 'translate-biz',  label: 'Biz → Tech',  icon: '🔧', desc: 'Business to technical',   placeholder: "Describe a feature request or product requirement...\nI'll produce technical specs." },
+  { id: 'dashboard',      label: 'Dashboard',   icon: '📊', desc: 'Insights and reports',    placeholder: "Use Dashboard to track usage insights and export reports..." },
   { id: 'create',         label: 'Create',      icon: '🛠️', desc: 'Scaffold a new project',  placeholder: "Use the Create wizard to scaffold a new workspace..." },
 ];
 
@@ -95,6 +97,9 @@ export default function App() {
   const [dragging, setDragging] = useState(false);
   const [sendBurst, setSendBurst] = useState(false);
   const [createModeAllowedRoots, setCreateModeAllowedRoots] = useState([]);
+  const [dashboardAnalytics, setDashboardAnalytics] = useState(null);
+  const [systemMetrics, setSystemMetrics] = useState(null);
+  const [systemMetricsLoading, setSystemMetricsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -130,6 +135,110 @@ export default function App() {
 
   async function fetchHistory() {
     try { const res = await fetch('/api/history'); setHistory(await res.json()); } catch {}
+  }
+
+  function computeDashboardAnalytics(historyList) {
+    const safeHistory = Array.isArray(historyList) ? historyList : [];
+    const activeCount = safeHistory.filter(item => !item.archived).length;
+    const archivedCount = safeHistory.length - activeCount;
+
+    const modeCounts = {};
+    const modelCounts = {};
+    const dailyActivity = {};
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dailyActivity[d.toISOString().slice(0, 10)] = 0;
+    }
+
+    safeHistory.forEach((item) => {
+      const modeId = item.mode || 'unknown';
+      modeCounts[modeId] = (modeCounts[modeId] || 0) + 1;
+
+      const modelFamily = (item.model || 'N/A').split(':')[0];
+      modelCounts[modelFamily] = (modelCounts[modelFamily] || 0) + 1;
+
+      const createdAt = new Date(item.createdAt);
+      if (!Number.isNaN(createdAt.getTime())) {
+        const dateKey = createdAt.toISOString().slice(0, 10);
+        if (dateKey in dailyActivity) {
+          dailyActivity[dateKey] += 1;
+        }
+      }
+    });
+
+    const totalMessages = safeHistory.reduce((sum, item) => {
+      return sum + (Array.isArray(item.messages) ? item.messages.length : 0);
+    }, 0);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      totals: {
+        conversations: safeHistory.length,
+        active: activeCount,
+        archived: archivedCount,
+        messages: totalMessages
+      },
+      modeCounts,
+      modelCounts,
+      dailyActivity
+    };
+  }
+
+  function exportDashboardReport(format) {
+    const analytics = dashboardAnalytics || computeDashboardAnalytics(history);
+    const dateStamp = new Date().toISOString().slice(0, 10);
+
+    let content = '';
+    let mimeType = 'text/plain';
+    let extension = format;
+
+    if (format === 'md') {
+      content = `# Code Companion Dashboard Report\n\nGenerated: ${new Date(analytics.generatedAt).toLocaleString()}\n\n## Totals\n- Conversations: ${analytics.totals.conversations}\n- Active: ${analytics.totals.active}\n- Archived: ${analytics.totals.archived}\n- Messages (loaded): ${analytics.totals.messages}\n\n## Modes\n${Object.entries(analytics.modeCounts).map(([key, value]) => `- ${key}: ${value}`).join('\n') || '- No data'}\n\n## Model Families\n${Object.entries(analytics.modelCounts).map(([key, value]) => `- ${key}: ${value}`).join('\n') || '- No data'}\n\n## 7-Day Activity\n${Object.entries(analytics.dailyActivity).map(([key, value]) => `- ${key}: ${value}`).join('\n') || '- No data'}\n`;
+      mimeType = 'text/markdown';
+      extension = 'md';
+    } else if (format === 'json') {
+      content = JSON.stringify(analytics, null, 2);
+      mimeType = 'application/json';
+      extension = 'json';
+    } else if (format === 'csv') {
+      const rows = [['date', 'conversations_created']];
+      Object.entries(analytics.dailyActivity).forEach(([date, count]) => rows.push([date, String(count)]));
+      content = rows.map(row => row.join(',')).join('\n');
+      mimeType = 'text/csv';
+      extension = 'csv';
+    } else {
+      return;
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codecompanion-report-${dateStamp}.${extension}`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported dashboard report as .${extension}`);
+  }
+
+  async function fetchSystemMetrics() {
+    setSystemMetricsLoading(true);
+    try {
+      const res = await fetch('/api/performance');
+      if (!res.ok) throw new Error('Performance endpoint unavailable');
+      const data = await res.json();
+      setSystemMetrics(data);
+    } catch {
+      setSystemMetrics(null);
+    } finally {
+      setSystemMetricsLoading(false);
+    }
+  }
+
+  async function handleDashboardRefresh() {
+    await Promise.all([fetchHistory(), fetchSystemMetrics()]);
+    showToast('Dashboard refreshed');
   }
 
   async function handleSaveSettings(newUrl, newFolder) {
@@ -309,6 +418,17 @@ export default function App() {
 
   const currentMode = MODES.find(m => m.id === mode);
 
+  useEffect(() => {
+    setDashboardAnalytics(computeDashboardAnalytics(history));
+  }, [history]);
+
+  useEffect(() => {
+    if (mode !== 'dashboard') return;
+    fetchSystemMetrics();
+    const interval = setInterval(fetchSystemMetrics, 3000);
+    return () => clearInterval(interval);
+  }, [mode]);
+
   // Splash screen — shown once per browser session
   if (!splashDismissed) {
     return (
@@ -426,6 +546,15 @@ export default function App() {
                 defaultOutputRoot={createModeAllowedRoots[0] || ''}
                 onCreated={handleCreateSuccess}
               />
+            ) : mode === 'dashboard' ? (
+              <DashboardPanel
+                analytics={dashboardAnalytics}
+                systemMetrics={systemMetrics}
+                systemMetricsLoading={systemMetricsLoading}
+                onRefresh={handleDashboardRefresh}
+                onExport={exportDashboardReport}
+                modes={MODES}
+              />
             ) : (
               <>
                 {/* Messages */}
@@ -508,6 +637,7 @@ export default function App() {
           {showGitHub && (
             <aside className="w-80 border-l border-slate-700/30 glass" aria-label="GitHub repos">
               <GitHubPanel
+                selectedModel={selectedModel}
                 onRepoOpened={(folder) => {
                   setProjectFolder(folder);
                   setShowGitHub(false);

@@ -6,7 +6,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ## Features
 
-- **Seven specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech, Create
+- **Eight specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech, Dashboard, Create
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
@@ -144,6 +144,7 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │       ├── SettingsPanel.jsx     # Settings with 3 tabs
 │       ├── McpServerPanel.jsx    # MCP server management UI
 │       ├── McpClientPanel.jsx    # MCP client management UI
+│       ├── DashboardPanel.jsx    # Customizable analytics + report exports
 │       └── CreateWizard.jsx      # Create mode multi-step wizard
 ├── test/
 │   ├── unit/              # Node unit tests
