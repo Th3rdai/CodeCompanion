@@ -10,6 +10,11 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
+- **Dashboard mode** — customizable widgets, report export (MD/JSON/CSV), and live performance telemetry
+- **Local VCS console** — git status, branch creation, diff visualization, merge preview, and conflict helpers
+- **AI review + debug** — automated diff review, real-time analysis, and one-click debugging
+- **PM integrations** — pull issues/tasks from Jira, Trello, and Asana in-app
+- **Generated docs** — create markdown docs from current codebase and API routes, with optional AI summary
 - **File browser** — navigate and read project files directly in the UI
 - **Conversation history** — auto-saved and searchable
 - **Tool-call loop** — Ollama can autonomously call external tools up to 5 rounds per request
@@ -46,6 +51,28 @@ npm run test:unit    # Node unit tests (scaffolder and backend logic)
 npm run test:e2e     # Playwright browser + API end-to-end tests
 npm test             # Run unit + e2e suites
 ```
+
+## PM Delivery Console APIs
+
+Code Companion now includes a PM-focused operational API surface in addition to chat:
+
+- **Performance**
+  - `GET /api/performance`
+- **Git / VCS**
+  - `GET /api/git/status`
+  - `POST /api/git/branch`
+  - `GET /api/git/diff`
+  - `POST /api/git/merge-preview`
+  - `POST /api/git/resolve`
+  - `POST /api/git/review`
+- **PM Integrations**
+  - `POST /api/pm/jira/issues`
+  - `POST /api/pm/trello/cards`
+  - `POST /api/pm/asana/tasks`
+- **Docs + Analysis**
+  - `POST /api/docs/generate`
+  - `POST /api/code/analyze`
+  - `POST /api/code/debug`
 
 ## MCP Server
 
@@ -128,8 +155,9 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── config.js          # Config getter/setter (.cc-config.json)
 │   ├── logger.js          # File + stderr logging
 │   ├── ollama-client.js   # Ollama API client (stream + complete)
-│   ├── prompts.js         # System prompts for all 7 modes
+│   ├── prompts.js         # System prompts for all 8 modes
 │   ├── icm-scaffolder.js  # Create mode workspace scaffolding engine
+│   ├── github.js          # GitHub + local git/VCS operations
 │   ├── file-browser.js    # Project file tree + reader
 │   ├── history.js         # Conversation persistence
 │   ├── mcp-client-manager.js  # External MCP server connections
@@ -144,6 +172,7 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │       ├── SettingsPanel.jsx     # Settings with 3 tabs
 │       ├── McpServerPanel.jsx    # MCP server management UI
 │       ├── McpClientPanel.jsx    # MCP client management UI
+│       ├── GitHubPanel.jsx       # GitHub + VCS + PM + docs/debug console
 │       ├── DashboardPanel.jsx    # Customizable analytics + report exports
 │       └── CreateWizard.jsx      # Create mode multi-step wizard
 ├── test/
