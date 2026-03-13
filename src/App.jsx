@@ -17,6 +17,7 @@ import TypingIndicator3D from './components/3d/TypingIndicator3D';
 import ParticleBurst from './components/3d/ParticleBurst';
 import TokenCounter from './components/3d/TokenCounter';
 import OrbitingBadge from './components/3d/OrbitingBadge';
+import CreateWizard from './components/CreateWizard';
 
 const MODES = [
   { id: 'chat',           label: 'Chat',        icon: '💬', desc: 'Freeform conversation',   placeholder: "Ask me anything — tech concepts, PM advice, or just say hello..." },
@@ -25,6 +26,7 @@ const MODES = [
   { id: 'refactor',       label: 'Refactor',    icon: '✨', desc: 'Improve this code',       placeholder: "Paste code here and I'll suggest improvements with explanations..." },
   { id: 'translate-tech', label: 'Tech → Biz',  icon: '📋', desc: 'Technical to business',   placeholder: "Paste a technical spec, PR description, or code...\nI'll translate it into business language." },
   { id: 'translate-biz',  label: 'Biz → Tech',  icon: '🔧', desc: 'Business to technical',   placeholder: "Describe a feature request or product requirement...\nI'll produce technical specs." },
+  { id: 'create',         label: 'Create',      icon: '🛠️', desc: 'Scaffold a new project',  placeholder: "Describe what you want to build and I'll set up a complete project workspace..." },
 ];
 
 function TypingIndicator() {
@@ -137,6 +139,19 @@ export default function App() {
       await fetchModels();
       if (newFolder) setShowFileBrowser(true);
     } catch {}
+  }
+
+  async function handleProjectCreated(projectPath) {
+    try {
+      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectFolder: projectPath }) });
+      setProjectFolder(projectPath);
+      setShowGitHub(false);
+      setShowFileBrowser(true);
+      showToast(`Project created at ${projectPath}`);
+    } catch {
+      showToast('Project created — update your project folder in Settings to browse it.');
+    }
   }
 
   async function loadConversation(id) {
@@ -390,6 +405,11 @@ export default function App() {
               ))}
             </div>
 
+            {/* Create Mode — wizard replaces messages + input */}
+            {mode === 'create' ? (
+              <CreateWizard onProjectCreated={handleProjectCreated} />
+            ) : (<>
+
             {/* Messages */}
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
               {messages.length === 0 && (
@@ -462,6 +482,7 @@ export default function App() {
                 </div>
               </div>
             </div>
+            </>)}
           </div>
 
           {/* GitHub Panel (right panel) */}
