@@ -4,385 +4,298 @@
 
 ## Tech Debt
 
-**Large monolithic server file:**
-- Issue: `server.js` is 650+ lines, handling route definitions, streaming logic, MCP server setup, and GitHub integration all in one file
-- Files: `server.js`
-- Impact: Difficult to navigate, test, and maintain. Route handlers are tightly coupled. Adding new endpoints requires modifying a large file.
-- Fix approach: Refactor into route modules (`routes/chat.js`, `routes/history.js`, `routes/files.js`, `routes/github.js`, `routes/mcp.js`) and consolidate into a lightweight app entry point
+**Silent error handling throughout frontend:**
+- Issue: Widespread use of empty catch blocks (`catch {}`) silently swallows errors, making debugging difficult and hiding failures from users
+- Files: `src/App.jsx` (10+ instances), `src/components/GitHubPanel.jsx`, `src/components/FileBrowser.jsx`, `src/components/SettingsPanel.jsx`, `src/contexts/Effects3DContext.jsx`
+- Impact: Failed API calls, failed file operations, and failed configuration updates all fail silently. Users have no feedback when things go wrong, and errors don't appear in logs
+- Fix approach: Replace empty catches with proper error logging and user-facing toast notifications. Example: `catch (err) { console.error(err); showToast('Failed to load history'); }`
 
-**Large monolithic React component (App.jsx):**
-- Issue: `src/App.jsx` is 516 lines with 27+ state variables and multiple responsibilities (chat handling, UI state, file management, settings, GitHub integration)
-- Files: `src/App.jsx`
-- Impact: Component is difficult to reason about, debug, and extend. State management is scattered across useState hooks with no clear organization.
-- Fix approach: Extract state management into custom hooks (`useChatLogic`, `useFileManager`, `useGitHubBrowser`), break UI into smaller presentational components, consider useReducer for complex state
+**Large monolithic files:**
+- Issue: `server.js` (793 lines) and `src/App.jsx` (664 lines) contain too many concerns in one file
+- Files: `/server.js`, `/src/App.jsx`
+- Impact: Hard to maintain, test, and understand. Changes ripple across unrelated functionality. Makes code review difficult
+- Fix approach: Break server routes into separate modules (chat, history, github, mcp). Break App.jsx into smaller components (ConversationManager, ModelSelector, etc.)
 
-**Bare `catch` blocks swallowing errors silently:**
-- Issue: Multiple frontend and backend functions use empty `catch {}` blocks without logging or user feedback
-- Files: `src/App.jsx` (lines 30, 64, 204, 243, 284), `src/components/SettingsPanel.jsx` (lines 30, 64), `src/components/GitHubPanel.jsx` (lines 42, 51), `src/components/McpClientPanel.jsx` (lines 42)
-- Impact: Silent failures make debugging extremely difficult. Network errors, JSON parse failures, and API call failures go completely unnoticed by developer and user
-- Fix approach: Replace bare `catch {}` with `catch (err) { this.log('ERROR', message, {error: err.message}); showToast('Operation failed'); }`. See `src/components/SettingsPanel.jsx` line 50 for reference implementation with error handling
+**Regex pattern parsing for tool calls is fragile:**
+- Issue: Tool call parsing in `lib/tool-call-handler.js` line 1 uses a complex regex `TOOL_CALL_PATTERN` that relies on exact format from LLM output. Any slight variation in model response breaks tool execution
+- Files: `lib/tool-call-handler.js`
+- Impact: Tool calls fail silently when model slightly changes format. No fallback for parsing errors. Creates brittle coupling to LLM output format
+- Fix approach: Add structured response mode if Ollama supports it. Add fallback parsing with multiple pattern variants. Log failed parse attempts with actual text received
 
-**Hard-coded Ollama host mismatch:**
-- Issue: Documentation in CLAUDE.md states Ollama at `http://192.168.50.7:11424` but code default is `http://localhost:11434`
-- Files: `CLAUDE.md` (instructions), `lib/config.js` (line 27)
-- Impact: Documentation doesn't match implementation. Users following project docs will get wrong endpoint and fail to connect.
-- Fix approach: Update CLAUDE.md to reflect actual default, or update code to use the documented endpoint
+**Unhandled promise rejections in stream handling:**
+- Issue: In `server.js` lines 317-380, the async stream reading loop has try-catch but cleanup may not happen properly if stream ends unexpectedly
+- Files: `/server.js` (lines 317-381)
+- Impact: Resources may leak if client disconnects during stream reading. Reader objects not always cleaned up
+- Fix approach: Add finally block to ensure reader.cancel() is called. Use try-finally pattern for guaranteed cleanup
 
-**Unvalidated JSON.parse in client streaming loop:**
-- Issue: `src/App.jsx` lines 238-243 parse SSE events inside loop with try/catch, but parse failures silently swallowed
-- Files: `src/App.jsx` lines 238-243
-- Impact: Malformed JSON from server leaves streaming state incomplete; user sees partial or stale responses without knowing why
-- Fix approach: Log parse errors to console in dev mode, emit error event to user, implement fallback parsing for edge cases
-
-**Regex engine ReDoS vulnerability:**
-- Issue: `lib/tool-call-handler.js` line 1 uses regex with nested quantifiers: `/TOOL_CALL:\s*(\S+?)\.(\S+?)\(([\s\S]*?)\)/g`
-- Files: `lib/tool-call-handler.js` line 1
-- Impact: If Ollama produces pathological output with many nested `TOOL_CALL:` patterns or deeply nested parentheses, regex could hang and block event loop
-- Fix approach: Add length limit to regex, use non-backtracking parsing instead (e.g., string search + manual state machine), add timeout to regex execution
+**Global MCP client manager state:**
+- Issue: `McpClientManager` in `lib/mcp-client-manager.js` maintains a single Map of connections shared across all requests, but HTTP requests are stateless
+- Files: `lib/mcp-client-manager.js`, `server.js` (lines 31-33)
+- Impact: Concurrent requests may interfere with each other's tool calls. Connection state could become inconsistent. Auto-reconnection logic not tested
+- Fix approach: Review if global state is appropriate for stateless HTTP server. Consider if each request should get fresh connection or if manager properly isolates per-user context
 
 ## Known Bugs
 
-**SSE response double-close vulnerability:**
-- Symptoms: Rare "Cannot write to closed response" errors in production, especially under load
-- Files: `server.js` lines 226, 241, 273-274, 296-297, 310-311 (multiple paths call res.end())
-- Trigger: Client disconnects during tool-call loop OR streaming loop; `res.end()` called multiple times
-- Current mitigation: Partial checks for `res.writableEnded` (lines 160, 273, 308) but not comprehensive
-- Issue: Multiple code paths send `[DONE]` marker and call `res.end()`. Tool-call loop (line 226) and standard streaming loop (lines 296-297) both end response without mutual exclusion. If both paths execute, server crashes.
-- Fix approach: Extract send-complete logic into single function that guarantees one-time execution
+**File input accept attribute missing file extensions:**
+- Issue: File input element in `src/App.jsx` line 602 specifies file extensions but browser may interpret them incorrectly
+- Files: `src/App.jsx` (line 602)
+- Trigger: User tries to upload file with custom extension or unusual format
+- Workaround: Manual file selection works if you change file type filter to "All Files"
 
-**Streaming loop memory leak on client disconnect:**
-- Symptoms: Memory usage grows over time when clients disconnect mid-stream; memory not released
-- Files: `server.js` lines 318-321 (event listener setup), lines 245-315 (reader in closure)
-- Trigger: Client disconnects while reading stream; `reader` object in scope of readStream() not garbage collected
-- Current mitigation: `req.on('close')` calls `reader.cancel()` but doesn't abort pending Ollama fetch or cleanup timer references
-- Issue: Pending promise chains, uncancelled HTTP connections, and closure references keep memory allocated
-- Fix approach: Add AbortController to cancel pending fetch, manually clear all references in close handler, add memory profiling test
+**Empty catch in config loading silently loses configuration errors:**
+- Issue: `lib/config.js` lines 35-37 catches all errors loading config file but doesn't log them
+- Files: `lib/config.js`
+- Trigger: If `.cc-config.json` is corrupted or permissions issue, user gets default config with no warning
+- Workaround: Delete `.cc-config.json` and restart to get fresh default config
 
-**Path traversal vulnerability (incomplete mitigation):**
-- Symptoms: User could potentially escape project folder using symlinks or unusual path encodings
-- Files: `lib/file-browser.js` lines 78-81, `server.js` line 394-408
-- Trigger: Send request like `/api/files/read?path=../../sensitive/file` or via symlinks
-- Current mitigation: `readProjectFile` uses `path.resolve()` check, but only validates resolved path is inside folder using `startsWith()`
-- Issue: `startsWith()` is insufficient—could match `/home/user-sensitive` when checking `/home/user`. Also `path.resolve()` may behave differently on Windows. Symlinks not resolved before check.
-- Fix approach: Use `path.relative()` to verify resolved path is still inside project, call `fs.realpathSync()` to resolve symlinks before validation, add integration tests with symlinks
-
-**Tool call parsing accepts malformed JSON silently:**
-- Symptoms: Tool arguments get wrapped as `{"input": "..."}` instead of properly parsed; tool calls fail with cryptic errors
-- Files: `lib/tool-call-handler.js` lines 12-36
-- Trigger: Ollama returns tool call with Python-style kwargs or unparseable args like `project_id="abc-123", name="foo"`
-- Current mitigation: Fallback parsing (lines 21-35) converts key=value to JSON
-- Issue: Fallback parsing is too permissive and accepts invalid patterns. If parsing fails, entire tool call is wrapped as `{"input": "..."}` which likely breaks tool
-- Fix approach: Add validation for parsed args format, log warning when fallback parsing used, reject tool calls if format unrecognized
-
-**GitHub token exposed in config:**
-- Symptoms: GitHub token stored in `.cc-config.json` in plaintext
-- Files: `lib/config.js` (line 43), `server.js` (lines 494-513)
-- Trigger: Access to local machine or config file via git, backup, or file browser
-- Current mitigation: None—file is in project root, gitignored but accessible to any process on system
-- Impact: Token can be used to access all repositories the user has access to; no token rotation or revocation
-- Fix approach: Store token in OS keychain via node-keyring, or use OAuth flow with local callback, never persist token to disk
+**Memory metrics may not be accurate under heavy load:**
+- Issue: CPU percentage calculation in `server.js` lines 66-82 takes single-point samples and may show spikes rather than smoothed usage
+- Files: `/server.js` (lines 66-82)
+- Trigger: Burst of requests causes CPU metric to spike disproportionately
+- Workaround: Dashboard metrics are informational only, not used for actual scaling decisions
 
 ## Security Considerations
 
-**File read endpoint exposes .env files:**
-- Risk: `.env` files are readable through `/api/files/read` endpoint despite being marked as text
-- Files: `lib/file-browser.js` line 12 (marks .env as textfile), line 48 (skips .env in tree), `server.js` lines 394-408 (readProjectFile)
-- Current mitigation: `.env` skipped in directory tree listing (line 48) but direct API call can read it: `/api/files/read?path=.env`
-- Issue: `readProjectFile` at line 77-80 only validates path traversal, not file extension. Line 12 adds .env to TEXT_EXTENSIONS, then line 48 in tree walk tries to skip it, but endpoint doesn't enforce skip
-- Fix approach: Add .env exclusion in `readProjectFile`, maintain blocklist of files that should never be readable (`.env*`, `secrets/*`, `*.key`)
-
-**GitHub token not validated before save:**
-- Risk: Malicious input in `POST /api/github/token` not validated before saving to config
-- Files: `server.js` lines 494-513, `lib/github.js` (validateToken function)
-- Current mitigation: Token is validated via GitHub API call (`validateToken`), but validation is optional
+**GitHub token stored in plaintext in config file:**
+- Risk: `.cc-config.json` contains GitHub token in plain JSON. If file is committed or backup is exposed, token is compromised
+- Files: `lib/config.js`, `.cc-config.json` (generated at runtime)
+- Current mitigation: File is gitignored and never committed by default. Token is validated on save
 - Recommendations:
-  - Enforce token validation before save
-  - Add rate limiting to prevent token enumeration attacks
-  - Sanitize token in logs (never log full token)
-  - Consider adding token expiry/rotation
+  1. Use OS keychain/credential store instead of JSON file (`keytar` package)
+  2. Add warning in Settings UI when token is saved
+  3. Add automatic token rotation capability
+  4. Never log token values (review logging for sanitization)
 
-**No input validation on project folder path:**
-- Risk: Server accepts any folder path; directory traversal not fully prevented
-- Files: `server.js` line 79 (only checks existence), `lib/file-browser.js` line 79-80 (path validation)
-- Current mitigation: Path validation in `readProjectFile`; but Ollama URL and other settings not validated
+**Path traversal protection exists but uses string prefix check:**
+- Risk: `lib/file-browser.js` line 80 checks if path starts with folder using string comparison, which could be bypassed with symlinks
+- Files: `lib/file-browser.js` (line 80)
+- Current mitigation: Basic path validation blocks most attacks
 - Recommendations:
-  - Whitelist allowed project folders instead of allowing any folder
-  - Validate Ollama URL format (enforce localhost/127.0.0.1 only)
-  - Add input sanitization for all config values
+  1. Use `path.relative()` and check result doesn't start with `..` (more robust)
+  2. Reject all symlinks explicitly with `fs.realpathSync()`
+  3. Add unit tests for path traversal attempts
 
-**MCP server subprocess command injection risk:**
-- Risk: User-supplied command string in `mcpClientManager.connect()` could execute arbitrary shell commands
-- Files: `lib/mcp-client-manager.js` lines 22-33
-- Current mitigation: Command is split on whitespace and passed to `spawn()`, not through shell (safer)
+**LLM-injected tool calls are executed without validation:**
+- Risk: Model output directly parsed for tool calls in `lib/tool-call-handler.js`. Malicious or jailbroken model could call tools with arbitrary arguments
+- Files: `lib/tool-call-handler.js`
+- Current mitigation: Tools themselves validate arguments through MCP framework
 - Recommendations:
-  - Validate command against whitelist of allowed MCP servers
-  - Reject commands containing special shell characters (`;`, `|`, `&`, `$`, etc.)
-  - Log all subprocess spawns with timestamps
-  - Consider disabling MCP by default until explicitly enabled
+  1. Add tool call whitelist — only allow specific tools per mode
+  2. Validate tool arguments against schema before execution
+  3. Log all tool calls with arguments for audit trail
+  4. Add rate limiting on tool calls per conversation
 
-**History data accessible without authentication:**
-- Risk: Conversation history files are readable by any user on the system
-- Files: `lib/history.js`, `server.js` lines 333-370
-- Current mitigation: Files stored with default filesystem permissions in `history/` directory
+**Environment variables in MCP client config:**
+- Risk: `server.js` line 32 passes environment variables to MCP client subprocess. If config includes untrusted env vars, subprocess receives them
+- Files: `server.js` (line 32), `lib/mcp-client-manager.js` (line 32)
+- Current mitigation: Config is user-provided through settings
 - Recommendations:
-  - Implement authentication/session tracking before exposing to network
-  - Encrypt conversation history at rest
-  - Add per-conversation access control
-  - Document that app must not be exposed to public internet
+  1. Whitelist allowed environment variables for MCP subprocesses
+  2. Never pass `PATH`, `HOME`, shell variables directly
+  3. Sanitize values for shell injection (though using array args helps)
 
 ## Performance Bottlenecks
 
-**In-memory model list caching missing:**
-- Problem: Models fetched from Ollama on every request to `/api/models`
-- Files: `server.js` lines 92-116, `lib/ollama-client.js` lines 1-12
-- Cause: No caching between requests; each request makes HTTP call to Ollama
-- Impact: Adds 50-500ms latency per request. Multiple UI tabs polling models will overwhelm Ollama with redundant calls.
-- Improvement path:
-  - Implement 30-second TTL cache in memory
-  - Emit SSE events to clients on model list changes
-  - Or: use polling with exponential backoff
+**Inline markdown rendering without memoization:**
+- Problem: `src/components/MarkdownContent.jsx` renders markdown on every message update. Markdown parsing is CPU-intensive
+- Files: `src/components/MarkdownContent.jsx`
+- Cause: No useMemo wrapping markdown parse calls. Every state change re-parses all messages
+- Improvement path: Wrap parsed markdown in useMemo by message ID. Consider virtual scrolling for long conversations
 
-**Synchronous filesystem operations during startup:**
-- Problem: `lib/history.js`, `lib/config.js`, `lib/logger.js` use synchronous `fs` operations during module initialization
-- Files: `lib/history.js` lines 8-12, `lib/config.js`, `lib/logger.js`
-- Cause: Blocks event loop during startup; slows cold start on systems with slow disk I/O
-- Impact: Server startup delayed by 100-500ms on mechanical hard drives
-- Improvement path:
-  - Move initialization to async functions called explicitly from server startup
-  - Use `fs.promises` for consistency with streaming operations
+**File tree walk is synchronous and blocks on large projects:**
+- Problem: `lib/file-browser.js` line 32-75 recursively walks file tree synchronously. Large projects (node_modules=50k files) cause UI freeze
+- Files: `lib/file-browser.js`
+- Cause: `fs.readdirSync()` and `fs.statSync()` are blocking I/O
+- Improvement path: Use `fs.promises` with Promise.all for parallel directory reads. Implement pagination/lazy loading in UI
 
-**Unoptimized file tree traversal:**
-- Problem: `buildFileTree` walks entire directory structure synchronously on every request
-- Files: `lib/file-browser.js` lines 32-75
-- Cause: Synchronous `fs.readdirSync()` and `fs.statSync()` block event loop
-- Impact: Large projects (10K+ files) cause UI to hang for 2-5 seconds per request
-- Improvement path:
-  - Make async, implement pagination/depth limits
-  - Cache file tree with invalidation on file changes
-  - Lazy-load subdirectories instead of entire tree
+**Unbounded message history in memory:**
+- Problem: `src/App.jsx` loads all conversations into state on startup (line 109), all messages for active conversation (line 284)
+- Files: `src/App.jsx`
+- Cause: No pagination or streaming. 1000 conversations × 100 messages each = 100K message objects in RAM
+- Improvement path: Implement pagination (load 20 conversations at a time). Lazy-load message history for active conversation
 
-**Tool-call round-trip sequential:**
-- Problem: Each tool call in loop waits for Ollama response sequentially; 5-round max means worst-case 5x network latency
-- Files: `server.js` lines 168-230
-- Cause: Architecture requires LLM to parse and format tool results before continuing; no parallelization possible
-- Impact: Tool-heavy workflows have 5-10 second added latency per tool call round
-- Improvement path:
-  - Could batch tool calls if Ollama API supported it (currently doesn't)
-  - Or: use streaming + event-based tool execution instead of round-trip loop
+**String-based configuration loaded on every request:**
+- Problem: `server.js` calls `getConfig()` on every request (lines 158, 201, 244, etc.) which reads from shared mutable state
+- Files: `/server.js`
+- Cause: Config is meant to be read-once at startup. Frequent property access doesn't cache
+- Improvement path: Cache config in process memory on startup. Only reload on explicit update via API
 
-**Streaming tokenization splits on whitespace creating many SSE events:**
-- Problem: `server.js` lines 220-223 splits final text by regex `(\s+)` and sends each token separately; creates 100+ events for average response
-- Files: `server.js` lines 220-223
-- Cause: Word-by-word tokenization for UX, but event overhead high
-- Impact: Network overhead, excessive CPU usage sending/parsing events
-- Improvement path:
-  - Buffer tokens into chunks (e.g., 256 chars) before sending
-  - Or: use actual LLM token boundaries if available from Ollama
-
-**Large component files causing render thrashing:**
-- Problem: `src/App.jsx` (516 lines), `src/components/CreateWizard.jsx` (451 lines), `src/components/GitHubPanel.jsx` (343 lines) re-render entire component on any state change
-- Files: Listed above
-- Cause: Complex component logic in single file; no granular state management; missing React.memo
-- Impact: UI feels sluggish when streaming responses or updating multiple pieces of state
-- Improvement path:
-  - Split into smaller sub-components with isolated state
-  - Use `useMemo`/`useCallback` to memoize expensive operations
-  - Apply `React.memo` to prevent unnecessary re-renders
+**Conversation CSV export builds entire array in memory:**
+- Problem: `src/App.jsx` lines 205-210 build full CSV as string before download. Large conversation histories could exhaust memory
+- Files: `src/App.jsx`
+- Cause: No streaming export or chunking
+- Improvement path: Stream CSV rows progressively or chunk data before stringifying
 
 ## Fragile Areas
 
-**SSE message ordering in tool-call loop:**
-- Files: `server.js` lines 166-229
-- Why fragile: Tool-call loop sends `done` event (line 224), then `[DONE]` marker (line 226), then final response (line 227). If response ends early, state is inconsistent. Multiple code paths can execute.
+**ICM Project scaffolding with external template dependency:**
+- Files: `lib/icm-scaffolder.js`
+- Why fragile: Scaffolder requires external template path (defaults to `~/AI_Dev/ICM_FW/ICM-Framework-Template`). If template doesn't exist, scaffold fails with generic error. No fallback or bundled template
 - Safe modification:
-  - Test with timeouts, add sequence numbers to SSE events
-  - Validate state machine transitions on client
-  - Ensure only one path to `res.end()`
-- Test coverage: No tests for tool-call loop edge cases (timeout, partial response, malformed tool output)
+  1. Always validate template exists before attempting scaffold
+  2. Add built-in minimal template for bootstrap
+  3. Add detailed error messages mentioning where template should be
+- Test coverage: Unit tests in `test/unit/icm-scaffolder.test.js` cover happy path and path traversal, but no tests for missing template case
 
-**Message state management in App component:**
-- Files: `src/App.jsx` lines 80-90 (message, streaming, stats state)
-- Why fragile: Message state is mutable via useState; no transactional guarantees when user navigates between conversations. Can create orphaned/duplicate messages.
+**MCP Server HTTP endpoint with no authentication:**
+- Files: `server.js` (lines 665-685)
+- Why fragile: `/mcp` endpoint accepts raw MCP protocol messages with no authentication. Anyone with access to server can invoke any MCP tool
 - Safe modification:
-  - Use `useReducer` instead of multiple `useState` calls
-  - Validate conversation ID matches before rendering messages
-  - Add cleanup on active conversation change
-- Test coverage: No tests for message history state management
+  1. Add authentication check (require API key or session)
+  2. Log all MCP requests with caller info
+  3. Add rate limiting per client
+- Test coverage: No tests for MCP HTTP endpoint. E2E tests in `test/e2e/create-mode.spec.js` exist but don't cover MCP paths
 
-**Streaming incomplete state handling:**
-- Files: `server.js` lines 252-316, `src/App.jsx` lines 228-250
-- Why fragile: Chat interface may show partial responses or hang if client disconnects during streaming. Frontend doesn't handle aborted streams gracefully.
+**Ollama model list relies on exact format of API response:**
+- Files: `lib/ollama-client.js` (lines 1-13)
+- Why fragile: `listModels()` assumes `data.models` exists and `model.details?.family` structure. If Ollama response format changes, parsing fails
 - Safe modification:
-  - Implement message-level state guards on frontend
-  - Add receipts/acks from frontend to server
-  - Add timeout to close stream if no data for 30s
-- Test coverage: No tests for connection timeout or abrupt disconnection scenarios
+  1. Add defensive checks: `const models = data?.models || []; if (!Array.isArray(models)) models = []`
+  2. Add fallback for missing fields: `family: m.details?.family || m.base || 'unknown'`
+  3. Version lock Ollama API version in docs
+- Test coverage: No unit tests for ollama-client. Only tested through integration
 
-**React hooks dependencies in large components:**
-- Files: `src/App.jsx` (complex effect dependencies)
-- Why fragile: With 27+ useState hooks, effect dependencies are hard to track. Missing dependencies cause stale closures and race conditions.
+**Streaming response handling with manual buffer management:**
+- Files: `server.js` (lines 310-380)
+- Why fragile: Manual TextDecoder and line-by-line parsing is error-prone. Incomplete JSON lines may corrupt parsing. No recovery mechanism
 - Safe modification:
-  - Use linter strict mode with exhaustive-deps
-  - Add dependency arrays explicitly
-  - Extract to custom hooks with clearer dependencies
-- Test coverage: No tests for state transitions or effect ordering
-
-**MCP client manager connection lifecycle:**
-- Files: `lib/mcp-client-manager.js`, `server.js` lines 638-649
-- Why fragile: Auto-connect happens on startup; if server is offline, connection fails silently and never retries. Connection state stored in memory only.
-- Safe modification:
-  - Implement exponential backoff reconnection with jitter
-  - Expose retry UI in settings
-  - Persist connection config to file for recovery
-  - Add health-check loop to detect dead connections
-- Test coverage: No tests for connection failure recovery
-
-**Tool call regex is fragile:**
-- Files: `lib/tool-call-handler.js` line 1
-- Why fragile: Pattern `/TOOL_CALL:\s*(\S+?)\.(\S+?)\(([\s\S]*?)\)/g` uses non-greedy `\S+?` which stops at first whitespace—fails if tool names have hyphens or underscores. Uses greedy `[\s\S]*?` for args which may capture partial content if multiple tool calls exist.
-- Safe modification:
-  - Use more precise regex with named groups or state machine parser
-  - Add unit tests for edge cases (tool names with special chars, nested parens, multiline args)
-  - Add length limits to prevent ReDoS
-- Test coverage: No tests for tool call parsing edge cases
+  1. Use a proper streaming JSON parser library (`ndjson` or `JSONStream`)
+  2. Add line validation before JSON.parse attempt
+  3. Add comprehensive error logging with context
+- Test coverage: E2E tests exist but manual streaming is hard to test comprehensively
 
 ## Scaling Limits
 
-**JSON file-based history storage:**
-- Current capacity: History directory stores files by conversation ID; listing loads all files into memory
-- Limit: With 10K conversations, `listConversations()` reads and parses all JSON files, taking seconds
-- Problem: No indexing, no pagination, O(N) scans on every history load
-- Scaling path: Migrate to SQLite database with indexed queries, implement pagination API
+**Single-threaded Node.js processing for CPU-intensive operations:**
+- Current capacity: Can handle ~10 concurrent chat streams before CPU becomes bottleneck
+- Limit: At ~15 concurrent requests, Ollama integration becomes slow because Node event loop is blocked
+- Scaling path:
+  1. Use Worker Threads for markdown parsing (intensive)
+  2. Use clustering for multi-core usage
+  3. Consider moving to stateless architecture where each request is independent
 
-**Single-threaded event loop with blocking operations:**
-- Current capacity: Can handle ~10 concurrent chat streams before response latency degrades significantly
-- Limit: `buildFileTree` and file reads are synchronous; large projects block other requests
-- Problem: Node.js event loop stalls during file I/O operations
-- Scaling path: Make all file I/O async, use worker threads for CPU-intensive parsing
+**FileTree walk has O(n) complexity per folder:**
+- Current capacity: Projects with <10k files work smoothly. >50k files causes multi-second delay
+- Limit: Very large monorepos (>100k files) will cause browser timeout
+- Scaling path:
+  1. Implement server-side pagination with cursor
+  2. Add search/filter to avoid loading full tree
+  3. Cache tree results with invalidation on file change
 
-**MCP server connection limits:**
-- Current capacity: One connection per registered server; no connection pooling or rate limiting
-- Limit: With 5+ external MCP servers, spawning all at startup could consume 500MB+ RAM
-- Problem: Each connection uses separate stdio transport and spawns new child process
-- Scaling path: Implement connection pooling, lazy loading of servers, health checks
+**In-memory conversation history grows unbounded:**
+- Current capacity: ~1000 conversations with 100 messages each = acceptable RAM
+- Limit: At ~10k conversations or very long message histories (1000+ messages), React state updates slow down
+- Scaling path:
+  1. Implement conversation pagination (20 per page)
+  2. Implement message windowing (show last 50 messages, lazy-load earlier)
+  3. Archive old conversations to separate storage tier
 
-**3D effects render pipeline unbounded:**
-- Current capacity: ~100 floating geometries before frame rate drops below 30fps on mid-range GPU
-- Limit: Three.js scene graph grows without culling; all geometries render every frame
-- Problem: No level-of-detail (LOD) system or frustum culling
-- Scaling path: Implement LOD system, add frustum culling, limit number of active 3D components
+**Hardcoded Ollama URL limits to single instance:**
+- Current capacity: One Ollama server per Code Companion instance
+- Limit: Can't load-balance across multiple Ollama instances or use different models on different servers
+- Scaling path:
+  1. Support multiple Ollama endpoints with load balancing
+  2. Allow per-mode model/endpoint selection
+  3. Add model affinity (prefer faster models for quick tasks)
 
 ## Dependencies at Risk
 
-**Ollama 0.13+ API changes:**
-- Risk: Ollama is evolving; API responses may change format in future versions
-- Current version checked: No pinned version requirement for Ollama in package.json
-- Impact: Code assumes specific response structure (data.models, message.content) which may break
-- Migration plan:
-  - Add API version detection on startup
-  - Implement response schema validation with Zod (already in package.json)
-  - Test against multiple Ollama versions in CI
+**Express 4.18.2 is stable but outdated:**
+- Risk: Latest Express 4.x is 4.21.x. Security patches may have been released
+- Impact: Potential unpatched vulnerabilities in request parsing, middleware, or routing
+- Migration plan: Update to latest 4.x patch. Plan Express 5.0 migration (breaking changes) for future major version
 
-**@modelcontextprotocol/sdk v1.27.1 - Pre-release API risk:**
-- Risk: MCP specification still evolving; major version could have breaking changes
-- Version: `^1.27.1` (semver allows breaking changes on minor/patch)
-- Impact: External tool integration breaks on SDK update
+**Marked 17.0.4 has known security considerations:**
+- Risk: Markdown parser can execute arbitrary JavaScript if untrusted content is rendered with `dangerously_inline`
+- Impact: If user markdown contains malicious code, it could execute. See recent Marked security advisories
 - Migration plan:
-  - Pin version strictly to `1.27.1` instead of `^1.27.1`
-  - Add integration tests for MCP server connections
-  - Watch for MCP v2.0 announcement
+  1. Audit how Marked is used in `MarkdownContent.jsx`
+  2. Ensure sanitization is applied: use `DOMPurify` + marked together
+  3. Document that user-provided markdown should be treated as trusted (users own their data)
 
-**@splinetool/react-spline v4.1.0 - Proprietary CDN dependency:**
-- Risk: Spline 3D scenes loaded from `https://prod.spline.design`; if Spline service goes down, 3D effects break
-- Impact: App still functional (fallback CSS scenes), but premium UX degraded
-- Migration plan:
-  - Already using Three.js as fallback (ParticleField, FloatingGeometry)
-  - Can remove Spline entirely, use Three.js exclusively
-  - Or: allow offline 3D model bundles
+**Node.js stream API changes between versions:**
+- Risk: Streaming code in `server.js` uses old-style callback streams. Future Node versions may deprecate
+- Impact: Code may break on Node 20+
+- Migration plan: Migrate to async iterators and `ReadableStream` API (more modern)
 
-**express v4.18.2 - Missing security middleware:**
-- Risk: No helmet.js, no rate limiting, no CORS policy configured
-- Impact: XSS/clickjacking attacks possible if app exposed to web; no request rate limiting
-- Migration plan:
-  - App designed for localhost only (acceptable for now)
-  - Add helmet() middleware and rate-limiting if ever exposed to network
-  - Document that app must not be internet-facing
+**React 19.2.4 is very recent with limited production battle-testing:**
+- Risk: Version is from 2024 with fewer production deployments than 18.x. Edge cases may not be discovered
+- Impact: Unexpected behavior in specific scenarios. Browser compatibility issues
+- Migration plan: Monitor for issues in production. Have fallback to React 18 if needed
 
 ## Missing Critical Features
 
-**No authentication or authorization:**
-- Problem: All endpoints are open; any client with network access can clone private GitHub repos, view history, modify settings
-- Blocks: Multi-user deployments, cloud hosting, shared environments
-- Gap: Implement session tokens, API keys, or OAuth before exposing to network
+**No conversation search functionality:**
+- Problem: Users with hundreds of conversations can't find old discussions. Sidebar only shows chronological list
+- Blocks: PM workflows of "find that conversation where we discussed X"
+- Priority: Medium
 
-**No offline mode:**
-- Problem: App completely non-functional if Ollama becomes unreachable after initial load
-- Blocks: PM workflows if user loses network connectivity
-- Gap: Could cache LLM responses and serve from cache; or offer basic advice from hardcoded prompts
+**No API authentication:**
+- Problem: Anyone who can access the server port can use all features. No multi-user isolation
+- Blocks: Sharing server instance across team members safely. Using as shared team resource
+- Priority: High (if server is exposed beyond localhost)
 
-**No model provider abstraction:**
-- Problem: Code hardcoded to Ollama; cannot switch to OpenAI, Claude, or other LLM APIs
-- Blocks: Using cloud models, fallback providers, A/B testing
-- Gap: Create LLM provider interface, implement adapters for Ollama/OpenAI/etc.
+**No conversation/model export with metadata:**
+- Problem: Dashboard exports CSV/JSON but exports don't include conversation metadata (who created, when, which mode)
+- Blocks: Reporting and analytics workflows
+- Priority: Low (workaround: access raw history files)
 
-**No conversation encryption or privacy controls:**
-- Problem: All conversation data is plaintext in `history/` directory
-- Blocks: HIPAA compliance, sensitive data handling, enterprise adoption
-- Gap: Implement end-to-end encryption, add data retention policies
-
-**No export/import of conversation history:**
-- Problem: Users cannot back up or share conversations; switching machines loses all history
-- Blocks: Collaboration workflows, disaster recovery
-- Gap: Implement JSON export (partially done for single conversation), add bulk export and import
-
-**No conversation search:**
-- Problem: User cannot find past conversation by content; only browse list
-- Blocks: Finding previous analysis results
-- Gap: Add full-text search via simple JSON scan or SQLite FTS
+**No undo/revision history for conversations:**
+- Problem: Once user deletes message, it's gone. No way to recover
+- Blocks: Safety net for accidental deletions
+- Priority: Low (users manage deletion via archive feature)
 
 ## Test Coverage Gaps
 
-**API streaming endpoints not tested:**
-- What's not tested: `/api/chat` SSE streaming, tool-call loop, partial responses, client disconnections, timeout handling
-- Files: `server.js` lines 120-328
-- Risk: Streaming bugs go undetected; race conditions in SSE message ordering cause user-facing failures
-- Priority: HIGH - streaming is core feature, complex, and fragile
+**Untested areas:**
 
-**File browser path validation not tested:**
-- What's not tested: Path traversal prevention, symlink handling, large file truncation, .env file exclusion
-- Files: `lib/file-browser.js`, `server.js` lines 375-413
-- Risk: Security vulnerability if validation logic breaks; users may inadvertently read outside project folder
-- Priority: HIGH - security critical
+**Frontend API integration tests:**
+- What's not tested: Real fetch() calls to backend endpoints. How component handles 500 errors, timeouts, malformed responses
+- Files: `src/App.jsx`, `src/components/` (all)
+- Risk: Silent failures go unnoticed in CI/CD. Breaking API changes caught late
+- Priority: High
 
-**No unit tests for tool-call parsing:**
-- What's not tested: Regex edge cases, malformed JSON, special characters in tool names, nested parentheses
-- Files: `lib/tool-call-handler.js`
-- Risk: Tool calls fail silently with cryptic errors; hard to debug
-- Priority: HIGH - affects external integrations
+**MCP tool calling integration:**
+- What's not tested: End-to-end tool call parsing, execution, and response handling. Error cases when MCP server times out or returns invalid format
+- Files: `lib/tool-call-handler.js`, `server.js` (lines 233-295)
+- Risk: Tool features silently break. Users blame Code Companion instead of MCP server
+- Priority: High
 
-**GitHub integration not tested:**
-- What's not tested: Token validation, repo cloning, permission errors, malformed URLs, progress tracking
-- Files: `lib/github.js`, `server.js` lines 423-522
-- Risk: GitHub operations fail silently; users cannot diagnose clone failures
-- Priority: MEDIUM
+**Ollama connection failures:**
+- What's not tested: Behavior when Ollama is slow, returns malformed JSON, or is completely down. Timeout handling
+- Files: `lib/ollama-client.js`
+- Risk: Confusing error messages. User doesn't know if it's their Ollama or the app
+- Priority: Medium
 
-**MCP client reconnection not tested:**
-- What's not tested: Connection failures, auto-reconnect, partial disconnects, tool call failures, timeout handling
-- Files: `lib/mcp-client-manager.js`, `server.js` lines 638-649
-- Risk: MCP servers fail to load; tool calls hang indefinitely
-- Priority: MEDIUM
+**GitHub token validation and security:**
+- What's not tested: Invalid token handling, token expiration, rate limit behavior
+- Files: `lib/github.js`
+- Risk: Tokens silently fail. Sensitive errors may leak information
+- Priority: Medium
 
-**React component state transitions not tested:**
-- What's not tested: App.jsx state machine, effect dependencies, error boundaries, message synchronization
-- Files: `src/App.jsx`
-- Risk: UI gets stuck in invalid state; users cannot recover without refresh
-- Priority: MEDIUM
+**File browser security against path traversal:**
+- What's not tested: Symlink attacks, relative path attacks, edge cases like `//` or `.` in paths
+- Files: `lib/file-browser.js`
+- Risk: Security regression goes unnoticed. Users could accidentally read sensitive files
+- Priority: High
 
-**No E2E tests:**
-- What's not tested: Full user workflows (e.g., attach file → ask question → save conversation)
-- Files: Entire application
-- Risk: Integration issues between frontend and backend only caught in manual testing
-- Priority: MEDIUM
+**Create mode with unusual characters in project name:**
+- What's not tested: Unicode characters, very long names, special filesystem characters
+- Files: `lib/icm-scaffolder.js`
+- Risk: Scaffold fails with unclear error. Partial project directory created
+- Priority: Medium (unit tests exist for happy path but not edge cases)
+
+**Dashboard analytics calculation:**
+- What's not tested: Behavior with empty history, malformed history objects, dates in wrong format
+- Files: `src/App.jsx` (lines 140-187)
+- Risk: Dashboard shows incorrect metrics or crashes with invalid data
+- Priority: Medium
+
+**Streaming JSON parsing with incomplete messages:**
+- What's not tested: What happens when buffer splits in middle of JSON object? Multi-frame messages? Very large tokens?
+- Files: `server.js` (lines 310-380)
+- Risk: Parsing errors cause loss of response. No error recovery
+- Priority: High (critical path for chat)
 
 ---
 

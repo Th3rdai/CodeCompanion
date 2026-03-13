@@ -5,284 +5,201 @@
 ## Naming Patterns
 
 **Files:**
-- React components: PascalCase with `.jsx` extension (e.g., `MessageBubble.jsx`, `SettingsPanel.jsx`, `FileBrowser.jsx`)
-- Node.js modules: kebab-case with `.js` extension (e.g., `ollama-client.js`, `mcp-client-manager.js`, `logger.js`)
-- Utility modules: kebab-case with descriptive names (e.g., `file-browser.js`, `tool-call-handler.js`)
-- Context files: PascalCase with "Context" suffix (e.g., `Effects3DContext.jsx`)
-- 3D components: `src/components/3d/[ComponentName].jsx` (PascalCase, subdirectory)
+- Backend modules (Node.js): lowercase with hyphens, e.g., `logger.js`, `mcp-client-manager.js`, `icm-scaffolder.js`
+- React components: PascalCase, e.g., `App.jsx`, `SettingsPanel.jsx`, `FileBrowser.jsx`, `MessageBubble.jsx`
+- Test files: descriptive names with `.test.js` or `.spec.js` suffix, e.g., `icm-scaffolder.test.js`, `create-mode.spec.js`
 
 **Functions:**
-- React components: PascalCase (e.g., `function MessageBubble()`, `export default function FileBrowser()`)
-- Utility functions: camelCase (e.g., `slugify()`, `normalizeStages()`, `checkConnection()`)
-- Event handlers: camelCase prefixed with "handle" (e.g., `handleValidateGhToken()`, `handleAttach()`)
-- Private/internal functions: underscore prefix (e.g., `_parseArgs()`, `_parseArgs()` in `ToolCallHandler`)
-- Async helpers: camelCase, no special prefix (e.g., `fetchConfig()`, `fetchModels()`, `fetchHistory()`)
+- JavaScript/Node.js: camelCase for regular functions and methods, e.g., `createLogger()`, `buildFileTree()`, `fetchConfig()`, `handleSend()`
+- React hooks: camelCase starting with "use", e.g., `useState()`, `useEffect()`, `useCallback()`, `useRef()`
+- Helper functions: descriptive camelCase, e.g., `sendEvent()`, `computeCpuPercent()`, `percentile()`, `slugify()`
+- Event handlers: camelCase starting with "handle", e.g., `handleSave()`, `handleFileUpload()`, `handleDrop()`, `handleSend()`
+- Async operations: camelCase starting with "fetch" or "load", e.g., `fetchModels()`, `loadConversation()`, `loadTree()`
 
 **Variables:**
-- State variables: camelCase (e.g., `const [models, setModels] = useState([])`)
-- Constants: UPPER_SNAKE_CASE for module-level constants (e.g., `TOOL_CALL_PATTERN`, `MAX_ROUNDS`, `TEXT_EXTENSIONS`, `IGNORE_DIRS`)
-- Configuration objects: camelCase (e.g., `const defaults = { ollamaUrl: '...', icmTemplatePath: '' }`)
-- Booleans: descriptive names (e.g., `connected`, `streaming`, `dragging`, `showSettings`, `splashDismissed`)
+- Local variables: camelCase, e.g., `streaming`, `selectedModel`, `projectFolder`, `messages`
+- State variables (React): camelCase, e.g., `models`, `splashDismissed`, `showSettings`, `activeConvId`
+- Constants: UPPER_SNAKE_CASE, e.g., `DEBUG`, `PORT`, `MAX_ROUNDS`, `DEFAULT_STAGES`
+- Private/internal: camelCase prefixed with underscore (convention), e.g., `_config`
+- Abbreviations in variables: preserved as-is, e.g., `ollamaUrl`, `ghToken`, `mcpServer`
 
-**Types/Classes:**
-- No TypeScript used; vanilla JavaScript with JSDoc for documentation
-- Class names: PascalCase (e.g., `class McpClientManager`, `class ScaffolderError`, `class ToolCallHandler`)
-- Error classes: PascalCase with "Error" suffix
+**Types & Classes:**
+- Error classes: PascalCase, e.g., `ScaffolderError`
+- Custom error subclasses: define code, message, and status properties
 
 ## Code Style
 
 **Formatting:**
-- No explicit linting config (no `.eslintrc` or `.prettierrc` detected)
-- Vite configured in `vite.config.js` with React and Tailwind plugins
-- 2-space indentation throughout
-- Semicolons used consistently
-- Trailing commas in multi-line objects/arrays
+- Indentation: 2 spaces
+- Line endings: LF
+- No semicolons (implicit in most cases, added where necessary for clarity)
+- Trailing commas in multiline objects/arrays (where applicable)
+- String quotes: double quotes for JSX attributes, consistent throughout
 
 **Linting:**
-- No ESLint or automated code linting configured
-- Style maintained through convention and code review
+- No ESLint config detected — linting relies on code review standards
+- Import organization follows Node.js conventions (built-in first, then npm, then local)
 
-**Indentation & Spacing:**
-- 2-space indentation in all files (server.js, lib/, src/)
-- Consistent spacing around operators
-- Ternary operators: inline or split with proper indentation
-
-**Tailwind CSS:**
-- Utility-first approach for all styling
-- Custom CSS classes: `glass`, `glass-neon`, `glass-heavy`, `fade-in`, `neon-glow-sm`, `typing-dot`
-- Dark theme dominant (slate, indigo, amber palette)
-- Responsive design: mobile-first, minimal breakpoint-specific classes
+**Comments:**
+- JSDoc-style for module exports and public APIs, e.g., `/** module description */`
+- Inline comments for complex logic, but sparingly
+- Comment header sections with consistent formatting: `// ── Section Name ────────────────────`
 
 ## Import Organization
 
-**Backend (Node.js) Order:**
-1. Built-in modules (`const fs = require('fs')`, `const path = require('path')`)
-2. Third-party packages (`const express = require('express')`, `const { Client } = require('@modelcontextprotocol/sdk/...')`)
-3. Local lib modules (`const { createLogger } = require('./lib/logger')`)
-4. Comments as section separators: `// ── Lib imports ──────────────`
-
-**Frontend (React) Order:**
-1. React hooks/core (`import { useState, useEffect, ... } from 'react'`)
-2. React Router/context imports
-3. Component imports (local or relative)
-4. Context provider imports
-5. Style/CSS imports
-6. Utilities/helpers
-
-**Example from server.js:**
-```javascript
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-
-// ── Lib imports ──────────────────────────────────────
-const { createLogger } = require('./lib/logger');
-const { initConfig, getConfig, updateConfig } = require('./lib/config');
-const { initHistory, listConversations, getConversation, saveConversation } = require('./lib/history');
-// ... more local imports
-```
+**Order:**
+1. Built-in Node.js modules: `require('fs')`, `require('path')`
+2. External npm packages: `require('express')`, `require('@modelcontextprotocol/sdk')`
+3. Local modules: `require('./lib/logger')`, `require('./lib/config')`
+4. React imports: `import React from 'react'`, `import { useState } from 'react'`
 
 **Path Aliases:**
-- Vite configured with `@` alias: `path.resolve(__dirname, './src')` in `vite.config.js`
-- Rarely used in codebase; relative imports preferred: `./components/`, `../contexts/`
+- Frontend: `@` maps to `./src` (defined in `vite.config.js`)
+- No backend aliases used; relative paths with `require()` are standard
+
+**Module Structure:**
+- Barrel files: minimal usage; components export directly from their files
+- Mixed CommonJS (backend) and ES modules (frontend) throughout codebase
+- Frontend uses ES6 imports; backend uses CommonJS `require()`
 
 ## Error Handling
 
 **Patterns:**
-- **Synchronous operations:** throw custom `ScaffolderError` with `code`, `message`, and `status`
-- **Async operations:** try-catch with logging via custom logger
-- **React components:** try-catch with silent failures (`catch {}`) for non-critical operations
-- **Result objects:** return `{ success: true, result }` or `{ success: false, error: msg }`
-- **Critical paths:** re-throw errors after logging
-
-**Custom Error Class:**
-```javascript
-class ScaffolderError extends Error {
-  constructor(code, message, status = 400) {
-    super(message);
-    this.name = 'ScaffolderError';
-    this.code = code;
-    this.status = status;
+- **Custom error class**: `ScaffolderError` in `lib/icm-scaffolder.js` includes `code`, `message`, and `status` properties
+  ```javascript
+  class ScaffolderError extends Error {
+    constructor(code, message, status = 400) {
+      super(message);
+      this.name = 'ScaffolderError';
+      this.code = code;
+      this.status = status;
+    }
   }
-}
-
-// Usage:
-throw new ScaffolderError('PATH_OUTSIDE_ROOT', 'Output location is outside allowed roots.', 403);
-```
-
-**Backend Error Logging:**
-```javascript
-try {
-  const result = await chatComplete(...);
-} catch (err) {
-  log('ERROR', `Ollama chatComplete failed (round ${round + 1})`, { error: err.message });
-  sendEvent({ error: `Ollama error: ${err.message}` });
-}
-```
-
-**React Silent Failures:**
-```javascript
-async function fetchConfig() {
+  ```
+- **Try-catch blocks**: Used for synchronous file I/O and validation in `lib/file-browser.js`
+  ```javascript
   try {
-    const res = await fetch('/api/config');
-    const data = await res.json();
-    setOllamaUrl(data.ollamaUrl || '');
-  } catch {}  // Silent, UI shows default state
-}
-```
+    entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  ```
+- **Async error handling**: Express route handlers wrap logic in try-catch, log errors, and respond with appropriate HTTP status
+  ```javascript
+  try {
+    // operation
+  } catch (err) {
+    log('ERROR', 'Failed to read file', { path: filePath, error: err.message });
+    res.status(500).json({ error: `Cannot read file: ${err.message}` });
+  }
+  ```
+- **Silent failures**: Some async operations use empty catch blocks (`catch (err) { }`) for non-critical fetches
+- **Frontend error handling**: Try-catch with fallback UI states; errors often trigger toast notifications or silent UI updates
 
 ## Logging
 
-**Framework:** Custom `createLogger()` in `lib/logger.js` (not console-based)
+**Framework:** Custom logger in `lib/logger.js` using file streams
 
-**API:**
-```javascript
-const { log, debug, logDir } = createLogger(appRoot, { debugEnabled: true });
-log('INFO', 'Message', { data: 'optional' });
-debug('Debug message', { details: 'optional' });
-```
-
-**Log Levels:** `INFO`, `ERROR`, `DEBUG`
-
-**Output:**
-- File: `logs/app.log` (info/errors), `logs/debug.log` (debug entries)
-- Console: conditional based on log level and debug flag
-- Format: `[ISO-8601-timestamp] [LEVEL] message [JSON data]`
-
-**When to Log:**
-- INFO: Request/response lifecycle, connection status changes, file operations completed
-- ERROR: Exceptions, validation failures, external service errors
-- DEBUG: Tool calls, stream states, parsing details (only if debug enabled)
-
-**Example:**
-```javascript
-log('INFO', `Chat request: model=${model} mode=${mode} messages=${messages.length}`);
-debug('Tool-call round ${round + 1}/${MAX_ROUNDS}');
-log('ERROR', `Cannot reach Ollama at ${url}`, { error: err.message });
-```
-
-## Comments
-
-**When to Comment:**
-- Complex algorithms (regex patterns, path validation logic)
-- Non-obvious heuristics (tool-call parsing fallbacks)
-- Section dividers in large files
-
-**Style:**
-- Single-line `//` comments
-- Section headers: `// ── Label ──────────────────────────────`
-- No multi-line block comments (`/* ... */`)
-
-**JSDoc/TSDoc:**
-- Minimal JSDoc observed
-- When used: documents function purpose and usage
-- Example from `lib/logger.js`:
-```javascript
-/**
- * lib/logger.js — Logging module with stderr mode for MCP stdio transport.
- *
- * Usage:
- *   const { createLogger } = require('./lib/logger');
- *   const { log, debug } = createLogger(__dirname, { debugEnabled: true });
- */
-```
+**Patterns:**
+- **Log levels**: INFO, ERROR, DEBUG
+- **Usage**:
+  ```javascript
+  log('INFO', `Chat request: model=${model} mode=${mode}`);
+  log('ERROR', 'Cannot reach Ollama', { error: err.message });
+  debug('Building file tree', { folder, maxDepth });
+  ```
+- **Output**: logs written to `logs/app.log` and `logs/debug.log` files
+- **Console output**: INFO goes to stdout, ERROR goes to stderr
+- **MCP mode**: stderr mode available for stdio transport (all output to stderr)
+- **Timestamp**: ISO 8601 format automatically prepended to all log entries
+- **Debug mode**: Controlled by `DEBUG` environment variable; debug logs only printed if enabled
 
 ## Function Design
 
-**Size:** Generally 5–50 lines; larger functions (50–100+ lines) handle complex workflows (e.g., API route handlers, streaming logic)
+**Size:** Generally keep functions under 100 lines; larger functions in `server.js` (chat streaming, tool-call loop) are complex but focused on single concerns
 
 **Parameters:**
-- Use destructuring for options objects:
-```javascript
-function createLogger(appRoot, options = {}) {
-  const { stderrMode = false, debugEnabled = false } = options;
-}
-```
-- Keep to 2–4 parameters; group related values into objects
-- Default values used for optional params
+- Destructured objects for options, e.g., `{ ollamaUrl, projectFolder }`
+- Config objects passed by reference rather than individual params
+- React components receive props as object and destructure in parameters
 
 **Return Values:**
-- Result objects: `{ success: true, result }` or `{ success: false, error }`
-- Data structures: arrays, objects
-- Promises for async operations
-- Avoid null; use empty arrays `[]`, empty strings `''`, or false instead
+- Functions return meaningful data: objects with `success`, `error`, `code`, `status` properties
+- Async functions return promises (implicitly in async/await, or explicitly with `Promise`)
+- Void functions used for side effects (state updates, API calls, logging)
+
+**Error states:**
+- Functions returning result objects include error information, e.g., `{ success: false, error: message, code: 'ERROR_CODE' }`
 
 ## Module Design
 
-**Exports (CommonJS):**
-```javascript
-module.exports = {
-  initConfig,
-  getConfig,
-  updateConfig,
-  loadConfig,
-  saveConfig
-};
-```
-
-**Exports (ES6 - React):**
-```jsx
-export function Effects3DProvider({ children }) { /* ... */ }
-export function use3DEffects() { /* ... */ }
-export default function MessageBubble({ role, content }) { /* ... */ }
-```
+**Exports:**
+- Node.js modules: `module.exports = { function1, function2, Class }` at end of file
+- React components: `export default function ComponentName() { }`
+- Named exports where multiple exports from one file
 
 **Barrel Files:**
-- Not extensively used; direct imports preferred
-- Most components imported directly from their file
+- Minimal usage; most components export directly
+- `lib/logger.js` exports `{ createLogger }` for singleton use across app
 
-**Class Patterns:**
-- Used for stateful managers: `McpClientManager`, `ToolCallHandler`
-- Constructor accepts logger or options object
-- Internal state as instance properties: `this.connections = new Map()`
-
-## State Management
-
-**React:**
-- `useState` for local component state
-- Context API (`Effects3DContext`) for cross-component shared state
-- No Redux/Zustand
-
-**Backend Singleton Pattern:**
-```javascript
-let _config = null;
-let _appRoot = null;
-
-function initConfig(appRoot) {
-  _appRoot = appRoot;
-  _config = loadConfig(appRoot);
-  return _config;
-}
-
-function getConfig() {
-  if (!_config) throw new Error('Config not initialized. Call initConfig(appRoot) first.');
-  return _config;
-}
-```
+**Internal state management:**
+- Backend: Config stored in JSON files (no database), accessed via `lib/config.js`
+- Frontend: React `useState` for component-level state, no global state manager (Redux, Zustand, etc.)
+- Conversation history: JSON files in `history/` directory, loaded/saved via Express API
 
 ## Async/Await
 
-- Async functions used throughout for API calls, file I/O
-- Promises returned from async functions
-- No callback-based patterns (except legacy streaming with readers)
-- Timeouts implemented with `AbortController` for fetch requests
-
-**Example:**
-```javascript
-async function chatComplete(ollamaUrl, model, messages, timeoutMs = 120000) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
-    return await response.json();
-  } catch (err) {
-    clearTimeout(timeout);
-    throw err;
+**Patterns:**
+- Prefer async/await over `.then()` chains
+- Error handling via try-catch (not `.catch()`)
+- Example (server.js):
+  ```javascript
+  async function handleDashboardRefresh() {
+    await Promise.all([fetchHistory(), fetchSystemMetrics()]);
+    showToast('Dashboard refreshed');
   }
-}
-```
+  ```
+
+## Frontend-Specific Conventions
+
+**Component structure:**
+- Functional components with hooks (React 18+)
+- State management: `useState` for component state, `useEffect` for side effects
+- Refs for direct DOM access: `useRef()`
+- Custom hook for 3D effects context: `use3DEffects()` in `src/contexts/Effects3DContext.jsx`
+
+**Event handling:**
+- Inline arrow functions for simple handlers, e.g., `onClick={() => setShowSettings(true)}`
+- Named handler functions for complex logic, e.g., `handleSend()`, `handleFileUpload()`
+
+**Styling:**
+- Tailwind CSS utility classes for all styling
+- Custom CSS variables in CSS files (e.g., for animations)
+- Responsive classes using Tailwind breakpoints (sm, lg, etc.)
+- Custom glass/neon effects via CSS classes: `glass`, `glass-heavy`, `neon-glow-sm`, `btn-neon`
+
+**Accessibility:**
+- ARIA labels: `aria-label`, `aria-expanded`, `aria-live`
+- Semantic HTML: `<button>`, `<main>`, `<aside>`, `<header>`
+- Role attributes for custom widgets: `role="log"`, `role="treeitem"`, `role="group"`
+- Skip link for accessibility: `<a href="#chat-input" className="skip-link">`
+
+## Backend-Specific Conventions
+
+**Express routes:**
+- Route handlers defined inline with `app.get()`, `app.post()`, `app.delete()`
+- Middleware applied with `app.use()`
+- Request/response logging in middleware
+
+**File I/O:**
+- Synchronous operations (fs.readFileSync) for small files
+- Path validation before reading to prevent traversal attacks
+- Error messages include full context for debugging
+
+**Streaming:**
+- Server-Sent Events (SSE) for real-time chat responses
+- Response headers set before streaming: `Content-Type: text/event-stream`, `Cache-Control: no-cache`
+- SSE format: `data: ${JSON.stringify(data)}\n\n`
 
 ---
 

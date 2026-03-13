@@ -4,246 +4,204 @@
 
 ## Pattern Overview
 
-**Overall:** Full-stack client-server with streaming AI integration and pluggable MCP (Model Context Protocol) support
+**Overall:** Monolithic Express backend + React frontend with real-time streaming
 
 **Key Characteristics:**
-- Real-time SSE (Server-Sent Events) streaming for Ollama AI responses
-- Dual-transport MCP client (stdio and HTTP) for external tool integration
-- Mode-based routing for distinct PM-focused workflows
-- Frontend: Single SPA (Single Page App) compiled by Vite
-- Backend: Stateless Express.js with file-based persistence (no database)
-- Tool-call loop: Recursive AI reasoning with external tool execution
+- Backend-driven request/response for chat operations via Server-Sent Events (SSE)
+- Modular backend with separated concerns (Ollama client, file system, GitHub, history)
+- React frontend with mode-based UI switching (chat, explain, bugs, refactor, translate, dashboard, create)
+- Model Context Protocol (MCP) integration for external tool execution with agentic loops
+- JSON-based local file storage for conversation history (no database)
+- Optional MCP server for exposing tools over HTTP
 
 ## Layers
 
-**Frontend (React + Vite):**
-- Purpose: PM-focused UI with real-time chat, file browsing, GitHub integration
-- Location: `src/`
-- Contains: React components, contexts, CSS (Tailwind via CDN in dev)
-- Depends on: Backend API (`/api/*`), SSE streams, MCP client interface
-- Used by: Browser users
-- Entry: `src/main.jsx` → `src/App.jsx`
+**Presentation Layer (Frontend):**
+- Purpose: Provide mode-specific UI for code analysis and PM communication
+- Location: `src/`, `src/components/`, `src/contexts/`
+- Contains: React components, hooks, state management, 3D effects
+- Depends on: Express REST API at `/api/*`
+- Used by: Browser clients
 
-**Backend HTTP Server (Express):**
-- Purpose: Request routing, AI orchestration, file operations, GitHub operations
-- Location: `server.js`, `lib/mcp-api-routes.js`
-- Contains: REST API endpoints, SSE stream handlers, config management
-- Depends on: `lib/*` modules, Ollama REST API, file system
-- Used by: Frontend, MCP clients
-- Responsibilities:
-  - Chat endpoint with tool-call loop logic
-  - File browser and Git operations
-  - MCP server/client management
-  - Conversation history persistence
+**API Layer (Backend Routes):**
+- Purpose: Handle HTTP requests, orchestrate business logic, stream responses
+- Location: `server.js` (main router), `lib/mcp-api-routes.js` (MCP routes)
+- Contains: Express route handlers for chat, config, history, files, GitHub, create
+- Depends on: Business logic modules (ollama-client, history, config, file-browser, tools)
+- Used by: Frontend, MCP clients, external services
 
-**Ollama AI Client:**
-- Purpose: Interface with locally-hosted Ollama LLM
-- Location: `lib/ollama-client.js`
-- Contains: `listModels()`, `chatStream()`, `chatComplete()`, `checkConnection()`
-- Depends on: Fetch API, remote Ollama service
-- Used by: `server.js` chat endpoint, MCP client manager
-- Note: Non-streaming `chatComplete()` used for tool-call rounds; streaming used for final response
+**Business Logic Layer:**
+- Purpose: Implement core domain operations
+- Location: `lib/`
+- Contains: `ollama-client.js`, `history.js`, `file-browser.js`, `github.js`, `icm-scaffolder.js`
+- Depends on: External services (Ollama, GitHub API), filesystem
+- Used by: API layer, tool handlers
 
-**MCP Integration Layer:**
-- Purpose: Manage external AI tool integrations via Model Context Protocol
-- Location: `lib/mcp-client-manager.js`, `lib/tool-call-handler.js`, `mcp/tools.js`, `server.js` (/mcp endpoint)
-- Contains:
-  - Client management (stdio and HTTP transports)
-  - Tool registry and execution
-  - Tool-call parsing and results feeding
-- Depends on: `@modelcontextprotocol/sdk`
-- Used by: Chat endpoint, MCP API routes
-- Note: Factory pattern for fresh MCP server per request (required for concurrency)
+**Tool Execution Layer:**
+- Purpose: Execute MCP tool calls in agentic loops
+- Location: `lib/tool-call-handler.js`, `lib/mcp-client-manager.js`
+- Contains: TOOL_CALL pattern parsing, MCP client lifecycle management
+- Depends on: MCP clients (registered tools), network connections
+- Used by: Chat endpoint for external tool execution
 
-**Storage Layer (File-based):**
-- Purpose: Persist configuration, conversation history, logs
-- Location: `lib/config.js`, `lib/history.js`, `lib/logger.js`
-- Contains: JSON file readers/writers, UUID generation
-- Depends on: File system
-- Used by: Express app initialization, chat history endpoints
-- Locations:
-  - Config: `.cc-config.json` (Ollama URL, project folder, GitHub token, MCP config)
-  - History: `history/` directory (one JSON file per conversation)
-  - Logs: `logs/` directory (app.log, debug.log)
+**Data Access Layer:**
+- Purpose: Persist and retrieve conversations, configurations
+- Location: `lib/config.js`, `lib/history.js`
+- Contains: JSON file I/O for `.cc-config.json` and `history/*.json`
+- Depends on: Filesystem
+- Used by: API layer, business logic
 
-**File & Project Browser:**
-- Purpose: Read project files, build directory trees, validate paths
-- Location: `lib/file-browser.js`
-- Contains: `buildFileTree()`, `readProjectFile()`, path traversal guards
-- Depends on: File system, path utilities
-- Used by: File browser API, chat file attachments
-- Security: Validates paths against traversal attacks
-
-**GitHub Integration:**
-- Purpose: Clone repos, list user repos, validate tokens
-- Location: `lib/github.js`
-- Contains: `cloneRepo()`, `listUserRepos()`, `validateToken()`, repo cleanup
-- Depends on: Child process (git CLI), fetch API
-- Used by: GitHub panel API endpoints
-- Storage: Cloned repos in `github-repos/` directory
-
-**Project Scaffolder:**
-- Purpose: Generate ICM (Integrated Content Model) project structures
-- Location: `lib/icm-scaffolder.js`
-- Contains: `scaffoldProject()` with template generation
-- Depends on: File system, directory creation
-- Used by: Create Project endpoint
+**Infrastructure Layer:**
+- Purpose: Logging, metrics, process management
+- Location: `lib/logger.js`, performance metrics in `server.js`
+- Contains: Custom logger, CPU metrics, request tracking
+- Depends on: Node.js built-ins (fs, path, os)
+- Used by: All layers
 
 ## Data Flow
 
-**Chat Request Flow (with tool calls):**
+**Chat Request with Tool Calls:**
 
-1. **Frontend** → POST `/api/chat` with `{ model, messages, mode }`
-2. **server.js** receives request, enriches system prompt with available tools
-3. **Tool-call loop** (max 5 rounds):
-   - Call `chatComplete()` (non-streaming) to Ollama with all messages
-   - Parse response for TOOL_CALL patterns using regex
-   - If no tool calls found → exit loop, use response as final text
-   - If tool calls found → execute via MCP client manager
-   - Append tool results to message history and continue
-4. **Final text** streamed back via SSE as tokens (word-by-word for UX)
-5. Response ends with `[DONE]` marker
+1. User sends message via frontend → `POST /api/chat` with `{ model, messages, mode }`
+2. Backend enriches system prompt with tool descriptions from connected MCP clients
+3. If external tools available:
+   - **Tool-call loop** (max 5 rounds):
+     - Call `chatComplete()` to Ollama with full messages
+     - Parse response for `TOOL_CALL: serverId.toolName(args)` patterns
+     - If found: execute each tool via MCP, append results to messages, loop
+     - If none found: break and return final text
+4. Stream final response to frontend via SSE as `data: {chunk}` events
+5. Frontend renders streamed chunks in real-time
 
-**Chat Request Flow (without tool calls):**
+**Direct Chat (No Tools):**
 
-1. **Frontend** → POST `/api/chat`
-2. **server.js` sets SSE headers and connects to Ollama
-3. Ollama response body piped as event stream:
-   - Each newline-delimited JSON chunk parsed
-   - `message.content` extracted and sent as `{ token: "..." }`
-   - When Ollama sends `done: true`, stream ends
-4. Frontend accumulates tokens into final response
+1. User sends message → `POST /api/chat`
+2. Backend calls `chatStream()` to Ollama
+3. Response streamed directly via SSE to frontend
+4. Frontend appends chunks and renders markdown
 
-**Configuration Update Flow:**
+**History Persistence:**
 
-1. **Frontend** → POST `/api/config` with `{ ollamaUrl, projectFolder }`
-2. **server.js** validates folder exists
-3. Writes to `.cc-config.json` via `config.js`
-4. Returns new config to frontend
-5. Frontend refetches models if Ollama URL changed
+1. User saves conversation (explicit action in UI)
+2. Frontend calls `POST /api/history` with conversation data
+3. Backend generates UUID, writes to `history/{id}.json`
+4. Frontend fetches `GET /api/history` to reload list
 
-**Conversation History Flow:**
+**File Browsing:**
 
-1. **Frontend** posts message → sends `POST /api/history` with full conversation data
-2. **server.js** calls `saveConversation(data)` from `history.js`
-3. UUID generated if needed, JSON file written to `history/{id}.json`
-4. Frontend retrieves list via `GET /api/history`
+1. User selects project folder in UI
+2. Frontend requests `GET /api/files/tree?folder=...&maxDepth=...`
+3. Backend recursively walks directory, filters ignored paths
+4. Returns tree structure of text files
+5. User can read files via `GET /api/files/read?folder=...&file=...`
 
-**File Browser Flow:**
+**GitHub Integration:**
 
-1. **Frontend** → `GET /api/files/tree?path=/some/path&depth=3`
-2. **server.js** calls `buildFileTree()` with depth limit
-3. Returns nested object: `{ type: 'dir', path, children: [...] }`
-4. Frontend on file click → `GET /api/files/read?path=/some/file.js`
-5. Returns `{ name, size, language, content, lines }`
+1. User provides GitHub token via settings
+2. Frontend calls `POST /api/github/token` to store token in config
+3. User clones repo: `POST /api/github/clone` with repo URL
+4. Backend calls `git clone` to `history/` directory
+5. File browser then displays cloned repo structure
 
-## State Management
+**Create Mode (ICM Scaffolding):**
 
-**Frontend:** React hooks (useState, useContext)
-- Global context: `Effects3DContext` for 3D effect toggle state
-- Local: chat messages, sidebar open/closed, selected mode, attached files
-- Persisted: splash screen dismissal (sessionStorage)
+1. User launches Create wizard
+2. Provides project name, description, template selection
+3. Frontend calls `POST /api/create-project` with scaffolding params
+4. Backend calls `scaffoldProject()` from `lib/icm-scaffolder.js`
+5. Creates project directory with pre-built files/structure
 
-**Backend:** In-memory
-- MCP client connections (Map)
-- Request logging context
-- Ephemeral per-request state (no session library)
+**State Management:**
 
-**Persistent:** File-based
-- Conversations (JSON files)
-- Configuration (`.cc-config.json`)
-- Logs (text files)
+- Frontend: React `useState`, local storage for splash screen state
+- Backend: In-memory config object, file-based history
+- Session: Stored in `sessionStorage` (splash dismissal)
+- Persistent: `.cc-config.json`, `history/*.json`
 
 ## Key Abstractions
 
-**Mode System:**
-- Purpose: Encapsulate distinct PM workflows
-- Modes: `chat`, `explain`, `bugs`, `refactor`, `translate-tech`, `translate-biz`, `create`
-- Implementation: Each mode has a system prompt (SYSTEM_PROMPTS dict in `lib/prompts.js`)
-- Mode guardrails: Ensure conversational fallback if no code is provided
-- Example: Mode `bugs` uses system prompt that structures response with [Severity], impact, fix suggestions
+**Conversation:**
+- Purpose: Encapsulate message exchange between user and Ollama
+- Examples: `lib/history.js` CRUD operations, `src/App.jsx` message state
+- Pattern: Each conversation is a JSON object with `id`, `title`, `messages`, `mode`, `model`, `createdAt`, `archived`
 
-**MCP Tool Registry:**
-- Purpose: Abstract external tools behind standard interface
-- Pattern: Each connected MCP server has a set of tools
-- Execution: Parse TOOL_CALL markers in AI response, call `toolCallHandler.executeTool(serverId, toolName, args)`
-- Results fed back to AI as context for next reasoning round
+**Message:**
+- Purpose: Single turn in conversation (user or assistant)
+- Examples: `{ role: 'user'|'assistant'|'tool', content: string }`
+- Pattern: Sent to Ollama API, accumulated in conversation
 
-**Message Bubble Component:**
-- Purpose: Unified rendering of user vs. assistant messages
-- Pattern: Conditional styling, markdown rendering for AI responses, copy button
-- Location: `src/components/MessageBubble.jsx`
+**Mode:**
+- Purpose: Determine system prompt and UX behavior
+- Examples: `chat`, `explain`, `bugs`, `refactor`, `translate-tech`, `translate-biz`, `dashboard`, `create`
+- Pattern: Selected in UI, controls `SYSTEM_PROMPTS[mode]` injected into requests
 
-**Sidebar Conversation List:**
-- Purpose: Manage conversation history
-- Pattern: Search, filter (active/archived), context menu (rename, export, delete, archive)
-- Location: `src/components/Sidebar.jsx`
+**Tool Call:**
+- Purpose: Represent an MCP tool invocation triggered by Ollama
+- Examples: Parsed from `TOOL_CALL: serverId.toolName(args)` in response
+- Pattern: Executed in agentic loop with results fed back to Ollama
+
+**File Tree:**
+- Purpose: Represent project directory structure for browsing
+- Examples: Built by `lib/file-browser.js` from filesystem
+- Pattern: Nested objects with `{ name, path, children, isDir, lines }`
 
 ## Entry Points
 
-**HTTP Server:**
-- Location: `server.js`
-- Invocation: `node server.js` (PORT defaults to 3000)
-- Initialization: Config → History → Ollama connection check → MCP client setup
-- Error handling: Graceful degradation if Ollama unavailable; MCP errors logged but don't crash server
+**Backend:**
+- Location: `server.js` (line 1)
+- Triggers: Node.js process, `npm start` or `node server.js`
+- Responsibilities: Initialize Express, mount routes, listen on port 3000
 
-**Frontend Bundle Entry:**
-- Location: `src/main.jsx`
-- Invocation: `npm run dev` (Vite dev server on 5173) or `npm run build` (produces `dist/`)
-- Root element: `#root` in `dist/index.html`
-- Provider: `Effects3DProvider` wraps `App` component
+**Frontend:**
+- Location: `src/main.jsx` (React entry point), `index.html` (HTML entry)
+- Triggers: Browser load, `npm run dev` or served by Express static middleware
+- Responsibilities: Bootstrap React, mount Effects3DProvider, render App component
 
-**Development Proxy:**
-- Frontend (port 5173) proxies `/api/*` and `/mcp` to backend (port 3000) via Vite config
-- Production: Static files served from `dist/` by Express; API on same origin
+**Chat Endpoint:**
+- Location: `server.js` line 185 (`app.post('/api/chat')`)
+- Triggers: User presses Enter with message in UI
+- Responsibilities: Stream Ollama response, execute tool calls, manage agentic loop
+
+**History Loading:**
+- Location: `server.js` line 398 (`app.get('/api/history')`)
+- Triggers: App mount, conversation list refresh
+- Responsibilities: List all conversations from `history/` directory
 
 ## Error Handling
 
-**Strategy:** Fail gracefully with user feedback
+**Strategy:** Try-catch with user-facing error messages via toast notifications
 
 **Patterns:**
 
-- **Ollama Unavailable:**
-  - Endpoint returns 503 with `{ error, ollamaUrl, connected: false }`
-  - Frontend shows offline banner, disabled model selector
-  - File `server.js` lines 92-115
+- **Network errors:** Catch fetch failures, show "Connection failed" toast, set `connected: false`
+- **Ollama errors:** Catch chatComplete/chatStream failures, send SSE error event, end stream
+- **File system errors:** Catch fs operations, return empty arrays or error codes
+- **Tool execution:** Catch tool failures, append error message to tool results, continue loop
+- **Validation errors:** Return 400 status with error message (missing model, invalid mode)
 
-- **Path Traversal Attack:**
-  - Blocked in `readProjectFile()` with 403 response
-  - File `server.js` lines 406-409
-
-- **Tool Call Failure:**
-  - Caught in tool-call loop, results formatted as "Tool X failed: {error}"
-  - Loop continues, AI sees failure context and can decide next action
-  - File `server.js` lines 202-210
-
-- **Stream Disconnect:**
-  - Client close event detected, reader cancelled gracefully
-  - File `server.js` lines 318-321
-
-- **MCP Server Error:**
-  - Factory pattern isolates per-request errors
-  - 500 response with error message, doesn't crash server
-  - File `server.js` lines 571-576
+**Example (Chat Endpoint):**
+```javascript
+try {
+  responseText = await chatComplete(config.ollamaUrl, model, loopMessages);
+} catch (err) {
+  log('ERROR', `Ollama chatComplete failed`, { error: err.message });
+  sendEvent({ error: `Ollama error: ${err.message}` });
+  res.write('data: [DONE]\n\n');
+  return res.end();
+}
+```
 
 ## Cross-Cutting Concerns
 
-**Logging:**
-- Framework: Custom logger (`lib/logger.js`)
-- Pattern: `log(level, message, metadata)` and `debug(message, metadata)`
-- Output: `logs/app.log` (info) and `logs/debug.log` (debug)
-- Usage: Every major operation logged with timestamps
+**Logging:** Custom `lib/logger.js` with timestamp, level (INFO/ERROR/DEBUG), and messages. Debug mode enabled via `DEBUG=1` env var.
 
-**Validation:**
-- Config: Folder existence checked before save
-- Files: Path traversal guard in `readProjectFile()`
-- Requests: Model, messages, mode validated before chat endpoint processing
-- GitHub: Token validated via API before save
+**Validation:** System prompts checked for known modes, request payloads checked for required fields (model, messages, mode). File paths sanitized in file-browser.
 
-**Authentication:**
-- GitHub token stored in config (`.cc-config.json`), never in logs
-- No session auth; all state in browser (can be lost on refresh)
-- MCP servers authenticated per their own config (env vars, tokens)
+**Authentication:** GitHub token optional, stored in `.cc-config.json` (user responsibility to manage). No session-based auth for local-only design.
+
+**Rate Limiting:** None enforced. Agentic loop capped at 5 rounds max to prevent infinite recursion.
+
+**Performance:** Streaming via SSE to show user progressive results. Tool-call execution is synchronous (no parallel). Metrics tracked in memory (request count, latency, traffic, CPU).
 
 ---
 
