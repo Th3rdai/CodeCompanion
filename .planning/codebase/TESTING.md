@@ -7,7 +7,7 @@
 **Runner:**
 - Node.js built-in `test` module (Node 18+) for unit tests
 - Playwright for E2E testing
-- No Jest or Vitest configuration detected
+- No Jest or Vitest configuration
 
 **Assertion Library:**
 - Node.js built-in `assert/strict` for unit tests
@@ -15,25 +15,26 @@
 
 **Run Commands:**
 ```bash
-node --test                    # Run all unit tests (pattern: test/**/*.test.js)
+node --test                    # Run all unit tests
 npx playwright test            # Run E2E tests
 npx playwright test --headed   # Run E2E tests with browser visible
 npx playwright test --debug    # Run E2E tests with debugger
 ```
 
-**Scripts in package.json:**
-- No explicit test script defined; tests run directly with `node --test` or `npx playwright`
+**Configuration Files:**
+- `playwright.config.js`: E2E test configuration
+- No npm scripts defined for testing (tests run directly)
 
 ## Test File Organization
 
 **Location:**
-- Tests co-located in `test/` directory at project root
-- Separate from source code (`src/` for React, `lib/` for Node.js modules)
+- Unit tests: `test/unit/` directory (co-located at project root, separate from src/)
+- E2E tests: `test/e2e/` directory
+- Tests NOT co-located with source code
 
 **Naming:**
 - Unit tests: `{module}.test.js` (e.g., `icm-scaffolder.test.js`)
 - E2E tests: `{feature}.spec.js` (e.g., `create-mode.spec.js`)
-- Pattern: `test/unit/` for unit tests, `test/e2e/` for E2E tests
 
 **Structure:**
 ```
@@ -46,102 +47,129 @@ test/
 
 ## Test Structure
 
-**Unit Test Suite Organization:**
+**Unit Test Pattern:**
 ```javascript
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('fs');
+const path = require('path');
 
-// Fixtures/helpers
+// Fixture helpers
 function writeTemplateFixture(templateRoot) {
-  // Create test data directories and files
+  fs.mkdirSync(path.join(templateRoot, '_config'), { recursive: true });
+  fs.writeFileSync(path.join(templateRoot, 'CLAUDE.md'), 'content');
 }
 
-// Individual tests
+// Test declaration
 test('slugify normalizes unsafe project names', () => {
   assert.equal(slugify(' Create: Mode / Plan? v2!  '), 'create-mode-plan-v2');
   assert.equal(slugify(''), 'untitled');
 });
 
-test('normalizeStages creates deterministic unique stage slugs', () => {
-  // Test implementation
+// Test with setup/teardown
+test('scaffoldProject creates expected project structure', () => {
+  const sandboxRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffolder-unit-'));
+
+  try {
+    const result = scaffoldProject({ /* ... */ });
+    assert.equal(result.success, true);
+    assert.ok(fs.existsSync(path.join(result.projectPath, 'CLAUDE.md')));
+  } finally {
+    fs.rmSync(sandboxRoot, { recursive: true, force: true });
+  }
 });
 ```
 
-**E2E Test Suite Organization:**
+**E2E Test Pattern:**
 ```javascript
 const { test, expect } = require('@playwright/test');
 
-// Helpers
-async function getAllowedRoot(request) {
-  // Helper to fetch config and create directories
-}
-
+// Helper functions
 async function openCreateMode(page) {
-  // Helper to navigate and click to Create mode
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start Exploring' }).click();
+  await page.getByRole('button', { name: '🛠️ Create' }).click();
 }
 
-// Individual tests
+// Test with mocking
 test('Create mode renders when models endpoint fails', async ({ page }) => {
-  // Test implementation
+  await page.route('**/api/models', route => route.fulfill({
+    status: 503,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: 'Ollama offline' })
+  }));
+
+  await openCreateMode(page);
+  await expect(page.getByRole('heading', { name: 'Create a New Workspace' })).toBeVisible();
 });
 
-test('wizard creates project and opens it in file browser', async ({ page, request }) => {
-  // Test implementation with cleanup
+// Test with async fixtures
+test('wizard creates project and opens in file browser', async ({ page, request }) => {
+  const outputRoot = await getAllowedRoot(request);
+  const projectName = `E2E Create ${Date.now()}`;
+
+  // Test logic
 });
 ```
 
 **Patterns:**
-- Setup: Helper functions create fixtures or pre-conditions
-- Teardown: `finally` blocks clean up temporary files (e.g., `fs.rmSync(sandboxRoot, { recursive: true, force: true })`)
-- Assertions: Direct `assert.equal()` or `assert.throws()` for unit tests; `await expect()` for E2E
+- Setup: Create fixtures/pre-conditions before test body
+- Teardown: Use `finally` blocks to clean up temp files
+- Assertions: `assert.equal()`, `assert.throws()` for unit; `await expect()` for E2E
+- Async: `async` keyword for functions needing await
 
 ## Mocking
 
 **Framework:**
-- Node.js built-in capabilities for unit tests (no external mock library)
-- Playwright's `page.route()` for HTTP interception in E2E
+- Node.js built-in (no external mock library)
+- Playwright's `page.route()` for HTTP interception
 
-**Patterns (E2E):**
+**HTTP Mocking (E2E):**
 ```javascript
-// HTTP mocking in Playwright
+// Mock Ollama offline
 await page.route('**/api/models', route => route.fulfill({
   status: 503,
   contentType: 'application/json',
   body: JSON.stringify({ error: 'Ollama offline' })
 }));
+
+// Mock successful response
+await page.route('**/api/config', route => route.fulfill({
+  status: 200,
+  body: JSON.stringify({ ollamaUrl: 'http://localhost:11434', projectFolder: '/path/to/project' })
+}));
 ```
 
-**Patterns (Unit - Fixture-based):**
+**Fixture-Based Testing (Unit):**
 ```javascript
-// Test data fixtures created with actual file system
+// Create real temp directories for file system testing
 function writeTemplateFixture(templateRoot) {
   fs.mkdirSync(path.join(templateRoot, '_config'), { recursive: true });
   fs.mkdirSync(path.join(templateRoot, 'shared'), { recursive: true });
-  fs.mkdirSync(path.join(templateRoot, 'skills'), { recursive: true });
 
-  fs.writeFileSync(path.join(templateRoot, 'CLAUDE.md'), 'content');
-  // ... more files
+  fs.writeFileSync(path.join(templateRoot, 'CLAUDE.md'), 'Project documentation');
+  fs.writeFileSync(path.join(templateRoot, '_config/brand-voice.md'), 'Brand guidelines');
 }
 ```
 
 **What to Mock:**
-- HTTP endpoints (Playwright `page.route()`)
-- Ollama API responses (error conditions, offline scenarios)
-- External services (GitHub API in E2E)
+- HTTP endpoints (especially error conditions)
+- External services (GitHub API responses)
+- Ollama API (offline scenarios)
 
 **What NOT to Mock:**
-- File system operations (tests use actual temp directories with cleanup)
-- Configuration loading (tests create real config files)
-- Scaffolding logic (tests verify actual project structure created)
+- File system operations (use actual temp directories with cleanup)
+- Configuration loading (create real config files)
+- Core logic being tested (scaffolding, normalization)
 
 ## Fixtures and Factories
 
-**Test Data:**
-- Temporary directory fixtures created with `fs.mkdtempSync(path.join(os.tmpdir(), 'prefix-'))`
-- Template directories populated with standard project structure (CLAUDE.md, _config/, shared/, skills/)
-- Configuration objects passed as parameters to functions under test
+**Test Data Creation:**
+- Temporary directories: `fs.mkdtempSync(path.join(os.tmpdir(), 'prefix-'))`
+- Template fixtures: Create directory structure with standard project layout
+- Config objects: Pass as parameters to functions
 
-**Example fixture from icm-scaffolder.test.js:**
+**Fixture from icm-scaffolder.test.js:**
 ```javascript
 function writeTemplateFixture(templateRoot) {
   fs.mkdirSync(path.join(templateRoot, '_config'), { recursive: true });
@@ -150,13 +178,12 @@ function writeTemplateFixture(templateRoot) {
 
   fs.writeFileSync(path.join(templateRoot, 'CLAUDE.md'), [
     '# [Your Project Name]',
-    '[describe the AI\'s purpose in 1-2 sentences]',
-    // ...
+    '[describe the AI\'s purpose in 1-2 sentences]'
   ].join('\n'));
 
   fs.writeFileSync(path.join(templateRoot, '_config/brand-voice.md'), [
     '[Describe your target audience...]',
-    // ...
+    '[Describe the tone...]'
   ].join('\n'));
 
   fs.writeFileSync(path.join(templateRoot, 'shared/README.md'), 'Shared resources');
@@ -164,56 +191,49 @@ function writeTemplateFixture(templateRoot) {
 }
 ```
 
-**Location:**
-- Helper functions defined at top of test file (before test declarations)
-- Shared utilities not extracted to separate files yet
+**Location:** Helper functions defined at top of test file before test declarations
 
 ## Coverage
 
-**Requirements:** Not enforced; no coverage configuration detected
+**Requirements:** Not enforced; no coverage configuration
 
-**View Coverage:**
-```bash
-# No automated coverage tool configured
-# Tests are manual verification of functionality
-```
+**View Coverage:** No automated coverage tool configured
 
 ## Test Types
 
 **Unit Tests:**
-- **Scope:** Individual function/module logic (e.g., string normalization, project scaffolding)
-- **Approach:** Direct function calls with assertions, fixture setup in code
+- **Scope:** Individual function/module logic
 - **File:** `test/unit/icm-scaffolder.test.js`
-- **Examples:**
-  - `slugify()` normalizes project names correctly
-  - `normalizeStages()` creates unique stage slugs deterministically
-  - `scaffoldProject()` creates expected directory structure
-  - `scaffoldProject()` enforces path allowlist security
-
-**Integration Tests:**
-- Not explicitly separated; some unit tests verify multi-module interactions (e.g., scaffolding tests call multiple functions)
+- **Examples tested:**
+  - `slugify()`: Normalizes unsafe project names correctly
+  - `normalizeStages()`: Creates unique stage slugs deterministically
+  - `scaffoldProject()`: Creates expected directory structure
+  - `scaffoldProject()`: Enforces path allowlist security
 
 **E2E Tests:**
 - **Scope:** Full user workflows in browser
-- **Approach:** Playwright browser automation, UI navigation, API mocking
 - **File:** `test/e2e/create-mode.spec.js`
-- **Examples:**
+- **Framework:** Playwright
+- **Examples tested:**
   - Create mode renders when Ollama is offline
-  - Wizard successfully creates project and opens in file browser
+  - Wizard creates project and opens in file browser
+
+**Integration Tests:**
+- Not explicitly separated; unit tests verify multi-module interactions
 
 ## Common Patterns
 
 **Async Testing:**
 ```javascript
-test('wizard creates project and opens it in file browser', async ({ page, request }) => {
+test('wizard creates project and opens in file browser', async ({ page, request }) => {
   const outputRoot = await getAllowedRoot(request);
   const projectName = `E2E Create ${Date.now()}`;
+  const projectSlug = slugify(projectName);
 
   await openCreateMode(page);
   await page.getByLabel('Project name').fill(projectName);
   await page.getByRole('button', { name: 'Next' }).click();
 
-  // Assertions
   await expect(page.locator('...')).toBeVisible();
 });
 ```
@@ -229,8 +249,21 @@ test('scaffoldProject creates expected project structure', () => {
   writeTemplateFixture(templateRoot);
 
   try {
-    const result = scaffoldProject({ /* ... */ });
+    const result = scaffoldProject({
+      name: 'Unit Test Workspace',
+      description: 'Workspace scaffold test',
+      role: 'Test assistant',
+      audience: 'Product managers',
+      tone: 'Professional',
+      stages: [
+        { name: 'Research', purpose: 'Collect references' },
+        { name: 'Draft', purpose: 'Create draft outputs' }
+      ],
+      outputRoot: allowedRoot
+    });
+
     assert.equal(result.success, true);
+    assert.equal(result.projectSlug, 'unit-test-workspace');
     assert.ok(fs.existsSync(path.join(result.projectPath, 'CLAUDE.md')));
   } finally {
     fs.rmSync(sandboxRoot, { recursive: true, force: true });
@@ -238,19 +271,28 @@ test('scaffoldProject creates expected project structure', () => {
 });
 ```
 
-**Error Testing with assert.throws():**
+**Error Testing:**
 ```javascript
 test('scaffoldProject blocks output roots outside allowlist', () => {
-  // Setup...
+  const sandboxRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'scaffolder-unit-'));
+  const allowedRoot = path.join(sandboxRoot, 'allowed-root');
+  const outsideRoot = path.join(sandboxRoot, 'outside-root');
+
+  fs.mkdirSync(allowedRoot, { recursive: true });
+  fs.mkdirSync(outsideRoot, { recursive: true });
+  writeTemplateFixture(templateRoot);
+
   try {
     assert.throws(
       () => {
         scaffoldProject({
-          config: { createModeAllowedRoots: [allowedRoot] },
+          name: 'Outside Root Workspace',
           outputRoot: outsideRoot  // Outside allowlist
         });
       },
-      err => err instanceof ScaffolderError && err.code === 'PATH_OUTSIDE_ROOT' && err.status === 403
+      err => err instanceof ScaffolderError &&
+             err.code === 'PATH_OUTSIDE_ROOT' &&
+             err.status === 403
     );
   } finally {
     fs.rmSync(sandboxRoot, { recursive: true, force: true });
@@ -258,7 +300,7 @@ test('scaffoldProject blocks output roots outside allowlist', () => {
 });
 ```
 
-**Browser Automation in E2E:**
+**Browser Automation:**
 ```javascript
 async function openCreateMode(page) {
   await page.goto('/');
@@ -279,19 +321,55 @@ test('Create mode renders when models endpoint fails', async ({ page }) => {
 });
 ```
 
-## Test Configuration
+## Playwright Configuration
 
-**Playwright Config:** `.playwright-mcp/` directory exists but config details not examined. Standard Playwright behavior applies.
+**File:** `playwright.config.js`
 
-**Node Test Runner:** Uses Node.js 18+ built-in, no explicit configuration needed.
+```javascript
+const { defineConfig } = require('@playwright/test');
+
+module.exports = defineConfig({
+  testDir: './test/e2e',
+  timeout: 45_000,
+  expect: {
+    timeout: 10_000
+  },
+  use: {
+    baseURL: 'http://127.0.0.1:4173',
+    headless: true
+  },
+  webServer: {
+    command: 'PORT=4173 node server.js',
+    port: 4173,
+    reuseExistingServer: true,
+    timeout: 120_000
+  }
+});
+```
+
+**Key settings:**
+- Test directory: `./test/e2e`
+- Test timeout: 45 seconds
+- Base URL: localhost on port 4173
+- Server startup: `node server.js` on port 4173
+- Headless mode: enabled by default
 
 ## Test Execution Notes
 
-- Unit tests isolated from running application (file-based, no server dependencies)
-- E2E tests require running server (`npm run start` or `npm run dev:server`)
-- E2E tests require frontend at `http://localhost:5173` (dev) or `http://localhost:3000` (prod)
-- Temporary directories created and cleaned up within each test
-- No test data committed to repository; fixtures generated in-memory
+**Unit Tests:**
+- Isolated from running application
+- File-based, no server dependencies
+- Run with: `node --test`
+
+**E2E Tests:**
+- Require running server on port 4173
+- Run with: `npx playwright test`
+- Automatically starts server via `webServer` config
+- Re-uses existing server if available
+
+**Dependencies:**
+- Unit tests need: Node 18+, file system access
+- E2E tests need: Node 18+, Playwright, running server
 
 ---
 
