@@ -1102,6 +1102,34 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// ── Create Project (ICM scaffolder) ──────────────────
+
+app.post('/api/create-project', (req, res) => {
+  const { name, description, role, audience, tone, stages, outputRoot, overwrite } = req.body || {};
+
+  // Validate required fields
+  const missing = ['name', 'outputRoot', 'role', 'audience', 'tone'].filter(f => !req.body?.[f]?.toString().trim());
+  if (missing.length) {
+    return res.status(400).json({ success: false, error: `Missing required fields: ${missing.join(', ')}`, code: 'MISSING_FIELDS' });
+  }
+  if (!Array.isArray(stages) || stages.length === 0) {
+    return res.status(400).json({ success: false, error: 'stages must be a non-empty array', code: 'MISSING_FIELDS' });
+  }
+
+  try {
+    const result = scaffoldProject({ name, description, role, audience, tone, stages, outputRoot, overwrite: !!overwrite });
+    if (!result.success) {
+      const status = result.code === 'PATH_OUTSIDE_ROOT' ? 403 : result.code === 'PROJECT_EXISTS' ? 409 : 500;
+      return res.status(status).json({ success: false, error: result.errors[0], code: result.code });
+    }
+    log('INFO', 'Project scaffolded', { projectPath: result.projectPath, fileCount: result.files.length });
+    return res.json({ success: true, projectPath: result.projectPath, files: result.files });
+  } catch (err) {
+    log('ERROR', 'scaffoldProject threw unexpectedly', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message, code: 'INTERNAL_ERROR' });
+  }
+});
+
 // ── SPA Fallback (must be after all API routes) ──────
 
 app.get('*', (req, res) => {
