@@ -6,7 +6,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ## Features
 
-- **Six specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech
+- **Seven specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech, Create
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
@@ -128,7 +128,8 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── config.js          # Config getter/setter (.cc-config.json)
 │   ├── logger.js          # File + stderr logging
 │   ├── ollama-client.js   # Ollama API client (stream + complete)
-│   ├── prompts.js         # System prompts for all 6 modes
+│   ├── prompts.js         # System prompts for all 7 modes
+│   ├── icm-scaffolder.js  # Create mode workspace scaffolding engine
 │   ├── file-browser.js    # Project file tree + reader
 │   ├── history.js         # Conversation persistence
 │   ├── mcp-client-manager.js  # External MCP server connections
@@ -142,7 +143,12 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   └── components/
 │       ├── SettingsPanel.jsx     # Settings with 3 tabs
 │       ├── McpServerPanel.jsx    # MCP server management UI
-│       └── McpClientPanel.jsx    # MCP client management UI
+│       ├── McpClientPanel.jsx    # MCP client management UI
+│       └── CreateWizard.jsx      # Create mode multi-step wizard
+├── test/
+│   ├── unit/              # Node unit tests
+│   └── e2e/               # Playwright end-to-end tests
+├── playwright.config.js   # Playwright test runner configuration
 └── dist/                  # Production build output
 ```
 
@@ -153,6 +159,8 @@ Settings are stored in `.cc-config.json`:
 ```json
 {
   "ollamaUrl": "http://localhost:11434",
+  "icmTemplatePath": "/Users/you/AI_Dev/ICM_FW/ICM-Framework-Template",
+  "createModeAllowedRoots": ["/Users/you/AI_Dev"],
   "projectFolder": "/path/to/your/project",
   "mcpClients": [
     {
