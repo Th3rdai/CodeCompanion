@@ -39,6 +39,14 @@ npm run build        # Production build
 npm run preview      # Build + serve
 ```
 
+### Automated Tests
+
+```bash
+npm run test:unit    # Node unit tests (scaffolder and backend logic)
+npm run test:e2e     # Playwright browser + API end-to-end tests
+npm test             # Run unit + e2e suites
+```
+
 ## MCP Server
 
 Th3rdAI Code Companion exposes 11 tools via MCP that other AI agents can use:
