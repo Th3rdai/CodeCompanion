@@ -20,11 +20,11 @@
 
 ### Tone & Modes
 
-- [ ] **TONE-01**: All system prompts rewritten with friendly-teacher persona using analogies and zero jargon
-- [ ] **TONE-02**: Explain mode reworked for users who have never coded — uses everyday analogies
-- [ ] **TONE-03**: Bugs mode reworked with plain-English severity and "what will actually break" framing
-- [ ] **TONE-04**: Refactor mode reworked as "what to ask your AI to change" with copy-pasteable prompts
-- [ ] **TONE-05**: Translate modes reworked to bridge vibe-coder understanding, not PM-developer gap
+- [x] **TONE-01**: All system prompts rewritten with friendly-teacher persona using analogies and zero jargon
+- [x] **TONE-02**: Explain mode reworked for users who have never coded — uses everyday analogies
+- [x] **TONE-03**: Bugs mode reworked with plain-English severity and "what will actually break" framing
+- [x] **TONE-04**: Refactor mode reworked as "what to ask your AI to change" with copy-pasteable prompts
+- [x] **TONE-05**: Translate modes reworked to bridge vibe-coder understanding, not PM-developer gap
 
 ### UX & Onboarding
 
@@ -74,11 +74,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-08 | Phase 3 | Pending |
 | REVW-09 | Phase 3 | Pending |
 | REVW-10 | Phase 4 | Pending |
-| TONE-01 | Phase 2 | Pending |
-| TONE-02 | Phase 2 | Pending |
-| TONE-03 | Phase 2 | Pending |
-| TONE-04 | Phase 2 | Pending |
-| TONE-05 | Phase 2 | Pending |
+| TONE-01 | Phase 2 | Complete |
+| TONE-02 | Phase 2 | Complete |
+| TONE-03 | Phase 2 | Complete |
+| TONE-04 | Phase 2 | Complete |
+| TONE-05 | Phase 2 | Complete |
 | UX-01 | Phase 5 | Pending |
 | UX-02 | Phase 2 | Pending |
 | UX-03 | Phase 5 | Pending |
