@@ -240,7 +240,8 @@ export function JargonTooltip({ children }) {
       {tooltip && (
         <div
           ref={tooltipRef}
-          className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in pointer-events-none"
+          className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in cursor-pointer"
+          onClick={() => setTooltip(null)}
           style={{
             left: Math.min(tooltip.x, window.innerWidth - 280),
             top: Math.max(tooltip.y - 8, 8),
