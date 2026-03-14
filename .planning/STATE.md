@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 4
+current_plan: 3 of 4
 status: completed
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-03-14T23:18:13.637Z"
-last_activity: 2026-03-14 — Electron desktop shell with forked server and data management
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-14T23:21:25.054Z"
+last_activity: 2026-03-14 — Cross-platform installers and landing page
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 14
-  completed_plans: 12
-  percent: 79
+  completed_plans: 13
+  percent: 86
 ---
 
 # Project State
@@ -65,6 +65,7 @@ Progress: [█████████░] 86%
 | Phase 05 P02 | 136 | 3 tasks | 7 files |
 | Phase 06 P01 | 344 | 2 tasks | 11 files |
 | Phase 06 P03 | 209 | 2 tasks | 11 files |
+| Phase 06 P02 | 389 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,9 @@ Recent decisions affecting current work:
 - [Phase 06]: Pre-update backup via createBackup() for safety net before applying updates
 - [Phase 06]: SVG source icons with Node.js sharp conversion for version-controllable branding
 - [Phase 06]: Landing page with inline CSS and system fonts for zero build step GitHub Pages deployment
+- [Phase 06]: Cross-platform IDE launcher with fallback pattern (Electron mode vs dev mode)
+- [Phase 06]: Ollama setup wizard as overlay (not error state) with 5 states and friendly messaging
+- [Phase 06]: Model pull streams NDJSON progress for real-time UI updates with percentage and download size
 
 ### Pending Todos
 
@@ -116,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:18:13.635Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-03-14T23:21:25.053Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
