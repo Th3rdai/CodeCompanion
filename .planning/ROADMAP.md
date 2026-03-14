@@ -46,11 +46,11 @@ Plans:
   3. Bugs mode describes issues in terms of "what will actually break" with plain-English severity
   4. Refactor mode outputs "what to ask your AI to change" framing instead of technical refactoring advice
   5. All mode labels, navigation items, and UI text use non-technical language
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — Test scaffolds + rewrite 7 mode prompts for vibe-coder audience with mode-specific personalities
+- [ ] 02-02-PLAN.md — Update translation mode labels (Code → Plain English, Idea → Code Spec) and placeholders
 
 ### Phase 3: Report Card UI
 **Goal**: Users can see their code review as a visual report card with color-coded grades, click into conversational deep-dives, and feed code through any input method
