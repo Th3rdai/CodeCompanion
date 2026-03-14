@@ -73,6 +73,9 @@ function CopyButton({ text }) {
 }
 
 export default function App() {
+  // Electron detection
+  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+
   const [splashDismissed, setSplashDismissed] = useState(
     () => sessionStorage.getItem('th3rdai_splash_dismissed') === 'true'
   );
@@ -82,7 +85,15 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [projectFolder, setProjectFolder] = useState('');
-  const [mode, setMode] = useState('chat');
+  const [mode, _setMode] = useState('chat');
+
+  // Wrap setMode to persist last active mode in Electron
+  const setMode = useCallback((newMode) => {
+    _setMode(newMode);
+    if (isElectron && window.electronAPI?.setLastMode) {
+      window.electronAPI.setLastMode(newMode);
+    }
+  }, [isElectron]);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [streaming, setStreaming] = useState(false);
@@ -110,7 +121,31 @@ export default function App() {
   const [savedReview, setSavedReview] = useState(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
-  useEffect(() => { fetchConfig(); fetchModels(); fetchHistory(); }, []);
+
+  // Initialize app on mount
+  useEffect(() => {
+    fetchConfig();
+    fetchModels();
+    fetchHistory();
+
+    // Load last active mode in Electron
+    if (isElectron && window.electronAPI?.getLastMode) {
+      window.electronAPI.getLastMode().then((lastMode) => {
+        if (lastMode) {
+          _setMode(lastMode);
+        }
+      }).catch(() => {
+        // Fallback to default 'chat' mode
+      });
+    }
+
+    // Listen for port fallback notification in Electron
+    if (isElectron && window.electronAPI?.onPortFallback) {
+      window.electronAPI.onPortFallback(({ actual, preferred }) => {
+        showToast(`Server started on port ${actual} (port ${preferred} was busy)`);
+      });
+    }
+  }, [isElectron]);
 
   function showToast(msg) { setToast(msg); }
 

@@ -4,6 +4,7 @@ import McpClientPanel from './McpClientPanel';
 import { use3DEffects } from '../contexts/Effects3DContext';
 import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
+import { Download, Upload, Settings } from 'lucide-react';
 
 export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose }) {
   const [activeTab, setActiveTab] = useState('general');
@@ -20,9 +21,87 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [ghResult, setGhResult] = useState(null);
   const { enabled: effects3D, setEnabled: setEffects3D } = use3DEffects();
 
+  // Electron state
+  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+  const [appVersion, setAppVersion] = useState(null);
+  const [dataDir, setDataDir] = useState(null);
+  const [preferredPort, setPreferredPort] = useState(3000);
+  const [actualPort, setActualPort] = useState(null);
+  const [portError, setPortError] = useState('');
+
   useEffect(() => {
     fetchGhTokenStatus();
-  }, []);
+    if (isElectron) {
+      fetchElectronData();
+    }
+  }, [isElectron]);
+
+  async function fetchElectronData() {
+    try {
+      const version = await window.electronAPI.getAppVersion();
+      const dir = await window.electronAPI.getDataDir();
+      const port = await window.electronAPI.getPortConfig();
+      const actual = await window.electronAPI.getActualPort();
+      setAppVersion(version);
+      setDataDir(dir);
+      setPreferredPort(port);
+      setActualPort(actual);
+    } catch (err) {
+      console.error('Failed to fetch Electron data:', err);
+    }
+  }
+
+  async function handleExportData() {
+    try {
+      const result = await window.electronAPI.exportData();
+      if (result.success) {
+        showToast('Data exported successfully');
+      } else if (!result.cancelled) {
+        showToast(`Export failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      showToast(`Export failed: ${err.message}`);
+    }
+  }
+
+  async function handleImportData() {
+    try {
+      const result = await window.electronAPI.importData();
+      if (result.success) {
+        showToast('Data imported successfully. Reloading app...');
+        setTimeout(() => window.location.reload(), 1500);
+      } else if (!result.cancelled) {
+        showToast(`Import failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      showToast(`Import failed: ${err.message}`);
+    }
+  }
+
+  async function handleSavePort() {
+    const portNum = parseInt(preferredPort, 10);
+    if (portNum < 1024 || portNum > 65535) {
+      setPortError('Port must be between 1024 and 65535');
+      return;
+    }
+    setPortError('');
+    try {
+      const result = await window.electronAPI.setPortConfig(portNum);
+      if (result.success) {
+        showToast('Port preference saved. Takes effect on next launch.');
+      } else {
+        setPortError(result.error || 'Failed to save port');
+      }
+    } catch (err) {
+      setPortError(err.message);
+    }
+  }
+
+  function showToast(msg) {
+    // This would need to be passed as a prop or accessed via context
+    // For now, using console.log as placeholder
+    console.log('[Toast]', msg);
+  }
 
   async function fetchGhTokenStatus() {
     try {
@@ -191,6 +270,83 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                 Restart Tour
               </button>
             </div>
+
+            {/* Electron-only sections */}
+            {isElectron && (
+              <>
+                {/* Data Management */}
+                <div className="glass rounded-lg p-4">
+                  <p className="text-sm font-medium text-slate-200 mb-3">Data Management</p>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleExportData}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-600 text-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export Data
+                      </button>
+                      <button
+                        onClick={handleImportData}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-600 text-sm"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Import Data
+                      </button>
+                    </div>
+                    {dataDir && (
+                      <p className="text-xs text-slate-500">
+                        Data location: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300 text-[10px]">{dataDir}</code>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Port Configuration */}
+                <div className="glass rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Settings className="w-4 h-4 text-slate-400" />
+                    <p className="text-sm font-medium text-slate-200">Port Configuration</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs text-slate-400">Preferred Port</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={preferredPort}
+                        onChange={(e) => setPreferredPort(e.target.value)}
+                        min="1024"
+                        max="65535"
+                        className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-sm"
+                      />
+                      <button
+                        onClick={handleSavePort}
+                        className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
+                      >
+                        Save
+                      </button>
+                    </div>
+                    {portError && (
+                      <p className="text-xs text-red-400">{portError}</p>
+                    )}
+                    {actualPort && (
+                      <p className="text-xs text-slate-500">
+                        Currently running on port <span className="text-indigo-300 font-medium">{actualPort}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* App Version */}
+                {appVersion && (
+                  <div className="text-center">
+                    <p className="text-xs text-slate-500">
+                      Code Companion v{appVersion}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="mb-5 p-3 glass rounded-lg text-xs text-slate-400">
               <strong className="text-slate-300">Need a hand?</strong>
