@@ -201,10 +201,33 @@ export function JargonTooltip({ children }) {
   }, []);
 
   const handleMouseOut = useCallback((e) => {
+    const related = e.relatedTarget;
+    // Clear tooltip when mouse leaves jargon term, unless moving to another jargon term
     if (e.target.classList?.contains('jargon-term')) {
-      setTooltip(null);
+      if (!related?.classList?.contains('jargon-term')) {
+        setTooltip(null);
+      }
     }
   }, []);
+
+  // Auto-dismiss tooltip after a delay as a safety net
+  useEffect(() => {
+    if (!tooltip) return;
+    const timer = setTimeout(() => setTooltip(null), 3000);
+    return () => clearTimeout(timer);
+  }, [tooltip]);
+
+  // Dismiss on scroll or click anywhere
+  useEffect(() => {
+    if (!tooltip) return;
+    const dismiss = () => setTooltip(null);
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('click', dismiss, true);
+    return () => {
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('click', dismiss, true);
+    };
+  }, [tooltip]);
 
   return (
     <div
