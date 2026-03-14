@@ -22,6 +22,8 @@ import TypingIndicator3D from './components/3d/TypingIndicator3D';
 import ParticleBurst from './components/3d/ParticleBurst';
 import TokenCounter from './components/3d/TokenCounter';
 import OrbitingBadge from './components/3d/OrbitingBadge';
+import OllamaSetup from './components/OllamaSetup';
+import ConnectionDot from './components/ConnectionDot';
 
 const MODES = [
   { id: 'chat',           label: 'Chat',                    icon: '💬', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about code, building with AI, or just say hey..." },
@@ -113,6 +115,7 @@ export default function App() {
   const [sendBurst, setSendBurst] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete());
   const [showGlossary, setShowGlossary] = useState(false);
+  const [showOllamaSetup, setShowOllamaSetup] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -170,8 +173,21 @@ export default function App() {
           const match = saved && data.models.find(m => m.name === saved);
           setSelectedModel(match ? match.name : data.models[0].name);
         }
-      } else { setConnected(false); setOllamaUrl(data.ollamaUrl || ''); }
-    } catch { setConnected(false); }
+      } else {
+        setConnected(false);
+        setOllamaUrl(data.ollamaUrl || '');
+        // In Electron mode, show Ollama setup wizard if not connected and no models
+        if (isElectron && models.length === 0) {
+          setShowOllamaSetup(true);
+        }
+      }
+    } catch {
+      setConnected(false);
+      // In Electron mode, show Ollama setup wizard on connection error
+      if (isElectron && models.length === 0) {
+        setShowOllamaSetup(true);
+      }
+    }
     setRefreshing(false);
   }
 
@@ -475,6 +491,7 @@ export default function App() {
               Settings
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
+            <ConnectionDot connected={connected} />
             <button onClick={fetchModels} disabled={refreshing}
               className="text-slate-400 hover:text-indigo-300 text-sm px-2 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors disabled:opacity-50" title="Refresh models">
               <span className={refreshing ? 'inline-block spin' : ''}>&#x27F3;</span>
@@ -491,12 +508,12 @@ export default function App() {
         {/* Animated beam accent */}
         <Splite color="#6366f1" height={1} speed={2} />
 
-        {/* Offline Banner */}
-        {!connected && (
+        {/* Offline Banner — non-blocking info message */}
+        {!connected && models.length > 0 && (
           <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-3 flex items-center gap-3">
             <span className="text-amber-400 text-sm">&#9888;</span>
             <div className="flex-1 text-sm text-amber-300">
-              Hmm, I can't connect to Ollama at <code className="bg-amber-500/10 px-1.5 py-0.5 rounded text-xs">{ollamaUrl}</code>. Let's get that sorted — make sure Ollama is running!
+              Ollama disconnected — AI features unavailable. You can still browse your conversation history.
             </div>
             <button onClick={() => setShowSettings(true)} className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-lg transition-colors">Configure</button>
             <button onClick={fetchModels} className="text-xs glass text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-600/50 transition-colors">Retry</button>
@@ -682,6 +699,7 @@ export default function App() {
       {renaming && <RenameModal currentName={renaming.title} onSave={(name) => renameConversation(renaming.id, name)} onClose={() => setRenaming(null)} />}
       {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
+      {showOllamaSetup && <OllamaSetup onComplete={() => { setShowOllamaSetup(false); fetchModels(); }} />}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
   );

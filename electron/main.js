@@ -9,6 +9,7 @@ const { loadWindowState, saveWindowState } = require('./window-state');
 const { createMenu } = require('./menu');
 const { initAutoUpdater } = require('./updater');
 const { launchIDE } = require('./ide-launcher');
+const { checkOllamaRunning, installOllama, pullModel } = require('./ollama-setup');
 
 let mainWindow = null;
 let serverProcess = null;
@@ -409,6 +410,41 @@ ipcMain.handle('launch-ide', async (event, { ide, folder }) => {
     return { success: true };
   } catch (error) {
     console.error('[Main] IDE launch error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('check-ollama', async (event, ollamaUrl) => {
+  try {
+    const url = ollamaUrl || 'http://localhost:11434';
+    const result = await checkOllamaRunning(url);
+    return result;
+  } catch (error) {
+    console.error('[Main] Check Ollama error:', error);
+    return { running: false, models: [], error: error.message };
+  }
+});
+
+ipcMain.handle('install-ollama', async (event) => {
+  try {
+    const result = await installOllama();
+    return result;
+  } catch (error) {
+    console.error('[Main] Install Ollama error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pull-model', async (event, { ollamaUrl, modelName }) => {
+  try {
+    const url = ollamaUrl || 'http://localhost:11434';
+    const result = await pullModel(url, modelName, (progress) => {
+      // Send progress updates to renderer
+      event.sender.send('pull-progress', progress);
+    });
+    return result;
+  } catch (error) {
+    console.error('[Main] Pull model error:', error);
     return { success: false, error: error.message };
   }
 });

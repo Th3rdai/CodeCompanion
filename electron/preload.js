@@ -41,4 +41,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // IDE launcher
   launchIDE: (ide, folder) => ipcRenderer.invoke('launch-ide', { ide, folder }),
+
+  // Ollama setup
+  checkOllama: (ollamaUrl) => ipcRenderer.invoke('check-ollama', ollamaUrl),
+  installOllama: () => ipcRenderer.invoke('install-ollama'),
+  pullModel: (ollamaUrl, modelName) => ipcRenderer.invoke('pull-model', { ollamaUrl, modelName }),
+  onPullProgress: (callback) => ipcRenderer.on('pull-progress', (_, data) => callback(data)),
+  offPullProgress: () => ipcRenderer.removeAllListeners('pull-progress'),
 });
