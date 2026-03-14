@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The response includes an overall grade summarizing code quality
   3. The response includes a "Top Priority" field identifying the single most important thing to fix
   4. All findings in the response use plain English with no programming jargon
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Schema, chatStructured client function, and review system prompt
+- [ ] 01-02-PLAN.md — POST /api/review endpoint with structured output + chat fallback
 
 ### Phase 2: Tone Unification
 **Goal**: Every mode in the application speaks with a consistent friendly-teacher persona using analogies and zero jargon, with simplified labels a non-technical user understands
