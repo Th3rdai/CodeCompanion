@@ -98,9 +98,10 @@ function createRateLimiter({ name, max, windowMs, methods }) {
 }
 
 // ── Initialize modules ───────────────────────────────
-initConfig(__dirname);
-initHistory(__dirname);
-const { log, debug, logDir } = createLogger(__dirname, { debugEnabled: DEBUG });
+const dataRoot = process.env.CC_DATA_DIR || __dirname;
+initConfig(dataRoot);
+initHistory(dataRoot);
+const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 
 // ── Initialize MCP Client Manager ────────────────────
 const mcpClientManager = new McpClientManager({ log, debug });
@@ -936,7 +937,7 @@ app.listen(PORT, () => {
   const config = getConfig();
   log('INFO', `Th3rdAI Code Companion started on http://localhost:${PORT}`);
   log('INFO', `Ollama endpoint: ${config.ollamaUrl}`);
-  log('INFO', `History dir: ${path.join(__dirname, 'history')}`);
+  log('INFO', `History dir: ${path.join(dataRoot, 'history')}`);
   log('INFO', `Log dir: ${logDir}`);
   log('INFO', `MCP HTTP server: enabled at /mcp`);
   log('INFO', `Debug mode: ${DEBUG ? 'ON' : 'OFF (set DEBUG=1 to enable console debug output)'}`);
@@ -945,6 +946,11 @@ app.listen(PORT, () => {
   console.log(`  MCP HTTP server: /mcp`);
   console.log(`  Logs: ${logDir}`);
   console.log(`  Tip: run with DEBUG=1 for verbose console output\n`);
+
+  // Notify Electron parent process that server is ready
+  if (process.send) {
+    process.send({ type: 'server-ready', port: PORT });
+  }
 
   // Auto-connect configured MCP clients
   const autoClients = (config.mcpClients || []).filter(c => c.autoConnect);
@@ -959,3 +965,6 @@ app.listen(PORT, () => {
     }
   }
 });
+
+// Export app for potential programmatic use
+module.exports = app;
