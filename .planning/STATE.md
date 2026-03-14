@@ -5,7 +5,7 @@ milestone_name: milestone
 status: completed
 stopped_at: Completed 05-02-PLAN.md
 last_updated: "2026-03-14T21:40:46.270Z"
-last_activity: 2026-03-14 — Fix prompts wired end-to-end (schema, prompt, UI, bulk copy)
+last_activity: 2026-03-14 — Onboarding glossary and privacy test scaffolds complete
 progress:
   total_phases: 7
   completed_phases: 5
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Phase 4 complete — fix prompts and model quality warnings
+**Current focus:** Phase 5 complete — onboarding and help system
 
 ## Current Position
 
-Phase: 4 of 6 (Actionable Guidance) — COMPLETE
-Next: Phase 5
-Status: Phase 4 Plans 1 and 2 complete
+Phase: 5 of 7 (Onboarding and Help) — COMPLETE
+Next: Phase 6
+Status: Phase 5 Plans 1 and 2 complete
 Last activity: 2026-03-14 — Fix prompts wired end-to-end (schema, prompt, UI, bulk copy)
 
 Progress: [██████████] 100%
