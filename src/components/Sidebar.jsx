@@ -84,6 +84,15 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
               onClick={() => { onSelect(h.id); onClose(); }}
               onContextMenu={(e) => handleContextMenu(e, h)}>
               <span className="text-sm">{modes?.find(m => m.id === h.mode)?.icon || '💬'}</span>
+              {h.overallGrade && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                  h.overallGrade === 'A' ? 'bg-emerald-500/20 text-emerald-400' :
+                  h.overallGrade === 'B' ? 'bg-lime-500/20 text-lime-400' :
+                  h.overallGrade === 'C' ? 'bg-yellow-500/20 text-yellow-400' :
+                  h.overallGrade === 'D' ? 'bg-orange-500/20 text-orange-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>{h.overallGrade}</span>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm text-slate-200 truncate">{h.title || 'Untitled'}</div>
                 <div className="text-xs text-slate-500">

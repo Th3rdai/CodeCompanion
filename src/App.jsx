@@ -164,7 +164,10 @@ export default function App() {
       setAttachedFiles([]);
       // Restore saved review data when loading a review conversation
       if (conv.mode === 'review' && conv.reviewData) {
-        setSavedReview(conv.reviewData);
+        setSavedReview({
+          ...conv.reviewData,
+          deepDiveMessages: conv.reviewData.deepDiveMessages || []
+        });
       } else {
         setSavedReview(null);
       }
@@ -237,6 +240,22 @@ export default function App() {
       setActiveConvId(id);
       fetchHistory();
       showToast('Review saved to history');
+    } catch {}
+  }
+
+  async function handleUpdateReviewDeepDive(deepDiveMessages) {
+    if (!activeConvId || mode !== 'review') return;
+    try {
+      const res = await fetch(`/api/history/${activeConvId}`);
+      const conv = await res.json();
+      if (conv.reviewData) {
+        conv.reviewData.deepDiveMessages = deepDiveMessages;
+        await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(conv),
+        });
+      }
     } catch {}
   }
 
@@ -490,6 +509,7 @@ export default function App() {
                 onSaveReview={handleSaveReview}
                 models={models}
                 onSetSelectedModel={setSelectedModel}
+                onUpdateReviewDeepDive={handleUpdateReviewDeepDive}
               />
             ) : (
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">

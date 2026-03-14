@@ -87,6 +87,7 @@ export default function ReviewPanel({
   onSaveReview,
   models,
   onSetSelectedModel,
+  onUpdateReviewDeepDive,
 }) {
   // ── State ───────────────────────────────────────────
   const [phase, setPhase] = useState('input'); // 'input' | 'loading' | 'report' | 'fallback' | 'deep-dive'
@@ -112,6 +113,9 @@ export default function ReviewPanel({
         setFilename(savedReview.filename || '');
         setCode(savedReview.code || '');
         setPhase('report');
+        if (savedReview.deepDiveMessages?.length > 0) {
+          setDeepDiveMessages(savedReview.deepDiveMessages);
+        }
       } else if (savedReview.fallbackContent) {
         setFallbackContent(savedReview.fallbackContent);
         setFilename(savedReview.filename || '');
@@ -342,6 +346,11 @@ export default function ReviewPanel({
     } finally {
       setDeepDiveStreaming(false);
       setTimeout(() => deepDiveEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      // Persist deep-dive messages after each response
+      setDeepDiveMessages(prev => {
+        onUpdateReviewDeepDive?.(prev);
+        return prev;
+      });
     }
   }
 
