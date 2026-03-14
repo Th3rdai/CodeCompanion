@@ -12,7 +12,7 @@
 - [ ] **REVW-03**: Report card highlights a "Top Priority" — the single most important thing to fix first
 - [ ] **REVW-04**: Each category shows plain-English findings with zero jargon
 - [x] **REVW-05**: User can click any grade category to start a conversational deep-dive explaining the issues
-- [ ] **REVW-06**: Each finding includes a "What to ask your AI to fix" copy-pasteable prompt
+- [x] **REVW-06**: Each finding includes a "What to ask your AI to fix" copy-pasteable prompt
 - [x] **REVW-07**: Report card uses color-coded grades (A=green through F=red) for instant visual feedback
 - [x] **REVW-08**: User sees a friendly loading state ("Grading your code...") while review processes
 - [x] **REVW-09**: User can upload files or use file browser to feed code into review
@@ -69,7 +69,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-03 | Phase 1 | Pending |
 | REVW-04 | Phase 1 | Pending |
 | REVW-05 | Phase 3 | Complete |
-| REVW-06 | Phase 4 | Pending |
+| REVW-06 | Phase 4 | Complete |
 | REVW-07 | Phase 3 | Complete |
 | REVW-08 | Phase 3 | Complete |
 | REVW-09 | Phase 3 | Complete |

@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Phase 3 complete, Create Mode UAT complete — ready for Phase 4
+**Current focus:** Phase 4 complete — fix prompts and model quality warnings
 
 ## Current Position
 
-Phase: 3 of 6 (Report Card UI) — COMPLETE
-Next: Phase 4 (Actionable Guidance)
-Status: Phase 3 complete, Create Mode UAT 11/11 passed
-Last activity: 2026-03-14 — Create Mode UAT complete, bug fixes committed
+Phase: 4 of 6 (Actionable Guidance) — COMPLETE
+Next: Phase 5
+Status: Phase 4 Plans 1 and 2 complete
+Last activity: 2026-03-14 — Fix prompts wired end-to-end (schema, prompt, UI, bulk copy)
 
 Progress: [██████████] 100%
 
@@ -57,6 +57,7 @@ Progress: [██████████] 100%
 | Phase 02 P02 | 83 | 2 tasks | 2 files |
 | Phase 03 P01 | 172 | 3 tasks | 4 files |
 | Phase 03 P02 | 439 | 4 tasks | 5 files |
+| Phase 04 P01 | 141 | 2 tasks | 4 files |
 | Phase 04 P02 | 217 | 2 tasks | 4 files |
 
 ## Accumulated Context
@@ -78,6 +79,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Used Headless UI Tab component for accessible input methods instead of manual ARIA implementation
 - [Phase 03]: Replaced emoji icons with Lucide React SVG icons per ui-ux-pro-max skill (Bug, Lock, BookOpen, CheckCircle)
 - [Phase 03]: Added explicit category-level Learn More buttons for deep-dive entry points
+- [Phase 04]: Fallback fix prompts generated from finding title+explanation when LLM omits fixPrompt
+- [Phase 04]: Bulk copy sorts prompts by severity (critical first) for prioritized AI fixing
+- [Phase 04]: Replaced emoji Copy/Fix icons with Lucide Clipboard/ClipboardCopy per UI skill rules
 - [Phase 04]: Empirical MODEL_TIERS object with strong/adequate/weak classifications for review quality warnings
 - [Phase 04]: Deep-dive messages persisted incrementally after each assistant response to prevent data loss
 
@@ -93,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T17:44:28.597Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-14T17:42:21Z
+Stopped at: Completed 04-01-PLAN.md (Phase 4 fully complete)
 Resume file: None
