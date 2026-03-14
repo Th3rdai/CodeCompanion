@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { BookOpen } from 'lucide-react';
 
 /**
- * Glossary of common technical jargon that PMs encounter.
+ * Glossary of common technical jargon you'll encounter when building with AI coding tools.
  * Used both for the floating glossary panel and for inline hover definitions.
  */
 const GLOSSARY = {
@@ -105,7 +106,7 @@ export function GlossaryPanel({ onClose }) {
         <div className="p-5 border-b border-slate-700/30">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-lg">📖</span>
+              <BookOpen className="w-5 h-5 text-indigo-400" />
               <h2 className="text-lg font-bold text-slate-100 neon-text">Jargon Glossary</h2>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-white text-xl transition-colors" aria-label="Close glossary">&#10005;</button>
