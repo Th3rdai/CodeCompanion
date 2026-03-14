@@ -8,7 +8,8 @@ const { initConfig, getConfig, updateConfig } = require('./lib/config');
 const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
-const { buildFileTree, readProjectFile, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
+const { buildFileTree, readProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
+const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken } = require('./lib/github');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
@@ -16,11 +17,85 @@ const { registerAllTools } = require('./mcp/tools');
 const McpClientManager = require('./lib/mcp-client-manager');
 const ToolCallHandler = require('./lib/tool-call-handler');
 const { createMcpApiRoutes } = require('./lib/mcp-api-routes');
-const { scaffoldProject } = require('./lib/icm-scaffolder');
+const { reviewCode } = require('./lib/review');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
+
+
+function maskSensitiveValue(value) {
+  if (!value) return '';
+  if (typeof value !== 'string') return '[REDACTED]';
+  if (value.length <= 4) return '****';
+  return `${value.slice(0, 2)}****${value.slice(-2)}`;
+}
+
+function sanitizeConfigForClient(config) {
+  const safe = { ...config };
+  safe.githubTokenConfigured = Boolean(safe.githubToken);
+  if ('githubToken' in safe) {
+    delete safe.githubToken;
+  }
+
+  if (safe.mcpServers && typeof safe.mcpServers === 'object') {
+    const clonedServers = {};
+    for (const [name, server] of Object.entries(safe.mcpServers)) {
+      const cloned = { ...server };
+      if (cloned.env && typeof cloned.env === 'object') {
+        const maskedEnv = {};
+        for (const [k, v] of Object.entries(cloned.env)) {
+          const lower = String(k).toLowerCase();
+          const looksSensitive = lower.includes('token') || lower.includes('secret') || lower.includes('password') || lower.includes('key');
+          maskedEnv[k] = looksSensitive ? maskSensitiveValue(v) : v;
+        }
+        cloned.env = maskedEnv;
+      }
+      clonedServers[name] = cloned;
+    }
+    safe.mcpServers = clonedServers;
+  }
+
+  return safe;
+}
+
+function getClientAddress(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+function createRateLimiter({ name, max, windowMs, methods }) {
+  const buckets = new Map();
+  const allowedMethods = new Set((methods || ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).map(m => String(m).toUpperCase()));
+  const safeMax = Math.max(1, Number(max) || 1);
+  const safeWindowMs = Math.max(1000, Number(windowMs) || 60000);
+
+  return function rateLimiter(req, res, next) {
+    if (!allowedMethods.has(req.method.toUpperCase())) {
+      return next();
+    }
+
+    const now = Date.now();
+    const key = `${name}:${getClientAddress(req)}`;
+    const record = buckets.get(key);
+    if (!record || now >= record.resetAt) {
+      buckets.set(key, { count: 1, resetAt: now + safeWindowMs });
+      return next();
+    }
+
+    if (record.count >= safeMax) {
+      const retryAfter = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfter));
+      return res.status(429).json({ error: 'Too many requests', code: 'RATE_LIMITED', retryAfter });
+    }
+
+    record.count += 1;
+    return next();
+  };
+}
 
 // ── Initialize modules ───────────────────────────────
 initConfig(__dirname);
@@ -55,6 +130,19 @@ app.use((req, res, next) => {
   next();
 });
 
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
+const CHAT_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CHAT || 30);
+const CREATE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CREATE || 12);
+const GITHUB_CLONE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_GITHUB_CLONE || 6);
+const MCP_TEST_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MCP_TEST || 12);
+const REVIEW_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_REVIEW || 20);
+
+app.use('/api/chat', createRateLimiter({ name: 'chat', max: CHAT_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/create-project', createRateLimiter({ name: 'create-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/github/clone', createRateLimiter({ name: 'github-clone', max: GITHUB_CLONE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-connection', max: MCP_TEST_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+
 // ── MCP Management API routes ────────────────────────
 app.use('/api', mcpApiRouter);
 
@@ -62,7 +150,7 @@ app.use('/api', mcpApiRouter);
 
 app.get('/api/config', (req, res) => {
   debug('Config requested');
-  res.json(getConfig());
+  res.json(sanitizeConfigForClient(getConfig()));
 });
 
 // ── POST /api/config ─────────────────────────────────
@@ -76,15 +164,24 @@ app.post('/api/config', (req, res) => {
     log('INFO', `Ollama URL changed to: ${config.ollamaUrl}`);
   }
   if (projectFolder !== undefined) {
-    if (projectFolder && !fs.existsSync(projectFolder)) {
-      return res.status(400).json({ error: 'Folder does not exist' });
+    if (projectFolder) {
+      const resolvedFolder = path.resolve(projectFolder);
+      if (!fs.existsSync(resolvedFolder)) {
+        return res.status(400).json({ error: 'Folder does not exist' });
+      }
+      const stat = fs.statSync(resolvedFolder);
+      if (!stat.isDirectory()) {
+        return res.status(400).json({ error: 'projectFolder must be a directory' });
+      }
+      config.projectFolder = resolvedFolder;
+    } else {
+      config.projectFolder = '';
     }
-    config.projectFolder = projectFolder || '';
     log('INFO', `Project folder set to: ${config.projectFolder || '(none)'}`);
   }
 
   updateConfig(config);
-  res.json(getConfig());
+  res.json(sanitizeConfigForClient(getConfig()));
 });
 
 // ── GET /api/models ──────────────────────────────────
@@ -328,6 +425,129 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// ── POST /api/review (structured report card) ────────
+
+app.post('/api/review', async (req, res) => {
+  const { model, code, filename } = req.body;
+
+  if (!model || !code) {
+    log('ERROR', 'Review request missing fields', { model: !!model, code: !!code });
+    return res.status(400).json({ error: 'Missing model or code' });
+  }
+
+  log('INFO', `Review request: model=${model} code=${code.length} chars`);
+
+  const config = getConfig();
+
+  try {
+    const result = await reviewCode(config.ollamaUrl, model, code, { filename });
+
+    if (result.type === 'report-card') {
+      // Structured output succeeded — return JSON
+      log('INFO', `Review complete: overall grade ${result.data.overallGrade}`);
+      return res.json(result);
+    }
+
+    // Chat fallback — stream via SSE
+    log('INFO', `Review fallback to chat mode: ${result.error}`);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    function sendEvent(data) {
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    // Signal fallback mode to client
+    sendEvent({ fallback: true, reason: result.error });
+
+    const ollamaRes = result.stream;
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text();
+      log('ERROR', `Ollama fallback error: ${ollamaRes.status}`, { body: errText });
+      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    // Stream the fallback response (same pattern as /api/chat)
+    const reader = ollamaRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let tokenCount = 0;
+
+    async function readStream() {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer);
+                if (parsed.message?.content) {
+                  sendEvent({ token: parsed.message.content });
+                  tokenCount++;
+                }
+                if (parsed.done) {
+                  sendEvent({ done: true });
+                }
+              } catch (e) { /* ignore parse error on final buffer */ }
+            }
+            if (!res.writableEnded) {
+              res.write('data: [DONE]\n\n');
+              res.end();
+            }
+            log('INFO', `Review fallback complete: ${tokenCount} tokens streamed`);
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message?.content) {
+                sendEvent({ token: parsed.message.content });
+                tokenCount++;
+              }
+              if (parsed.done) {
+                sendEvent({ done: true });
+                res.write('data: [DONE]\n\n');
+                res.end();
+                log('INFO', `Review fallback complete: ${tokenCount} tokens streamed`);
+                return;
+              }
+            } catch (e) { /* ignore parse error */ }
+          }
+        }
+      } catch (err) {
+        log('ERROR', 'Review fallback stream error', { error: err.message });
+        if (!res.writableEnded) {
+          sendEvent({ error: err.message });
+          res.write('data: [DONE]\n\n');
+          res.end();
+        }
+      }
+    }
+
+    readStream();
+
+    req.on('close', () => {
+      reader.cancel().catch(() => {});
+    });
+
+  } catch (err) {
+    log('ERROR', 'Review failed completely', { error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Review failed: ${err.message}` });
+    }
+  }
+});
+
 // ── Conversation History ─────────────────────────────
 
 app.get('/api/history', (req, res) => {
@@ -345,7 +565,8 @@ app.get('/api/history/:id', (req, res) => {
     const data = getConversation(req.params.id);
     res.json(data);
   } catch (err) {
-    res.status(404).json({ error: 'Not found' });
+    const status = err.message.includes('Invalid conversation id') ? 400 : 404;
+    res.status(status).json({ error: status === 404 ? 'Not found' : err.message });
   }
 });
 
@@ -355,7 +576,8 @@ app.post('/api/history', (req, res) => {
     debug('Conversation saved', { id });
     res.json({ id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = err.message.includes('Invalid conversation id') ? 400 : 500;
+    res.status(status).json({ error: err.message });
   }
 });
 
@@ -365,7 +587,8 @@ app.delete('/api/history/:id', (req, res) => {
     debug('Conversation deleted', { id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = err.message.includes('Invalid conversation id') ? 400 : 500;
+    res.status(status).json({ error: err.message });
   }
 });
 
@@ -374,11 +597,12 @@ app.delete('/api/history/:id', (req, res) => {
 // GET /api/files/tree — list directory structure
 app.get('/api/files/tree', (req, res) => {
   const config = getConfig();
-  const folder = req.query.path || config.projectFolder;
+  const folder = config.projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder configured' });
   if (!fs.existsSync(folder)) return res.status(404).json({ error: 'Folder not found' });
 
-  const maxDepth = parseInt(req.query.depth) || 3;
+  const depth = Number.parseInt(req.query.depth, 10);
+  const maxDepth = Number.isNaN(depth) ? 3 : Math.min(Math.max(depth, 1), 6);
 
   try {
     debug('Building file tree', { folder, maxDepth });
@@ -407,8 +631,9 @@ app.get('/api/files/read', (req, res) => {
       log('ERROR', 'Path traversal attempt blocked', { filePath, folder });
       return res.status(403).json({ error: 'Access denied' });
     }
-    log('ERROR', 'Failed to read file', { path: filePath, error: err.message });
-    res.status(500).json({ error: `Cannot read file: ${err.message}` });
+    const status = err.message === 'File not found' ? 404 : err.message === 'Not a file' ? 400 : 500;
+    log('ERROR', 'Failed to read file', { path: filePath, error: err.message, status });
+    res.status(status).json({ error: `Cannot read file: ${err.message}` });
   }
 });
 
@@ -418,6 +643,33 @@ app.post('/api/files/upload', (req, res) => {
   if (!name || content === undefined) return res.status(400).json({ error: 'Missing name or content' });
   debug('File uploaded via chat', { name, size: content.length });
   res.json({ name, size: content.length, content });
+});
+
+// ── POST /api/create-project (ICM scaffold) ───────────
+app.post('/api/create-project', (req, res) => {
+  log('INFO', 'create-project body keys: ' + Object.keys(req.body || {}).join(', '));
+  const { name, description, role, audience, tone, stages, outputRoot, overwrite } = req.body;
+  if (!name || !outputRoot) {
+    log('WARN', `create-project missing fields — name: "${name}", outputRoot: "${outputRoot}"`);
+    return res.status(400).json({ success: false, error: 'name and outputRoot are required', code: 'MISSING_FIELDS' });
+  }
+  const config = getConfig();
+  try {
+    const result = scaffoldProject(
+      { name, description, role, audience, tone, stages, outputRoot, overwrite: overwrite === true },
+      config
+    );
+    if (result.success) {
+      log('INFO', `ICM project created: ${result.projectPath}`);
+      return res.json(result);
+    }
+    const code = result.code || 'SCAFFOLD_FAILED';
+    const status = code === 'PATH_OUTSIDE_ROOT' ? 403 : code === 'ALREADY_EXISTS' ? 409 : 400;
+    return res.status(status).json({ success: false, error: result.errors?.[0] || 'Scaffold failed', code });
+  } catch (err) {
+    log('ERROR', 'create-project failed', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message, code: 'SERVER_ERROR' });
+  }
 });
 
 // ── GitHub Integration API ───────────────────────────
@@ -463,8 +715,15 @@ app.delete('/api/github/repos/:dirName', (req, res) => {
 app.post('/api/github/open', (req, res) => {
   const { dirName } = req.body;
   if (!dirName) return res.status(400).json({ error: 'Missing dirName' });
+  if (!/^[a-zA-Z0-9_.-]+--[a-zA-Z0-9_.-]+$/.test(dirName)) {
+    return res.status(400).json({ error: 'Invalid dirName' });
+  }
 
-  const fullPath = path.join(__dirname, 'github-repos', dirName);
+  const reposRoot = path.resolve(__dirname, 'github-repos');
+  const fullPath = path.resolve(reposRoot, dirName);
+  if (!isWithinBasePath(reposRoot, fullPath)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
   if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Cloned repo not found' });
 
   const config = getConfig();
@@ -581,34 +840,6 @@ process.on('SIGINT', async () => {
   log('INFO', 'Shutting down — disconnecting MCP clients...');
   await mcpClientManager.disconnectAll();
   process.exit(0);
-});
-
-// ── Create Project (ICM scaffolder) ──────────────────
-
-app.post('/api/create-project', (req, res) => {
-  const { name, description, role, audience, tone, stages, outputRoot, overwrite } = req.body || {};
-
-  // Validate required fields
-  const missing = ['name', 'outputRoot', 'role', 'audience', 'tone'].filter(f => !req.body?.[f]?.toString().trim());
-  if (missing.length) {
-    return res.status(400).json({ success: false, error: `Missing required fields: ${missing.join(', ')}`, code: 'MISSING_FIELDS' });
-  }
-  if (!Array.isArray(stages) || stages.length === 0) {
-    return res.status(400).json({ success: false, error: 'stages must be a non-empty array', code: 'MISSING_FIELDS' });
-  }
-
-  try {
-    const result = scaffoldProject({ name, description, role, audience, tone, stages, outputRoot, overwrite: !!overwrite });
-    if (!result.success) {
-      const status = result.code === 'PATH_OUTSIDE_ROOT' ? 403 : result.code === 'PROJECT_EXISTS' ? 409 : 500;
-      return res.status(status).json({ success: false, error: result.errors[0], code: result.code });
-    }
-    log('INFO', 'Project scaffolded', { projectPath: result.projectPath, fileCount: result.files.length });
-    return res.json({ success: true, projectPath: result.projectPath, files: result.files });
-  } catch (err) {
-    log('ERROR', 'scaffoldProject threw unexpectedly', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message, code: 'INTERNAL_ERROR' });
-  }
 });
 
 // ── SPA Fallback (must be after all API routes) ──────
