@@ -89,10 +89,11 @@ Plans:
   1. A first-time user sees an onboarding flow that explains what Code Companion does and walks them through their first review
   2. Hovering over or clicking a technical term anywhere in the app shows a plain-English definition
   3. The UI displays clear privacy messaging ("Your code never leaves your computer") visible without hunting for it
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — OnboardingWizard vibe-coder content update with Ollama troubleshooting and Lucide mode icons
+- [ ] 05-02-PLAN.md — GLOSSARY audit for vibe-coder language, PrivacyBanner verification, test scaffolds
 
 ### Phase 6: Desktop App
 **Goal**: Code Companion runs as a self-contained Electron desktop application on macOS, Linux, and Windows, with native window management, auto-free port detection, cross-platform IDE launchers, and distributable installers
@@ -122,5 +123,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. Tone Unification | 2/2 | Complete | 2026-03-13 |
 | 3. Report Card UI | 2/2 | Complete | 2026-03-14 |
 | 4. Actionable Guidance | 0/2 | In progress | - |
-| 5. Onboarding and Help | 0/0 | Not started | - |
+| 5. Onboarding and Help | 0/2 | Not started | - |
 | 6. Desktop App | 0/0 | Not started | - |
