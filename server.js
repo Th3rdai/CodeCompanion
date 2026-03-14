@@ -728,7 +728,7 @@ app.post('/api/files/upload', (req, res) => {
 // ── POST /api/create-project (ICM scaffold) ───────────
 app.post('/api/create-project', (req, res) => {
   log('INFO', 'create-project body keys: ' + Object.keys(req.body || {}).join(', '));
-  const { name, description, role, audience, tone, stages, outputRoot, overwrite } = req.body;
+  const { name, description, role, audience, tone, stages, outputRoot, overwrite, makerEnabled } = req.body;
   if (!name || !outputRoot) {
     log('WARN', `create-project missing fields — name: "${name}", outputRoot: "${outputRoot}"`);
     return res.status(400).json({ success: false, error: 'name and outputRoot are required', code: 'MISSING_FIELDS' });
@@ -736,7 +736,7 @@ app.post('/api/create-project', (req, res) => {
   const config = getConfig();
   try {
     const result = scaffoldProject(
-      { name, description, role, audience, tone, stages, outputRoot, overwrite: overwrite === true },
+      { name, description, role, audience, tone, stages, outputRoot, overwrite: overwrite === true, makerEnabled: makerEnabled === true },
       config
     );
     if (result.success) {

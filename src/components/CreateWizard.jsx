@@ -43,6 +43,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [stepError, setStepError] = useState(null);
+  const [makerEnabled, setMakerEnabled] = useState(false);
   const [result, setResult] = useState(null);
 
   const slug = useMemo(() => slugify(name), [name]);
@@ -87,7 +88,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           tone: tone === 'Custom' ? toneCustom.trim() : tone,
           stages: stages.map((s, i) => ({ name: s.name, purpose: s.purpose || '', order: i + 1 })),
           outputRoot: outputRoot.trim() || defaultOutputRoot,
-          overwrite: false
+          overwrite: false,
+          makerEnabled
         })
       });
       const data = await res.json();
@@ -294,6 +296,24 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           >
             + Add Stage
           </button>
+
+          {/* MAKER Framework toggle */}
+          <div className="mt-4 p-3 rounded-lg bg-slate-800/40 border border-slate-700/40">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={makerEnabled}
+                onChange={e => setMakerEnabled(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500/30"
+              />
+              <div>
+                <span className="text-sm text-slate-200 font-medium">Enable MAKER Framework</span>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Zero-error methodology — decomposes each stage into verified subtasks with red-flag detection. Best for complex, multi-step projects.
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
       )}
 
@@ -335,6 +355,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
             <div><dt className="text-slate-500">Role</dt><dd className="text-slate-300">{role || '—'}</dd></div>
             <div><dt className="text-slate-500">Audience</dt><dd className="text-slate-300">{audience || '—'}</dd></div>
             <div><dt className="text-slate-500">Tone</dt><dd className="text-slate-300">{tone === 'Custom' ? toneCustom : tone}</dd></div>
+            <div><dt className="text-slate-500">MAKER</dt><dd className={makerEnabled ? 'text-green-400' : 'text-slate-500'}>{makerEnabled ? 'Enabled — zero-error methodology' : 'Off'}</dd></div>
             <div><dt className="text-slate-500">Path</dt><dd className="font-mono text-slate-300 break-all">{projectPathPreview || '—'}</dd></div>
           </dl>
         </div>
