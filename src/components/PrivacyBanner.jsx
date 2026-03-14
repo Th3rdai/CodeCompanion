@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Shield } from 'lucide-react';
 
 const STORAGE_KEY = 'th3rdai_privacy_banner_dismissed';
 
@@ -35,7 +36,7 @@ export default function PrivacyBanner() {
 
   return (
     <div className="glass border-t border-indigo-500/20 px-4 py-2.5 flex items-center gap-3 fade-in" role="status">
-      <span className="text-sm">🛡️</span>
+      <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />
       <p className="flex-1 text-xs text-slate-400">
         <strong className="text-slate-300">100% private.</strong>{' '}
         Your code and conversations stay on your machine — nothing is sent to the cloud.
