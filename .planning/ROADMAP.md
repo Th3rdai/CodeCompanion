@@ -75,11 +75,11 @@ Plans:
   1. Each finding includes a "What to ask your AI to fix" copy-pasteable prompt the user can paste into Cursor/ChatGPT
   2. Completed reviews are saved and can be revisited from history with the full report card intact
   3. When a user selects a small model unlikely to produce quality reviews, a gentle warning appears before the review starts
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — Fix prompts: schema extension, system prompt update, FindingCard UI blocks, bulk copy
+- [ ] 04-02-PLAN.md — Review history persistence with sidebar grade badges, deep-dive save/restore, model tier warnings
 
 ### Phase 5: Onboarding and Help
 **Goal**: A first-time user understands what Code Companion does, how to use it, and can get help with any technical term they encounter — all while knowing their code stays private
@@ -121,6 +121,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Review Engine | 2/2 | Complete | 2026-03-13 |
 | 2. Tone Unification | 2/2 | Complete | 2026-03-13 |
 | 3. Report Card UI | 2/2 | Complete | 2026-03-14 |
-| 4. Actionable Guidance | 0/0 | Not started | - |
+| 4. Actionable Guidance | 0/2 | In progress | - |
 | 5. Onboarding and Help | 0/0 | Not started | - |
 | 6. Desktop App | 0/0 | Not started | - |
