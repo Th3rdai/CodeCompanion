@@ -40,6 +40,36 @@ function getFileExtension(lang) {
   return map[lang] || lang || 'txt';
 }
 
+function copyToClipboard(text, btn) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    }).catch(() => {
+      fallbackCopy(text, btn);
+    });
+  } else {
+    fallbackCopy(text, btn);
+  }
+}
+
+function fallbackCopy(text, btn) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  } catch {
+    btn.textContent = 'Failed';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  }
+  document.body.removeChild(ta);
+}
+
 function addCodeBlockButtons(container) {
   container.querySelectorAll('pre').forEach(pre => {
     if (pre.querySelector('.code-actions')) return;
@@ -49,7 +79,8 @@ function addCodeBlockButtons(container) {
 
     pre.style.position = 'relative';
 
-    const lang = getLanguageFromClass(code);
+    // Use the original markdown language class (set before hljs), not hljs auto-detected
+    const lang = code.dataset.originalLang || getLanguageFromClass(code);
     const ext = getFileExtension(lang);
 
     const toolbar = document.createElement('div');
@@ -69,10 +100,10 @@ function addCodeBlockButtons(container) {
     copyBtn.textContent = 'Copy';
     copyBtn.title = 'Copy code to clipboard';
     copyBtn.style.cssText = 'font-size:11px;color:#a5b4fc;padding:2px 8px;border-radius:4px;background:rgba(30,41,59,0.8);border:1px solid rgba(99,102,241,0.3);cursor:pointer;';
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(code.textContent);
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+    copyBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      copyToClipboard(code.textContent, copyBtn);
     });
     toolbar.appendChild(copyBtn);
 
@@ -81,13 +112,17 @@ function addCodeBlockButtons(container) {
     dlBtn.textContent = 'Download';
     dlBtn.title = `Download as .${ext} file`;
     dlBtn.style.cssText = 'font-size:11px;color:#a5b4fc;padding:2px 8px;border-radius:4px;background:rgba(30,41,59,0.8);border:1px solid rgba(99,102,241,0.3);cursor:pointer;';
-    dlBtn.addEventListener('click', () => {
+    dlBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const blob = new Blob([code.textContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `code.${ext}`;
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
     toolbar.appendChild(dlBtn);
@@ -105,7 +140,12 @@ export default function MarkdownContent({ content, enableJargon = true }) {
 
   useEffect(() => {
     if (ref.current) {
-      ref.current.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+      // Capture original language class before hljs overwrites it
+      ref.current.querySelectorAll('pre code').forEach(block => {
+        const origLang = getLanguageFromClass(block);
+        if (origLang) block.dataset.originalLang = origLang;
+        hljs.highlightElement(block);
+      });
       addCodeBlockButtons(ref.current);
     }
   }, [content]);

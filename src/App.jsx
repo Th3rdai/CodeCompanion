@@ -77,7 +77,8 @@ export default function App() {
     () => sessionStorage.getItem('th3rdai_splash_dismissed') === 'true'
   );
   const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModel, _setSelectedModel] = useState(() => localStorage.getItem('cc-selected-model') || '');
+  const setSelectedModel = (m) => { _setSelectedModel(m); if (m) localStorage.setItem('cc-selected-model', m); };
   const [connected, setConnected] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [projectFolder, setProjectFolder] = useState('');
@@ -129,7 +130,11 @@ export default function App() {
       const data = await res.json();
       if (data.models) {
         setModels(data.models); setConnected(true); setOllamaUrl(data.ollamaUrl || '');
-        if (data.models.length > 0 && !selectedModel) setSelectedModel(data.models[0].name);
+        if (data.models.length > 0 && !selectedModel) {
+          const saved = localStorage.getItem('cc-selected-model');
+          const match = saved && data.models.find(m => m.name === saved);
+          setSelectedModel(match ? match.name : data.models[0].name);
+        }
       } else { setConnected(false); setOllamaUrl(data.ollamaUrl || ''); }
     } catch { setConnected(false); }
     setRefreshing(false);
@@ -340,6 +345,7 @@ export default function App() {
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
   async function handleCreateSuccess(projectPath) {
+    setProjectFolder(projectPath);
     try {
       await fetch('/api/config', {
         method: 'POST',
@@ -347,7 +353,6 @@ export default function App() {
         body: JSON.stringify({ projectFolder: projectPath })
       });
     } catch {}
-    setProjectFolder(projectPath);
     setShowFileBrowser(true);
     setShowGitHub(false);
   }
@@ -591,7 +596,22 @@ export default function App() {
           {/* File Browser (right panel) */}
           {showFileBrowser && (
             <aside aria-label="File browser">
-              <FileBrowser projectFolder={projectFolder} onAttachFile={attachFile} onClose={() => setShowFileBrowser(false)} />
+              <FileBrowser
+                projectFolder={projectFolder}
+                onAttachFile={attachFile}
+                onClose={() => setShowFileBrowser(false)}
+                onClearFolder={() => setProjectFolder('')}
+                onSetFolder={async (folder) => {
+                  setProjectFolder(folder);
+                  try {
+                    await fetch('/api/config', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ projectFolder: folder })
+                    });
+                  } catch {}
+                }}
+              />
             </aside>
           )}
         </div>

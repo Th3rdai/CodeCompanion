@@ -39,11 +39,12 @@ function FileTreeNode({ node, depth, onFileClick }) {
   );
 }
 
-export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
+export default function FileBrowser({ projectFolder, onAttachFile, onClose, onClearFolder, onSetFolder }) {
   const [tree, setTree] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [loadingFile, setLoadingFile] = useState(false);
+  const [folderInput, setFolderInput] = useState('');
   const [launchingClaude, setLaunchingClaude] = useState(false);
   const [launchingCursor, setLaunchingCursor] = useState(false);
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
@@ -195,7 +196,25 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
 
       {!projectFolder && (
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-sm text-slate-400 text-center">Point me to a project folder in Settings and I'll show you what's inside!</p>
+          <div className="space-y-3 w-full max-w-[260px]">
+            <p className="text-sm text-slate-400 text-center">Enter a folder path to browse</p>
+            <input
+              type="text"
+              value={folderInput}
+              onChange={e => setFolderInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
+              placeholder="~/AI_Dev/my-project"
+              className="w-full input-glow text-slate-200 text-xs rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
+            />
+            <button
+              onClick={() => { if (folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
+              disabled={!folderInput.trim()}
+              className="w-full text-xs px-3 py-2 rounded-lg bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Open Folder
+            </button>
+            <p className="text-[10px] text-slate-500 text-center">Or set it in Settings, or create a project</p>
+          </div>
         </div>
       )}
 
@@ -207,7 +226,18 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
 
       {projectFolder && tree && !preview && (
         <div className="flex-1 overflow-y-auto scrollbar-thin p-1">
-          <div className="px-2 py-1 text-[10px] text-slate-500 truncate">{tree.root}</div>
+          <div className="px-2 py-1 flex items-center gap-1">
+            <span className="text-[10px] text-slate-500 truncate flex-1">{tree.root}</span>
+            {onClearFolder && (
+              <button
+                onClick={() => { onClearFolder(); setTree(null); }}
+                className="text-[10px] text-slate-500 hover:text-red-300 shrink-0 transition-colors"
+                title="Clear folder"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           <div role="tree" aria-label="Project files">
             {tree.tree?.map((node, i) => (
               <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} />
