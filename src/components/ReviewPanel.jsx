@@ -470,6 +470,16 @@ export default function ReviewPanel({
           {visibleMessages.map((msg, i) => (
             <MessageBubble key={i} role={msg.role} content={msg.content} streaming={deepDiveStreaming && i === visibleMessages.length - 1 && msg.role === 'assistant'} />
           ))}
+          {deepDiveStreaming && visibleMessages.length > 0 && visibleMessages[visibleMessages.length - 1]?.role !== 'assistant' && (
+            <div className="flex items-center gap-2 text-slate-400 text-sm py-2 px-4" role="status" aria-live="polite">
+              <div className="flex gap-1">
+                <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+              </div>
+              <span>Thinking...</span>
+            </div>
+          )}
           <div ref={deepDiveEndRef} />
         </div>
 

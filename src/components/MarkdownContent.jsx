@@ -78,6 +78,9 @@ function addCodeBlockButtons(container) {
     if (!code) return;
 
     pre.style.position = 'relative';
+    // Add padding to prevent button overlap with code content
+    pre.style.paddingTop = '32px';
+    pre.style.paddingRight = '12px';
 
     // Use the original markdown language class (set before hljs), not hljs auto-detected
     const lang = code.dataset.originalLang || getLanguageFromClass(code);
