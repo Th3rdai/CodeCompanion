@@ -1,19 +1,29 @@
-# Th3rdAI Code Companion — PM's Technical Translator
+# Th3rdAI Code Companion — Vibe Coder Edition
 
-A locally-hosted AI assistant that translates between technical and business language, powered by [Ollama](https://ollama.com) LLMs. Built for Product Managers who work closely with engineering teams.
+A locally-hosted AI code reviewer that helps vibe coders (non-technical users who generate code with AI tools) understand, review, and improve their AI-generated code. Powered by [Ollama](https://ollama.com) LLMs — no API keys, no cloud, full privacy.
 
 Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), acting as both an **MCP server** (exposing its tools to other AI agents) and an **MCP client** (connecting to external MCP servers like GitHub, Archon, etc.).
 
 ## Features
 
-- **Eight specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech, Dashboard, Create
+- **Eight specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Review, Create
+- **Code Review with Report Card** — color-coded letter grades (A-F) for bugs, security, readability, and completeness with conversational deep-dives
+- **Friendly-teacher tone** — analogies, zero jargon, patience across all modes
+- **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
-- **File browser** — navigate and read project files directly in the UI, with Launch Claude and Launch Cursor buttons
-- **Voice dictation** — built-in 🎤 mic buttons on Create Wizard fields using the Web Speech API, plus full support for device-level dictation
+- **File browser** — navigate project files, launch Claude Code, Cursor, Windsurf, or OpenCode directly
+- **GitHub integration** — clone repos and browse them in-app
+- **Voice dictation** — built-in mic buttons on Create Wizard fields using the Web Speech API
+- **Report card export** — download reviews as Markdown or JSON
+- **Onboarding wizard** — first-time user flow explaining what the app does
+- **Jargon glossary** — searchable plain-English definitions for technical terms
+- **Privacy banner** — "Your code never leaves your computer" messaging
+- **3D visual effects** — splash screen, particle fields, floating geometry, holographic token counter
+- **Model persistence** — selected model remembered across page refreshes
 - **Quick rebuild** — `rebuild.sh` script for fast frontend rebuild and server restart
-- **Conversation history** — auto-saved and searchable
+- **Conversation history** — auto-saved, searchable, with archive and export
 - **Tool-call loop** — Ollama can autonomously call external tools up to 5 rounds per request
 
 ## Quick Start
@@ -131,17 +141,22 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 ## Project Structure
 
 ```
-├── server.js              # Express app, chat route, MCP HTTP endpoint
+├── server.js              # Express app, API routes, MCP HTTP endpoint
 ├── mcp-server.js          # MCP stdio entry point
 ├── startup.sh             # Launch script with health checks
+├── rebuild.sh             # Quick rebuild + restart script
 ├── lib/
 │   ├── config.js          # Config getter/setter (.cc-config.json)
 │   ├── logger.js          # File + stderr logging
 │   ├── ollama-client.js   # Ollama API client (stream + complete)
-│   ├── prompts.js         # System prompts for all 7 modes
+│   ├── prompts.js         # System prompts for all 8 modes
+│   ├── review.js          # Review orchestration (structured output + fallback)
+│   ├── review-schema.js   # Report card JSON schema
 │   ├── icm-scaffolder.js  # Create mode workspace scaffolding engine
+│   ├── maker-skill.js     # MAKER framework integration
 │   ├── file-browser.js    # Project file tree + reader
 │   ├── history.js         # Conversation persistence
+│   ├── github.js          # GitHub repo cloning + management
 │   ├── mcp-client-manager.js  # External MCP server connections
 │   ├── mcp-api-routes.js      # MCP management REST API
 │   └── tool-call-handler.js   # Tool-call parsing + execution loop
@@ -149,13 +164,25 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── tools.js           # 11 MCP tool registrations
 │   └── schemas.js         # Zod input schemas
 ├── src/                   # React frontend (Vite)
-│   ├── App.jsx
+│   ├── App.jsx            # Main app with 8 modes
 │   └── components/
+│       ├── ReviewPanel.jsx       # Code review input (paste/upload/browse tabs)
+│       ├── ReportCard.jsx        # Color-coded grade display + export
+│       ├── LoadingAnimation.jsx  # Animated review loading state
+│       ├── CreateWizard.jsx      # 5-step project creation wizard
+│       ├── FileBrowser.jsx       # File tree + IDE launchers
+│       ├── GitHubPanel.jsx       # GitHub repo browser + clone
 │       ├── SettingsPanel.jsx     # Settings with 3 tabs
 │       ├── McpServerPanel.jsx    # MCP server management UI
 │       ├── McpClientPanel.jsx    # MCP client management UI
-│       ├── DashboardPanel.jsx    # Customizable analytics + report exports
-│       └── CreateWizard.jsx      # Create mode multi-step wizard
+│       ├── DashboardPanel.jsx    # Usage analytics + report exports
+│       ├── OnboardingWizard.jsx  # First-time user experience
+│       ├── JargonGlossary.jsx    # Searchable tech term glossary
+│       ├── PrivacyBanner.jsx     # Privacy messaging banner
+│       ├── MarkdownContent.jsx   # Rendered markdown with code blocks
+│       ├── Sidebar.jsx           # Conversation history sidebar
+│       ├── DictateButton.jsx     # Voice input button
+│       └── 3d/                   # Visual effects (SplashScreen, etc.)
 ├── test/
 │   ├── unit/              # Node unit tests
 │   └── e2e/               # Playwright end-to-end tests

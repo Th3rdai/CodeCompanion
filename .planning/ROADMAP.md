@@ -12,12 +12,12 @@ This roadmap transforms Code Companion from a PM-focused code analysis tool into
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Review Engine** - Backend structured output endpoint that generates report cards with grades, findings, and top priority
-- [ ] **Phase 2: Tone Unification** - Rewrite all system prompts and mode labels for friendly-teacher vibe-coder persona
+- [x] **Phase 1: Review Engine** - Backend structured output endpoint that generates report cards with grades, findings, and top priority (completed 2026-03-13)
+- [x] **Phase 2: Tone Unification** - Rewrite all system prompts and mode labels for friendly-teacher vibe-coder persona (completed 2026-03-13)
 - [x] **Phase 3: Report Card UI** - Visual report card display with color-coded grades, deep-dive conversation, and all input methods (completed 2026-03-14)
 - [ ] **Phase 4: Actionable Guidance** - Copy-pasteable fix prompts, review history persistence, and model capability warnings
 - [ ] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging
-- [ ] **Phase 6: Desktop App** - Electron packaging for self-contained macOS and Linux desktop application
+- [ ] **Phase 6: Desktop App** - Electron packaging for self-contained macOS, Linux, and Windows desktop application
 
 ## Phase Details
 
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Schema, chatStructured client function, and review system prompt
-- [ ] 01-02-PLAN.md — POST /api/review endpoint with structured output + chat fallback
+- [x] 01-01-PLAN.md — Schema, chatStructured client function, and review system prompt
+- [x] 01-02-PLAN.md — POST /api/review endpoint with structured output + chat fallback
 
 ### Phase 2: Tone Unification
 **Goal**: Every mode in the application speaks with a consistent friendly-teacher persona using analogies and zero jargon, with simplified labels a non-technical user understands
@@ -49,8 +49,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Test scaffolds + rewrite 7 mode prompts for vibe-coder audience with mode-specific personalities
-- [ ] 02-02-PLAN.md — Update translation mode labels (Code → Plain English, Idea → Code Spec) and placeholders
+- [x] 02-01-PLAN.md — Test scaffolds + rewrite 7 mode prompts for vibe-coder audience with mode-specific personalities
+- [x] 02-02-PLAN.md — Update translation mode labels (Code → Plain English, Idea → Code Spec) and placeholders
 
 ### Phase 3: Report Card UI
 **Goal**: Users can see their code review as a visual report card with color-coded grades, click into conversational deep-dives, and feed code through any input method
@@ -64,8 +64,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — LoadingAnimation component, progressive disclosure toggle, E2E tests
-- [ ] 03-02-PLAN.md — Input method tabs (paste/upload/browse), explicit deep-dive buttons, E2E tests
+- [x] 03-01-PLAN.md — LoadingAnimation component, progressive disclosure toggle, E2E tests
+- [x] 03-02-PLAN.md — Input method tabs (paste/upload/browse), explicit deep-dive buttons, E2E tests
 
 ### Phase 4: Actionable Guidance
 **Goal**: Reviews become reusable and actionable — every finding has a copy-pasteable prompt for the user's AI tool, past reviews are saved, and the app warns when a model may produce poor results
@@ -118,9 +118,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Review Engine | 0/0 | Not started | - |
-| 2. Tone Unification | 0/0 | Not started | - |
-| 3. Report Card UI | 2/2 | Complete   | 2026-03-14 |
+| 1. Review Engine | 2/2 | Complete | 2026-03-13 |
+| 2. Tone Unification | 2/2 | Complete | 2026-03-13 |
+| 3. Report Card UI | 2/2 | Complete | 2026-03-14 |
 | 4. Actionable Guidance | 0/0 | Not started | - |
 | 5. Onboarding and Help | 0/0 | Not started | - |
 | 6. Desktop App | 0/0 | Not started | - |
