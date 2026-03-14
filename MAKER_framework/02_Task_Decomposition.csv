@@ -1,0 +1,13 @@
+Main Task ID,Main Task Description,Subtask ID,Subtask Description,Task Type,Dependencies,Estimated Complexity,Required Agents,Input Specification,Output Specification,Status,Execution Time (ms),Success Rate (%),Notes
+CALC_001,Calculate compound interest for 20 years,CALC_001_01,Parse input parameters,validation,none,2,3,"rate,principal,time",validated_params,Complete,15,100%,Basic validation
+CALC_001,Calculate compound interest for 20 years,CALC_001_02,Annual calculation iteration,arithmetic,CALC_001_01,3,3,"principal,rate",year_result,Active,25,98%,Core calculation
+CALC_001,Calculate compound interest for 20 years,CALC_001_03,Format final output,formatting,CALC_001_02,1,3,final_amount,formatted_result,Planned,10,99%,Simple formatting
+HANOI_001,Solve 10-disk Towers of Hanoi,HANOI_001_01,Initialize game state,initialization,none,1,3,disk_count,initial_state,Complete,5,100%,State setup
+HANOI_001,Solve 10-disk Towers of Hanoi,HANOI_001_02,Generate optimal move sequence,algorithm,HANOI_001_01,8,5,current_state,move_sequence,Active,150,95%,Complex algorithm
+HANOI_001,Solve 10-disk Towers of Hanoi,HANOI_001_03,Execute single move,hanoi_move,HANOI_001_02,2,3,"state,move",new_state,Planned,20,99%,Per-move execution
+TEXT_001,Analyze document sentiment,TEXT_001_01,Extract text content,extraction,none,3,3,document_path,raw_text,Planned,200,95%,Document parsing
+TEXT_001,Analyze document sentiment,TEXT_001_02,Preprocess text data,preprocessing,TEXT_001_01,4,3,raw_text,clean_text,Planned,100,98%,Text cleaning
+TEXT_001,Analyze document sentiment,TEXT_001_03,Sentiment analysis,llm_analysis,TEXT_001_02,6,5,clean_text,sentiment_scores,Planned,1500,90%,LLM processing
+DATA_001,Process customer dataset,DATA_001_01,Validate data schema,validation,none,2,3,dataset_path,schema_valid,Planned,50,99%,Schema check
+DATA_001,Process customer dataset,DATA_001_02,Clean missing values,data_cleaning,DATA_001_01,5,3,raw_dataset,clean_dataset,Planned,300,95%,Data imputation
+DATA_001,Process customer dataset,DATA_001_03,Generate summary stats,statistics,DATA_001_02,3,3,clean_dataset,summary_stats,Planned,80,98%,Statistical analysis

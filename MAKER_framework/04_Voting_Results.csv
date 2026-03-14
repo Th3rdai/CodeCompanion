@@ -1,0 +1,16 @@
+Execution ID,Subtask ID,Timestamp,Agent Instances,Successful Votes,Consensus Result,Final Confidence,Voting Time (ms),Agreement Level (%),Outlier Agents,Red Flags Triggered,Override Required,Final Status,Notes
+EXEC_001,CALC_001_01,2024-11-24 10:15:23,3,3,Valid input params,0.99,45,100%,none,0,N,Success,Perfect consensus
+EXEC_002,CALC_001_02,2024-11-24 10:15:45,3,2,Principal: $10000,0.87,67,67%,Agent_2,0,N,Success,One agent disagreed on precision
+EXEC_003,HANOI_001_05,2024-11-24 10:16:12,5,4,Move disk 1 to tower 3,0.92,125,80%,Agent_4,1,Y,Override,Red flag: suspicious move sequence
+EXEC_004,TEXT_001_01,2024-11-24 10:16:45,3,3,Extracted 2847 words,0.95,380,100%,none,0,N,Success,Clean extraction
+EXEC_005,DATA_001_01,2024-11-24 10:17:12,3,3,Schema valid - 12 columns,0.98,55,100%,none,0,N,Success,All validation passed
+EXEC_006,CALC_001_03,2024-11-24 10:17:34,3,2,Formatted: $12456.78,0.89,35,67%,Agent_1,0,N,Success,Formatting disagreement resolved
+EXEC_007,HANOI_001_02,2024-11-24 10:18:01,5,5,Optimal sequence: 1023 moves,0.96,1850,100%,none,0,N,Success,Algorithm consensus
+EXEC_008,TEXT_001_02,2024-11-24 10:18:45,3,3,Cleaned text: 2734 words,0.93,145,100%,none,0,N,Success,Preprocessing complete
+EXEC_009,DATA_001_02,2024-11-24 10:19:12,3,2,Imputed 47 missing values,0.84,285,67%,Agent_3,0,N,Success,Different imputation methods
+EXEC_010,HANOI_001_03,2024-11-24 10:19:45,3,3,Move executed: Tower 0 to 2,0.98,22,100%,none,0,N,Success,Perfect move execution
+EXEC_011,TEXT_001_03,2024-11-24 10:20:34,5,4,Sentiment: Positive (0.78),0.88,1920,80%,Agent_2,0,N,Success,LLM analysis complete
+EXEC_012,DATA_001_03,2024-11-24 10:21:15,3,3,Mean age: 34.5 years,0.97,95,100%,none,0,N,Success,Statistics calculated
+EXEC_013,CALC_001_01,2024-11-24 10:21:45,3,1,Invalid rate parameter,0.45,78,33%,Agent_1 Agent_3,2,Y,Failed,Input validation failed - retry needed
+EXEC_014,HANOI_001_01,2024-11-24 10:22:12,3,3,Initial state: [[10...1] [] []],0.99,12,100%,none,0,N,Success,State initialized
+EXEC_015,TEXT_001_01,2024-11-24 10:22:45,3,2,Extraction timeout,0.62,5000,67%,Agent_3,1,Y,Timeout,Document too large - need chunking

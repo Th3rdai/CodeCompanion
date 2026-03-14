@@ -1,0 +1,62 @@
+# Cursor Rules for MAKER Framework
+
+## Project: MAKER Framework Implementation
+Zero-error execution system for million-step LLM tasks through Massively Decomposed Agentic Processes.
+
+## Core Architecture
+- **MicroAgent**: Base class for all atomic task executors
+- **VotingSystem**: Multi-agent consensus with confidence weighting  
+- **RedFlaggingSystem**: Proactive error detection and prevention
+- **TaskDecomposer**: Complex task breakdown into dependency graphs
+- **MAKERExecutionEngine**: End-to-end orchestration and execution
+
+## Code Standards
+
+### Agent Implementation
+```python
+class {AgentType}Agent(MicroAgent):
+    async def execute(self, input_data: Dict[str, Any]) -> TaskResult:
+        # Required: timeout protection, error handling, confidence calculation
+        try:
+            result = await self._process(input_data)
+            return TaskResult(success=True, output=result, confidence=0.9)
+        except Exception as e:
+            return TaskResult(success=False, error_message=str(e))
+```
+
+### Performance Requirements
+- Success rate: >95%
+- Confidence: >0.8 average
+- Execution time: <10ms (math), <2000ms (LLM)
+- Voting: 3-5-7 agents (odd numbers only)
+
+### Critical Rules
+- Always use multi-agent voting for decisions
+- Include comprehensive error handling with timeouts
+- Implement red flag checking for all outputs
+- Decompose tasks to atomic operations
+- Never ignore low confidence scores
+
+### File Organization
+- `/agents/{category}/` - Agent implementations by type
+- `/tests/` - >90% coverage requirement
+- `/monitoring/` - Prometheus metrics and health checks
+- `/config/` - Environment-specific settings
+
+### Integration Points
+- Spreadsheet tracking: 8 CSV files for operational metrics
+- Docker: containerized deployment with orchestration
+- APIs: FastAPI with Pydantic validation
+- Monitoring: Prometheus + Grafana dashboards
+
+### Anti-Patterns to Avoid
+- Single-agent decisions (always vote)
+- Insufficient decomposition (must be atomic)
+- Missing timeout protection
+- Hard-coded configuration values
+- Blocking operations in async code
+
+## Key Files
+- MAKER_DEVELOPMENT_FRAMEWORK.md - Complete implementation
+- MAKER_SPREADSHEET_PROCESS.md - Tracking system
+- CLAUDE.md - AI assistant guidance

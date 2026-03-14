@@ -1,0 +1,16 @@
+Agent Type,Agent Description,Supported Tasks,Model/Implementation,Average Confidence,Success Rate (%),Avg Execution Time (ms),Total Executions,Last Updated,Version,Resource Usage,Cost per Execution,Status,Notes
+AdditionAgent,Basic arithmetic addition,addition,Python native,0.99,100%,1,1250,2024-11-24,1.0,Low,0.001,Active,Reliable baseline
+MultiplicationAgent,Basic arithmetic multiplication,multiplication,Python native,0.99,100%,1,890,2024-11-24,1.0,Low,0.001,Active,Reliable baseline
+SubtractionAgent,Basic arithmetic subtraction,subtraction,Python native,0.99,100%,1,756,2024-11-24,1.0,Low,0.001,Active,Reliable baseline
+DivisionAgent,Basic arithmetic division,division,Python native,0.98,99%,2,445,2024-11-24,1.0,Low,0.001,Active,Zero division handling
+LLMTextAgent,Natural language processing,text_analysis,gpt-4o-mini,0.85,95%,1200,340,2024-11-24,1.2,Medium,0.015,Active,Good for complex reasoning
+LLMReasoningAgent,Complex logical reasoning,reasoning,gpt-4o-mini,0.82,93%,1800,156,2024-11-24,1.1,Medium,0.018,Active,Higher-order thinking
+ValidationAgent,Input/output validation,validation,Custom rules,0.95,98%,50,2100,2024-11-24,2.0,Low,0.002,Active,Critical for data integrity
+FormattingAgent,Output formatting and display,formatting,Template engine,0.96,99%,25,1450,2024-11-24,1.3,Low,0.001,Active,Presentation layer
+HanoiMoveAgent,Towers of Hanoi moves,hanoi_move,Custom algorithm,0.98,99%,25,15600,2024-11-24,1.1,Low,0.001,Active,Game-specific logic
+DataCleaningAgent,Data preprocessing and cleaning,data_cleaning,Pandas/NumPy,0.91,96%,250,678,2024-11-24,2.1,Medium,0.005,Active,Statistical methods
+StatisticsAgent,Statistical analysis and computation,statistics,SciPy/NumPy,0.94,97%,180,892,2024-11-24,1.8,Medium,0.003,Active,Mathematical functions
+ExtractionAgent,Content extraction from documents,extraction,Custom parsers,0.89,94%,350,234,2024-11-24,1.5,Medium,0.008,Testing,Multiple format support
+PreprocessingAgent,Text preprocessing,preprocessing,NLTK/spaCy,0.92,96%,120,567,2024-11-24,1.4,Medium,0.004,Active,NLP pipeline
+InitializationAgent,System and state initialization,initialization,Python native,0.97,99%,15,1890,2024-11-24,1.2,Low,0.001,Active,Setup operations
+AlgorithmAgent,Complex algorithm execution,algorithm,Custom implementations,0.88,92%,800,123,2024-11-24,1.0,High,0.012,Testing,Performance optimization needed

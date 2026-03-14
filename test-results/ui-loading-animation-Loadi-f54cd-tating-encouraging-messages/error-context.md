@@ -1,0 +1,203 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "Skip to chat input" [ref=e4] [cursor=pointer]:
+    - /url: "#chat-input"
+  - navigation "Conversations" [ref=e5]:
+    - generic [ref=e6]:
+      - button "+ New Conversation" [ref=e7]
+      - generic [ref=e8]: Search conversations
+      - textbox "Search conversations" [ref=e9]:
+        - /placeholder: Search chats...
+    - generic [ref=e10]:
+      - button "💬 Active" [ref=e11]
+      - generic [ref=e12]: 12 chats
+    - generic [ref=e13]:
+      - generic [ref=e14] [cursor=pointer]:
+        - generic [ref=e15]: 📝
+        - generic [ref=e16]:
+          - generic [ref=e17]: "Review: prompts.py"
+          - generic [ref=e18]: bazobehram/qwen3-14b-claude-4.5-opus-high-reasoning · 3/13/2026
+        - button "More options" [ref=e19]: ⋯
+      - generic [ref=e20] [cursor=pointer]:
+        - generic [ref=e21]: 📝
+        - generic [ref=e22]:
+          - generic [ref=e23]: "Review: datalens-phase1.md"
+          - generic [ref=e24]: bazobehram/qwen3-14b-claude-4.5-opus-high-reasoning · 3/13/2026
+        - button "More options" [ref=e25]: ⋯
+      - generic [ref=e26] [cursor=pointer]:
+        - generic [ref=e27]: 🔧
+        - generic [ref=e28]:
+          - generic [ref=e29]: "Here's a file --- File: README.md --- ``` # DataLens DataL"
+          - generic [ref=e30]: glm-4.6 · 3/13/2026
+        - button "More options" [ref=e31]: ⋯
+      - generic [ref=e32] [cursor=pointer]:
+        - generic [ref=e33]: 📋
+        - generic [ref=e34]:
+          - generic [ref=e35]: "Please explain this code to me --- File: README.md --- ```"
+          - generic [ref=e36]: glm-4.6 · 3/13/2026
+        - button "More options" [ref=e37]: ⋯
+      - generic [ref=e38] [cursor=pointer]:
+        - generic [ref=e39]: 📝
+        - generic [ref=e40]:
+          - generic [ref=e41]: "Review: e2e-test.md"
+          - generic [ref=e42]: bazobehram/qwen3-14b-claude-4.5-opus-high-reasoning · 3/13/2026
+        - button "More options" [ref=e43]: ⋯
+      - generic [ref=e44] [cursor=pointer]:
+        - generic [ref=e45]: 🔧
+        - generic [ref=e46]:
+          - generic [ref=e47]: Hello, how do I add chat with voice to my ai agent so we and
+          - generic [ref=e48]: incept5/llama3.1-claude · 3/13/2026
+        - button "More options" [ref=e49]: ⋯
+      - generic [ref=e50] [cursor=pointer]:
+        - generic [ref=e51]: 💬
+        - generic [ref=e52]:
+          - generic [ref=e53]: Hello
+          - generic [ref=e54]: glm-4.7-flash · 3/13/2026
+        - button "More options" [ref=e55]: ⋯
+      - generic [ref=e56] [cursor=pointer]:
+        - generic [ref=e57]: 💬
+        - generic [ref=e58]:
+          - generic [ref=e59]: Hello world!
+          - generic [ref=e60]: qwen3-8b-util · 3/13/2026
+        - button "More options" [ref=e61]: ⋯
+      - generic [ref=e62] [cursor=pointer]:
+        - generic [ref=e63]: 💬
+        - generic [ref=e64]:
+          - generic [ref=e65]: Hello
+          - generic [ref=e66]: qwen3-8b-util · 3/13/2026
+        - button "More options" [ref=e67]: ⋯
+      - generic [ref=e68] [cursor=pointer]:
+        - generic [ref=e69]: 💬
+        - generic [ref=e70]:
+          - generic [ref=e71]: please explain code scans and dependabot
+          - generic [ref=e72]: qwen3-8b-util · 3/12/2026
+        - button "More options" [ref=e73]: ⋯
+      - generic [ref=e74] [cursor=pointer]:
+        - generic [ref=e75]: 💬
+        - generic [ref=e76]:
+          - generic [ref=e77]: what is github? how do i setup a github account?
+          - generic [ref=e78]: qwen3-8b-util · 3/12/2026
+        - button "More options" [ref=e79]: ⋯
+      - generic [ref=e80] [cursor=pointer]:
+        - generic [ref=e81]: 💬
+        - generic [ref=e82]:
+          - generic [ref=e83]: please test connection to github and create a new private re
+          - generic [ref=e84]: qwen3-8b-util · 3/11/2026
+        - button "More options" [ref=e85]: ⋯
+  - main [ref=e86]:
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - img "Th3rdAI" [ref=e89]
+        - generic [ref=e90]:
+          - heading "Th3rdAICode Companion" [level=1] [ref=e91]
+          - paragraph [ref=e92]: Your friendly guide to all things code
+      - generic [ref=e93]:
+        - button "📖 Glossary" [ref=e94]
+        - button "🐙 GitHub" [ref=e95]
+        - button "📂 Files" [ref=e96]
+        - button "Settings ⚙" [ref=e97]:
+          - text: Settings
+          - generic [ref=e99]: ⚙
+        - button "⟳" [ref=e100]
+        - generic [ref=e101]: Select AI model
+        - combobox "Select AI model" [ref=e102]:
+          - option "glm-4.6:cloud (355B)" [selected]
+          - option "qwen3-8b-util:latest (7.6B)"
+          - option "qwen3-32k:latest (30.5B)"
+          - option "nomic-embed-text:latest (137M)"
+          - option "glm-4.7-flash:32k (29.9B)"
+          - option "qwen3-coder:30b (30.5B)"
+          - option "devstral-small-2:latest (24.0B)"
+          - option "bazobehram/qwen3-14b-claude-4.5-opus-high-reasoning:latest (14.8B)"
+          - option "incept5/llama3.1-claude:latest (8.0B)"
+          - option "glm-4.7-flash:latest (29.9B)"
+          - option "llama3.2:latest (3.2B)"
+          - option "qwen2.5:latest (7.6B)"
+          - option "gemma3:12b (12.2B)"
+          - option "qwen2.5:7b (7.6B)"
+          - option "llava:7b (7B)"
+          - option "aiasistentworld/grok-2-LLM:latest (269.5B)"
+          - option "kimi-k2:1t-cloud (1T)"
+          - option "qwen3:latest (8.2B)"
+          - option "gemma3:1b (999.89M)"
+          - option "phi3:latest (3.8B)"
+          - option "gpt-oss:20b (20.9B)"
+          - option "embeddinggemma:latest (307.58M)"
+          - option "gemma3:27b (27.4B)"
+          - option "gemma3n:latest (6.9B)"
+    - generic [ref=e105]:
+      - generic [ref=e106]:
+        - button "💬 Chat" [ref=e107]:
+          - generic [ref=e108]: 💬
+          - generic [ref=e109]: Chat
+        - button "💡 Explain This" [ref=e110]:
+          - generic [ref=e111]: 💡
+          - generic [ref=e112]: Explain This
+        - button "🐛 Safety Check" [ref=e113]:
+          - generic [ref=e114]: 🐛
+          - generic [ref=e115]: Safety Check
+        - button "✨ Clean Up" [ref=e116]:
+          - generic [ref=e117]: ✨
+          - generic [ref=e118]: Clean Up
+        - button "📋 Code → Plain English" [ref=e119]:
+          - generic [ref=e120]: 📋
+          - generic [ref=e121]: Code → Plain English
+        - button "🔧 Idea → Code Spec" [ref=e122]:
+          - generic [ref=e123]: 🔧
+          - generic [ref=e124]: Idea → Code Spec
+        - button "📝 Review" [ref=e125]:
+          - generic [ref=e126]: 📝
+          - generic [ref=e127]: Review
+        - button "🛠️ Create" [ref=e128]:
+          - generic [ref=e129]: 🛠️
+          - generic [ref=e130]: Create
+      - log "Chat messages" [ref=e131]:
+        - generic [ref=e134]:
+          - generic [ref=e135]: 💬
+          - heading "Chat" [level=2] [ref=e136]
+          - paragraph [ref=e137]: Let's talk about anything
+          - generic [ref=e138]:
+            - text: Using
+            - strong [ref=e140]: glm-4.6
+          - generic [ref=e141]:
+            - generic [ref=e142]: "Try: Explain \"microservices\" like I'm five"
+            - generic [ref=e143]: "Try: Help me get ready for sprint planning"
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - generic [ref=e147]: Type your message
+          - textbox "Type your message" [ref=e148]:
+            - /placeholder: What's on your mind? Ask about code, building with AI, or just say hey...
+          - generic [ref=e149]:
+            - button "📎 Upload" [ref=e150]
+            - button "📋 Paste" [ref=e151]
+            - button "📑 Copy Response" [ref=e152]
+            - button "📝 Markdown" [ref=e153]
+            - button "🧹 Clear" [ref=e154]
+            - generic [ref=e155]: Enter to send · Shift+Enter for new line · Drag files to attach
+        - button "Send" [disabled] [ref=e157]
+    - status [ref=e158]:
+      - generic [ref=e159]: 🛡️
+      - paragraph [ref=e160]:
+        - strong [ref=e161]: 100% private.
+        - text: Your code and conversations stay on your machine — nothing is sent to the cloud. AI runs locally through Ollama. No tracking, no accounts, no data collection.
+      - button "Dismiss privacy banner" [ref=e162]: Got it
+  - dialog "Welcome wizard" [ref=e163]:
+    - generic [ref=e167]:
+      - generic [ref=e168]:
+        - generic [ref=e169]: 👋
+        - heading "Welcome to Code Companion" [level=2] [ref=e170]
+        - paragraph [ref=e171]: Your friendly guide to all things code
+      - generic [ref=e172]:
+        - paragraph [ref=e173]: Code Companion helps Product Managers understand, review, and communicate about code — no engineering degree required.
+        - paragraph [ref=e174]: Everything runs on your machine. Your code and conversations never leave your computer.
+      - generic [ref=e175]:
+        - button "Go to step 1" [ref=e176]
+        - button "Go to step 2" [ref=e177]
+        - button "Go to step 3" [ref=e178]
+        - button "Go to step 4" [ref=e179]
+      - generic [ref=e180]:
+        - button "Skip tour" [ref=e181]
+        - button "Next" [ref=e183]
+```

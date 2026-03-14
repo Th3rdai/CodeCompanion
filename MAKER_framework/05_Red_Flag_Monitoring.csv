@@ -1,0 +1,16 @@
+Rule ID,Rule Name,Pattern/Condition,Severity Level,Triggers Count,False Positives,True Positives,Effectiveness (%),Last Triggered,Action Taken,Rule Status,Update History
+RF_001,Error Keywords,Contains 'error|fail|exception',High,15,2,13,87%,2024-11-24 09:45,Block execution,Active,Created 2024-11-20
+RF_002,Infinite Values,Result contains inf or nan,Critical,3,0,3,100%,2024-11-23 14:22,Block + escalate,Active,Created 2024-11-20
+RF_003,Suspicious Numbers,Numbers > 10^10,Medium,8,5,3,38%,2024-11-24 11:30,Flag for review,Under Review,Low accuracy - needs tuning
+RF_004,Confidence Drop,Agent confidence < 0.5,Medium,12,1,11,92%,2024-11-24 12:15,Request revote,Active,Threshold adjusted 2024-11-22
+RF_005,Timeout Pattern,Execution time > 5000ms,Low,25,8,17,68%,2024-11-24 10:30,Log warning,Active,Performance monitoring
+RF_006,Empty Results,Output is null or empty,High,7,1,6,86%,2024-11-24 08:15,Block execution,Active,Created 2024-11-21
+RF_007,Consensus Failure,Agreement level < 60%,Critical,4,0,4,100%,2024-11-24 10:16,Force retry,Active,Created 2024-11-20
+RF_008,Memory Usage,RAM usage > 1GB,Medium,12,9,3,25%,2024-11-24 11:45,Log warning,Disabled,Too many false positives
+RF_009,Negative Numbers,Unexpected negative values,Low,18,12,6,33%,2024-11-24 09:30,Flag for review,Under Review,Context-dependent - needs refinement
+RF_010,API Rate Limits,Rate limit exceeded,High,2,0,2,100%,2024-11-23 16:20,Retry with backoff,Active,Created 2024-11-22
+RF_011,Data Type Mismatch,Expected type != actual type,Medium,9,2,7,78%,2024-11-24 10:45,Request validation,Active,Type checking
+RF_012,Circular Dependencies,Task dependency loop detected,Critical,1,0,1,100%,2024-11-22 13:30,Block task graph,Active,Graph validation
+RF_013,Resource Exhaustion,CPU usage > 90% for >30s,High,3,1,2,67%,2024-11-24 09:12,Scale resources,Active,Performance monitoring
+RF_014,Malformed JSON,Invalid JSON in output,Medium,6,0,6,100%,2024-11-24 11:20,Request reformatting,Active,Data integrity check
+RF_015,Version Mismatch,Agent version incompatibility,Low,2,0,2,100%,2024-11-23 15:45,Update agents,Active,Compatibility check

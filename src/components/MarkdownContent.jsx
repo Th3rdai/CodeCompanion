@@ -137,6 +137,7 @@ function addCodeBlockButtons(container) {
 export default function MarkdownContent({ content, enableJargon = true }) {
   const ref = useRef(null);
   const [tooltip, setTooltip] = useState(null);
+  const dismissedAt = useRef(0);
 
   useEffect(() => {
     if (ref.current) {
@@ -151,6 +152,8 @@ export default function MarkdownContent({ content, enableJargon = true }) {
   }, [content]);
 
   const handleMouseOver = useCallback((e) => {
+    // Suppress re-trigger briefly after user dismissed tooltip
+    if (Date.now() - dismissedAt.current < 500) return;
     const target = e.target;
     if (target.classList?.contains('jargon-term')) {
       const key = target.dataset.jargonKey;
@@ -174,12 +177,18 @@ export default function MarkdownContent({ content, enableJargon = true }) {
     }
   }, []);
 
+  const dismissTooltip = useCallback(() => {
+    dismissedAt.current = Date.now();
+    setTooltip(null);
+  }, []);
+
   return (
     <div onMouseOver={handleMouseOver} onMouseOut={handleMouseOut}>
       <div ref={ref} className="prose" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, enableJargon) }} />
       {tooltip && (
         <div
-          className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in pointer-events-none"
+          className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in cursor-pointer"
+          onClick={dismissTooltip}
           style={{
             left: Math.min(Math.max(tooltip.x, 140), window.innerWidth - 140),
             top: Math.max(tooltip.y - 8, 8),
