@@ -1,5 +1,5 @@
 ---
-status: testing
+status: complete
 phase: create-mode
 source: Create-Mode-Feature-Plan.md
 started: 2026-03-13T02:45:00Z
@@ -8,13 +8,13 @@ updated: 2026-03-14T05:35:00Z
 
 ## Current Test
 
-number: 9
-name: Error — Duplicate Project
+number: 11
+name: Works While Ollama is Offline
 expected: |
-  If you try to create a project with the same name as an existing folder
-  (without checking Overwrite), the wizard shows an error message inside the
-  Step 5 card ("Project already exists at …") and stays on the Review step —
-  no file browser opens, nothing is deleted.
+  If the Ollama offline banner is showing (yellow warning bar at top),
+  the Create tab and wizard are still fully usable — all steps navigate,
+  the Create button submits, and a project is scaffolded.
+  The wizard never shows a "connect to Ollama first" error.
 awaiting: user response
 
 ## Tests
@@ -54,22 +54,23 @@ notes: Required fix — FileBrowser was not passing folder path to /api/files/tr
 
 ### 9. Error — Duplicate Project
 expected: If you try to create a project with the same name as an existing folder (without checking Overwrite), the wizard shows an error message inside the Step 5 card ("Project already exists at …") and stays on the Review step — no file browser opens, nothing is deleted.
-result: [pending]
+result: pass
+notes: Required fix — added overwrite checkbox to Step 4 and wired state to API call (was hardcoded false). Backend already returned 409 correctly.
 
 ### 10. Other Modes Still Work
 expected: After using Create mode, clicking the Chat tab shows the normal empty state with chat textarea and Send button. Sending a message works normally. No regressions in existing modes.
-result: [pending]
+result: pass
 
 ### 11. Works While Ollama is Offline
 expected: If the Ollama offline banner is showing (yellow warning bar at top), the Create tab and wizard are still fully usable — all steps navigate, the Create button submits, and a project is scaffolded. The wizard never shows a "connect to Ollama first" error.
-result: [pending]
+result: pass
 
 ## Summary
 
 total: 11
-passed: 8
+passed: 11
 issues: 0
-pending: 3
+pending: 0
 skipped: 0
 
 ## Gaps

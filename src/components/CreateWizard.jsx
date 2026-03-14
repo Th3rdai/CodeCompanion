@@ -44,6 +44,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
   const [error, setError] = useState(null);
   const [stepError, setStepError] = useState(null);
   const [makerEnabled, setMakerEnabled] = useState(false);
+  const [overwrite, setOverwrite] = useState(false);
   const [result, setResult] = useState(null);
 
   const slug = useMemo(() => slugify(name), [name]);
@@ -88,7 +89,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           tone: tone === 'Custom' ? toneCustom.trim() : tone,
           stages: stages.map((s, i) => ({ name: s.name, purpose: s.purpose || '', order: i + 1 })),
           outputRoot: outputRoot.trim() || defaultOutputRoot,
-          overwrite: false,
+          overwrite,
           makerEnabled
         })
       });
@@ -341,6 +342,15 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
               <span className="text-indigo-300">{projectPathPreview}</span>
             </div>
           )}
+          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={overwrite}
+              onChange={e => setOverwrite(e.target.checked)}
+              className="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500/40"
+            />
+            Overwrite if project already exists
+          </label>
         </div>
       )}
 
@@ -357,6 +367,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
             <div><dt className="text-slate-500">Tone</dt><dd className="text-slate-300">{tone === 'Custom' ? toneCustom : tone}</dd></div>
             <div><dt className="text-slate-500">MAKER</dt><dd className={makerEnabled ? 'text-green-400' : 'text-slate-500'}>{makerEnabled ? 'Enabled — zero-error methodology' : 'Off'}</dd></div>
             <div><dt className="text-slate-500">Path</dt><dd className="font-mono text-slate-300 break-all">{projectPathPreview || '—'}</dd></div>
+            <div><dt className="text-slate-500">Overwrite</dt><dd className={overwrite ? 'text-amber-400' : 'text-slate-500'}>{overwrite ? 'Yes — will replace existing folder' : 'No'}</dd></div>
           </dl>
         </div>
       )}
