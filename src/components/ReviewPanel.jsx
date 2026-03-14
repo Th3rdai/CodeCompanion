@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Tab } from '@headlessui/react';
+import { FileText, Upload as UploadIcon, FolderOpen } from 'lucide-react';
 import ReportCard from './ReportCard';
 import MessageBubble from './MessageBubble';
 import DictateButton from './DictateButton';
@@ -524,80 +526,152 @@ export default function ReviewPanel({
           </div>
         )}
 
-        {/* Code Input */}
-        <div className="glass rounded-xl border border-slate-700/30 p-4 space-y-3">
-          {/* Filename (optional) */}
-          <div>
-            <label htmlFor="review-filename" className="text-xs text-slate-400 block mb-1">
-              Filename <span className="text-slate-600">(optional — helps the AI understand context)</span>
-            </label>
-            <input
-              id="review-filename"
-              type="text"
-              value={filename}
-              onChange={e => setFilename(e.target.value)}
-              placeholder="e.g. server.js, utils/auth.py"
-              className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
-            />
-          </div>
+        {/* Code Input - Tab-based interface */}
+        <div className="glass rounded-xl border border-slate-700/30 p-4 space-y-4">
+          <Tab.Group>
+            <Tab.List className="flex gap-2 border-b border-slate-700/30 mb-4">
+              <Tab className={({ selected }) =>
+                `flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                  selected
+                    ? 'border-b-2 border-indigo-500 text-white -mb-px'
+                    : 'text-slate-400 hover:text-slate-300'
+                }`
+              }>
+                <FileText className="w-4 h-4" />
+                Paste Code
+              </Tab>
+              <Tab className={({ selected }) =>
+                `flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                  selected
+                    ? 'border-b-2 border-indigo-500 text-white -mb-px'
+                    : 'text-slate-400 hover:text-slate-300'
+                }`
+              }>
+                <UploadIcon className="w-4 h-4" />
+                Upload File
+              </Tab>
+              <Tab className={({ selected }) =>
+                `flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                  selected
+                    ? 'border-b-2 border-indigo-500 text-white -mb-px'
+                    : 'text-slate-400 hover:text-slate-300'
+                }`
+              }>
+                <FolderOpen className="w-4 h-4" />
+                Browse Files
+              </Tab>
+            </Tab.List>
 
-          {/* Code textarea */}
-          <div>
-            <label htmlFor="review-code" className="text-xs text-slate-400 block mb-1">
-              Code to review
-            </label>
-            <textarea
-              id="review-code"
-              ref={textareaRef}
-              value={code}
-              onChange={e => { setCode(e.target.value); if (!filename) setFilename(''); }}
-              placeholder="Paste your code here, upload a file, drag & drop, or use the file browser..."
-              rows={16}
-              className="w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500"
-            />
-          </div>
+            <Tab.Panels>
+              {/* Paste Code Panel */}
+              <Tab.Panel className="space-y-3">
+                <div>
+                  <label htmlFor="review-filename" className="text-xs text-slate-400 block mb-1">
+                    Filename <span className="text-slate-600">(optional — helps the AI understand context)</span>
+                  </label>
+                  <input
+                    id="review-filename"
+                    type="text"
+                    value={filename}
+                    onChange={e => setFilename(e.target.value)}
+                    placeholder="e.g. server.js, utils/auth.py"
+                    className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="review-code" className="text-xs text-slate-400 block mb-1">
+                    Code to review
+                  </label>
+                  <textarea
+                    id="review-code"
+                    ref={textareaRef}
+                    value={code}
+                    onChange={e => { setCode(e.target.value); if (!filename) setFilename(''); }}
+                    placeholder="Paste your code here..."
+                    rows={16}
+                    className="w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePasteFromClipboard}
+                    title="Paste code from clipboard"
+                    className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-700/30 hover:border-indigo-500/30"
+                  >
+                    📋 Paste from Clipboard
+                  </button>
+                  <DictateButton
+                    onResult={handleDictation}
+                    disabled={!connected}
+                    className="!w-auto !h-auto text-xs px-2.5 py-1.5 !rounded-lg border border-slate-700/30 hover:border-indigo-500/30"
+                  />
+                  <button
+                    onClick={() => { setCode(''); setFilename(''); }}
+                    title="Clear code input"
+                    disabled={!code}
+                    className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border border-slate-700/30 hover:border-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    🧹 Clear
+                  </button>
+                </div>
+              </Tab.Panel>
 
-          {/* Input method toolbar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              title="Upload a file to review"
-              className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-700/30 hover:border-indigo-500/30"
-            >
-              📎 Upload File
-            </button>
-            <button
-              onClick={handlePasteFromClipboard}
-              title="Paste code from clipboard"
-              className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-700/30 hover:border-indigo-500/30"
-            >
-              📋 Paste
-            </button>
-            <DictateButton
-              onResult={handleDictation}
-              disabled={!connected}
-              className="!w-auto !h-auto text-xs px-2.5 py-1.5 !rounded-lg border border-slate-700/30 hover:border-indigo-500/30"
-            />
-            <button
-              onClick={() => { setCode(''); setFilename(''); }}
-              title="Clear code input"
-              disabled={!code}
-              className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border border-slate-700/30 hover:border-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              🧹 Clear
-            </button>
-            <span className="flex-1" />
-            <span className="text-[10px] text-slate-500">
-              Drag & drop files here, or attach from the File Browser panel
-            </span>
-          </div>
+              {/* Upload File Panel */}
+              <Tab.Panel>
+                <div
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+                    dragging
+                      ? 'border-indigo-500 bg-indigo-500/10'
+                      : 'border-slate-700/40 hover:border-slate-600/60'
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <UploadIcon className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+                  <p className="text-sm text-slate-300 mb-2">Drag and drop a file, or click to browse</p>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-sm px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+                  >
+                    Choose File
+                  </button>
+                  {filename && (
+                    <p className="text-xs text-emerald-400 mt-3">
+                      Loaded: <span className="font-mono">{filename}</span>
+                    </p>
+                  )}
+                </div>
+              </Tab.Panel>
+
+              {/* Browse Files Panel */}
+              <Tab.Panel>
+                <div className="text-center py-8 space-y-4">
+                  <FolderOpen className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400">Browse files from your project folder</p>
+                  <button
+                    onClick={onAttachFromBrowser}
+                    className="text-sm px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+                  >
+                    Open File Browser
+                  </button>
+                  {filename && (
+                    <p className="text-xs text-emerald-400 mt-3">
+                      Loaded: <span className="font-mono">{filename}</span>
+                    </p>
+                  )}
+                </div>
+              </Tab.Panel>
+            </Tab.Panels>
+          </Tab.Group>
         </div>
 
         {/* Model capability warning */}
