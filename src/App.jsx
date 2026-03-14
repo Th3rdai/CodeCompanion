@@ -325,6 +325,18 @@ export default function App() {
     if (lastAssistant) { navigator.clipboard.writeText(lastAssistant.content); showToast('Response copied'); }
     else { showToast('No response to copy'); }
   }
+  function handleDownloadMarkdown() {
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistant) { showToast('No response to download'); return; }
+    const blob = new Blob([lastAssistant.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `response-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Markdown downloaded');
+  }
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
   async function handleCreateSuccess(projectPath) {
@@ -537,6 +549,10 @@ export default function App() {
                     <button onClick={handleCopyLastResponse} title="Copy last AI response to clipboard"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📑 Copy Response
+                    </button>
+                    <button onClick={handleDownloadMarkdown} title="Download last AI response as Markdown file"
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                      📝 Markdown
                     </button>
                     <button onClick={handleClearInput} title="Clear input text and attached files"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">

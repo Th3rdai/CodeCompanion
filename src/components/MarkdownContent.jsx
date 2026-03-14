@@ -21,6 +21,84 @@ function renderMarkdown(text, enableJargon) {
   catch { return text; }
 }
 
+function getLanguageFromClass(codeEl) {
+  const cls = codeEl.className || '';
+  const match = cls.match(/language-(\w+)/);
+  return match ? match[1] : '';
+}
+
+function getFileExtension(lang) {
+  const map = {
+    javascript: 'js', typescript: 'ts', python: 'py', ruby: 'rb',
+    java: 'java', go: 'go', rust: 'rs', c: 'c', cpp: 'cpp',
+    csharp: 'cs', php: 'php', swift: 'swift', kotlin: 'kt',
+    html: 'html', css: 'css', json: 'json', yaml: 'yml',
+    xml: 'xml', sql: 'sql', bash: 'sh', shell: 'sh',
+    markdown: 'md', jsx: 'jsx', tsx: 'tsx', vue: 'vue',
+    svelte: 'svelte', dart: 'dart', lua: 'lua', r: 'r',
+  };
+  return map[lang] || lang || 'txt';
+}
+
+function addCodeBlockButtons(container) {
+  container.querySelectorAll('pre').forEach(pre => {
+    if (pre.querySelector('.code-actions')) return;
+
+    const code = pre.querySelector('code');
+    if (!code) return;
+
+    pre.style.position = 'relative';
+
+    const lang = getLanguageFromClass(code);
+    const ext = getFileExtension(lang);
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'code-actions';
+    toolbar.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity 0.15s;z-index:10;';
+
+    // Language label
+    if (lang) {
+      const label = document.createElement('span');
+      label.textContent = lang;
+      label.style.cssText = 'font-size:10px;color:#94a3b8;padding:2px 6px;border-radius:4px;background:rgba(30,41,59,0.8);user-select:none;';
+      toolbar.appendChild(label);
+    }
+
+    // Copy button
+    const copyBtn = document.createElement('button');
+    copyBtn.textContent = 'Copy';
+    copyBtn.title = 'Copy code to clipboard';
+    copyBtn.style.cssText = 'font-size:11px;color:#a5b4fc;padding:2px 8px;border-radius:4px;background:rgba(30,41,59,0.8);border:1px solid rgba(99,102,241,0.3);cursor:pointer;';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(code.textContent);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+    });
+    toolbar.appendChild(copyBtn);
+
+    // Download button
+    const dlBtn = document.createElement('button');
+    dlBtn.textContent = 'Download';
+    dlBtn.title = `Download as .${ext} file`;
+    dlBtn.style.cssText = 'font-size:11px;color:#a5b4fc;padding:2px 8px;border-radius:4px;background:rgba(30,41,59,0.8);border:1px solid rgba(99,102,241,0.3);cursor:pointer;';
+    dlBtn.addEventListener('click', () => {
+      const blob = new Blob([code.textContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `code.${ext}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    toolbar.appendChild(dlBtn);
+
+    pre.appendChild(toolbar);
+
+    pre.addEventListener('mouseenter', () => { toolbar.style.opacity = '1'; });
+    pre.addEventListener('mouseleave', () => { toolbar.style.opacity = '0'; });
+  });
+}
+
 export default function MarkdownContent({ content, enableJargon = true }) {
   const ref = useRef(null);
   const [tooltip, setTooltip] = useState(null);
@@ -28,6 +106,7 @@ export default function MarkdownContent({ content, enableJargon = true }) {
   useEffect(() => {
     if (ref.current) {
       ref.current.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+      addCodeBlockButtons(ref.current);
     }
   }, [content]);
 
