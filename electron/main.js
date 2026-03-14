@@ -7,6 +7,8 @@ const net = require('net');
 const { resolveDataDirectory, migrateDevData, exportData, importData } = require('./data-manager');
 const { loadWindowState, saveWindowState } = require('./window-state');
 const { createMenu } = require('./menu');
+const { initAutoUpdater } = require('./updater');
+const { launchIDE } = require('./ide-launcher');
 
 let mainWindow = null;
 let serverProcess = null;
@@ -290,6 +292,9 @@ async function startApp() {
         });
       });
     }
+
+    // Initialize auto-updater after window is ready
+    initAutoUpdater(mainWindow, dataDir);
   } catch (err) {
     console.error('[Main] Failed to start server:', err);
     dialog.showErrorBox('Server Error', `Failed to start server: ${err.message}`);
@@ -397,3 +402,13 @@ ipcMain.handle('set-port-config', (event, port) => {
 });
 
 ipcMain.handle('get-actual-port', () => actualPort);
+
+ipcMain.handle('launch-ide', async (event, { ide, folder }) => {
+  try {
+    await launchIDE(ide, folder);
+    return { success: true };
+  } catch (error) {
+    console.error('[Main] IDE launch error:', error);
+    return { success: false, error: error.message };
+  }
+});

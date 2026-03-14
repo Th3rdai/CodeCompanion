@@ -1,0 +1,23 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="64" y="64" width="896" height="896" rx="192" fill="url(#gradient)" />
+
+  <!-- Code bracket symbol </> -->
+  <g fill="white" stroke="white" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left bracket < -->
+    <path d="M 400 300 L 250 512 L 400 724" fill="none" />
+
+    <!-- Slash / -->
+    <path d="M 464 700 L 560 324" fill="none" />
+
+    <!-- Right bracket > -->
+    <path d="M 624 300 L 774 512 L 624 724" fill="none" />
+  </g>
+</svg>

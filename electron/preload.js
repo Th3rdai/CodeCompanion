@@ -28,4 +28,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onPortFallback: (callback) => {
     ipcRenderer.on('port-fallback', (event, data) => callback(data));
   },
+
+  // Auto-update
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  restartForUpdate: () => ipcRenderer.invoke('restart-for-update'),
+  onUpdateAvailable: (callback) => {
+    ipcRenderer.on('update-available', (event, info) => callback(info));
+  },
+  onUpdateDownloaded: (callback) => {
+    ipcRenderer.on('update-downloaded', (event, info) => callback(info));
+  },
 });
