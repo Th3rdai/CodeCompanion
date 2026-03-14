@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Bug, Lock, BookOpen, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Bug, Lock, BookOpen, CheckCircle, Clipboard, ClipboardCopy } from 'lucide-react';
 
 // ── Grade color mapping ─────────────────────────────
 
@@ -54,19 +54,19 @@ function SeverityPill({ severity }) {
 
 // ── Finding Card ────────────────────────────────────
 
-function CopyFixButton({ text }) {
+function CopyFixButton({ text, toastMessage }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 3000); }}
+      className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
         copied
           ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10'
           : 'text-slate-400 border-slate-600 hover:text-indigo-300 hover:border-indigo-500/30 hover:bg-indigo-500/10'
       }`}
       aria-label="Copy fix to clipboard"
     >
-      {copied ? '✓ Copied!' : '📋 Copy Fix'}
+      {copied ? (toastMessage || 'Copied!') : 'Copy Fix'}
     </button>
   );
 }
@@ -110,12 +110,29 @@ function FindingCard({ finding, categoryKey, onDeepDive }) {
               </pre>
             </div>
           )}
+          {(() => {
+            const prompt = finding.fixPrompt || (finding.explanation ? `Please fix this issue in my code: ${finding.title}. ${finding.explanation}` : null);
+            return prompt ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-indigo-400 flex items-center gap-1.5">
+                    <Clipboard className="w-3.5 h-3.5" />
+                    What to ask your AI to fix
+                  </span>
+                  <CopyFixButton text={prompt} toastMessage="Copied! Paste into your AI tool" />
+                </div>
+                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-lg px-3 py-2.5 text-sm text-indigo-200/90 leading-relaxed">
+                  {prompt}
+                </div>
+              </div>
+            ) : null;
+          })()}
           {onDeepDive && (
             <button
               onClick={() => onDeepDive(finding, categoryKey)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 px-2.5 py-1.5 rounded-lg transition-colors border border-indigo-500/20 hover:border-indigo-500/40"
+              className="text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 px-2.5 py-1.5 rounded-lg transition-colors border border-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
             >
-              🔍 Ask about this finding...
+              Ask about this finding...
             </button>
           )}
         </div>
@@ -293,6 +310,24 @@ function handleExportJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
+// ── Bulk fix prompts builder ────────────────────────
+
+function buildBulkFixPrompts(categories) {
+  const prompts = [];
+  const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  for (const [key, cat] of Object.entries(categories)) {
+    for (const finding of (cat.findings || [])) {
+      const prompt = finding.fixPrompt || (finding.explanation ? `Please fix this issue in my code: ${finding.title}. ${finding.explanation}` : null);
+      if (prompt) {
+        prompts.push({ severity: finding.severity, prompt });
+      }
+    }
+  }
+  prompts.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  if (prompts.length === 0) return null;
+  return "Fix these issues in my code:\n" + prompts.map((p, i) => `${i + 1}. ${p.prompt}`).join('\n');
+}
+
 // ── Main Report Card ────────────────────────────────
 
 export default function ReportCard({ data, filename, onDeepDive, onNewReview }) {
@@ -301,6 +336,8 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview }) 
   const { overallGrade, topPriority, categories, cleanBillOfHealth } = data;
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showAllFindings, setShowAllFindings] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
+  const bulkPrompts = buildBulkFixPrompts(categories);
 
   return (
     <div className="space-y-4 fade-in max-w-3xl mx-auto">
@@ -327,7 +364,21 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview }) 
               )}
             </div>
           </div>
-          <div className="flex gap-2 shrink-0 relative">
+          <div className="flex gap-2 shrink-0 relative flex-wrap justify-end">
+            {bulkPrompts && (
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(bulkPrompts);
+                  setCopiedAll(true);
+                  setTimeout(() => setCopiedAll(false), 3000);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/20 transition-colors cursor-pointer"
+                aria-label="Copy all fix prompts to clipboard"
+              >
+                <ClipboardCopy className="w-4 h-4" />
+                {copiedAll ? 'Copied! Paste into your AI tool' : 'Copy All Fix Prompts'}
+              </button>
+            )}
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}

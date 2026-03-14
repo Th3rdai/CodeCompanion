@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
-export default function Toast({ message, onDone }) {
+export default function Toast({ message, onDone, duration = 3000 }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 2500);
+    const t = setTimeout(onDone, duration);
     return () => clearTimeout(t);
   }, []);
 
