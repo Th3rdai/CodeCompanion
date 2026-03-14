@@ -3,6 +3,7 @@ import ReportCard from './ReportCard';
 import MessageBubble from './MessageBubble';
 import DictateButton from './DictateButton';
 import MarkdownContent from './MarkdownContent';
+import LoadingAnimation from './LoadingAnimation';
 
 // ── Model capability detection ────────────────────────
 // Returns a warning message if the model is likely too small for structured review output.
@@ -379,23 +380,7 @@ export default function ReviewPanel({
 
   // ── Render: Loading ───────────────────────────────
   if (phase === 'loading') {
-    return (
-      <section className="flex-1 overflow-y-auto scrollbar-thin px-4 py-8 flex items-center justify-center" aria-label="Review in progress">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          <h2 className="text-lg font-semibold text-slate-200">Reviewing your code...</h2>
-          <p className="text-sm text-slate-400">
-            The AI is analyzing {filename ? <span className="font-mono text-indigo-300">{filename}</span> : 'your code'} for
-            bugs, security issues, readability, and completeness.
-          </p>
-          <p className="text-xs text-slate-500">This can take 30-120 seconds depending on the model and code size.</p>
-        </div>
-      </section>
-    );
+    return <LoadingAnimation filename={filename} />;
   }
 
   // ── Render: Report Card ───────────────────────────
@@ -451,7 +436,7 @@ export default function ReviewPanel({
     const visibleMessages = deepDiveMessages.filter(m => m.role === 'user' || m.role === 'assistant');
 
     return (
-      <section className="flex-1 flex flex-col" aria-label="Deep dive conversation">
+      <section className="flex-1 flex flex-col min-h-0 overflow-hidden" aria-label="Deep dive conversation">
         {/* Header bar */}
         <div className="glass border-b border-slate-700/30 px-4 py-2 flex items-center gap-3">
           <button
