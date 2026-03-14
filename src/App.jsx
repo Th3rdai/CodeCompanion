@@ -24,14 +24,14 @@ import TokenCounter from './components/3d/TokenCounter';
 import OrbitingBadge from './components/3d/OrbitingBadge';
 
 const MODES = [
-  { id: 'chat',           label: 'Chat',            icon: '💬', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about tech, PM life, or just say hey..." },
-  { id: 'explain',        label: 'Explain This',    icon: '💡', desc: 'Walk me through this code',         placeholder: "Paste some code and I'll walk you through it step by step..." },
-  { id: 'bugs',           label: 'Safety Check',    icon: '🐛', desc: 'Spot issues before they bite',      placeholder: "Drop your code here — I'll look for anything that could cause trouble..." },
-  { id: 'refactor',       label: 'Clean Up',        icon: '✨', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
-  { id: 'translate-tech', label: 'Tech → Biz',      icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste a technical spec, PR, or code snippet...\nI'll turn it into something anyone can understand." },
-  { id: 'translate-biz',  label: 'Biz → Tech',      icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear specs your dev team will love." },
-  { id: 'review',        label: 'Review',           icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
-  { id: 'create',        label: 'Create',           icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
+  { id: 'chat',           label: 'Chat',                    icon: '💬', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about code, building with AI, or just say hey..." },
+  { id: 'explain',        label: 'Explain This',            icon: '💡', desc: 'Walk me through this code',         placeholder: "Paste some code and I'll walk you through it step by step..." },
+  { id: 'bugs',           label: 'Safety Check',            icon: '🐛', desc: 'Spot issues before they bite',      placeholder: "Drop your code here — I'll look for anything that could cause trouble..." },
+  { id: 'refactor',       label: 'Clean Up',                icon: '✨', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
+  { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
+  { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
+  { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
+  { id: 'create',         label: 'Create',                  icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
 ];
 
 function TypingIndicator() {
