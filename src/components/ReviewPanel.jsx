@@ -1,23 +1,72 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Tab } from '@headlessui/react';
-import { FileText, Upload as UploadIcon, FolderOpen } from 'lucide-react';
+import { FileText, Upload as UploadIcon, FolderOpen, AlertTriangle, History } from 'lucide-react';
 import ReportCard from './ReportCard';
 import MessageBubble from './MessageBubble';
 import DictateButton from './DictateButton';
 import MarkdownContent from './MarkdownContent';
 import LoadingAnimation from './LoadingAnimation';
 
-// ── Model capability detection ────────────────────────
-// Returns a warning message if the model is likely too small for structured review output.
-function getModelCapabilityWarning(modelName) {
-  if (!modelName) return null;
-  const name = modelName.toLowerCase();
-  // Detect small models by parameter count in name
-  if (/(?:^|[^0-9])(?:0\.5b|1b|1\.5b|2b|3b)(?:$|[^0-9])/.test(name)) {
-    return 'This model is very small and will likely struggle to produce a structured report card. For best results, use a 13B+ model (e.g. llama3:13b, codellama:13b). You may get a conversational fallback instead.';
+// ── Model tier system ─────────────────────────────────
+// Empirical tier list for code review quality
+const MODEL_TIERS = {
+  strong: [
+    'qwen3:32b', 'qwen3:30b', 'qwen2.5:32b',
+    'llama3:70b', 'llama3.1:70b', 'llama3.3:70b',
+    'deepseek-r1:32b', 'deepseek-r1:70b',
+    'codellama:34b', 'codellama:70b',
+    'mixtral:8x22b', 'command-r-plus',
+    'qwq:32b', 'gemma3:27b'
+  ],
+  adequate: [
+    'qwen3:14b', 'qwen3:8b', 'qwen2.5:14b', 'qwen2.5:7b',
+    'llama3:8b', 'llama3.1:8b', 'llama3.2:8b',
+    'deepseek-r1:14b', 'deepseek-r1:8b',
+    'codellama:13b', 'codellama:7b',
+    'gemma3:12b', 'mistral:7b', 'mixtral:8x7b',
+    'phi4:14b'
+  ],
+  weak: [
+    'qwen3:4b', 'qwen3:1.7b', 'qwen3:0.6b',
+    'qwen2.5:3b', 'qwen2.5:1.5b', 'qwen2.5:0.5b',
+    'llama3.2:3b', 'llama3.2:1b',
+    'deepseek-r1:1.5b', 'deepseek-r1:7b',
+    'gemma3:4b', 'gemma3:1b',
+    'phi4-mini:3.8b', 'tinyllama:1.1b'
+  ]
+};
+
+function getModelTier(modelName) {
+  if (!modelName) return 'unknown';
+  const normalized = modelName.toLowerCase().replace(/:latest$/, '');
+  for (const [tier, models] of Object.entries(MODEL_TIERS)) {
+    if (models.some(m => normalized === m || normalized.startsWith(m + '-') || normalized.startsWith(m + ':'))) {
+      return tier;
+    }
   }
-  if (/(?:^|[^0-9])(?:7b|8b)(?:$|[^0-9])/.test(name)) {
-    return 'Smaller models (7-8B) can produce report cards but may miss issues or produce less accurate grades. For thorough reviews, consider a 13B+ model.';
+  const baseMatch = normalized.match(/^([^:]+):(\d+(?:\.\d+)?b)/);
+  if (baseMatch) {
+    const base = `${baseMatch[1]}:${baseMatch[2]}`;
+    for (const [tier, models] of Object.entries(MODEL_TIERS)) {
+      if (models.includes(base)) return tier;
+    }
+  }
+  // Parameter-count fallback
+  if (/(?:^|[^0-9])(?:0\.5b|1b|1\.5b|2b|3b|4b)(?:$|[^0-9])/.test(normalized)) return 'weak';
+  if (/(?:^|[^0-9])(?:7b|8b)(?:$|[^0-9])/.test(normalized)) return 'adequate';
+  return 'unknown';
+}
+
+function suggestBetterModel(currentModel, installedModels) {
+  const currentTier = getModelTier(currentModel);
+  if (currentTier === 'strong' || currentTier === 'unknown') return null;
+  for (const targetTier of ['strong', 'adequate']) {
+    if (targetTier === currentTier) continue;
+    for (const model of installedModels) {
+      if (getModelTier(model.name) === targetTier) {
+        return { name: model.name, tier: targetTier };
+      }
+    }
   }
   return null;
 }
@@ -36,6 +85,8 @@ export default function ReviewPanel({
   onSwitchToChat,
   savedReview,
   onSaveReview,
+  models,
+  onSetSelectedModel,
 }) {
   // ── State ───────────────────────────────────────────
   const [phase, setPhase] = useState('input'); // 'input' | 'loading' | 'report' | 'fallback' | 'deep-dive'
@@ -49,7 +100,9 @@ export default function ReviewPanel({
   const [reviewError, setReviewError] = useState('');
   const [dragging, setDragging] = useState(false);
 
-  const modelWarning = getModelCapabilityWarning(selectedModel);
+  const modelTier = getModelTier(selectedModel);
+  const suggestedModel = suggestBetterModel(selectedModel, models || []);
+  const showModelWarning = modelTier === 'weak' || modelTier === 'adequate';
 
   // ── Restore saved review from history ───────────────
   useEffect(() => {
@@ -402,14 +455,38 @@ export default function ReviewPanel({
 
   // ── Render: Report Card ───────────────────────────
   if (phase === 'report' && reportData) {
+    const isSuspicious = modelTier === 'weak' && reportData && (
+      reportData.cleanBillOfHealth === true ||
+      (reportData.overallGrade === 'A' && Object.values(reportData.categories || {}).every(c => c.grade === 'A')) ||
+      Object.values(reportData.categories || {}).reduce((sum, c) => sum + (c.findings?.length || 0), 0) < 2
+    );
+
     return (
       <section className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" aria-label="Code review report card">
+        {savedReview && (
+          <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-xs text-slate-500">
+            <History className="w-3.5 h-3.5" />
+            <span>Saved review</span>
+          </div>
+        )}
         <ReportCard
           data={reportData}
           filename={filename}
           onDeepDive={handleDeepDive}
           onNewReview={handleNewReview}
         />
+        {isSuspicious && suggestedModel && (
+          <div className="max-w-3xl mx-auto mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+            <div className="flex-1 text-sm text-amber-200/80">
+              For a deeper review, try <strong>{suggestedModel.name}</strong> — larger models catch more subtle issues.
+            </div>
+            <button onClick={() => { onSetSelectedModel?.(suggestedModel.name); setPhase('input'); }}
+              className="px-3 py-1.5 text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors cursor-pointer whitespace-nowrap">
+              Try it
+            </button>
+          </div>
+        )}
       </section>
     );
   }
@@ -700,10 +777,29 @@ export default function ReviewPanel({
         </div>
 
         {/* Model capability warning */}
-        {modelWarning && connected && selectedModel && (
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2">
-            <span className="text-amber-400 shrink-0 mt-0.5">⚠️</span>
-            <p className="text-sm text-amber-300">{modelWarning}</p>
+        {showModelWarning && connected && selectedModel && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm text-amber-300">
+                {modelTier === 'weak'
+                  ? 'This model is very small and will likely struggle to produce a structured report card. You may get a conversational fallback instead.'
+                  : 'Smaller models can produce report cards but may miss issues or produce less accurate grades.'}
+              </p>
+              {suggestedModel && (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-amber-200/80">
+                    For better results, try <strong>{suggestedModel.name}</strong>
+                  </p>
+                  <button
+                    onClick={() => onSetSelectedModel?.(suggestedModel.name)}
+                    className="px-3 py-1 text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    Switch
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -713,7 +809,6 @@ export default function ReviewPanel({
             onClick={handleSubmitReview}
             disabled={!code.trim() || !selectedModel || !connected || isLoading}
             className="btn-neon text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
-            title={modelWarning || undefined}
           >
             {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Run Code Review'}
           </button>

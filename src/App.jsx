@@ -488,6 +488,8 @@ export default function App() {
                 onSwitchToChat={(msgs) => { setMode('chat'); if (msgs) setMessages(msgs); }}
                 savedReview={savedReview}
                 onSaveReview={handleSaveReview}
+                models={models}
+                onSetSelectedModel={setSelectedModel}
               />
             ) : (
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
