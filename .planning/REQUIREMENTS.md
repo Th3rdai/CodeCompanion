@@ -16,7 +16,7 @@
 - [x] **REVW-07**: Report card uses color-coded grades (A=green through F=red) for instant visual feedback
 - [x] **REVW-08**: User sees a friendly loading state ("Grading your code...") while review processes
 - [x] **REVW-09**: User can upload files or use file browser to feed code into review
-- [ ] **REVW-10**: Review history saves structured report card data for revisiting past reviews
+- [x] **REVW-10**: Review history saves structured report card data for revisiting past reviews
 
 ### Tone & Modes
 
@@ -32,7 +32,7 @@
 - [x] **UX-02**: Simplified mode labels and UI language throughout (no technical jargon in navigation)
 - [ ] **UX-03**: Contextual jargon glossary — hover over technical terms for plain-English definitions
 - [ ] **UX-04**: Privacy-first messaging visible in UI ("Your code never leaves your computer")
-- [ ] **UX-05**: Model capability warnings — gentle guidance when a small model may give poor review results
+- [x] **UX-05**: Model capability warnings — gentle guidance when a small model may give poor review results
 
 ## v2 Requirements
 
@@ -73,7 +73,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-07 | Phase 3 | Complete |
 | REVW-08 | Phase 3 | Complete |
 | REVW-09 | Phase 3 | Complete |
-| REVW-10 | Phase 4 | Pending |
+| REVW-10 | Phase 4 | Complete |
 | TONE-01 | Phase 2 | Complete |
 | TONE-02 | Phase 2 | Complete |
 | TONE-03 | Phase 2 | Complete |
@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-02 | Phase 2 | Complete |
 | UX-03 | Phase 5 | Pending |
 | UX-04 | Phase 5 | Pending |
-| UX-05 | Phase 4 | Pending |
+| UX-05 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total
