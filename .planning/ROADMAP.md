@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Five phases deliver 20 requirements across three categories (Review Mode, Tone, UX).
+This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Six phases deliver requirements across four categories (Review Mode, Tone, UX, Desktop).
 
 ## Phases
 
@@ -17,6 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: Report Card UI** - Visual report card display with color-coded grades, deep-dive conversation, and all input methods
 - [ ] **Phase 4: Actionable Guidance** - Copy-pasteable fix prompts, review history persistence, and model capability warnings
 - [ ] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging
+- [ ] **Phase 6: Desktop App** - Electron packaging for self-contained macOS and Linux desktop application
 
 ## Phase Details
 
@@ -93,10 +94,26 @@ Plans:
 Plans:
 - [ ] 05-01: TBD
 
+### Phase 6: Desktop App
+**Goal**: Code Companion runs as a self-contained Electron desktop application on macOS and Linux, with native window management, auto-free port detection, cross-platform IDE launchers, and distributable installers
+**Depends on**: Phase 5 (all features complete before packaging)
+**Requirements**: DESK-01, DESK-02, DESK-03, DESK-04, DESK-05
+**Success Criteria** (what must be TRUE):
+  1. App launches as a native desktop window (no manual terminal commands or browser required)
+  2. Express server starts automatically on a free port inside the Electron process
+  3. IDE launcher buttons work on both macOS and Linux (platform-detected commands)
+  4. Distributable installers produced: .dmg for macOS, .AppImage for Linux
+  5. App data (config, history, logs) stored in OS-appropriate user data directory
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: TBD
+- [ ] 06-02: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 (Phases 1 and 2 have no dependency on each other and could execute in either order)
 
 | Phase | Plans Complete | Status | Completed |
@@ -106,3 +123,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 | 3. Report Card UI | 0/0 | Not started | - |
 | 4. Actionable Guidance | 0/0 | Not started | - |
 | 5. Onboarding and Help | 0/0 | Not started | - |
+| 6. Desktop App | 0/0 | Not started | - |
