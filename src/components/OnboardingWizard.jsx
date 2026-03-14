@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MessageCircle, Lightbulb, ArrowRightLeft, Bug, Sparkles, FileCheck, WrenchIcon, Hammer } from 'lucide-react';
 
 const STORAGE_KEY = 'th3rdai_onboarding_complete';
 
@@ -10,8 +11,10 @@ const STEPS = [
     content: (
       <>
         <p className="text-slate-300 mb-3">
-          Code Companion helps Product Managers understand, review, and communicate about code
-          — no engineering degree required.
+          Code Companion translates AI-generated code into honest, plain-English reviews — so you know what's safe to ship and what needs fixing.
+        </p>
+        <p className="text-slate-300 mb-3">
+          Whether you're using Cursor, ChatGPT, or any AI coding tool, Code Companion helps you understand what your code actually does and where the risks are.
         </p>
         <p className="text-slate-400 text-sm">
           Everything runs on your machine. Your code and conversations never leave your computer.
@@ -38,6 +41,14 @@ const STEPS = [
             <li>Make sure Ollama is running, then click <strong>Settings</strong> up top to connect</li>
           </ol>
         </div>
+        <div className="glass rounded-lg p-3 text-xs text-slate-400 space-y-1.5 mt-3">
+          <p><strong className="text-slate-300">Troubleshooting:</strong></p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li><strong>Port not responding?</strong> Make sure Ollama is running (check for the icon in your menu bar)</li>
+            <li><strong>No models installed?</strong> Run <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">ollama list</code> to check, then <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">ollama pull llama3.2</code> to download</li>
+            <li><strong>Connection refused?</strong> Check Settings to verify the Ollama URL matches your setup (default: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code>)</li>
+          </ul>
+        </div>
       </>
     ),
     icon: '🔌',
@@ -45,25 +56,25 @@ const STEPS = [
   {
     id: 'modes',
     title: 'Pick Your Mode',
-    subtitle: 'Eight specialized tools for your workflow',
+    subtitle: 'Eight ways to understand and improve your code',
     content: (
       <>
         <p className="text-slate-300 mb-3">
-          Each mode is tuned for a specific PM task. Here are the highlights:
+          Each mode helps with a different part of building with AI. Here are the highlights:
         </p>
         <div className="grid grid-cols-2 gap-2 text-xs">
           {[
-            { icon: '💬', label: 'Chat', desc: 'General conversation' },
-            { icon: '💡', label: 'Explain', desc: 'Walk through code' },
-            { icon: '📋', label: 'Tech to Biz', desc: 'Translate for stakeholders' },
-            { icon: '🔧', label: 'Biz to Tech', desc: 'Turn ideas into specs' },
-            { icon: '🐛', label: 'Safety Check', desc: 'Spot issues early' },
-            { icon: '📝', label: 'Review', desc: 'Get a code report card' },
-            { icon: '✨', label: 'Clean Up', desc: 'Improve code quality' },
-            { icon: '🛠️', label: 'Create', desc: 'Scaffold new projects' },
+            { icon: MessageCircle, label: 'Chat', desc: 'Ask anything about your code' },
+            { icon: Lightbulb, label: 'Explain', desc: 'Translate code into plain English' },
+            { icon: ArrowRightLeft, label: 'Tech to Biz', desc: 'Explain your code to anyone' },
+            { icon: WrenchIcon, label: 'Biz to Tech', desc: 'Turn ideas into AI prompts' },
+            { icon: Bug, label: 'Safety Check', desc: 'Find what could break' },
+            { icon: FileCheck, label: 'Review', desc: 'Get an honest code report card' },
+            { icon: Sparkles, label: 'Clean Up', desc: 'Make your code better' },
+            { icon: Hammer, label: 'Create', desc: 'Start new projects fast' },
           ].map(m => (
             <div key={m.label} className="glass rounded-lg p-2 flex items-center gap-2">
-              <span>{m.icon}</span>
+              <m.icon className="w-4 h-4 text-indigo-400" />
               <div>
                 <span className="text-slate-200 font-medium">{m.label}</span>
                 <span className="text-slate-500 ml-1">{m.desc}</span>
