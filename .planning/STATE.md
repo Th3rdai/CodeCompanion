@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-03-14T21:40:46.270Z"
-last_activity: 2026-03-14 — Onboarding glossary and privacy test scaffolds complete
+last_updated: "2026-03-14T21:44:56.335Z"
+last_activity: 2026-03-14 — Fix prompts wired end-to-end (schema, prompt, UI, bulk copy)
 progress:
   total_phases: 7
   completed_phases: 5
