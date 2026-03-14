@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Bug, Lock, BookOpen, CheckCircle } from 'lucide-react';
 
 // ── Grade color mapping ─────────────────────────────
 
@@ -19,10 +19,10 @@ const SEVERITY_COLORS = {
 };
 
 const CATEGORY_LABELS = {
-  bugs: { label: 'Bugs', icon: '🐛', desc: 'Logic errors, crashes, and broken behavior' },
-  security: { label: 'Security', icon: '🔒', desc: 'Vulnerabilities and safety risks' },
-  readability: { label: 'Readability', icon: '📖', desc: 'Clarity, naming, and maintainability' },
-  completeness: { label: 'Completeness', icon: '✅', desc: 'Missing features, edge cases, and error handling' },
+  bugs: { label: 'Bugs', icon: <Bug className="w-4 h-4" />, desc: 'Logic errors, crashes, and broken behavior' },
+  security: { label: 'Security', icon: <Lock className="w-4 h-4" />, desc: 'Vulnerabilities and safety risks' },
+  readability: { label: 'Readability', icon: <BookOpen className="w-4 h-4" />, desc: 'Clarity, naming, and maintainability' },
+  completeness: { label: 'Completeness', icon: <CheckCircle className="w-4 h-4" />, desc: 'Missing features, edge cases, and error handling' },
 };
 
 // ── Grade Badge ─────────────────────────────────────
@@ -127,31 +127,44 @@ function FindingCard({ finding, categoryKey, onDeepDive }) {
 // ── Category Section ────────────────────────────────
 
 function CategorySection({ categoryKey, category, onDeepDive }) {
-  const meta = CATEGORY_LABELS[categoryKey] || { label: categoryKey, icon: '📋', desc: '' };
+  const meta = CATEGORY_LABELS[categoryKey] || { label: categoryKey, icon: <BookOpen className="w-4 h-4" />, desc: '' };
   const [collapsed, setCollapsed] = useState(false);
   const findingsCount = category.findings?.length || 0;
 
   return (
     <div className="glass rounded-xl border border-slate-700/30 overflow-hidden">
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/10 transition-colors text-left"
-      >
-        <GradeBadge grade={category.grade} size="sm" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span>{meta.icon}</span>
-            <h3 className="text-sm font-semibold text-slate-100">{meta.label}</h3>
-            {findingsCount > 0 && (
-              <span className="text-[10px] text-slate-500 bg-slate-700/40 px-1.5 py-0.5 rounded-full">
-                {findingsCount} finding{findingsCount !== 1 ? 's' : ''}
-              </span>
-            )}
+      <div className="p-4 space-y-3">
+        {/* Category header */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full flex items-center gap-3 hover:bg-slate-700/10 transition-colors text-left rounded-lg -m-1 p-1"
+        >
+          <GradeBadge grade={category.grade} size="sm" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {meta.icon}
+              <h3 className="text-sm font-semibold text-slate-100">{meta.label}</h3>
+              {findingsCount > 0 && (
+                <span className="text-[10px] text-slate-500 bg-slate-700/40 px-1.5 py-0.5 rounded-full">
+                  {findingsCount} finding{findingsCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5 truncate">{category.summary}</p>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5 truncate">{category.summary}</p>
-        </div>
-        <span className="text-slate-500 text-xs shrink-0">{collapsed ? '▶' : '▼'}</span>
-      </button>
+          <span className="text-slate-500 text-xs shrink-0">{collapsed ? '▶' : '▼'}</span>
+        </button>
+
+        {/* Learn More button */}
+        {onDeepDive && (
+          <button
+            onClick={() => onDeepDive({ title: meta.label, explanation: category.summary }, categoryKey)}
+            className="w-full text-sm px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium"
+          >
+            Learn more about {meta.label.toLowerCase()}
+          </button>
+        )}
+      </div>
 
       {!collapsed && findingsCount > 0 && (
         <div className="px-4 pb-4 space-y-2 border-t border-slate-700/20 pt-3">
@@ -177,6 +190,14 @@ function buildMarkdownExport(data, filename) {
   const lines = [];
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
+  // Icon emoji mapping for markdown export (icons are JSX in CATEGORY_LABELS)
+  const iconEmoji = {
+    bugs: '🐛',
+    security: '🔒',
+    readability: '📖',
+    completeness: '✅'
+  };
+
   lines.push(`# Code Review Report Card`);
   lines.push('');
   if (filename) lines.push(`**File:** \`${filename}\``);
@@ -192,7 +213,8 @@ function buildMarkdownExport(data, filename) {
   lines.push('|----------|-------|');
   for (const [key, cat] of Object.entries(categories)) {
     const meta = CATEGORY_LABELS[key] || { label: key };
-    lines.push(`| ${meta.icon || ''} ${meta.label} | ${cat.grade} |`);
+    const emoji = iconEmoji[key] || '';
+    lines.push(`| ${emoji} ${meta.label} | ${cat.grade} |`);
   }
   lines.push('');
 
@@ -210,8 +232,9 @@ function buildMarkdownExport(data, filename) {
   lines.push('## Detailed Findings');
   lines.push('');
   for (const [key, cat] of Object.entries(categories)) {
-    const meta = CATEGORY_LABELS[key] || { label: key, icon: '' };
-    lines.push(`### ${meta.icon} ${meta.label} — ${cat.grade}`);
+    const meta = CATEGORY_LABELS[key] || { label: key };
+    const emoji = iconEmoji[key] || '';
+    lines.push(`### ${emoji} ${meta.label} — ${cat.grade}`);
     lines.push('');
     if (cat.summary) lines.push(`> ${cat.summary}`);
     lines.push('');
@@ -375,11 +398,11 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview }) 
       {/* Category Grade Summary (4-up grid) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Object.entries(categories).map(([key, cat]) => {
-          const meta = CATEGORY_LABELS[key] || { label: key, icon: '📋' };
+          const meta = CATEGORY_LABELS[key] || { label: key, icon: <BookOpen className="w-4 h-4" /> };
           const colors = GRADE_COLORS[cat.grade] || GRADE_COLORS.C;
           return (
             <div key={key} className={`glass rounded-xl border ${colors.border} p-3 text-center`}>
-              <div className="text-lg">{meta.icon}</div>
+              <div className="flex items-center justify-center">{meta.icon}</div>
               <div className={`text-2xl font-bold ${colors.text} mt-1`}>{cat.grade}</div>
               <div className="text-xs text-slate-400 mt-1">{meta.label}</div>
             </div>
