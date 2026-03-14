@@ -549,22 +549,43 @@ app.post('/api/review', async (req, res) => {
   }
 });
 
+// ── Cross-platform IDE launching ─────────────────────
+
+// Try to load the Electron IDE launcher if available (in Electron mode)
+let ideLauncher = null;
+try {
+  if (process.env.CC_DATA_DIR || process.versions.electron) {
+    ideLauncher = require('./electron/ide-launcher');
+  }
+} catch (err) {
+  // Not in Electron mode or module not found - will use legacy macOS commands
+  console.log('[IDE Launcher] Running in dev mode, using macOS-only commands');
+}
+
 // ── Launch Claude Code in Terminal ────────────────────
 
-app.post('/api/launch-claude-code', (req, res) => {
+app.post('/api/launch-claude-code', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
 
-  const { execSync } = require('child_process');
   try {
-    const script = `tell application "Terminal"
+    if (ideLauncher) {
+      // Use cross-platform launcher
+      await ideLauncher.launchIDE('claude-code', folder);
+      log('INFO', `Launched Claude Code in: ${folder}`);
+      res.json({ success: true, folder });
+    } else {
+      // Fallback to macOS-only command (dev mode)
+      const { execSync } = require('child_process');
+      const script = `tell application "Terminal"
       activate
       do script "cd ${folder.replace(/"/g, '\\"')} && claude --dangerously-skip-permissions"
     end tell`;
-    execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
-    log('INFO', `Launched Claude Code in: ${folder}`);
-    res.json({ success: true, folder });
+      execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+      log('INFO', `Launched Claude Code in: ${folder} (macOS only)`);
+      res.json({ success: true, folder });
+    }
   } catch (err) {
     log('ERROR', 'launch-claude-code failed', { error: err.message });
     res.status(500).json({ error: err.message });
@@ -573,16 +594,24 @@ app.post('/api/launch-claude-code', (req, res) => {
 
 // ── Launch Cursor in project folder ──────────────────
 
-app.post('/api/launch-cursor', (req, res) => {
+app.post('/api/launch-cursor', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
 
-  const { execSync } = require('child_process');
   try {
-    execSync(`open -a "Cursor" "${folder}"`);
-    log('INFO', `Launched Cursor in: ${folder}`);
-    res.json({ success: true, folder });
+    if (ideLauncher) {
+      // Use cross-platform launcher
+      await ideLauncher.launchIDE('cursor', folder);
+      log('INFO', `Launched Cursor in: ${folder}`);
+      res.json({ success: true, folder });
+    } else {
+      // Fallback to macOS-only command (dev mode)
+      const { execSync } = require('child_process');
+      execSync(`open -a "Cursor" "${folder}"`);
+      log('INFO', `Launched Cursor in: ${folder} (macOS only)`);
+      res.json({ success: true, folder });
+    }
   } catch (err) {
     log('ERROR', 'launch-cursor failed', { error: err.message });
     res.status(500).json({ error: err.message });
@@ -591,16 +620,24 @@ app.post('/api/launch-cursor', (req, res) => {
 
 // ── Launch Windsurf in project folder ─────────────────
 
-app.post('/api/launch-windsurf', (req, res) => {
+app.post('/api/launch-windsurf', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
 
-  const { execSync } = require('child_process');
   try {
-    execSync(`open -a "Windsurf" "${folder}"`);
-    log('INFO', `Launched Windsurf in: ${folder}`);
-    res.json({ success: true, folder });
+    if (ideLauncher) {
+      // Use cross-platform launcher
+      await ideLauncher.launchIDE('windsurf', folder);
+      log('INFO', `Launched Windsurf in: ${folder}`);
+      res.json({ success: true, folder });
+    } else {
+      // Fallback to macOS-only command (dev mode)
+      const { execSync } = require('child_process');
+      execSync(`open -a "Windsurf" "${folder}"`);
+      log('INFO', `Launched Windsurf in: ${folder} (macOS only)`);
+      res.json({ success: true, folder });
+    }
   } catch (err) {
     log('ERROR', 'launch-windsurf failed', { error: err.message });
     res.status(500).json({ error: err.message });
@@ -609,20 +646,28 @@ app.post('/api/launch-windsurf', (req, res) => {
 
 // ── Launch OpenCode in project folder ─────────────────
 
-app.post('/api/launch-opencode', (req, res) => {
+app.post('/api/launch-opencode', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
 
-  const { execSync } = require('child_process');
   try {
-    const script = `tell application "Terminal"
+    if (ideLauncher) {
+      // Use cross-platform launcher
+      await ideLauncher.launchIDE('opencode', folder);
+      log('INFO', `Launched OpenCode in: ${folder}`);
+      res.json({ success: true, folder });
+    } else {
+      // Fallback to macOS-only command (dev mode)
+      const { execSync } = require('child_process');
+      const script = `tell application "Terminal"
       activate
       do script "cd ${folder.replace(/"/g, '\\"')} && opencode"
     end tell`;
-    execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
-    log('INFO', `Launched OpenCode in: ${folder}`);
-    res.json({ success: true, folder });
+      execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+      log('INFO', `Launched OpenCode in: ${folder} (macOS only)`);
+      res.json({ success: true, folder });
+    }
   } catch (err) {
     log('ERROR', 'launch-opencode failed', { error: err.message });
     res.status(500).json({ error: err.message });

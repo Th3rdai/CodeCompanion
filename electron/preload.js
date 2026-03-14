@@ -38,4 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateDownloaded: (callback) => {
     ipcRenderer.on('update-downloaded', (event, info) => callback(info));
   },
+
+  // IDE launcher
+  launchIDE: (ide, folder) => ipcRenderer.invoke('launch-ide', { ide, folder }),
 });
