@@ -105,11 +105,13 @@ Plans:
   3. IDE launcher buttons work on macOS, Linux, and Windows (platform-detected commands)
   4. Distributable installers produced: .dmg for macOS, .AppImage for Linux, .exe for Windows
   5. App data (config, history, logs) stored in OS-appropriate user data directory
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md — Electron main process, embedded Express with free port, data directory management, window state + last-mode persistence
+- [ ] 06-02-PLAN.md — Cross-platform IDE launchers, Ollama setup wizard with auto-install and model pull progress
+- [ ] 06-03-PLAN.md — electron-builder config, auto-updater with pre-update backup, app resources, landing page
+- [ ] 06-04-PLAN.md — Integration smoke test and human verification of complete desktop app
 
 ## Progress
 
@@ -124,4 +126,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Report Card UI | 2/2 | Complete | 2026-03-14 |
 | 4. Actionable Guidance | 0/2 | In progress | - |
 | 5. Onboarding and Help | 0/2 | Not started | - |
-| 6. Desktop App | 0/0 | Not started | - |
+| 6. Desktop App | 0/4 | Not started | - |
