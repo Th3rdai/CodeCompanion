@@ -47,6 +47,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
   const [launchingClaude, setLaunchingClaude] = useState(false);
   const [launchingCursor, setLaunchingCursor] = useState(false);
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
+  const [launchingOpenCode, setLaunchingOpenCode] = useState(false);
 
   const folderPath = tree?.root || projectFolder;
 
@@ -101,6 +102,24 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
       console.error('Launch Windsurf failed:', err);
     } finally {
       setLaunchingWindsurf(false);
+    }
+  }
+
+  async function handleLaunchOpenCode() {
+    if (!folderPath) return;
+    setLaunchingOpenCode(true);
+    try {
+      const res = await fetch('/api/launch-opencode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectPath: folderPath })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) console.error('Launch OpenCode failed:', data.error);
+    } catch (err) {
+      console.error('Launch OpenCode failed:', err);
+    } finally {
+      setLaunchingOpenCode(false);
     }
   }
 
@@ -163,6 +182,13 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
             className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
           >
             {launchingWindsurf ? 'Opening...' : '🌊 Windsurf'}
+          </button>
+          <button
+            onClick={handleLaunchOpenCode}
+            disabled={launchingOpenCode || !folderPath}
+            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50"
+          >
+            {launchingOpenCode ? 'Opening...' : '💻 OpenCode'}
           </button>
         </div>
       )}

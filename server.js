@@ -606,6 +606,28 @@ app.post('/api/launch-windsurf', (req, res) => {
   }
 });
 
+// ── Launch OpenCode in project folder ─────────────────
+
+app.post('/api/launch-opencode', (req, res) => {
+  const { projectPath } = req.body;
+  const folder = projectPath || getConfig().projectFolder;
+  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+
+  const { execSync } = require('child_process');
+  try {
+    const script = `tell application "Terminal"
+      activate
+      do script "cd ${folder.replace(/"/g, '\\"')} && opencode"
+    end tell`;
+    execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+    log('INFO', `Launched OpenCode in: ${folder}`);
+    res.json({ success: true, folder });
+  } catch (err) {
+    log('ERROR', 'launch-opencode failed', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Conversation History ─────────────────────────────
 
 app.get('/api/history', (req, res) => {
