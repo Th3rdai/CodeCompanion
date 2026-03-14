@@ -31,6 +31,7 @@ export default function ReviewPanel({
   connected,
   streaming: appStreaming,
   onAttachFromBrowser,
+  onOpenFileBrowser,
   onToast,
   onSwitchToChat,
   savedReview,
@@ -83,6 +84,20 @@ export default function ReviewPanel({
     setReviewError('');
     setReportData(null);
     setFallbackContent('');
+
+    // DEBUG: Log what we're sending
+    const trimmedCode = code.trim();
+    console.log('=== REVIEW SUBMIT DEBUG ===');
+    console.log('Code length:', trimmedCode.length);
+    console.log('Has CRLF (\\r\\n):', trimmedCode.includes('\r\n'));
+    console.log('Has LF only (\\n):', trimmedCode.includes('\n') && !trimmedCode.includes('\r\n'));
+    console.log('Line count:', trimmedCode.split('\n').length);
+    console.log('First 100 chars:', trimmedCode.slice(0, 100));
+    console.log('Last 100 chars:', trimmedCode.slice(-100));
+    console.log('Char codes (first 50):', trimmedCode.slice(0, 50).split('').map(c => c.charCodeAt(0)).join(','));
+    console.log('Filename:', filename || 'undefined');
+    console.log('Model:', selectedModel);
+    console.log('==========================');
 
     try {
       const res = await fetch('/api/review', {
@@ -658,7 +673,7 @@ export default function ReviewPanel({
                   <FolderOpen className="w-12 h-12 text-slate-500 mx-auto mb-3" />
                   <p className="text-sm text-slate-400">Browse files from your project folder</p>
                   <button
-                    onClick={onAttachFromBrowser}
+                    onClick={onOpenFileBrowser}
                     className="text-sm px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
                   >
                     Open File Browser

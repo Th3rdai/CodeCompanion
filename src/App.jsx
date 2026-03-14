@@ -483,6 +483,7 @@ export default function App() {
                 connected={connected}
                 streaming={streaming}
                 onAttachFromBrowser={reviewAttachRef}
+                onOpenFileBrowser={() => { setShowFileBrowser(true); setShowGitHub(false); }}
                 onToast={showToast}
                 onSwitchToChat={(msgs) => { setMode('chat'); if (msgs) setMessages(msgs); }}
                 savedReview={savedReview}
