@@ -61,11 +61,11 @@ Plans:
   2. User can click any grade category to enter a streaming conversational deep-dive about that category's issues
   3. User sees a friendly loading state ("Grading your code...") while the review processes
   4. User can feed code into review via paste, file upload, or file browser — all paths produce the same report card
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md — LoadingAnimation component, progressive disclosure toggle, E2E tests
+- [ ] 03-02-PLAN.md — Input method tabs (paste/upload/browse), explicit deep-dive buttons, E2E tests
 
 ### Phase 4: Actionable Guidance
 **Goal**: Reviews become reusable and actionable — every finding has a copy-pasteable prompt for the user's AI tool, past reviews are saved, and the app warns when a model may produce poor results
@@ -95,14 +95,14 @@ Plans:
 - [ ] 05-01: TBD
 
 ### Phase 6: Desktop App
-**Goal**: Code Companion runs as a self-contained Electron desktop application on macOS and Linux, with native window management, auto-free port detection, cross-platform IDE launchers, and distributable installers
+**Goal**: Code Companion runs as a self-contained Electron desktop application on macOS, Linux, and Windows, with native window management, auto-free port detection, cross-platform IDE launchers, and distributable installers
 **Depends on**: Phase 5 (all features complete before packaging)
 **Requirements**: DESK-01, DESK-02, DESK-03, DESK-04, DESK-05
 **Success Criteria** (what must be TRUE):
   1. App launches as a native desktop window (no manual terminal commands or browser required)
   2. Express server starts automatically on a free port inside the Electron process
-  3. IDE launcher buttons work on both macOS and Linux (platform-detected commands)
-  4. Distributable installers produced: .dmg for macOS, .AppImage for Linux
+  3. IDE launcher buttons work on macOS, Linux, and Windows (platform-detected commands)
+  4. Distributable installers produced: .dmg for macOS, .AppImage for Linux, .exe for Windows
   5. App data (config, history, logs) stored in OS-appropriate user data directory
 **Plans**: TBD
 
@@ -120,7 +120,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Review Engine | 0/0 | Not started | - |
 | 2. Tone Unification | 0/0 | Not started | - |
-| 3. Report Card UI | 0/0 | Not started | - |
+| 3. Report Card UI | 0/2 | Not started | - |
 | 4. Actionable Guidance | 0/0 | Not started | - |
 | 5. Onboarding and Help | 0/0 | Not started | - |
 | 6. Desktop App | 0/0 | Not started | - |
