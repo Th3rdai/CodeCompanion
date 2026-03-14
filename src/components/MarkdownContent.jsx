@@ -85,7 +85,7 @@ function addCodeBlockButtons(container) {
 
     const toolbar = document.createElement('div');
     toolbar.className = 'code-actions';
-    toolbar.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:0;transition:opacity 0.15s;z-index:10;';
+    toolbar.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:1;z-index:10;';
 
     // Language label
     if (lang) {
@@ -128,9 +128,6 @@ function addCodeBlockButtons(container) {
     toolbar.appendChild(dlBtn);
 
     pre.appendChild(toolbar);
-
-    pre.addEventListener('mouseenter', () => { toolbar.style.opacity = '1'; });
-    pre.addEventListener('mouseleave', () => { toolbar.style.opacity = '0'; });
   });
 }
 
