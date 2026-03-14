@@ -11,22 +11,27 @@ import Splite from './components/ui/Splite';
 import SplashScreen from './components/3d/SplashScreen';
 import HeaderScene from './components/3d/HeaderScene';
 import EmptyStateScene from './components/3d/EmptyStateScene';
+import CreateWizard from './components/CreateWizard';
+import ReviewPanel from './components/ReviewPanel';
+import OnboardingWizard, { isOnboardingComplete } from './components/OnboardingWizard';
+import { GlossaryPanel } from './components/JargonGlossary';
+import PrivacyBanner from './components/PrivacyBanner';
 import ParticleField from './components/3d/ParticleField';
 import FloatingGeometry from './components/3d/FloatingGeometry';
 import TypingIndicator3D from './components/3d/TypingIndicator3D';
 import ParticleBurst from './components/3d/ParticleBurst';
 import TokenCounter from './components/3d/TokenCounter';
 import OrbitingBadge from './components/3d/OrbitingBadge';
-import CreateWizard from './components/CreateWizard';
 
 const MODES = [
-  { id: 'chat',           label: 'Chat',        icon: '💬', desc: 'Freeform conversation',   placeholder: "Ask me anything — tech concepts, PM advice, or just say hello..." },
-  { id: 'explain',        label: 'Explain',     icon: '💡', desc: 'What does this code do?', placeholder: "Paste code here and I'll explain what it does in plain English..." },
-  { id: 'bugs',           label: 'Bug Hunter',  icon: '🐛', desc: 'Find issues & risks',     placeholder: "Paste code here and I'll identify potential bugs, security issues, and risks..." },
-  { id: 'refactor',       label: 'Refactor',    icon: '✨', desc: 'Improve this code',       placeholder: "Paste code here and I'll suggest improvements with explanations..." },
-  { id: 'translate-tech', label: 'Tech → Biz',  icon: '📋', desc: 'Technical to business',   placeholder: "Paste a technical spec, PR description, or code...\nI'll translate it into business language." },
-  { id: 'translate-biz',  label: 'Biz → Tech',  icon: '🔧', desc: 'Business to technical',   placeholder: "Describe a feature request or product requirement...\nI'll produce technical specs." },
-  { id: 'create',         label: 'Create',      icon: '🛠️', desc: 'Scaffold a new project',  placeholder: "Describe what you want to build and I'll set up a complete project workspace..." },
+  { id: 'chat',           label: 'Chat',            icon: '💬', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about tech, PM life, or just say hey..." },
+  { id: 'explain',        label: 'Explain This',    icon: '💡', desc: 'Walk me through this code',         placeholder: "Paste some code and I'll walk you through it step by step..." },
+  { id: 'bugs',           label: 'Safety Check',    icon: '🐛', desc: 'Spot issues before they bite',      placeholder: "Drop your code here — I'll look for anything that could cause trouble..." },
+  { id: 'refactor',       label: 'Clean Up',        icon: '✨', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
+  { id: 'translate-tech', label: 'Tech → Biz',      icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste a technical spec, PR, or code snippet...\nI'll turn it into something anyone can understand." },
+  { id: 'translate-biz',  label: 'Biz → Tech',      icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear specs your dev team will love." },
+  { id: 'review',        label: 'Review',           icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
+  { id: 'create',        label: 'Create',           icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
 ];
 
 function TypingIndicator() {
@@ -94,10 +99,14 @@ export default function App() {
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [sendBurst, setSendBurst] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete());
+  const [showGlossary, setShowGlossary] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);
+  const reviewAttachRef = useRef(null);
+  const [savedReview, setSavedReview] = useState(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
   useEffect(() => { fetchConfig(); fetchModels(); fetchHistory(); }, []);
@@ -141,19 +150,6 @@ export default function App() {
     } catch {}
   }
 
-  async function handleProjectCreated(projectPath) {
-    try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectFolder: projectPath }) });
-      setProjectFolder(projectPath);
-      setShowGitHub(false);
-      setShowFileBrowser(true);
-      showToast(`Project created at ${projectPath}`);
-    } catch {
-      showToast('Project created — update your project folder in Settings to browse it.');
-    }
-  }
-
   async function loadConversation(id) {
     try {
       const res = await fetch(`/api/history/${id}`);
@@ -161,6 +157,12 @@ export default function App() {
       setMessages(conv.messages || []); setMode(conv.mode || 'explain'); setActiveConvId(conv.id);
       if (conv.model) setSelectedModel(conv.model);
       setAttachedFiles([]);
+      // Restore saved review data when loading a review conversation
+      if (conv.mode === 'review' && conv.reviewData) {
+        setSavedReview(conv.reviewData);
+      } else {
+        setSavedReview(null);
+      }
     } catch {}
   }
 
@@ -205,7 +207,33 @@ export default function App() {
   }
 
   function handleRenameRequest(id) { const h = history.find(c => c.id === id); if (h) setRenaming({ id, title: h.title || 'Untitled' }); }
-  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); }
+  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); }
+
+  async function handleSaveReview(reviewData) {
+    const title = reviewData.filename
+      ? `Review: ${reviewData.filename}`
+      : `Code Review (${new Date().toLocaleString()})`;
+    const conv = {
+      id: activeConvId || undefined,
+      title,
+      mode: 'review',
+      model: selectedModel,
+      messages: [],
+      reviewData,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      const res = await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(conv),
+      });
+      const { id } = await res.json();
+      setActiveConvId(id);
+      fetchHistory();
+      showToast('Review saved to history');
+    } catch {}
+  }
 
   // Build message with attached files
   function buildUserContent(text, files) {
@@ -246,14 +274,22 @@ export default function App() {
       const finalMessages = [...newMessages, { role: 'assistant', content: assistantContent }];
       setMessages(finalMessages); saveConversation(finalMessages, mode);
     } catch (err) {
-      setMessages([...newMessages, { role: 'assistant', content: `Something went wrong connecting to Ollama. Check that Ollama is running and try again.\n\nTechnical detail: ${err.message}` }]);
+      setMessages([...newMessages, { role: 'assistant', content: `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!\n\nTechnical detail: ${err.message}` }]);
     } finally { setStreaming(false); }
   }
 
   function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }
 
   // File handling
-  function attachFile(fileData) { setAttachedFiles(prev => [...prev, fileData]); showToast(`Attached: ${fileData.name}`); }
+  function attachFile(fileData) {
+    // In review mode, route file to ReviewPanel instead of chat attachments
+    if (mode === 'review' && reviewAttachRef.current) {
+      reviewAttachRef.current(fileData);
+      return;
+    }
+    setAttachedFiles(prev => [...prev, fileData]);
+    showToast(`Attached: ${fileData.name}`);
+  }
   function removeAttachedFile(index) { setAttachedFiles(prev => prev.filter((_, i) => i !== index)); }
 
   function handleFileUpload(e) {
@@ -291,6 +327,19 @@ export default function App() {
   }
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
+  async function handleCreateSuccess(projectPath) {
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectFolder: projectPath })
+      });
+    } catch {}
+    setProjectFolder(projectPath);
+    setShowFileBrowser(true);
+    setShowGitHub(false);
+  }
+
   const currentMode = MODES.find(m => m.id === mode);
 
   // Splash screen — shown once per browser session
@@ -326,10 +375,15 @@ export default function App() {
                 <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">Th3rdAI</span>
                 <span className="text-slate-300 ml-1.5 font-medium text-base">Code Companion</span>
               </h1>
-              <p className="text-xs text-slate-500 truncate">Product Manager and Technical Translator</p>
+              <p className="text-xs text-slate-500 truncate">Your friendly guide to all things code</p>
             </div>
           </div>
           <div className="flex items-center gap-2 relative z-10">
+            <button onClick={() => setShowGlossary(true)}
+              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors text-slate-400 border-slate-600 hover:bg-indigo-500/10"
+              title="Jargon Glossary">
+              📖 Glossary
+            </button>
             <button onClick={() => { setShowGitHub(!showGitHub); if (!showGitHub) setShowFileBrowser(false); }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
                 ${showGitHub ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
@@ -371,7 +425,7 @@ export default function App() {
           <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-3 flex items-center gap-3">
             <span className="text-amber-400 text-sm">&#9888;</span>
             <div className="flex-1 text-sm text-amber-300">
-              Can't reach Ollama at <code className="bg-amber-500/10 px-1.5 py-0.5 rounded text-xs">{ollamaUrl}</code>. Make sure Ollama is running.
+              Hmm, I can't connect to Ollama at <code className="bg-amber-500/10 px-1.5 py-0.5 rounded text-xs">{ollamaUrl}</code>. Let's get that sorted — make sure Ollama is running!
             </div>
             <button onClick={() => setShowSettings(true)} className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-lg transition-colors">Configure</button>
             <button onClick={fetchModels} className="text-xs glass text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-600/50 transition-colors">Retry</button>
@@ -383,7 +437,7 @@ export default function App() {
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-base/80 border-2 border-dashed border-indigo-500 rounded-2xl m-2 pointer-events-none">
             <div className="text-center">
               <div className="text-4xl mb-2">📄</div>
-              <p className="text-indigo-300 font-medium neon-text">Drop files here to attach</p>
+              <p className="text-indigo-300 font-medium neon-text">Drop your files here — I'll take a look!</p>
             </div>
           </div>
         )}
@@ -405,50 +459,69 @@ export default function App() {
               ))}
             </div>
 
-            {/* Create Mode — wizard replaces messages + input */}
-            {mode === 'create' ? (
-              <CreateWizard onProjectCreated={handleProjectCreated} />
-            ) : (<>
-
-            {/* Messages */}
+            {/* Messages / Create Wizard / Review Panel */}
+            {mode === 'review' ? (
+              <ReviewPanel
+                selectedModel={selectedModel}
+                connected={connected}
+                streaming={streaming}
+                onAttachFromBrowser={reviewAttachRef}
+                onToast={showToast}
+                onSwitchToChat={(msgs) => { setMode('chat'); if (msgs) setMessages(msgs); }}
+                savedReview={savedReview}
+                onSaveReview={handleSaveReview}
+              />
+            ) : (
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
-              {messages.length === 0 && (
-                <EmptyStateScene
-                  mode={mode}
-                  currentMode={currentMode}
-                  connected={connected}
-                  selectedModel={selectedModel}
-                  onSettingsClick={() => setShowSettings(true)}
+              {mode === 'create' ? (
+                <CreateWizard
+                  defaultOutputRoot={projectFolder || '~/AI_Dev/'}
+                  onSuccess={handleCreateSuccess}
+                  onToast={showToast}
                 />
+              ) : (
+                <>
+                  {messages.length === 0 ? (
+                    <EmptyStateScene
+                      mode={mode}
+                      currentMode={currentMode}
+                      connected={connected}
+                      selectedModel={selectedModel}
+                      onSettingsClick={() => setShowSettings(true)}
+                    />
+                  ) : null}
+                  {messages.map((msg, i) => (
+                    <div key={i} className="relative group">
+                      <MessageBubble role={msg.role} content={msg.content} />
+                      {msg.role === 'assistant' && !streaming && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
+                      )}
+                    </div>
+                  ))}
+                  {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D />}
+                  <div ref={messagesEndRef} />
+                </>
               )}
-              {messages.map((msg, i) => (
-                <div key={i} className="relative group">
-                  <MessageBubble role={msg.role} content={msg.content} />
-                  {msg.role === 'assistant' && !streaming && (
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
-                  )}
-                </div>
-              ))}
-              {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D />}
-              <div ref={messagesEndRef} />
             </div>
+            )}
 
             {/* Stats — holographic token counter */}
-            {stats && (
+            {stats && mode !== 'review' && (
               <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
                 <span>Model: <strong className="text-slate-400">{selectedModel}</strong></span>
                 <TokenCounter tokens={stats.tokens} duration={stats.duration} />
               </div>
             )}
 
-            {/* Input */}
+            {/* Input — hidden in Create and Review modes */}
+            {mode !== 'create' && mode !== 'review' && (
             <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
               <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
               <div className="flex gap-2">
                 <div className="flex-1 flex flex-col gap-1.5">
                   <label htmlFor="chat-input" className="sr-only">Type your message</label>
                   <textarea id="chat-input" ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-                    placeholder={connected ? (attachedFiles.length > 0 ? 'Add a message about the attached files, or just hit Send...' : currentMode?.placeholder) : 'Connect to Ollama first (click the status button in the header)...'}
+                    placeholder={connected ? (attachedFiles.length > 0 ? 'Add a note about these files, or just hit Send — I\'ll take a look!' : currentMode?.placeholder) : 'Let\'s get connected first — click Settings up top to set up Ollama...'}
                     rows={4} disabled={streaming || !connected}
                     className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
                   <div className="flex items-center gap-1.5 pl-1">
@@ -482,7 +555,7 @@ export default function App() {
                 </div>
               </div>
             </div>
-            </>)}
+            )}
           </div>
 
           {/* GitHub Panel (right panel) */}
@@ -506,10 +579,15 @@ export default function App() {
             </aside>
           )}
         </div>
+
+        {/* Privacy banner — bottom of main area */}
+        <PrivacyBanner />
       </main>
 
       {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />}
       {renaming && <RenameModal currentName={renaming.title} onSave={(name) => renameConversation(renaming.id, name)} onClose={() => setRenaming(null)} />}
+      {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
+      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
   );

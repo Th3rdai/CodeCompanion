@@ -125,6 +125,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid #6366f1; outline-offs
 /* ── Futuristic Button Styles ────────── */
 .btn-neon {
   position: relative;
+  color: #ffffff;
   background: linear-gradient(135deg, #3b82f6, #6366f1, #8b5cf6);
   border: 1px solid rgba(129, 140, 248, 0.5);
   box-shadow: 0 0 15px rgba(99, 102, 241, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);

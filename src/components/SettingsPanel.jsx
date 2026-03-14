@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import McpServerPanel from './McpServerPanel';
 import McpClientPanel from './McpClientPanel';
 import { use3DEffects } from '../contexts/Effects3DContext';
+import { resetOnboarding } from './OnboardingWizard';
+import { resetPrivacyBanner } from './PrivacyBanner';
 
 export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose }) {
   const [activeTab, setActiveTab] = useState('general');
@@ -148,7 +150,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                   Set Folder
                 </button>
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">Full path to a repo or folder. Opens the file browser panel.</p>
+              <p className="text-xs text-slate-400 mt-1.5">Point me to your project folder and I'll open the file browser for you.</p>
               {folderResult && (
                 <div className={`mt-2 p-2.5 rounded-lg text-xs ${folderResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
                   {folderResult.ok ? `Found ${folderResult.count} items in folder.` : `Error: ${folderResult.error}`}
@@ -176,11 +178,25 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
               </button>
             </div>
 
+            {/* Restart Tour / Reset Privacy */}
+            <div className="glass rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-200">Welcome Tour</p>
+                <p className="text-xs text-slate-500 mt-0.5">Re-show the onboarding walkthrough and privacy banner</p>
+              </div>
+              <button
+                onClick={() => { resetOnboarding(); resetPrivacyBanner(); window.location.reload(); }}
+                className="text-xs px-3 py-1.5 rounded-lg glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-600"
+              >
+                Restart Tour
+              </button>
+            </div>
+
             <div className="mb-5 p-3 glass rounded-lg text-xs text-slate-400">
-              <strong className="text-slate-300">Quick help:</strong>
+              <strong className="text-slate-300">Need a hand?</strong>
               <ul className="mt-1.5 space-y-1">
-                <li>Same machine Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code></li>
-                <li>Network Ollama: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
+                <li>Ollama on this machine: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code></li>
+                <li>Ollama on your network: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
                 <li>Project folder example: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">~/projects/my-app</code></li>
               </ul>
             </div>
@@ -208,8 +224,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
               </div>
             ) : (
               <div className="glass rounded-lg p-4 text-center">
-                <p className="text-sm text-slate-300 mb-1">No GitHub token configured</p>
-                <p className="text-xs text-slate-500">Add a token below to clone private repos and browse your account.</p>
+                <p className="text-sm text-slate-300 mb-1">Let's connect your GitHub!</p>
+                <p className="text-xs text-slate-500">Add a token below and you'll be able to clone private repos and browse your account.</p>
               </div>
             )}
 
@@ -239,14 +255,14 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
 
             {/* Help */}
             <div className="glass rounded-lg p-3 text-xs text-slate-500">
-              <p className="font-medium text-slate-400 mb-1.5">How to create a token:</p>
+              <p className="font-medium text-slate-400 mb-1.5">Here's how to get a token (it's quick!):</p>
               <ol className="space-y-1 list-decimal list-inside">
                 <li>Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</li>
                 <li>Click "Generate new token (classic)"</li>
                 <li>Select the <code className="bg-slate-700/50 px-1 py-0.5 rounded text-indigo-300">repo</code> scope (full control of private repos)</li>
                 <li>Copy the token and paste it above</li>
               </ol>
-              <p className="mt-2 text-amber-400/70">Your token is stored locally and never sent to any third party.</p>
+              <p className="mt-2 text-amber-400/70">Don't worry — your token stays on your machine and is never shared with anyone.</p>
             </div>
           </div>
         )}

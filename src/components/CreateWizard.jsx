@@ -1,375 +1,370 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
+import DictateButton from './DictateButton';
+
+const STEPS = [
+  { id: 1, title: 'Project Info', fields: ['name', 'description', 'role'] },
+  { id: 2, title: 'Audience & Tone', fields: ['audience', 'tone'] },
+  { id: 3, title: 'Stages', fields: ['stages'] },
+  { id: 4, title: 'Output Location', fields: ['outputRoot'] },
+  { id: 5, title: 'Review & Create', fields: ['review'] }
+];
+
+const TONE_OPTIONS = ['Friendly', 'Professional', 'Technical', 'Warm', 'Custom'];
 
 const DEFAULT_STAGES = [
   { name: 'Research', purpose: 'Gather and organize source material' },
-  { name: 'Draft', purpose: 'Create first drafts from research findings' },
-  { name: 'Review', purpose: 'Quality check and finalize output' }
+  { name: 'Draft', purpose: 'Create first draft from research findings' },
+  { name: 'Review', purpose: 'Quality check, edit, and produce final version' }
 ];
 
-const STEP_TITLES = [
-  'Project Info',
-  'Audience & Tone',
-  'Stages',
-  'Output Location',
-  'Review & Create'
-];
-
-function slugify(value) {
-  return String(value || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
+/** Client-side slug matching backend rules (lowercase, hyphens, strip invalid, max 64). */
+function slugify(name) {
+  if (!name || typeof name !== 'string') return 'project';
+  let s = name
     .toLowerCase()
-    .replace(/[\\/:*?"<>|]+/g, ' ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/-{2,}/g, '-')
-    .slice(0, 64) || 'new-project';
+    .replace(/[\s/]+/g, '-')
+    .replace(/[\\:*?"<>|]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  if (s.length > 64) s = s.slice(0, 64).replace(/-$/, '');
+  return s || 'project';
 }
 
-function buildPreviewPaths(outputRoot, projectSlug, stages) {
-  const root = `${outputRoot.replace(/\/+$/, '')}/${projectSlug}`;
-  const paths = [`${root}/CLAUDE.md`, `${root}/CONTEXT.md`, `${root}/_config/brand-voice.md`, `${root}/shared/README.md`, `${root}/skills/README.md`];
-
-  stages.forEach((stage, index) => {
-    const stageSlug = `${String(index + 1).padStart(2, '0')}-${slugify(stage.name || `stage-${index + 1}`)}`;
-    paths.push(`${root}/stages/${stageSlug}/CONTEXT.md`);
-    paths.push(`${root}/stages/${stageSlug}/output/`);
-    if (index === 0) paths.push(`${root}/stages/${stageSlug}/references/`);
-  });
-
-  return paths;
-}
-
-export default function CreateWizard({ defaultOutputRoot = '', onCreated }) {
-  const [step, setStep] = useState(0);
+export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess, onToast }) {
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [role, setRole] = useState('');
   const [audience, setAudience] = useState('');
   const [tone, setTone] = useState('Professional');
-  const [outputRoot, setOutputRoot] = useState(defaultOutputRoot);
+  const [toneCustom, setToneCustom] = useState('');
   const [stages, setStages] = useState(DEFAULT_STAGES);
+  const [outputRoot, setOutputRoot] = useState(defaultOutputRoot);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
+  const [stepError, setStepError] = useState(null);
   const [result, setResult] = useState(null);
 
-  useEffect(() => {
-    if (!outputRoot && defaultOutputRoot) setOutputRoot(defaultOutputRoot);
-  }, [defaultOutputRoot, outputRoot]);
+  const slug = useMemo(() => slugify(name), [name]);
+  const projectPathPreview = name ? `${outputRoot.replace(/\/?$/, '/')}${slug}` : '';
 
-  const projectSlug = useMemo(() => slugify(name), [name]);
-  const previewPaths = useMemo(() => buildPreviewPaths(outputRoot || '/path/to/projects', projectSlug, stages), [outputRoot, projectSlug, stages]);
+  const validateStep = () => {
+    if (step === 1 && !name.trim()) return 'Project name is required.';
+    if (step === 2 && tone === 'Custom' && !toneCustom.trim()) return 'Please describe your custom tone.';
+    if (step === 3) {
+      if (stages.length === 0) return 'At least one stage is required.';
+      const names = stages.map(s => s.name.trim().toLowerCase()).filter(Boolean);
+      if (names.length !== stages.length) return 'Each stage needs a name.';
+      if (new Set(names).size !== names.length) return 'Stage names must be unique.';
+    }
+    if (step === 4 && !outputRoot.trim()) return 'Output location is required.';
+    return null;
+  };
 
-  function updateStage(index, key, value) {
-    setStages(current => current.map((stage, stageIndex) => (
-      stageIndex === index ? { ...stage, [key]: value } : stage
-    )));
-  }
+  const handleNext = () => {
+    const msg = validateStep();
+    setStepError(msg);
+    if (!msg) setStep(s => Math.min(s + 1, STEPS.length));
+  };
+  const handleBack = () => {
+    setStepError(null);
+    setStep(s => Math.max(s - 1, 1));
+  };
 
-  function addStage() {
-    setStages(current => [...current, { name: `Stage ${current.length + 1}`, purpose: 'Describe what this stage should accomplish' }]);
-  }
-
-  function removeStage(index) {
-    setStages(current => current.filter((_, stageIndex) => stageIndex !== index));
-  }
-
-  function resetWizard() {
-    setStep(0);
-    setName('');
-    setDescription('');
-    setRole('');
-    setAudience('');
-    setTone('Professional');
-    setOutputRoot(defaultOutputRoot);
-    setStages(DEFAULT_STAGES);
-    setError('');
-    setResult(null);
-  }
-
-  function validateCurrentStep() {
-    if (step === 0) return name.trim() && description.trim() && role.trim();
-    if (step === 1) return audience.trim() && tone.trim();
-    if (step === 2) return stages.length > 0 && stages.every(stage => stage.name.trim() && stage.purpose.trim());
-    if (step === 3) return outputRoot.trim();
-    return true;
-  }
-
-  async function handleSubmit() {
+  const handleSubmit = async () => {
+    setError(null);
+    setStepError(null);
     setSubmitting(true);
-    setError('');
-
     try {
       const res = await fetch('/api/create-project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          description,
-          role,
-          audience,
-          tone,
-          stages,
-          outputRoot,
+          name: name.trim() || 'New Project',
+          description: description.trim() || '',
+          role: role.trim() || 'AI assistant for this project',
+          audience: audience.trim() || 'General',
+          tone: tone === 'Custom' ? toneCustom.trim() : tone,
+          stages: stages.map((s, i) => ({ name: s.name, purpose: s.purpose || '', order: i + 1 })),
+          outputRoot: outputRoot.trim() || defaultOutputRoot,
           overwrite: false
         })
       });
-
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Project creation failed.');
+      if (!res.ok) {
+        setError(data.error || data.message || 'Project creation failed');
+        return;
       }
-
-      setResult(data);
-      onCreated?.(data);
+      if (data.success && data.projectPath) {
+        setResult(data);
+        onToast?.(`Project created at ${data.projectPath}`);
+        onSuccess?.(data.projectPath, data);
+      } else {
+        setError(data.error || 'Unknown error');
+      }
     } catch (err) {
-      setError(err.message || 'Project creation failed.');
+      setError(err.message || 'Network error');
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   if (result) {
     return (
-      <section className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-4xl mx-auto glass-heavy rounded-2xl border border-indigo-500/30 p-6">
-          <h2 className="text-2xl font-semibold text-slate-100">Project Created</h2>
-          <p className="text-sm text-slate-400 mt-2">The new ICM workspace is ready.</p>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <div className="glass rounded-xl p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Project folder</p>
-              <p className="mt-2 text-sm text-slate-200 break-all">{result.projectPath}</p>
-            </div>
-            <div className="glass rounded-xl p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Files generated</p>
-              <p className="mt-2 text-sm text-slate-200">{result.files?.length || 0} files</p>
-            </div>
-          </div>
-
-          <div className="mt-6 glass rounded-xl p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Generated paths</p>
-            <div className="mt-3 max-h-64 overflow-auto rounded-lg bg-slate-950/40 p-3">
-              <pre className="text-xs text-slate-300 whitespace-pre-wrap">{(result.files || []).map(file => `${result.projectPath}/${file}`).join('\n')}</pre>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button onClick={resetWizard} className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium">
-              Create Another Project
-            </button>
-            <button onClick={() => onCreated?.(result)} className="glass rounded-lg px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/30 transition-colors">
-              Open in File Browser
-            </button>
-          </div>
-        </div>
-      </section>
+      <div className="glass rounded-xl p-6 max-w-2xl mx-auto space-y-4" role="status" aria-live="polite">
+        <h2 className="text-lg font-bold text-green-400">Your project is ready!</h2>
+        <p className="text-sm text-slate-300">{result.projectPath}</p>
+        <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
+          {(result.files || []).slice(0, 20).map((f, i) => (
+            <li key={i}>{f}</li>
+          ))}
+          {(result.files?.length || 0) > 20 && <li>… and {result.files.length - 20} more</li>}
+        </ul>
+      </div>
     );
   }
 
   return (
-    <section className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-5xl mx-auto glass-heavy rounded-2xl border border-slate-700/30 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-slate-100">Create a New Workspace</h2>
-            <p className="text-sm text-slate-400 mt-2">Set up an ICM project scaffold with a guided wizard. This flow works even if Ollama is offline.</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Project slug preview</p>
-            <p className="mt-1 text-sm text-indigo-300">{projectSlug}</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-2 md:grid-cols-5" role="list" aria-label="Create mode steps">
-          {STEP_TITLES.map((title, index) => (
-            <div
-              key={title}
-              role="listitem"
-              aria-current={index === step ? 'step' : undefined}
-              className={`rounded-xl border px-3 py-3 text-sm transition-colors ${
-                index === step
-                  ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-200'
-                  : index < step
-                    ? 'border-green-500/30 bg-green-500/10 text-green-200'
-                    : 'border-slate-700/30 bg-slate-900/30 text-slate-400'
-              }`}
-            >
-              <div className="text-xs uppercase tracking-wide opacity-80">Step {index + 1}</div>
-              <div className="mt-1 font-medium">{title}</div>
-            </div>
-          ))}
-        </div>
-
-        {error && (
-          <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        <div className="mt-6">
-          {step === 0 && (
-            <fieldset className="grid gap-4" aria-label="Project info">
-              <div>
-                <label className="block text-sm text-slate-300 mb-2" htmlFor="create-name">Project name</label>
-                <input id="create-name" value={name} onChange={e => setName(e.target.value)} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3" placeholder="Code Companion Research Hub" />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-300 mb-2" htmlFor="create-description">Project description</label>
-                <textarea id="create-description" value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3 resize-y" placeholder="Describe what this workspace should help the AI produce." />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-300 mb-2" htmlFor="create-role">AI role</label>
-                <input id="create-role" value={role} onChange={e => setRole(e.target.value)} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3" placeholder="A PM-focused research and writing assistant for feature planning." />
-              </div>
-            </fieldset>
-          )}
-
-          {step === 1 && (
-            <fieldset className="grid gap-4" aria-label="Audience and tone">
-              <div>
-                <label className="block text-sm text-slate-300 mb-2" htmlFor="create-audience">Target audience</label>
-                <textarea id="create-audience" value={audience} onChange={e => setAudience(e.target.value)} rows={3} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3 resize-y" placeholder="Product managers, founders, or other stakeholders who need plain-English output." />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-300 mb-2" htmlFor="create-tone">Tone</label>
-                <select id="create-tone" value={tone} onChange={e => setTone(e.target.value)} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3">
-                  <option>Professional</option>
-                  <option>Friendly</option>
-                  <option>Technical</option>
-                  <option>Warm</option>
-                  <option>Concise</option>
-                  <option>Custom</option>
-                </select>
-              </div>
-            </fieldset>
-          )}
-
-          {step === 2 && (
-            <fieldset className="grid gap-4" aria-label="Stages">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-medium text-slate-200">Stages</h3>
-                  <p className="text-xs text-slate-500 mt-1">Rename the default stages or add more. Triggers are not part of MVP.</p>
-                </div>
-                <button onClick={addStage} type="button" className="glass rounded-lg px-3 py-2 text-sm text-slate-200 hover:bg-slate-700/30 transition-colors">
-                  Add Stage
-                </button>
-              </div>
-
-              {stages.map((stage, index) => (
-                <div key={`${index}-${stage.name}`} className="rounded-xl border border-slate-700/30 bg-slate-900/20 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-slate-200">Stage {index + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => removeStage(index)}
-                      disabled={stages.length === 1}
-                      className="text-xs text-slate-400 hover:text-red-300 disabled:opacity-40 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-2">Stage name</label>
-                      <input value={stage.name} onChange={e => updateStage(index, 'name', e.target.value)} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3" />
-                    </div>
-                    <div>
-                      <label className="block text-sm text-slate-300 mb-2">Purpose</label>
-                      <textarea value={stage.purpose} onChange={e => updateStage(index, 'purpose', e.target.value)} rows={2} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3 resize-y" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </fieldset>
-          )}
-
-          {step === 3 && (
-            <fieldset className="grid gap-4" aria-label="Output location">
-              <div>
-                <label className="block text-sm text-slate-300 mb-2" htmlFor="create-output-root">Output location</label>
-                <input id="create-output-root" value={outputRoot} onChange={e => setOutputRoot(e.target.value)} className="w-full input-glow text-slate-100 rounded-xl px-4 py-3" placeholder="/Users/you/AI_Dev" />
-                <p className="mt-2 text-xs text-slate-500">The final project folder is derived automatically as <span className="text-slate-300">{projectSlug}</span>.</p>
-              </div>
-
-              <div className="rounded-xl border border-slate-700/30 bg-slate-950/30 p-4">
-                <p className="text-sm font-medium text-slate-200">Preview</p>
-                <div className="mt-3 max-h-64 overflow-auto">
-                  <pre className="text-xs text-slate-300 whitespace-pre-wrap">{previewPaths.join('\n')}</pre>
-                </div>
-              </div>
-            </fieldset>
-          )}
-
-          {step === 4 && (
-            <section aria-label="Review and create" className="grid gap-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="glass rounded-xl p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Project</p>
-                  <p className="mt-2 text-sm text-slate-100">{name}</p>
-                  <p className="mt-2 text-xs text-slate-400">{description}</p>
-                </div>
-                <div className="glass rounded-xl p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Audience & tone</p>
-                  <p className="mt-2 text-sm text-slate-100">{audience}</p>
-                  <p className="mt-2 text-xs text-slate-400">{tone}</p>
-                </div>
-              </div>
-
-              <div className="glass rounded-xl p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Stages</p>
-                <div className="mt-3 grid gap-3">
-                  {stages.map((stage, index) => (
-                    <div key={`${index}-${stage.name}-summary`} className="rounded-lg border border-slate-700/30 px-3 py-3">
-                      <p className="text-sm text-slate-100">{index + 1}. {stage.name}</p>
-                      <p className="mt-1 text-xs text-slate-400">{stage.purpose}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="glass rounded-xl p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Final path</p>
-                <p className="mt-2 text-sm text-slate-100">{`${outputRoot.replace(/\/+$/, '')}/${projectSlug}`}</p>
-              </div>
-            </section>
-          )}
-        </div>
-
-        <div className="mt-8 flex items-center justify-between gap-3">
+    <div className="glass rounded-xl p-6 max-w-2xl mx-auto" role="form" aria-label="Create project wizard">
+      {/* Step indicator */}
+      <div className="flex gap-2 mb-6" aria-label="Progress">
+        {STEPS.map(s => (
           <button
+            key={s.id}
             type="button"
-            onClick={() => setStep(current => Math.max(0, current - 1))}
-            disabled={step === 0 || submitting}
-            className="glass rounded-lg px-4 py-2 text-sm text-slate-200 hover:bg-slate-700/30 transition-colors disabled:opacity-40"
+            onClick={() => setStep(s.id)}
+            aria-current={step === s.id ? 'step' : undefined}
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+              step === s.id ? 'bg-indigo-600/40 text-indigo-200' : 'bg-slate-700/50 text-slate-500 hover:text-slate-300'
+            }`}
           >
-            Back
+            {s.id}. {s.title}
           </button>
+        ))}
+      </div>
 
-          <div className="flex items-center gap-3">
-            {step < STEP_TITLES.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => validateCurrentStep() && setStep(current => Math.min(STEP_TITLES.length - 1, current + 1))}
-                disabled={!validateCurrentStep() || submitting}
-                className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={!validateCurrentStep() || submitting}
-                className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
-              >
-                {submitting ? 'Creating...' : 'Create Project'}
-              </button>
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm" role="alert">
+          {error}
+        </div>
+      )}
+      {stepError && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm" role="alert">
+          {stepError}
+        </div>
+      )}
+
+      {/* Step 1: Project Info */}
+      {step === 1 && (
+        <div className="space-y-4" aria-labelledby="step1-heading">
+          <h3 id="step1-heading" className="text-sm font-semibold text-slate-200">Project Info</h3>
+          <div>
+            <label htmlFor="create-name" className="block text-xs text-slate-400 mb-1">Project name</label>
+            <div className="flex gap-2 items-start">
+              <input
+                id="create-name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="My Blog Assistant"
+                className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
+                autoFocus
+              />
+              <DictateButton onResult={text => setName(prev => prev ? prev + ' ' + text : text)} />
+            </div>
+            {name && <p className="mt-1 text-xs text-slate-500">Slug: {slug}</p>}
+          </div>
+          <div>
+            <label htmlFor="create-desc" className="block text-xs text-slate-400 mb-1">Description</label>
+            <div className="flex gap-2 items-start">
+              <textarea
+                id="create-desc"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="What is this project for?"
+                rows={2}
+                className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm resize-none"
+              />
+              <DictateButton onResult={text => setDescription(prev => prev ? prev + ' ' + text : text)} />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="create-role" className="block text-xs text-slate-400 mb-1">AI role</label>
+            <div className="flex gap-2 items-start">
+              <input
+                id="create-role"
+                type="text"
+                value={role}
+                onChange={e => setRole(e.target.value)}
+                placeholder="e.g. content writing assistant, research analyst"
+                className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
+              />
+              <DictateButton onResult={text => setRole(prev => prev ? prev + ' ' + text : text)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Audience & Tone */}
+      {step === 2 && (
+        <div className="space-y-4" aria-labelledby="step2-heading">
+          <h3 id="step2-heading" className="text-sm font-semibold text-slate-200">Audience & Tone</h3>
+          <div>
+            <label htmlFor="create-audience" className="block text-xs text-slate-400 mb-1">Target audience</label>
+            <div className="flex gap-2 items-start">
+              <input
+                id="create-audience"
+                type="text"
+                value={audience}
+                onChange={e => setAudience(e.target.value)}
+                placeholder="Who will use the output?"
+                className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
+              />
+              <DictateButton onResult={text => setAudience(prev => prev ? prev + ' ' + text : text)} />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="create-tone" className="block text-xs text-slate-400 mb-1">Tone</label>
+            <select
+              id="create-tone"
+              value={tone}
+              onChange={e => setTone(e.target.value)}
+              className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
+            >
+              {TONE_OPTIONS.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            {tone === 'Custom' && (
+              <div className="flex gap-2 items-start mt-2">
+                <input
+                  type="text"
+                  value={toneCustom}
+                  onChange={e => setToneCustom(e.target.value)}
+                  placeholder="Describe tone"
+                  className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
+                />
+                <DictateButton onResult={text => setToneCustom(prev => prev ? prev + ' ' + text : text)} />
+              </div>
             )}
           </div>
         </div>
+      )}
+
+      {/* Step 3: Stages */}
+      {step === 3 && (
+        <div className="space-y-4" aria-labelledby="step3-heading">
+          <h3 id="step3-heading" className="text-sm font-semibold text-slate-200">Stages</h3>
+          <p className="text-xs text-slate-500">Make these your own — rename stages or tweak purposes to match how you work.</p>
+          <div className="space-y-2">
+            {stages.map((s, i) => (
+              <div key={i} className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/40">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-mono text-indigo-400 text-xs">{String(i + 1).padStart(2, '0')}</span>
+                  <input
+                    type="text"
+                    value={s.name}
+                    onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, name: e.target.value } : row))}
+                    className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-1.5 text-sm"
+                    placeholder="Stage name"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setStages(prev => prev.filter((_, idx) => idx !== i))}
+                    disabled={stages.length <= 1}
+                    className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-300 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={s.purpose}
+                  onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, purpose: e.target.value } : row))}
+                  className="w-full input-glow text-slate-300 rounded-lg px-3 py-1.5 text-xs"
+                  placeholder="Stage purpose"
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setStages(prev => [...prev, { name: `Stage ${prev.length + 1}`, purpose: 'Define stage purpose' }])}
+            className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30"
+          >
+            + Add Stage
+          </button>
+        </div>
+      )}
+
+      {/* Step 4: Output Location */}
+      {step === 4 && (
+        <div className="space-y-4" aria-labelledby="step4-heading">
+          <h3 id="step4-heading" className="text-sm font-semibold text-slate-200">Output Location</h3>
+          <div>
+            <label htmlFor="create-output" className="block text-xs text-slate-400 mb-1">Parent folder (project will be created inside)</label>
+            <div className="flex gap-2 items-start">
+              <input
+                id="create-output"
+                type="text"
+                value={outputRoot}
+                onChange={e => setOutputRoot(e.target.value)}
+                placeholder="~/AI_Dev/"
+                className="flex-1 min-w-0 input-glow text-slate-100 font-mono rounded-lg px-4 py-2.5 text-sm"
+              />
+              <DictateButton onResult={text => setOutputRoot(prev => prev ? prev + text : text)} />
+            </div>
+          </div>
+          {name && (
+            <div className="p-3 rounded-lg bg-slate-800/50 text-xs text-slate-400 font-mono">
+              Project will be created at:<br />
+              <span className="text-indigo-300">{projectPathPreview}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 5: Review & Create */}
+      {step === 5 && (
+        <div className="space-y-4" aria-labelledby="step5-heading">
+          <h3 id="step5-heading" className="text-sm font-semibold text-slate-200">Review & Create</h3>
+          <dl className="grid grid-cols-1 gap-2 text-sm">
+            <div><dt className="text-slate-500">Name</dt><dd className="text-slate-200">{name || '—'}</dd></div>
+            <div><dt className="text-slate-500">Slug</dt><dd className="font-mono text-indigo-300">{slug}</dd></div>
+            <div><dt className="text-slate-500">Description</dt><dd className="text-slate-300">{description || '—'}</dd></div>
+            <div><dt className="text-slate-500">Role</dt><dd className="text-slate-300">{role || '—'}</dd></div>
+            <div><dt className="text-slate-500">Audience</dt><dd className="text-slate-300">{audience || '—'}</dd></div>
+            <div><dt className="text-slate-500">Tone</dt><dd className="text-slate-300">{tone === 'Custom' ? toneCustom : tone}</dd></div>
+            <div><dt className="text-slate-500">Path</dt><dd className="font-mono text-slate-300 break-all">{projectPathPreview || '—'}</dd></div>
+          </dl>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <div className="flex justify-between mt-6 pt-4 border-t border-slate-700/30">
+        <button
+          type="button"
+          onClick={handleBack}
+          disabled={step === 1}
+          className="px-4 py-2 glass rounded-lg text-slate-300 text-sm disabled:opacity-50"
+        >
+          Back
+        </button>
+        {step < STEPS.length ? (
+          <button type="button" onClick={handleNext} className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium">
+            Next
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium disabled:opacity-50"
+          >
+            {submitting ? 'Creating…' : 'Create Project'}
+          </button>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

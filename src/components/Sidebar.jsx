@@ -70,9 +70,9 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
         <div className="flex-1 overflow-y-auto scrollbar-thin p-2 relative z-10">
           {filtered.length === 0 && (
             <p className="text-center text-slate-400 text-sm py-8">
-              {search ? 'No chats match your search. Try different keywords.'
-                : showArchived ? 'No archived chats yet. Right-click a chat to archive it.'
-                : 'No conversations yet. Click "+ New Conversation" to start.'}
+              {search ? 'No matches yet — try different words!'
+                : showArchived ? 'Nothing archived yet. Right-click any chat to tuck it away.'
+                : 'No conversations yet — let\'s start one!'}
             </p>
           )}
           {filtered.map(h => (

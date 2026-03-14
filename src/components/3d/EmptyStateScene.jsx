@@ -26,28 +26,28 @@ export default function EmptyStateScene({
   // "Try:" suggestion cards based on current mode
   const suggestions = {
     chat: [
-      'What does "microservices" mean?',
-      'Help me prep for a sprint planning meeting',
+      'Explain "microservices" like I\'m five',
+      'Help me get ready for sprint planning',
     ],
     explain: [
-      'Paste a function and ask what it does',
-      'Paste an API endpoint for a summary',
+      'Paste a function — I\'ll walk you through it',
+      'Drop an API endpoint and I\'ll break it down',
     ],
     bugs: [
-      'Paste code your team wrote for review',
-      'Check for security issues before launch',
+      'Paste your team\'s code — let\'s check it together',
+      'Let\'s do a quick security check before launch',
     ],
     refactor: [
-      'Paste messy code for improvement',
-      'Modernize legacy code snippets',
+      'Got messy code? Let me help tidy it up',
+      'Paste something old — I\'ll modernize it for you',
     ],
     'translate-tech': [
-      'Translate a PR for stakeholders',
-      'Turn a feature request into specs',
+      'Paste a PR and I\'ll make it stakeholder-friendly',
+      'Drop a technical spec — I\'ll translate it to plain English',
     ],
     'translate-biz': [
-      'Translate a PR for stakeholders',
-      'Turn a feature request into specs',
+      'Describe a feature idea — I\'ll draft the specs',
+      'Tell me what users want — I\'ll write the tech requirements',
     ],
   };
 

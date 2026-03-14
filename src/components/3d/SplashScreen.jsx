@@ -68,7 +68,7 @@ export default function SplashScreen({ onDismiss }) {
           Code Companion
         </h2>
         <p className="text-sm text-slate-500 mb-10 fade-in">
-          PM's Technical Translator — Powered by Local AI
+          Your friendly guide to all things code
         </p>
 
         {/* CTA Button */}
@@ -76,12 +76,12 @@ export default function SplashScreen({ onDismiss }) {
           onClick={(e) => { e.stopPropagation(); dismiss(); }}
           className="btn-neon text-white text-sm px-8 py-3 rounded-xl font-medium tracking-wide fade-in"
         >
-          Start Exploring
+          Let's Go!
         </button>
 
         {/* Skip hint */}
         <p className="absolute bottom-8 text-xs text-slate-600 animate-pulse">
-          Click anywhere or wait to continue...
+          Click anywhere to jump in...
         </p>
       </div>
     </div>

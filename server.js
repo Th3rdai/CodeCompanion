@@ -548,6 +548,64 @@ app.post('/api/review', async (req, res) => {
   }
 });
 
+// ── Launch Claude Code in Terminal ────────────────────
+
+app.post('/api/launch-claude-code', (req, res) => {
+  const { projectPath } = req.body;
+  const folder = projectPath || getConfig().projectFolder;
+  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+
+  const { execSync } = require('child_process');
+  try {
+    const script = `tell application "Terminal"
+      activate
+      do script "cd ${folder.replace(/"/g, '\\"')} && claude --dangerously-skip-permissions"
+    end tell`;
+    execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+    log('INFO', `Launched Claude Code in: ${folder}`);
+    res.json({ success: true, folder });
+  } catch (err) {
+    log('ERROR', 'launch-claude-code failed', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Launch Cursor in project folder ──────────────────
+
+app.post('/api/launch-cursor', (req, res) => {
+  const { projectPath } = req.body;
+  const folder = projectPath || getConfig().projectFolder;
+  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+
+  const { execSync } = require('child_process');
+  try {
+    execSync(`open -a "Cursor" "${folder}"`);
+    log('INFO', `Launched Cursor in: ${folder}`);
+    res.json({ success: true, folder });
+  } catch (err) {
+    log('ERROR', 'launch-cursor failed', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Launch Windsurf in project folder ─────────────────
+
+app.post('/api/launch-windsurf', (req, res) => {
+  const { projectPath } = req.body;
+  const folder = projectPath || getConfig().projectFolder;
+  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+
+  const { execSync } = require('child_process');
+  try {
+    execSync(`open -a "Windsurf" "${folder}"`);
+    log('INFO', `Launched Windsurf in: ${folder}`);
+    res.json({ success: true, folder });
+  } catch (err) {
+    log('ERROR', 'launch-windsurf failed', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Conversation History ─────────────────────────────
 
 app.get('/api/history', (req, res) => {

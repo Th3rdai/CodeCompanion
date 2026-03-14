@@ -44,6 +44,65 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [loadingFile, setLoadingFile] = useState(false);
+  const [launchingClaude, setLaunchingClaude] = useState(false);
+  const [launchingCursor, setLaunchingCursor] = useState(false);
+  const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
+
+  const folderPath = tree?.root || projectFolder;
+
+  async function handleLaunchClaude() {
+    if (!folderPath) return;
+    setLaunchingClaude(true);
+    try {
+      const res = await fetch('/api/launch-claude-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectPath: folderPath })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) console.error('Launch Claude failed:', data.error);
+    } catch (err) {
+      console.error('Launch Claude failed:', err);
+    } finally {
+      setLaunchingClaude(false);
+    }
+  }
+
+  async function handleLaunchCursor() {
+    if (!folderPath) return;
+    setLaunchingCursor(true);
+    try {
+      const res = await fetch('/api/launch-cursor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectPath: folderPath })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) console.error('Launch Cursor failed:', data.error);
+    } catch (err) {
+      console.error('Launch Cursor failed:', err);
+    } finally {
+      setLaunchingCursor(false);
+    }
+  }
+
+  async function handleLaunchWindsurf() {
+    if (!folderPath) return;
+    setLaunchingWindsurf(true);
+    try {
+      const res = await fetch('/api/launch-windsurf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectPath: folderPath })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) console.error('Launch Windsurf failed:', data.error);
+    } catch (err) {
+      console.error('Launch Windsurf failed:', err);
+    } finally {
+      setLaunchingWindsurf(false);
+    }
+  }
 
   useEffect(() => { if (projectFolder) loadTree(); }, [projectFolder]);
 
@@ -82,9 +141,35 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm transition-colors" title="Close" aria-label="Close file browser">✕</button>
       </div>
 
+      {projectFolder && (
+        <div className="px-3 py-2 border-b border-slate-700/30 flex flex-wrap gap-2">
+          <button
+            onClick={handleLaunchClaude}
+            disabled={launchingClaude || !folderPath}
+            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors disabled:opacity-50"
+          >
+            {launchingClaude ? 'Opening...' : '⌨ Claude'}
+          </button>
+          <button
+            onClick={handleLaunchCursor}
+            disabled={launchingCursor || !folderPath}
+            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors disabled:opacity-50"
+          >
+            {launchingCursor ? 'Opening...' : '🖱 Cursor'}
+          </button>
+          <button
+            onClick={handleLaunchWindsurf}
+            disabled={launchingWindsurf || !folderPath}
+            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
+          >
+            {launchingWindsurf ? 'Opening...' : '🌊 Windsurf'}
+          </button>
+        </div>
+      )}
+
       {!projectFolder && (
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-sm text-slate-400 text-center">Set a project folder in Settings to browse files</p>
+          <p className="text-sm text-slate-400 text-center">Point me to a project folder in Settings and I'll show you what's inside!</p>
         </div>
       )}
 
@@ -102,7 +187,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose }) {
               <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} />
             ))}
           </div>
-          {tree.tree?.length === 0 && <p className="text-sm text-slate-400 text-center py-4">No text files found. Try a different project folder.</p>}
+          {tree.tree?.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Hmm, no text files here. Try pointing to a different folder!</p>}
         </div>
       )}
 

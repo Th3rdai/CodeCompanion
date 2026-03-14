@@ -6,11 +6,13 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ## Features
 
-- **Six specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech
+- **Eight specialized modes** — Chat, Explain Code, Bug Hunter, Refactor, Tech→Biz, Biz→Tech, Dashboard, Create
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
-- **File browser** — navigate and read project files directly in the UI
+- **File browser** — navigate and read project files directly in the UI, with Launch Claude and Launch Cursor buttons
+- **Voice dictation** — built-in 🎤 mic buttons on Create Wizard fields using the Web Speech API, plus full support for device-level dictation
+- **Quick rebuild** — `rebuild.sh` script for fast frontend rebuild and server restart
 - **Conversation history** — auto-saved and searchable
 - **Tool-call loop** — Ollama can autonomously call external tools up to 5 rounds per request
 
@@ -31,12 +33,28 @@ npm install
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Quick Rebuild
+
+After making code changes, rebuild the frontend and restart the server in one step:
+
+```bash
+./rebuild.sh         # Stop → rebuild dist/ → restart server → status check
+```
+
 ### Development Mode
 
 ```bash
 npm run dev          # Vite dev server + Express backend
 npm run build        # Production build
 npm run preview      # Build + serve
+```
+
+### Automated Tests
+
+```bash
+npm run test:unit    # Node unit tests (scaffolder and backend logic)
+npm run test:e2e     # Playwright browser + API end-to-end tests
+npm test             # Run unit + e2e suites
 ```
 
 ## MCP Server
@@ -120,7 +138,8 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── config.js          # Config getter/setter (.cc-config.json)
 │   ├── logger.js          # File + stderr logging
 │   ├── ollama-client.js   # Ollama API client (stream + complete)
-│   ├── prompts.js         # System prompts for all 6 modes
+│   ├── prompts.js         # System prompts for all 7 modes
+│   ├── icm-scaffolder.js  # Create mode workspace scaffolding engine
 │   ├── file-browser.js    # Project file tree + reader
 │   ├── history.js         # Conversation persistence
 │   ├── mcp-client-manager.js  # External MCP server connections
@@ -134,7 +153,13 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   └── components/
 │       ├── SettingsPanel.jsx     # Settings with 3 tabs
 │       ├── McpServerPanel.jsx    # MCP server management UI
-│       └── McpClientPanel.jsx    # MCP client management UI
+│       ├── McpClientPanel.jsx    # MCP client management UI
+│       ├── DashboardPanel.jsx    # Customizable analytics + report exports
+│       └── CreateWizard.jsx      # Create mode multi-step wizard
+├── test/
+│   ├── unit/              # Node unit tests
+│   └── e2e/               # Playwright end-to-end tests
+├── playwright.config.js   # Playwright test runner configuration
 └── dist/                  # Production build output
 ```
 
@@ -145,6 +170,8 @@ Settings are stored in `.cc-config.json`:
 ```json
 {
   "ollamaUrl": "http://localhost:11434",
+  "icmTemplatePath": "/Users/you/AI_Dev/ICM_FW/ICM-Framework-Template",
+  "createModeAllowedRoots": ["/Users/you/AI_Dev"],
   "projectFolder": "/path/to/your/project",
   "mcpClients": [
     {
