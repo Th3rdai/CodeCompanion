@@ -17,18 +17,18 @@ created: 2026-03-13
 
 | Property | Value |
 |----------|-------|
-| **Framework** | vitest |
-| **Config file** | vitest.config.js |
-| **Quick run command** | `npm test -- tests/tone-validation.test.js` |
-| **Full suite command** | `npm test` |
+| **Framework** | Node.js native `node:test` |
+| **Config file** | None (native framework) |
+| **Quick run command** | `node --test tests/tone-validation.test.js` |
+| **Full suite command** | `node --test tests/*.test.js` |
 | **Estimated runtime** | ~5 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `npm test -- tests/tone-validation.test.js`
-- **After every plan wave:** Run `npm test`
+- **After every task commit:** Run `node --test tests/tone-validation.test.js`
+- **After every plan wave:** Run `node --test tests/*.test.js`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 5 seconds
 
@@ -39,9 +39,9 @@ created: 2026-03-13
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
 | 02-01 Task 0 | 01 | 0 | TONE-01 | unit | `node --test tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
-| 02-01 Task 1 | 01 | 1 | TONE-02,03,04,05 | unit | `npm test -- tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
+| 02-01 Task 1 | 01 | 1 | TONE-02,03,04,05 | unit | `node --test tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
 | 02-02 Task 0 | 02 | 0 | UX-02 | unit | `node --test tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
-| 02-02 Task 1 | 02 | 2 | UX-02 | unit | `npm test -- tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
+| 02-02 Task 1 | 02 | 2 | UX-02 | unit | `node --test tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
