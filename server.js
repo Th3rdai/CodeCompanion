@@ -677,7 +677,7 @@ app.delete('/api/history/:id', (req, res) => {
 // GET /api/files/tree — list directory structure
 app.get('/api/files/tree', (req, res) => {
   const config = getConfig();
-  const folder = config.projectFolder;
+  const folder = req.query.folder || config.projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder configured' });
   if (!fs.existsSync(folder)) return res.status(404).json({ error: 'Folder not found' });
 

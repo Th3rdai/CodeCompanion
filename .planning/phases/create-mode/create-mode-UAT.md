@@ -3,17 +3,18 @@ status: testing
 phase: create-mode
 source: Create-Mode-Feature-Plan.md
 started: 2026-03-13T02:45:00Z
-updated: 2026-03-13T02:45:00Z
+updated: 2026-03-14T05:35:00Z
 ---
 
 ## Current Test
 
-number: 7
-name: Step 5 — Review & Create
+number: 9
+name: Error — Duplicate Project
 expected: |
-  Step 5 "Review & Create" shows a summary table with all entered values
-  (Project, Role, Audience, Tone, Stages list, Output path).
-  There is a "🛠️ Create Project" button. A "← Back" button is available to go back.
+  If you try to create a project with the same name as an existing folder
+  (without checking Overwrite), the wizard shows an error message inside the
+  Step 5 card ("Project already exists at …") and stays on the Review step —
+  no file browser opens, nothing is deleted.
 awaiting: user response
 
 ## Tests
@@ -48,7 +49,8 @@ result: pass
 
 ### 8. Successful Project Creation
 expected: Clicking "Create Project" with valid data shows a loading spinner ("Scaffolding project…"). After completion: the file browser opens on the right side showing the new project folder, a toast notification appears at the top ("Project created at ~/AI_Dev/your-project"), and the project folder is visible in the file tree.
-result: [pending]
+result: pass
+notes: Required fix — FileBrowser was not passing folder path to /api/files/tree API, causing race condition. Fixed by passing folder as query param.
 
 ### 9. Error — Duplicate Project
 expected: If you try to create a project with the same name as an existing folder (without checking Overwrite), the wizard shows an error message inside the Step 5 card ("Project already exists at …") and stays on the Review step — no file browser opens, nothing is deleted.
@@ -65,9 +67,9 @@ result: [pending]
 ## Summary
 
 total: 11
-passed: 7
+passed: 8
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 
 ## Gaps

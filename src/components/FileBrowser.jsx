@@ -124,12 +124,14 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     }
   }
 
-  useEffect(() => { if (projectFolder) loadTree(); }, [projectFolder]);
+  useEffect(() => { if (projectFolder) loadTree(projectFolder); }, [projectFolder]);
 
-  async function loadTree() {
+  async function loadTree(folder) {
+    const target = folder || projectFolder;
+    if (!target) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/files/tree?depth=3`);
+      const res = await fetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(target)}`);
       const data = await res.json();
       setTree(data);
     } catch {}
@@ -157,7 +159,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     <div className="w-80 glass-heavy border-l border-slate-700/30 flex flex-col h-full">
       <div className="p-3 border-b border-slate-700/30 flex items-center gap-2">
         <span className="text-sm font-medium text-slate-200 flex-1">📂 File Browser</span>
-        <button onClick={loadTree} className="text-slate-400 hover:text-indigo-300 text-sm transition-colors" title="Refresh" aria-label="Refresh file tree">&#x27F3;</button>
+        <button onClick={() => loadTree()} className="text-slate-400 hover:text-indigo-300 text-sm transition-colors" title="Refresh" aria-label="Refresh file tree">&#x27F3;</button>
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm transition-colors" title="Close" aria-label="Close file browser">✕</button>
       </div>
 
