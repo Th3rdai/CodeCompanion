@@ -29,7 +29,7 @@
 ### UX & Onboarding
 
 - [ ] **UX-01**: First-time onboarding flow explaining what Code Companion does and how to use it
-- [ ] **UX-02**: Simplified mode labels and UI language throughout (no technical jargon in navigation)
+- [x] **UX-02**: Simplified mode labels and UI language throughout (no technical jargon in navigation)
 - [ ] **UX-03**: Contextual jargon glossary — hover over technical terms for plain-English definitions
 - [ ] **UX-04**: Privacy-first messaging visible in UI ("Your code never leaves your computer")
 - [ ] **UX-05**: Model capability warnings — gentle guidance when a small model may give poor review results
@@ -80,7 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TONE-04 | Phase 2 | Complete |
 | TONE-05 | Phase 2 | Complete |
 | UX-01 | Phase 5 | Pending |
-| UX-02 | Phase 2 | Pending |
+| UX-02 | Phase 2 | Complete |
 | UX-03 | Phase 5 | Pending |
 | UX-04 | Phase 5 | Pending |
 | UX-05 | Phase 4 | Pending |
