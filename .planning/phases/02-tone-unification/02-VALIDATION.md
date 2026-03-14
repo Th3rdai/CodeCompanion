@@ -38,11 +38,10 @@ created: 2026-03-13
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 0 | TONE-01 | unit | `npm test -- tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
-| 02-01-02 | 01 | 0 | UX-02 | unit | `npm test -- tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
-| 02-01-03 | 01 | 1 | TONE-01 | regex | `npm test -- tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
-| 02-02-01 | 02 | 1 | TONE-02,03,04,05 | regex | `npm test -- tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
-| 02-02-02 | 02 | 2 | UX-02 | regex | `npm test -- tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
+| 02-01 Task 0 | 01 | 0 | TONE-01 | unit | `node --test tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
+| 02-01 Task 1 | 01 | 1 | TONE-02,03,04,05 | unit | `npm test -- tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
+| 02-02 Task 0 | 02 | 0 | UX-02 | unit | `node --test tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
+| 02-02 Task 1 | 02 | 2 | UX-02 | unit | `npm test -- tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
