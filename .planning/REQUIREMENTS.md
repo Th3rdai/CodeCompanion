@@ -64,32 +64,32 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REVW-01 | — | Pending |
-| REVW-02 | — | Pending |
-| REVW-03 | — | Pending |
-| REVW-04 | — | Pending |
-| REVW-05 | — | Pending |
-| REVW-06 | — | Pending |
-| REVW-07 | — | Pending |
-| REVW-08 | — | Pending |
-| REVW-09 | — | Pending |
-| REVW-10 | — | Pending |
-| TONE-01 | — | Pending |
-| TONE-02 | — | Pending |
-| TONE-03 | — | Pending |
-| TONE-04 | — | Pending |
-| TONE-05 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
-| UX-04 | — | Pending |
-| UX-05 | — | Pending |
+| REVW-01 | Phase 1 | Pending |
+| REVW-02 | Phase 1 | Pending |
+| REVW-03 | Phase 1 | Pending |
+| REVW-04 | Phase 1 | Pending |
+| REVW-05 | Phase 3 | Pending |
+| REVW-06 | Phase 4 | Pending |
+| REVW-07 | Phase 3 | Pending |
+| REVW-08 | Phase 3 | Pending |
+| REVW-09 | Phase 3 | Pending |
+| REVW-10 | Phase 4 | Pending |
+| TONE-01 | Phase 2 | Pending |
+| TONE-02 | Phase 2 | Pending |
+| TONE-03 | Phase 2 | Pending |
+| TONE-04 | Phase 2 | Pending |
+| TONE-05 | Phase 2 | Pending |
+| UX-01 | Phase 5 | Pending |
+| UX-02 | Phase 2 | Pending |
+| UX-03 | Phase 5 | Pending |
+| UX-04 | Phase 5 | Pending |
+| UX-05 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-13 after initial definition*
+*Last updated: 2026-03-13 after roadmap creation*
