@@ -10,7 +10,9 @@
     "dev": "npx vite & node server.js",
     "build": "npx vite build",
     "preview": "npx vite build && node server.js",
+    "test": "npx playwright test",
     "test:ui": "npx playwright test tests/ui --project=chromium",
+    "test:e2e": "npx playwright test tests/e2e --project=chromium",
     "mcp": "node mcp-server.js",
     "mcp:inspect": "npx @modelcontextprotocol/inspector node mcp-server.js"
   },
