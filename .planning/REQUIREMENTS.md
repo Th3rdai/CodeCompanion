@@ -7,10 +7,10 @@
 
 ### Review Mode
 
-- [ ] **REVW-01**: User can paste code and receive a report card with letter grades (A-F) for bugs, security, readability, and completeness
-- [ ] **REVW-02**: Report card shows an overall grade summarizing code quality
-- [ ] **REVW-03**: Report card highlights a "Top Priority" — the single most important thing to fix first
-- [ ] **REVW-04**: Each category shows plain-English findings with zero jargon
+- [x] **REVW-01**: User can paste code and receive a report card with letter grades (A-F) for bugs, security, readability, and completeness
+- [x] **REVW-02**: Report card shows an overall grade summarizing code quality
+- [x] **REVW-03**: Report card highlights a "Top Priority" — the single most important thing to fix first
+- [x] **REVW-04**: Each category shows plain-English findings with zero jargon
 - [x] **REVW-05**: User can click any grade category to start a conversational deep-dive explaining the issues
 - [x] **REVW-06**: Each finding includes a "What to ask your AI to fix" copy-pasteable prompt
 - [x] **REVW-07**: Report card uses color-coded grades (A=green through F=red) for instant visual feedback
@@ -36,9 +36,9 @@
 
 ### License Gating (Phase 7)
 
-- [ ] **LIC-01**: Builder modes (Prompting, Skillz, Agentic) and Create mode are gated by license; unlicensed users see upgrade prompts
-- [ ] **LIC-02**: License model supports independent feature licensing (each mode can be sold separately)
-- [ ] **LIC-03**: Settings UI allows activating license key, starting trial, viewing status, and deactivating
+- [x] **LIC-01**: Builder modes (Prompting, Skillz, Agentic) and Create mode are gated by license; unlicensed users see upgrade prompts
+- [x] **LIC-02**: License model supports independent feature licensing (each mode can be sold separately)
+- [x] **LIC-03**: Settings UI allows activating license key, starting trial, viewing status, and deactivating
 
 ### Build Mode (Phase 15)
 
@@ -76,10 +76,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REVW-01 | Phase 1 | Pending |
-| REVW-02 | Phase 1 | Pending |
-| REVW-03 | Phase 1 | Pending |
-| REVW-04 | Phase 1 | Pending |
+| REVW-01 | Phase 1 | Complete |
+| REVW-02 | Phase 1 | Complete |
+| REVW-03 | Phase 1 | Complete |
+| REVW-04 | Phase 1 | Complete |
 | REVW-05 | Phase 3 | Complete |
 | REVW-06 | Phase 4 | Complete |
 | REVW-07 | Phase 3 | Complete |
@@ -96,9 +96,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-03 | Phase 5 | Complete |
 | UX-04 | Phase 5 | Complete |
 | UX-05 | Phase 4 | Complete |
-| LIC-01 | Phase 7 | Pending |
-| LIC-02 | Phase 7 | Pending |
-| LIC-03 | Phase 7 | Pending |
+| LIC-01 | Phase 7 | Complete |
+| LIC-02 | Phase 7 | Complete |
+| LIC-03 | Phase 7 | Complete |
 | BUILD-01 | Phase 15 | Complete |
 | BUILD-02 | Phase 15 | Complete |
 | BUILD-03 | Phase 15 | Complete |
@@ -112,4 +112,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-13 after roadmap creation*
+*Last updated: 2026-03-14 — REVW-01–04, LIC-01–03 marked complete to match Phase 1 & 7*

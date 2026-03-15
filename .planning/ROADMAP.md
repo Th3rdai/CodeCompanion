@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Six phases deliver requirements across four categories (Review Mode, Tone, UX, Desktop).
+This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–16 add Build mode and Build Dashboard.
 
 ## Phases
 
@@ -27,6 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 13: License Email Delivery** - Send keys via email with template (planned)
 - [ ] **Phase 14: License Revocation** - Revoke keys, audit log (planned)
 - [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
+- [ ] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell (Phase 1 complete), Simple View, AI Research/Planning, Advanced View, Handoff+Polish (in progress)
 
 ## Phase Details
 
@@ -181,6 +182,15 @@ Plans:
   3. Path outside allowed root returns 403; already exists without overwrite returns 409; chat input hidden when Build selected
 **Plans**: Approved plan in `.planning/phases/build-mode-gsd-icm/` (DRAFT-PLAN.md revised and approved 2026-03-14)
 
+### Phase 16: Build Dashboard
+**Goal**: Full project dashboard for Build mode — list projects, view phases/plans, run GSD commands, AI research/planning, advanced view, handoff and polish
+**Depends on**: Phase 15 (Build mode and scaffold)
+**Success Criteria** (what must be TRUE):
+  1. Phase 1 (Registry + Shell): Build projects registered on scaffold; import existing by path; rate-limited API; multi-tool convention files (CLAUDE.md, .cursorrules, .windsurfrules, .opencode/instructions.md)
+  2. Phases 2–5: Simple View, AI Research/Planning, Advanced View, Handoff+Polish (as planned)
+**Plans**: Phase 1 complete (2026-03-14); Phases 2–5 pending
+**Notes**: Uses lib/build-registry.js, lib/gsd-bridge.js, BuildPanel.jsx; POST /api/build/projects for import; isWithinBasePath, getAppRoot() added
+
 ## Progress
 
 **Execution Order:**
@@ -204,6 +214,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 13. License Email Delivery | 0/1 | Planned | — |
 | 14. License Revocation | 0/1 | Planned | — |
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
+| 16. Build Dashboard | 1/5 | In progress | Phase 1: 2026-03-14 |
 
 ## License Distribution Roadmap (Phases 9–14)
 

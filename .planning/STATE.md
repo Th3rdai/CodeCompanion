@@ -220,7 +220,10 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None — all tasks complete.
+- **Phase 16 Phase 2:** Simple View — BuildHeader (status badge, progress bar, advanced toggle), BuildSimpleView ("What's Next" AI card, quick action buttons), POST /api/build/projects/:id/next-action endpoint with chatComplete
+- **Phase 16 Phase 3:** AI Research/Planning — POST /api/build/projects/:id/research (SSE, chatStructured), POST /api/build/projects/:id/plan (SSE, chatStructured), write-after-validate to ROADMAP.md, small model fallback
+- **Phase 16 Phase 4:** Advanced View — BuildAdvancedView (phase accordion, PlanningFileViewer), GET/PUT /api/build/projects/:id/files/:filename with whitelist security, localStorage toggle persistence
+- **Phase 16 Phase 5:** Handoff + Polish — ClaudeCodeHandoff (copy-pasteable commands), import existing project UI polish, refresh-from-disk button, error states
 
 ### Future Backlog (lowest priority)
 
@@ -234,9 +237,20 @@ None — all tasks complete.
 - zod-to-json-schema Zod v4 compatibility unconfirmed — verify at install time
 - Small model (<7B) structured output quality is LOW confidence — needs empirical testing in Phase 4
 
+### Completed This Session
+
+- [x] Fixed `isWithinBasePath` bug (imported but undefined in file-browser.js)
+- [x] Exported `getAppRoot()` from config.js
+- [x] Auto-register projects in build-registry after scaffold (Plan Risk #5)
+- [x] Added `POST /api/build/projects` import route with auto-scaffold of `.planning/`
+- [x] Added `scaffoldPlanning()` for importing projects without `.planning/`
+- [x] Added rate limiting for `/api/build/*` routes (Plan Risk #8)
+- [x] Multi-tool convention files: CLAUDE.md, .cursorrules, .windsurfrules, .opencode/instructions.md
+- [x] Committed and pushed to GitHub (afe87c2)
+
 ## Session Continuity
 
 Last session: 2026-03-14
-Stopped at: Phase 7 (License Gating) complete — feature-based model implemented, all tests pass
+Stopped at: Phase 16 Build Dashboard — Phase 1 (Registry + Shell) complete + multi-tool support
 Resume file: None
-Next: Phase 8 (Payment Integration) if needed, or ship v1.0
+Next: Phase 16 Phase 2 (Simple View), then Phases 3–5 (AI Research/Planning, Advanced View, Handoff+Polish)

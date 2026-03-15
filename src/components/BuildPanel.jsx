@@ -13,6 +13,9 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importPath, setImportPath] = useState('');
+  const [importing, setImporting] = useState(false);
 
   // When activeProject changes, load its data
   useEffect(() => {
@@ -75,6 +78,32 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
     onToast?.('Command copied to clipboard');
   }
 
+  async function handleImportProject() {
+    if (!importPath.trim()) return;
+    setImporting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/build/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: importPath.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Import failed');
+      } else {
+        onToast?.(data.scaffolded ? 'Project imported — .planning/ created automatically' : 'Project imported');
+        setShowImport(false);
+        setImportPath('');
+        onRefresh?.();
+        if (data.id) onSelectProject?.(data.id);
+      }
+    } catch (err) {
+      setError(err.message || 'Import failed');
+    }
+    setImporting(false);
+  }
+
   // ── View: Project List ──────────────────────────────
   if (projects === null) {
     return (
@@ -92,16 +121,40 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
       <div className="flex-1 overflow-y-auto scrollbar-thin p-4 sm:p-6 space-y-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-slate-100">Build Projects</h2>
-          <button onClick={onNewProject} className="btn-neon text-sm px-4 py-2 rounded-lg font-medium">
-            + New Project
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowImport(!showImport)}
+              className="glass text-xs text-slate-400 hover:text-indigo-300 px-3 py-2 rounded-lg transition-colors">
+              Import Existing
+            </button>
+            <button onClick={onNewProject} className="btn-neon text-sm px-4 py-2 rounded-lg font-medium">
+              + New Project
+            </button>
+          </div>
         </div>
 
-        {projects.length === 0 ? (
+        {showImport && (
+          <div className="glass-neon rounded-xl p-4 space-y-3 mb-4">
+            <p className="text-sm font-medium text-slate-200">Import an existing project folder</p>
+            <p className="text-xs text-slate-400">Works with Create projects, GitHub clones, or any codebase. Planning structure will be added automatically if needed.</p>
+            <div className="flex gap-2">
+              <input type="text" value={importPath} onChange={e => setImportPath(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleImportProject()}
+                placeholder="~/AI_Dev/my-project"
+                className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
+              <button onClick={handleImportProject} disabled={importing || !importPath.trim()}
+                className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
+                {importing ? '...' : 'Import'}
+              </button>
+            </div>
+            {error && <p className="text-xs text-red-400">{error}</p>}
+          </div>
+        )}
+
+        {projects.length === 0 && !showImport ? (
           <div className="glass rounded-xl p-8 text-center space-y-3">
             <p className="text-3xl">🏗️</p>
             <p className="text-sm text-slate-300">No build projects yet</p>
-            <p className="text-xs text-slate-500">Create your first project to get started with GSD + ICM workflows</p>
+            <p className="text-xs text-slate-500">Create a new project, or import an existing one (Create projects, GitHub clones, any folder)</p>
             <button onClick={onNewProject} className="btn-neon text-sm px-6 py-2.5 rounded-lg font-medium mt-2">
               Create First Project
             </button>

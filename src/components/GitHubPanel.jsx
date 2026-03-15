@@ -29,6 +29,16 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
   // Token status
   const [tokenStatus, setTokenStatus] = useState(null);
 
+  // Publish (Create & Push) state
+  const [pubRepoName, setPubRepoName] = useState('');
+  const [pubDescription, setPubDescription] = useState('');
+  const [pubPrivate, setPubPrivate] = useState(false);
+  const [pubLocalPath, setPubLocalPath] = useState('');
+  const [pubCommitMsg, setPubCommitMsg] = useState('Initial commit');
+  const [publishing, setPublishing] = useState(false);
+  const [pubResult, setPubResult] = useState(null);
+  const [pubStep, setPubStep] = useState('');
+
   // Local VCS state
   const [gitStatus, setGitStatus] = useState(null);
   const [gitLoading, setGitLoading] = useState(false);
@@ -316,8 +326,54 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setPmLoading(false);
   }
 
+  async function handlePublish() {
+    if (!pubRepoName.trim() || !pubLocalPath.trim()) return;
+    setPublishing(true);
+    setPubResult(null);
+
+    try {
+      // Step 1: Create repo on GitHub
+      setPubStep('Creating repository on GitHub...');
+      const createRes = await fetch('/api/github/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: pubRepoName.trim(), description: pubDescription.trim(), isPrivate: pubPrivate }),
+      });
+      const createData = await createRes.json();
+      if (!createRes.ok || !createData.success) {
+        setPubResult({ ok: false, message: createData.error || 'Failed to create repository' });
+        setPublishing(false);
+        return;
+      }
+
+      // Step 2: Init local repo and push
+      setPubStep('Pushing code to GitHub...');
+      const pushRes = await fetch('/api/github/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          localPath: pubLocalPath.trim(),
+          remoteUrl: createData.cloneUrl,
+          commitMessage: pubCommitMsg.trim() || 'Initial commit',
+          branch: 'main',
+        }),
+      });
+      const pushData = await pushRes.json();
+      if (pushData.success) {
+        setPubResult({ ok: true, message: `Published to GitHub!`, url: createData.url, fullName: createData.fullName });
+      } else {
+        setPubResult({ ok: false, message: pushData.error || 'Push failed' });
+      }
+    } catch (err) {
+      setPubResult({ ok: false, message: err.message || 'Network error' });
+    }
+    setPubStep('');
+    setPublishing(false);
+  }
+
   const sections = [
     { id: 'clone', label: 'Clone URL', icon: '📥' },
+    { id: 'publish', label: 'Publish', icon: '🚀' },
     { id: 'browse', label: 'My Repos', icon: '🔍' },
     { id: 'cloned', label: `Cloned (${clonedRepos.length})`, icon: '📂' },
     { id: 'vcs', label: 'VCS', icon: '🧬' },
@@ -428,6 +484,69 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Publish (Create & Push) ── */}
+        {activeSection === 'publish' && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-400">
+              Create a new GitHub repo and push a local project to it in one step.
+            </p>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Local project folder</label>
+              <input type="text" value={pubLocalPath} onChange={e => setPubLocalPath(e.target.value)}
+                placeholder="~/AI_Dev/my-project"
+                className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none font-mono text-xs" />
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Repository name</label>
+              <input type="text" value={pubRepoName} onChange={e => setPubRepoName(e.target.value)}
+                placeholder="my-project"
+                className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-xs" />
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Description (optional)</label>
+              <input type="text" value={pubDescription} onChange={e => setPubDescription(e.target.value)}
+                placeholder="A short description"
+                className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-xs" />
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Commit message</label>
+              <input type="text" value={pubCommitMsg} onChange={e => setPubCommitMsg(e.target.value)}
+                placeholder="Initial commit"
+                className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-xs" />
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400">
+              <input type="checkbox" checked={pubPrivate} onChange={e => setPubPrivate(e.target.checked)}
+                className="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500/40" />
+              Private repository
+            </label>
+
+            <button onClick={handlePublish}
+              disabled={publishing || !pubRepoName.trim() || !pubLocalPath.trim()}
+              className="w-full btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium">
+              {publishing ? pubStep || 'Publishing...' : '🚀 Create Repo & Push'}
+            </button>
+
+            {pubResult && (
+              <div className={`p-3 rounded-lg text-xs ${pubResult.ok
+                ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                <p>{pubResult.message}</p>
+                {pubResult.url && (
+                  <a href={pubResult.url} target="_blank" rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 underline mt-1 inline-block">
+                    {pubResult.fullName} →
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         )}
 
