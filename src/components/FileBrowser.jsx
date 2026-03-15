@@ -50,6 +50,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
   const [launchingOpenCode, setLaunchingOpenCode] = useState(false);
   const [launchError, setLaunchError] = useState(null);
+  const [folderError, setFolderError] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [dropping, setDropping] = useState(null); // { total, done }
   const dragCounter = useRef(0);
@@ -86,11 +87,25 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     const target = folder || projectFolder;
     if (!target) return;
     setLoading(true);
+    setFolderError(null);
     try {
       const res = await fetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(target)}`);
       const data = await res.json();
-      setTree(data);
-    } catch {}
+      if (!res.ok) {
+        setFolderError(data.error || 'Could not load folder');
+        setTree(null);
+      } else {
+        setTree(data);
+        setFolderError(null);
+        // Server resolved the path — sync it back
+        if (data.root && data.root !== target && onSetFolder) {
+          onSetFolder(data.root);
+        }
+      }
+    } catch {
+      setFolderError('Could not reach server');
+      setTree(null);
+    }
     setLoading(false);
   }
 
@@ -149,10 +164,11 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
         } catch {}
         setDropping(null);
       }
-      // Browser: can't get filesystem path — prompt user to type it
-      setFolderInput(files[0].name);
-      setDropping({ total: 1, done: 1, message: `Type the full path to "${files[0].name}" below` });
-      setTimeout(() => setDropping(null), 3000);
+      // Browser: no absolute path available — try the folder name, server will search for it
+      setDropping({ total: 1, done: 0, message: 'Opening folder...' });
+      if (onSetFolder) onSetFolder(files[0].name);
+      setDropping({ total: 1, done: 1, message: 'Folder loaded!' });
+      setTimeout(() => setDropping(null), 1200);
       return;
     }
 
@@ -273,6 +289,13 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
             </button>
             <p className="text-[10px] text-slate-500 text-center">Or set it in Settings, or create a project</p>
           </div>
+        </div>
+      )}
+
+      {folderError && (
+        <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-xs flex items-start gap-2">
+          <span className="flex-1">{folderError}. Use a full path like <span className="font-mono text-red-300">/Users/james/AI_Dev/my-project</span></span>
+          <button onClick={() => setFolderError(null)} className="text-red-300 hover:text-white shrink-0">✕</button>
         </div>
       )}
 

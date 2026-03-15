@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { Readable } = require('stream');
 
 // ── Lib imports ──────────────────────────────────────
@@ -212,8 +213,9 @@ app.post('/api/config', (req, res) => {
   }
   if (projectFolder !== undefined) {
     if (projectFolder) {
-      const resolvedFolder = path.resolve(projectFolder);
-      if (!fs.existsSync(resolvedFolder)) {
+      log('INFO', `Config projectFolder received: "${projectFolder}"`);
+      const resolvedFolder = resolveFolder(projectFolder);
+      if (!resolvedFolder) {
         return res.status(400).json({ error: 'Folder does not exist' });
       }
       const stat = fs.statSync(resolvedFolder);
@@ -879,12 +881,55 @@ app.delete('/api/history/:id', (req, res) => {
 
 // ── File Browser API ─────────────────────────────────
 
+// Search common directories for a folder by name (1-2 levels deep)
+function findFolderByName(name) {
+  const searchRoots = [
+    os.homedir(),
+    path.join(os.homedir(), 'AI_Dev'),
+    path.join(os.homedir(), 'Projects'),
+    path.join(os.homedir(), 'Developer'),
+    path.join(os.homedir(), 'Documents'),
+    path.join(os.homedir(), 'Desktop'),
+    __dirname,
+  ];
+  for (const root of searchRoots) {
+    const candidate = path.join(root, name);
+    try {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+    } catch {}
+  }
+  // Second pass: check one level deeper in each root
+  for (const root of searchRoots) {
+    try {
+      if (!fs.existsSync(root)) continue;
+      const children = fs.readdirSync(root, { withFileTypes: true });
+      for (const child of children) {
+        if (!child.isDirectory()) continue;
+        const candidate = path.join(root, child.name, name);
+        try {
+          if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+        } catch {}
+      }
+    } catch {}
+  }
+  return null;
+}
+
+// Resolve a folder path: expand ~, resolve relative, search by name if needed
+function resolveFolder(folder) {
+  if (folder.startsWith('~')) folder = path.join(os.homedir(), folder.slice(1));
+  folder = path.resolve(folder);
+  if (fs.existsSync(folder)) return folder;
+  return findFolderByName(path.basename(folder));
+}
+
 // GET /api/files/tree — list directory structure
 app.get('/api/files/tree', (req, res) => {
   const config = getConfig();
-  const folder = req.query.folder || config.projectFolder;
+  let folder = req.query.folder || config.projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder configured' });
-  if (!fs.existsSync(folder)) return res.status(404).json({ error: 'Folder not found' });
+  folder = resolveFolder(folder);
+  if (!folder) return res.status(404).json({ error: 'Folder not found' });
 
   const depth = Number.parseInt(req.query.depth, 10);
   const maxDepth = Number.isNaN(depth) ? 3 : Math.min(Math.max(depth, 1), 6);
