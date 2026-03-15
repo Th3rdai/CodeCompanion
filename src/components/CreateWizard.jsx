@@ -95,9 +95,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error === 'upgrade_required'
-          ? 'Create mode requires Code Companion Pro. Check Settings → License to upgrade.'
-          : data.error || data.message || 'Project creation failed');
+        setError(data.error || data.message || 'Project creation failed');
         return;
       }
       if (data.success && data.projectPath) {

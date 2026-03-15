@@ -419,41 +419,6 @@ ipcMain.handle('launch-ide', async (event, { ide, folder }) => {
   }
 });
 
-// License IPC handlers — forward to the server's /api/license endpoints
-ipcMain.handle('get-license-info', async () => {
-  try {
-    const res = await fetch(`http://localhost:${actualPort}/api/license`);
-    return await res.json();
-  } catch (err) {
-    return { tier: 'free', error: err.message };
-  }
-});
-
-ipcMain.handle('activate-license', async (event, key) => {
-  try {
-    const res = await fetch(`http://localhost:${actualPort}/api/license/activate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
-    });
-    return await res.json();
-  } catch (err) {
-    return { success: false, error: err.message };
-  }
-});
-
-ipcMain.handle('purchase-pro', async () => {
-  // For App Store builds, use inAppPurchase API
-  // For direct builds, open the purchase page
-  shell.openExternal('https://th3rdai.com/pro');
-  return { success: true, action: 'opened-purchase-page' };
-});
-
-ipcMain.handle('restore-purchases', async () => {
-  // App Store restore — placeholder for future implementation
-  return { success: false, error: 'Not implemented for this distribution' };
-});
-
 ipcMain.handle('check-ollama', async (event, ollamaUrl) => {
   try {
     const url = ollamaUrl || 'http://localhost:11434';

@@ -16,13 +16,11 @@ You are a full-stack developer building **Code Companion**, a web application th
 |------|---------|
 | server.js | Express app, API routes, MCP HTTP endpoint |
 | mcp-server.js | MCP stdio entry point |
-| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, license-manager, license-middleware, file-browser, history, github, icm-scaffolder, mcp-client-manager, tool-call-handler) |
+| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, mcp-client-manager, tool-call-handler) |
 | mcp/ | MCP tool registrations and Zod schemas |
 | src/App.jsx | Main React app with 11 modes |
-| src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, UpgradePrompt, etc.) |
+| src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, etc.) |
 | src/components/builders/ | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel) |
-| src/constants/ | Frontend constants (tiers.js — mode tier registry mirroring backend) |
-| scripts/ | Dev utilities (generate-license-key.js — Ed25519 license key generator, not shipped) |
 | src/components/3d/ | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.) |
 | .planning/ | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md) |
 | test/ | Unit tests and Playwright E2E tests |
@@ -38,15 +36,6 @@ Three builder modes share a common BaseBuilderPanel architecture with config-dri
 - **Prompting**: TÂCHES meta-prompting methodology — evaluates clarity (Golden Rule), specificity, structure (XML tags, success criteria), effectiveness
 - **Skillz**: Agent Skills Specification (agentskills.io) — evaluates completeness, format compliance (name format, frontmatter, progressive disclosure), instruction quality (WHY explanations, workflow phases), reusability
 - **Agentic**: CrewAI + LangGraph hybrid — evaluates purpose clarity (role/goal/backstory/scope), tool design (schemas, safety annotations), workflow logic (state machine, self-correction loops, termination), safety guardrails (blast radius, confirmation gates, human escalation)
-
-## License / Pro Tier System
-- **Tier model**: Free (7 modes) and Pro (4 modes: Prompting, Skillz, Agentic, Create)
-- **Backend**: `lib/license-manager.js` — declarative `FEATURE_TIERS` registry, Ed25519 offline key validation, 14-day trial, app store purchase support
-- **Middleware**: `lib/license-middleware.js` — `requireTier(featureId)` and `requireTierForMode` Express middleware on `/api/chat`, `/api/score`, `/api/create-project`
-- **Frontend**: Pro modes show PRO badge, clicking opens `UpgradePrompt` modal; Settings has License tab for activation/trial/deactivation
-- **Key format**: `CC-PRO-{base64url_payload}.{base64url_signature}` — Ed25519 signed, offline-verifiable
-- **API routes**: `GET /api/license`, `POST /api/license/activate`, `POST /api/license/deactivate`, `POST /api/license/trial`
-- **Adding a premium feature**: Add one line to `FEATURE_TIERS` in `lib/license-manager.js` and update `MODE_TIERS` in `src/constants/tiers.js`
 
 ## Rules
 - Stream AI responses in real-time (Server-Sent Events)

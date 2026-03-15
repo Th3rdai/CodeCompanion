@@ -45,14 +45,6 @@ test.describe('Prompting Builder Mode', () => {
       });
     });
 
-    await context.route('**/api/license', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ tier: 'pro', source: 'direct', expiresAt: '2027-03-14', trialDaysLeft: 0, trialAvailable: false })
-      });
-    });
-
     await context.route('**/api/score', async (route) => {
       await route.fulfill({
         status: 200,

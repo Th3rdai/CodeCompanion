@@ -6,7 +6,7 @@ import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
 import { Download, Upload, Settings } from 'lucide-react';
 
-export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose, onLicenseChange }) {
+export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose }) {
   const [activeTab, setActiveTab] = useState('general');
   const [url, setUrl] = useState(ollamaUrl);
   const [folder, setFolder] = useState(projectFolder || '');
@@ -29,15 +29,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [actualPort, setActualPort] = useState(null);
   const [portError, setPortError] = useState('');
 
-  // License state
-  const [licenseData, setLicenseData] = useState(null);
-  const [licenseKey, setLicenseKey] = useState('');
-  const [licenseActivating, setLicenseActivating] = useState(false);
-  const [licenseResult, setLicenseResult] = useState(null);
-
   useEffect(() => {
     fetchGhTokenStatus();
-    fetchLicenseData();
     if (isElectron) {
       fetchElectronData();
     }
@@ -56,62 +49,6 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
     } catch (err) {
       console.error('Failed to fetch Electron data:', err);
     }
-  }
-
-  async function fetchLicenseData() {
-    try {
-      const res = await fetch('/api/license');
-      const data = await res.json();
-      setLicenseData(data);
-    } catch {}
-  }
-
-  async function handleActivateLicense() {
-    if (!licenseKey.trim()) return;
-    setLicenseActivating(true);
-    setLicenseResult(null);
-    try {
-      const res = await fetch('/api/license/activate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: licenseKey.trim() }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setLicenseKey('');
-        setLicenseResult({ ok: true, message: `Pro activated! Expires ${new Date(data.expiresAt).toLocaleDateString()}.` });
-        fetchLicenseData();
-        onLicenseChange?.();
-      } else {
-        setLicenseResult({ ok: false, message: data.error || 'Invalid key' });
-      }
-    } catch (err) {
-      setLicenseResult({ ok: false, message: err.message });
-    }
-    setLicenseActivating(false);
-  }
-
-  async function handleDeactivateLicense() {
-    try {
-      await fetch('/api/license/deactivate', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-      setLicenseResult({ ok: true, message: 'License deactivated. Reverted to free tier.' });
-      fetchLicenseData();
-      onLicenseChange?.();
-    } catch {}
-  }
-
-  async function handleStartTrial() {
-    try {
-      const res = await fetch('/api/license/trial', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-      const data = await res.json();
-      if (data.success) {
-        setLicenseResult({ ok: true, message: `Trial started! ${data.trialDaysLeft} days of Pro access.` });
-        fetchLicenseData();
-        onLicenseChange?.();
-      } else {
-        setLicenseResult({ ok: false, message: data.error });
-      }
-    } catch {}
   }
 
   async function handleExportData() {
@@ -247,7 +184,6 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
         <div className="flex gap-1 mb-6 p-1 glass rounded-lg">
           {[
             { id: 'general', label: 'General' },
-            { id: 'license', label: 'License' },
             { id: 'github', label: 'GitHub' },
             { id: 'mcp-server', label: 'MCP Server' },
             { id: 'mcp-clients', label: 'MCP Clients' },
@@ -439,84 +375,6 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                 <li>Ollama on this machine: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code></li>
                 <li>Ollama on your network: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
                 <li>Project folder example: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">~/projects/my-app</code></li>
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'license' && (
-          <div className="space-y-5">
-            {/* Current tier badge */}
-            <div className="glass rounded-lg p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${licenseData?.tier === 'pro' ? 'bg-indigo-400 glow-pulse' : 'bg-slate-500'}`} />
-                <div>
-                  <p className="text-sm font-medium text-slate-200">
-                    Current tier: <span className={licenseData?.tier === 'pro' ? 'text-indigo-300 font-bold' : 'text-slate-400'}>{licenseData?.tier === 'pro' ? 'Pro' : 'Free'}</span>
-                  </p>
-                  {licenseData?.source && (
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      via {licenseData.source === 'trial' ? 'Free Trial' : licenseData.source === 'appstore' ? 'App Store' : 'License Key'}
-                      {licenseData.source === 'trial' && licenseData.trialDaysLeft != null && ` (${licenseData.trialDaysLeft} days left)`}
-                      {licenseData.expiresAt && licenseData.source !== 'trial' && ` — expires ${new Date(licenseData.expiresAt).toLocaleDateString()}`}
-                    </p>
-                  )}
-                  {licenseData?.features?.length > 0 && (
-                    <p className="text-xs text-indigo-400/70 mt-0.5">
-                      Enabled: {licenseData.features.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-              {licenseData?.tier === 'pro' && licenseData?.source !== 'appstore' && (
-                <button onClick={handleDeactivateLicense}
-                  className="text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors">
-                  Deactivate
-                </button>
-              )}
-            </div>
-
-            {/* Trial button */}
-            {licenseData?.tier !== 'pro' && licenseData?.trialAvailable && (
-              <button onClick={handleStartTrial}
-                className="w-full py-2.5 rounded-lg text-sm font-medium transition-colors bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white">
-                Start 14-Day Free Trial
-              </button>
-            )}
-
-            {/* License key input */}
-            {licenseData?.tier !== 'pro' && (
-              <div>
-                <label className="block text-sm text-slate-300 mb-2 font-medium">License Key</label>
-                <div className="flex gap-2">
-                  <input type="text" value={licenseKey} onChange={e => setLicenseKey(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleActivateLicense()}
-                    placeholder="CC-PRO-..."
-                    className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
-                  <button onClick={handleActivateLicense} disabled={licenseActivating || !licenseKey.trim()}
-                    className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                    {licenseActivating ? <span className="inline-block spin">&#x27F3;</span> : 'Activate'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Result message */}
-            {licenseResult && (
-              <div className={`p-2.5 rounded-lg text-xs ${licenseResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                {licenseResult.message}
-              </div>
-            )}
-
-            {/* Pro features info */}
-            <div className="glass rounded-lg p-3 text-xs text-slate-400">
-              <p className="font-medium text-slate-300 mb-1.5">Pro includes:</p>
-              <ul className="space-y-1">
-                <li className="flex items-center gap-2"><span className="text-indigo-400">&#10003;</span> Prompting — craft and score AI prompts</li>
-                <li className="flex items-center gap-2"><span className="text-indigo-400">&#10003;</span> Skillz — build Claude Code skills</li>
-                <li className="flex items-center gap-2"><span className="text-indigo-400">&#10003;</span> Agentic — design AI agents</li>
-                <li className="flex items-center gap-2"><span className="text-indigo-400">&#10003;</span> Create — project scaffolding</li>
-                <li className="flex items-center gap-2"><span className="text-slate-500">+</span> Future premium features</li>
               </ul>
             </div>
           </div>

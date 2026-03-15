@@ -147,12 +147,9 @@ export default function BaseBuilderPanel({
         }),
       });
 
-      // Handle 403 upgrade_required
       if (res.status === 403) {
         const errData = await res.json().catch(() => ({}));
-        setScoreError(errData.error === 'upgrade_required'
-          ? 'This feature requires Code Companion Pro. Check Settings → License to upgrade.'
-          : errData.message || 'Access denied');
+        setScoreError(errData.message || 'Access denied');
         setPhase('input');
         return;
       }

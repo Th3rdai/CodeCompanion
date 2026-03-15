@@ -42,13 +42,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // IDE launcher
   launchIDE: (ide, folder) => ipcRenderer.invoke('launch-ide', { ide, folder }),
 
-  // License
-  getLicenseInfo: () => ipcRenderer.invoke('get-license-info'),
-  activateLicense: (key) => ipcRenderer.invoke('activate-license', key),
-  purchasePro: () => ipcRenderer.invoke('purchase-pro'),
-  restorePurchases: () => ipcRenderer.invoke('restore-purchases'),
-  onPurchaseComplete: (cb) => ipcRenderer.on('purchase-complete', (_, data) => cb(data)),
-
   // Ollama setup
   checkOllama: (ollamaUrl) => ipcRenderer.invoke('check-ollama', ollamaUrl),
   installOllama: () => ipcRenderer.invoke('install-ollama'),
