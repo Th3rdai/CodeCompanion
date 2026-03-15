@@ -27,19 +27,22 @@ import TokenCounter from './components/3d/TokenCounter';
 import OrbitingBadge from './components/3d/OrbitingBadge';
 import OllamaSetup from './components/OllamaSetup';
 import ConnectionDot from './components/ConnectionDot';
+import UpgradePrompt from './components/UpgradePrompt';
+import { ChevronLeft, ChevronRight, PanelLeft } from 'lucide-react';
+import { isModeLocked } from './constants/tiers';
 
 const MODES = [
-  { id: 'chat',           label: 'Chat',                    icon: '💬', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about code, building with AI, or just say hey..." },
-  { id: 'explain',        label: 'Explain This',            icon: '💡', desc: 'Walk me through this code',         placeholder: "Paste some code and I'll walk you through it step by step..." },
-  { id: 'bugs',           label: 'Safety Check',            icon: '🐛', desc: 'Spot issues before they bite',      placeholder: "Drop your code here — I'll look for anything that could cause trouble..." },
-  { id: 'refactor',       label: 'Clean Up',                icon: '✨', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
-  { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
-  { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
-  { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
-  { id: 'prompting', label: 'Prompting', icon: '🎯', desc: 'Craft and score AI prompts', placeholder: '' },
-  { id: 'skillz',    label: 'Skillz',    icon: '⚡', desc: 'Build Claude Code skills', placeholder: '' },
-  { id: 'agentic',   label: 'Agentic',   icon: '🤖', desc: 'Design AI agents',        placeholder: '' },
-  { id: 'create',         label: 'Create',                  icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
+  { id: 'chat',           label: 'Chat',                    icon: '💬', tier: 'free', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about code, building with AI, or just say hey..." },
+  { id: 'explain',        label: 'Explain This',            icon: '💡', tier: 'free', desc: 'Walk me through this code',         placeholder: "Paste some code and I'll walk you through it step by step..." },
+  { id: 'bugs',           label: 'Safety Check',            icon: '🐛', tier: 'free', desc: 'Spot issues before they bite',      placeholder: "Drop your code here — I'll look for anything that could cause trouble..." },
+  { id: 'refactor',       label: 'Clean Up',                icon: '✨', tier: 'free', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
+  { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', tier: 'free', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
+  { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', tier: 'free', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
+  { id: 'review',         label: 'Review',                  icon: '📝', tier: 'free', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
+  { id: 'prompting', label: 'Prompting', icon: '🎯', tier: 'free', desc: 'Craft and score AI prompts', placeholder: '' },
+  { id: 'skillz',    label: 'Skillz',    icon: '⚡', tier: 'pro', desc: 'Build Claude Code skills', placeholder: '' },
+  { id: 'agentic',   label: 'Agentic',   icon: '🤖', tier: 'pro', desc: 'Design AI agents',        placeholder: '' },
+  { id: 'create',         label: 'Create',                  icon: '🛠️', tier: 'free', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
 ];
 
 const BUILDER_MODES = ['prompting', 'skillz', 'agentic'];
@@ -110,6 +113,16 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem('cc-sidebar-collapsed') === 'true'; } catch { return false; }
+  });
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('cc-sidebar-collapsed', String(next)); } catch {}
+      return next;
+    });
+  }
   const [showSettings, setShowSettings] = useState(false);
   const [showFileBrowser, setShowFileBrowser] = useState(false);
   const [showGitHub, setShowGitHub] = useState(false);
@@ -131,14 +144,33 @@ export default function App() {
   const reviewAttachRef = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
   const [savedBuilderData, setSavedBuilderData] = useState(null);
+  const [licenseInfo, setLicenseInfo] = useState({ tier: 'free' });
+  const [showUpgrade, setShowUpgrade] = useState(null); // null or mode object
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
+
+  // Fetch license info
+  async function fetchLicense() {
+    try {
+      const res = await fetch('/api/license');
+      const data = await res.json();
+      setLicenseInfo(data);
+    } catch {}
+  }
+
+  // Reset to chat if current mode becomes locked (e.g., license deactivated)
+  useEffect(() => {
+    if (licenseInfo && mode && isModeLocked(mode, licenseInfo)) {
+      setMode('chat');
+    }
+  }, [licenseInfo]);
 
   // Initialize app on mount
   useEffect(() => {
     fetchConfig();
     fetchModels();
     fetchHistory();
+    fetchLicense();
 
     // Load last active mode in Electron
     if (isElectron && window.electronAPI?.getLastMode) {
@@ -219,6 +251,11 @@ export default function App() {
     try {
       const res = await fetch(`/api/history/${id}`);
       const conv = await res.json();
+      // Guard: don't load conversations in locked modes
+      if (conv.mode && isModeLocked(conv.mode, licenseInfo)) {
+        setShowUpgrade(MODES.find(m => m.id === conv.mode) || { id: conv.mode, label: conv.mode, icon: '', desc: '' });
+        return;
+      }
       setMessages(conv.messages || []); setMode(conv.mode || 'explain'); setActiveConvId(conv.id);
       if (conv.model) setSelectedModel(conv.model);
       setAttachedFiles([]);
@@ -366,6 +403,17 @@ export default function App() {
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, mode, messages: newMessages.map(m => ({ role: m.role, content: m.content })) }) });
+      // Handle 403 upgrade_required
+      if (res.status === 403) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.error === 'upgrade_required') {
+          const lockedMode = MODES.find(m => m.id === mode);
+          setShowUpgrade(lockedMode || { id: mode, label: mode, icon: '', desc: '' });
+          setMessages(newMessages.slice(0, -1)); // Remove the user message
+          setStreaming(false);
+          return;
+        }
+      }
       const reader = res.body.getReader(); const decoder = new TextDecoder();
       let assistantContent = ''; let buffer = '';
       while (true) {
@@ -481,6 +529,7 @@ export default function App() {
       <Sidebar history={history} activeId={activeConvId} onSelect={loadConversation} onNew={startNew}
         onDelete={deleteConversation} onRename={handleRenameRequest} onExport={exportConversation}
         onArchive={archiveConversation} open={sidebarOpen} onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebarCollapsed}
         showArchived={showArchived} onToggleArchived={() => setShowArchived(!showArchived)} modes={MODES} />
 
       <main className="flex-1 flex flex-col min-w-0 relative"
@@ -489,7 +538,12 @@ export default function App() {
         {/* Header */}
         <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 relative overflow-hidden">
           <HeaderScene />
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl relative z-10 shrink-0 order-first" aria-label="Toggle sidebar">&#9776;</button>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700/50 relative z-10 shrink-0 order-first" aria-label="Open sidebar">
+            <PanelLeft className="w-5 h-5" />
+          </button>
+          <button onClick={toggleSidebarCollapsed} className="hidden lg:flex items-center justify-center text-slate-400 hover:text-white w-8 h-8 rounded-lg hover:bg-slate-700/50 relative z-10 shrink-0 order-first" aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          </button>
           <div className="flex items-center gap-3 shrink-0 relative z-10 min-w-0">
             <img src="/logo.svg" alt="Th3rdAI" className="w-10 h-10 shrink-0" />
             <div className="min-w-0">
@@ -572,15 +626,20 @@ export default function App() {
             {/* Mode Tabs */}
             <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative overflow-hidden">
               <FloatingGeometry shapeCount={5} />
-              {MODES.map(m => (
-                <button key={m.id} onClick={() => setMode(m.id)}
-                  className={`relative z-10 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all
-                    ${mode === m.id
-                      ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
-                      : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}>
-                  <span>{m.icon}</span><span>{m.label}</span>
-                </button>
-              ))}
+              {MODES.map(m => {
+                const locked = isModeLocked(m.id, licenseInfo);
+                return (
+                  <button key={m.id} onClick={() => locked ? setShowUpgrade(m) : setMode(m.id)}
+                    className={`relative z-10 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all
+                      ${locked ? 'opacity-60 text-slate-500 hover:opacity-80 hover:text-slate-400' :
+                        mode === m.id
+                        ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
+                        : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}>
+                    <span>{m.icon}</span><span>{m.label}</span>
+                    {locked && <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/20 px-1 py-0.5 rounded ml-0.5">PRO</span>}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Messages / Create Wizard / Review Panel */}
@@ -760,11 +819,21 @@ export default function App() {
         <PrivacyBanner />
       </main>
 
-      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} onLicenseChange={fetchLicense} />}
       {renaming && <RenameModal currentName={renaming.title} onSave={(name) => renameConversation(renaming.id, name)} onClose={() => setRenaming(null)} />}
       {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       {showOllamaSetup && <OllamaSetup onComplete={() => { setShowOllamaSetup(false); fetchModels(); }} />}
+      {showUpgrade && (
+        <UpgradePrompt
+          mode={showUpgrade}
+          licenseInfo={licenseInfo}
+          onClose={() => setShowUpgrade(null)}
+          onActivate={() => fetchLicense()}
+          onStartTrial={() => fetchLicense()}
+          onToast={showToast}
+        />
+      )}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
   );

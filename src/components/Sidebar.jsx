@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import ContextMenu from './ContextMenu';
 import ParticleField from './3d/ParticleField';
 
-export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, onRename, onExport, onArchive, open, onClose, showArchived, onToggleArchived, modes }) {
+export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, onRename, onExport, onArchive, open, onClose, collapsed, onToggleCollapse, showArchived, onToggleArchived, modes }) {
   const [search, setSearch] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
 
@@ -36,75 +36,101 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
     });
   }
 
+  const isCollapsed = collapsed && !open; // On mobile overlay, always show expanded
+
   return (
     <>
       {open && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={onClose} />}
       <nav aria-label="Conversations"
-        className={`fixed lg:relative top-0 left-0 h-full w-72 glass-heavy border-r border-slate-700/30 z-40 flex flex-col transition-transform duration-200 overflow-hidden
-          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        className={`fixed lg:relative top-0 left-0 h-full glass-heavy border-r border-slate-700/30 z-40 flex flex-col transition-all duration-200 overflow-hidden
+          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'lg:w-14' : 'w-72'}`}>
         <ParticleField particleCount={300} speed={0.15} color="#6366f1" />
 
-        <div className="p-4 border-b border-slate-700/30 space-y-2 relative z-10">
+        <div className={`border-b border-slate-700/30 relative z-10 ${isCollapsed ? 'p-2' : 'p-4 space-y-2'}`}>
           <button onClick={onNew}
-            className="w-full btn-neon text-white rounded-lg py-2.5 px-4 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            + New Conversation
+            className={`btn-neon text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400
+              ${isCollapsed ? 'w-10 h-10 rounded-lg flex items-center justify-center text-lg' : 'w-full rounded-lg py-2.5 px-4 flex items-center justify-center gap-2'}`}
+            title="New conversation">
+            <span>+</span>
+            {!isCollapsed && <span>New Conversation</span>}
           </button>
-          <label htmlFor="sidebar-search" className="sr-only">Search conversations</label>
-          <input id="sidebar-search" type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search chats..."
-            className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500" />
+          {!isCollapsed && (
+            <>
+              <label htmlFor="sidebar-search" className="sr-only">Search conversations</label>
+              <input id="sidebar-search" type="text" value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search chats..."
+                className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500" />
+            </>
+          )}
         </div>
 
-        <div className="px-4 pt-2 pb-1 flex items-center gap-2 relative z-10">
-          <button onClick={onToggleArchived}
-            className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
-              showArchived
-                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
-                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
-            }`}>
-            {showArchived ? '📦 Archived' : '💬 Active'}
-          </button>
-          <span className="text-xs text-slate-600">{filtered.length} chat{filtered.length !== 1 ? 's' : ''}</span>
-        </div>
+        {!isCollapsed && (
+          <div className="px-4 pt-2 pb-1 flex items-center gap-2 relative z-10">
+            <button onClick={onToggleArchived}
+              className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
+                showArchived
+                  ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
+              }`}>
+              {showArchived ? '📦 Archived' : '💬 Active'}
+            </button>
+            <span className="text-xs text-slate-600">{filtered.length} chat{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+        )}
 
-        <div className="flex-1 overflow-y-auto scrollbar-thin p-2 relative z-10">
-          {filtered.length === 0 && (
+        <div className={`flex-1 overflow-y-auto scrollbar-thin relative z-10 ${isCollapsed ? 'p-1' : 'p-2'}`}>
+          {filtered.length === 0 && !isCollapsed && (
             <p className="text-center text-slate-400 text-sm py-8">
               {search ? 'No matches yet — try different words!'
                 : showArchived ? 'Nothing archived yet. Right-click any chat to tuck it away.'
                 : 'No conversations yet — let\'s start one!'}
             </p>
           )}
-          {filtered.map(h => (
-            <div key={h.id}
-              className={`group flex items-center gap-2 rounded-lg px-3 py-2.5 mb-1 cursor-pointer transition-colors
-                ${activeId === h.id
-                  ? 'bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm'
-                  : 'hover:bg-indigo-500/10'}`}
-              onClick={() => { onSelect(h.id); onClose(); }}
-              onContextMenu={(e) => handleContextMenu(e, h)}>
-              <span className="text-sm">{modes?.find(m => m.id === h.mode)?.icon || '💬'}</span>
-              {h.overallGrade && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                  h.overallGrade === 'A' ? 'bg-emerald-500/20 text-emerald-400' :
-                  h.overallGrade === 'B' ? 'bg-lime-500/20 text-lime-400' :
-                  h.overallGrade === 'C' ? 'bg-yellow-500/20 text-yellow-400' :
-                  h.overallGrade === 'D' ? 'bg-orange-500/20 text-orange-400' :
-                  'bg-red-500/20 text-red-400'
-                }`}>{h.overallGrade}</span>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm text-slate-200 truncate">{h.title || 'Untitled'}</div>
-                <div className="text-xs text-slate-500">
-                  {h.model && <span className="text-indigo-400">{h.model.split(':')[0]}</span>}
-                  {h.model && ' · '}{new Date(h.createdAt).toLocaleDateString()}
-                </div>
+          {filtered.length === 0 && isCollapsed && (
+            <p className="text-center text-slate-500 text-xs py-4 px-1">No chats</p>
+          )}
+          {filtered.map(h => {
+            const modeIcon = modes?.find(m => m.id === h.mode)?.icon || '💬';
+            return (
+              <div key={h.id}
+                className={`group flex items-center rounded-lg cursor-pointer transition-colors
+                  ${isCollapsed ? 'justify-center p-2 mb-1' : 'gap-2 px-3 py-2.5 mb-1'}
+                  ${activeId === h.id
+                    ? 'bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm'
+                    : 'hover:bg-indigo-500/10'}`}
+                onClick={() => { onSelect(h.id); onClose(); }}
+                onContextMenu={(e) => handleContextMenu(e, h)}
+                title={isCollapsed ? (h.title || 'Untitled') : undefined}>
+                {isCollapsed ? (
+                  <span className="text-base leading-none" role="img" aria-hidden="true">{modeIcon}</span>
+                ) : (
+                  <>
+                    <span className="text-sm shrink-0">{modeIcon}</span>
+                    {h.overallGrade && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                        h.overallGrade === 'A' ? 'bg-emerald-500/20 text-emerald-400' :
+                        h.overallGrade === 'B' ? 'bg-lime-500/20 text-lime-400' :
+                        h.overallGrade === 'C' ? 'bg-yellow-500/20 text-yellow-400' :
+                        h.overallGrade === 'D' ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>{h.overallGrade}</span>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-slate-200 truncate">{h.title || 'Untitled'}</div>
+                      <div className="text-xs text-slate-500">
+                        {h.model && <span className="text-indigo-400">{h.model.split(':')[0]}</span>}
+                        {h.model && ' · '}{new Date(h.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); handleContextMenu(e, h); }}
+                      className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1"
+                      aria-label="More options">⋯</button>
+                  </>
+                )}
               </div>
-              <button onClick={(e) => { e.stopPropagation(); handleContextMenu(e, h); }}
-                className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1"
-                aria-label="More options">⋯</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </nav>
       {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} items={contextMenu.items} onClose={() => setContextMenu(null)} />}
