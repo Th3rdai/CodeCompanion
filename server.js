@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { Readable } = require('stream');
 
 // ── Lib imports ──────────────────────────────────────
 const { createLogger } = require('./lib/logger');
@@ -18,6 +19,7 @@ const McpClientManager = require('./lib/mcp-client-manager');
 const ToolCallHandler = require('./lib/tool-call-handler');
 const { createMcpApiRoutes } = require('./lib/mcp-api-routes');
 const { reviewCode } = require('./lib/review');
+const { scoreContent } = require('./lib/builder-score');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -118,7 +120,13 @@ app.use(express.json({ limit: '5mb' }));
 const distDir = path.join(__dirname, 'dist');
 const publicDir = path.join(__dirname, 'public');
 const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
-app.use(express.static(staticDir));
+app.use(express.static(staticDir, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 // ── Request logging middleware ───────────────────────
 
@@ -137,12 +145,14 @@ const CREATE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CREATE || 12);
 const GITHUB_CLONE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_GITHUB_CLONE || 6);
 const MCP_TEST_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MCP_TEST || 12);
 const REVIEW_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_REVIEW || 20);
+const SCORE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_SCORE || 20);
 
 app.use('/api/chat', createRateLimiter({ name: 'chat', max: CHAT_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/create-project', createRateLimiter({ name: 'create-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/github/clone', createRateLimiter({ name: 'github-clone', max: GITHUB_CLONE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-connection', max: MCP_TEST_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/score', createRateLimiter({ name: 'score', max: SCORE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 
 // ── MCP Management API routes ────────────────────────
 app.use('/api', mcpApiRouter);
@@ -549,6 +559,102 @@ app.post('/api/review', async (req, res) => {
   }
 });
 
+// ── POST /api/score (builder mode scoring) ────────────
+
+app.post('/api/score', async (req, res) => {
+  const { model, mode, content, metadata } = req.body;
+
+  if (!model || !content || !mode) {
+    return res.status(400).json({ error: 'model, mode, and content are required' });
+  }
+
+  const validModes = ['prompting', 'skillz', 'agentic'];
+  if (!validModes.includes(mode)) {
+    return res.status(400).json({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
+  }
+
+  log('INFO', `Score request: model=${model} mode=${mode} content=${content.length} chars`);
+
+  try {
+    const config = getConfig();
+    const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
+    const result = await scoreContent(ollamaUrl, model, mode, content, metadata);
+
+    if (result.type === 'score-card') {
+      log('INFO', `Score complete: overall grade ${result.data?.overallGrade || 'N/A'}`);
+      return res.json(result);
+    }
+
+    // Fallback: stream response
+    if (result.type === 'chat-fallback') {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const sendEvent = (data) => {
+        if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+      sendEvent({ fallback: true, reason: result.error });
+
+      // Stream the response (result.stream is a fetch Response)
+      const ollamaRes = result.stream;
+      if (!ollamaRes || typeof ollamaRes.ok !== 'boolean') {
+        log('ERROR', 'Score fallback: invalid stream (not a Response)', { hasStream: !!result.stream });
+        sendEvent({ error: 'Invalid response from model' });
+        res.write('data: [DONE]\n\n');
+        return res.end();
+      }
+      if (!ollamaRes.ok) {
+        const errText = await ollamaRes.text();
+        log('ERROR', `Ollama score fallback error: ${ollamaRes.status}`, { body: errText });
+        sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+        res.write('data: [DONE]\n\n');
+        return res.end();
+      }
+
+      const body = ollamaRes.body;
+      if (!body || typeof body.getReader !== 'function') {
+        log('ERROR', 'Score fallback: response has no readable body', { hasBody: !!body });
+        sendEvent({ error: 'Model returned a response that cannot be streamed' });
+        res.write('data: [DONE]\n\n');
+        return res.end();
+      }
+
+      // Use Readable.fromWeb for robust consumption (avoids "not async iterable" with some Node/cloud responses)
+      const nodeStream = Readable.fromWeb(body);
+      const decoder = new TextDecoder();
+      let buf = '';
+      for await (const chunk of nodeStream) {
+        buf += Buffer.isBuffer(chunk) ? chunk.toString('utf8') : decoder.decode(chunk);
+        const lines = buf.split('\n');
+        buf = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.message?.content) sendEvent({ token: parsed.message.content });
+            if (parsed.done) sendEvent({ done: true });
+          } catch {}
+        }
+      }
+      if (buf.trim()) {
+        try {
+          const parsed = JSON.parse(buf);
+          if (parsed.message?.content) sendEvent({ token: parsed.message.content });
+          if (parsed.done) sendEvent({ done: true });
+        } catch {}
+      }
+      res.write('data: [DONE]\n\n');
+      res.end();
+    }
+  } catch (err) {
+    log('ERROR', 'Score endpoint failed', { error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+});
+
 // ── Cross-platform IDE launching ─────────────────────
 
 // Try to load the Electron IDE launcher if available (in Electron mode)
@@ -787,7 +893,7 @@ app.post('/api/create-project', (req, res) => {
     );
     if (result.success) {
       log('INFO', `ICM project created: ${result.projectPath}`);
-      return res.json(result);
+      return res.status(201).json(result);
     }
     const code = result.code || 'SCAFFOLD_FAILED';
     const status = code === 'PATH_OUTSIDE_ROOT' ? 403 : code === 'ALREADY_EXISTS' ? 409 : 400;

@@ -13,6 +13,9 @@ import HeaderScene from './components/3d/HeaderScene';
 import EmptyStateScene from './components/3d/EmptyStateScene';
 import CreateWizard from './components/CreateWizard';
 import ReviewPanel from './components/ReviewPanel';
+import PromptingPanel from './components/builders/PromptingPanel';
+import SkillzPanel from './components/builders/SkillzPanel';
+import AgenticPanel from './components/builders/AgenticPanel';
 import OnboardingWizard, { isOnboardingComplete } from './components/OnboardingWizard';
 import { GlossaryPanel } from './components/JargonGlossary';
 import PrivacyBanner from './components/PrivacyBanner';
@@ -33,8 +36,13 @@ const MODES = [
   { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
   { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
   { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
+  { id: 'prompting', label: 'Prompting', icon: '🎯', desc: 'Craft and score AI prompts', placeholder: '' },
+  { id: 'skillz',    label: 'Skillz',    icon: '⚡', desc: 'Build Claude Code skills', placeholder: '' },
+  { id: 'agentic',   label: 'Agentic',   icon: '🤖', desc: 'Design AI agents',        placeholder: '' },
   { id: 'create',         label: 'Create',                  icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
 ];
+
+const BUILDER_MODES = ['prompting', 'skillz', 'agentic'];
 
 function TypingIndicator() {
   return (
@@ -122,6 +130,7 @@ export default function App() {
   const dragCounter = useRef(0);
   const reviewAttachRef = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
+  const [savedBuilderData, setSavedBuilderData] = useState(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
@@ -222,6 +231,12 @@ export default function App() {
       } else {
         setSavedReview(null);
       }
+      // Restore saved builder data when loading a builder conversation
+      if (conv.builderData) {
+        setSavedBuilderData(conv.builderData);
+      } else {
+        setSavedBuilderData(null);
+      }
     } catch {}
   }
 
@@ -266,7 +281,7 @@ export default function App() {
   }
 
   function handleRenameRequest(id) { const h = history.find(c => c.id === id); if (h) setRenaming({ id, title: h.title || 'Untitled' }); }
-  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); }
+  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedBuilderData(null); }
 
   async function handleSaveReview(reviewData) {
     const title = reviewData.filename
@@ -293,6 +308,26 @@ export default function App() {
       showToast('Review saved to history');
     } catch {}
   }
+
+  const handleSaveBuilder = useCallback((data) => {
+    const convData = {
+      id: activeConvId || undefined,
+      title: `${data.modeId === 'prompting' ? 'Prompt' : data.modeId === 'skillz' ? 'Skill' : 'Agent'}: ${data.formData?.skillName || data.formData?.agentName || data.formData?.purpose || 'Untitled'} (${new Date().toLocaleString()})`,
+      mode: data.modeId,
+      model: selectedModel,
+      messages: [],
+      builderData: data,
+      overallGrade: data.scoreData?.overallGrade,
+    };
+    fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(convData),
+    }).then(r => r.json()).then(result => {
+      if (result.id) setActiveConvId(result.id);
+      fetchHistory();
+    });
+  }, [activeConvId, selectedModel]);
 
   async function handleUpdateReviewDeepDive(deepDiveMessages) {
     if (!activeConvId || mode !== 'review') return;
@@ -452,20 +487,21 @@ export default function App() {
         onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
 
         {/* Header */}
-        <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex items-center gap-3 relative overflow-hidden">
+        <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 relative overflow-hidden">
           <HeaderScene />
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl relative z-10" aria-label="Toggle sidebar">&#9776;</button>
-          <div className="flex items-center gap-2.5 flex-1 min-w-0 relative z-10">
-            <img src="/logo.svg" alt="Th3rdAI" className="w-14 h-14" />
-            <div>
-              <h1 className="text-lg font-bold leading-tight">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white text-xl relative z-10 shrink-0 order-first" aria-label="Toggle sidebar">&#9776;</button>
+          <div className="flex items-center gap-3 shrink-0 relative z-10 min-w-0">
+            <img src="/logo.svg" alt="Th3rdAI" className="w-10 h-10 shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-base font-bold leading-tight truncate">
                 <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">Th3rdAI</span>
-                <span className="text-slate-300 ml-1.5 font-medium text-base">Code Companion</span>
+                <span className="text-slate-300 ml-1.5 font-medium">Code Companion</span>
               </h1>
               <p className="text-xs text-slate-500 truncate">Your friendly guide to all things code</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 relative z-10">
+          <div className="flex-1 min-w-[1rem] shrink" aria-hidden="true" />
+          <div className="flex items-center gap-2 shrink-0 relative z-10 flex-wrap">
             <button onClick={() => setShowGlossary(true)}
               className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors text-slate-400 border-slate-600 hover:bg-indigo-500/10"
               title="Jargon Glossary">
@@ -534,11 +570,11 @@ export default function App() {
           {/* Main chat area */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Mode Tabs */}
-            <div className="glass border-b border-slate-700/30 px-4 py-2 flex gap-2 overflow-x-auto relative overflow-hidden">
+            <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative overflow-hidden">
               <FloatingGeometry shapeCount={5} />
               {MODES.map(m => (
                 <button key={m.id} onClick={() => setMode(m.id)}
-                  className={`relative z-10 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all
+                  className={`relative z-10 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all
                     ${mode === m.id
                       ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
                       : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}>
@@ -563,6 +599,35 @@ export default function App() {
                 onSetSelectedModel={setSelectedModel}
                 onUpdateReviewDeepDive={handleUpdateReviewDeepDive}
               />
+            ) : BUILDER_MODES.includes(mode) ? (
+              mode === 'prompting' ? (
+                <PromptingPanel
+                  selectedModel={selectedModel}
+                  connected={connected}
+                  models={models}
+                  onToast={setToast}
+                  savedData={savedBuilderData}
+                  onSaveBuilder={handleSaveBuilder}
+                />
+              ) : mode === 'skillz' ? (
+                <SkillzPanel
+                  selectedModel={selectedModel}
+                  connected={connected}
+                  models={models}
+                  onToast={setToast}
+                  savedData={savedBuilderData}
+                  onSaveBuilder={handleSaveBuilder}
+                />
+              ) : (
+                <AgenticPanel
+                  selectedModel={selectedModel}
+                  connected={connected}
+                  models={models}
+                  onToast={setToast}
+                  savedData={savedBuilderData}
+                  onSaveBuilder={handleSaveBuilder}
+                />
+              )
             ) : (
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
               {mode === 'create' ? (
@@ -606,7 +671,7 @@ export default function App() {
             )}
 
             {/* Input — hidden in Create and Review modes */}
-            {mode !== 'create' && mode !== 'review' && (
+            {mode !== 'create' && mode !== 'review' && !BUILDER_MODES.includes(mode) && (
             <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
               <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
               <div className="flex gap-2">
