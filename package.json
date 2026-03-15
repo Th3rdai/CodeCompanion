@@ -2,6 +2,12 @@
   "name": "code-companion",
   "version": "1.0.0",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
+  "license": "MIT",
+  "author": {
+    "name": "James Avila",
+    "email": "james@th3rdai.com",
+    "url": "https://github.com/Th3rdai"
+  },
   "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",

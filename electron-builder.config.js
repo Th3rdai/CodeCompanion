@@ -1,6 +1,7 @@
 module.exports = {
   appId: 'com.th3rdai.code-companion',
   productName: 'Code Companion',
+  copyright: 'Copyright © 2026 James Avila / Th3rdAI',
   directories: { output: 'release' },
   asar: false,
   files: [
