@@ -149,13 +149,25 @@ export default function App() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
+  // Listen for upgrade requests from child components (e.g., BaseBuilderPanel 403)
+  useEffect(() => {
+    function handleShowUpgrade(e) {
+      const modeId = e.detail?.modeId;
+      const m = MODES.find(x => x.id === modeId) || MODES.find(x => x.id === mode);
+      if (m) setShowUpgrade(m);
+    }
+    window.addEventListener('show-upgrade', handleShowUpgrade);
+    return () => window.removeEventListener('show-upgrade', handleShowUpgrade);
+  }, [mode]);
+
   // Fetch license info
   async function fetchLicense() {
     try {
       const res = await fetch('/api/license');
       const data = await res.json();
       setLicenseInfo(data);
-    } catch {}
+      return data;
+    } catch { return null; }
   }
 
   // Reset to chat if current mode becomes locked (e.g., license deactivated)
@@ -170,18 +182,17 @@ export default function App() {
     fetchConfig();
     fetchModels();
     fetchHistory();
-    fetchLicense();
 
-    // Load last active mode in Electron
-    if (isElectron && window.electronAPI?.getLastMode) {
-      window.electronAPI.getLastMode().then((lastMode) => {
-        if (lastMode) {
-          _setMode(lastMode);
-        }
-      }).catch(() => {
-        // Fallback to default 'chat' mode
-      });
-    }
+    // Load license first, then restore last mode (avoids showing a locked mode briefly)
+    fetchLicense().then((info) => {
+      if (isElectron && window.electronAPI?.getLastMode) {
+        window.electronAPI.getLastMode().then((lastMode) => {
+          if (lastMode && !isModeLocked(lastMode, info || { tier: 'free' })) {
+            _setMode(lastMode);
+          }
+        }).catch(() => {});
+      }
+    });
 
     // Listen for port fallback notification in Electron
     if (isElectron && window.electronAPI?.onPortFallback) {
