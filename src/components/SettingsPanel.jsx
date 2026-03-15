@@ -19,7 +19,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
   const [ghValidating, setGhValidating] = useState(false);
   const [ghResult, setGhResult] = useState(null);
-  const { enabled: effects3D, setEnabled: setEffects3D, theme, setThemeId } = use3DEffects();
+  const { enabled: effects3D, setEnabled: setEffects3D, theme, setThemeId, customHue, setCustomHue } = use3DEffects();
 
   // Electron state
   const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
@@ -257,25 +257,68 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
               </button>
             </div>
 
-            {/* Theme Picker */}
+            {/* Theme Picker — Hue Slider + Preset Quick Picks */}
             <div className="glass rounded-lg p-4">
               <p className="text-sm font-medium text-slate-200 mb-1">Color Theme</p>
-              <p className="text-xs text-slate-500 mb-3">Choose a vibe for glows, borders, and accents</p>
-              <div className="flex items-center gap-3">
+              <p className="text-xs text-slate-500 mb-3">Slide to pick any color, or tap a preset</p>
+
+              {/* Hue Slider */}
+              <div className="mb-3">
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={theme.hue || 239}
+                  onChange={(e) => setCustomHue(parseInt(e.target.value, 10))}
+                  className="w-full h-3 rounded-full outline-none cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                  }}
+                  aria-label="Theme hue slider"
+                />
+                <style>{`
+                  input[type="range"][aria-label="Theme hue slider"]::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 50%;
+                    background: ${theme.primary};
+                    border: 2px solid white;
+                    box-shadow: 0 0 12px ${theme.primary}80;
+                    cursor: pointer;
+                    transition: box-shadow 0.2s ease;
+                  }
+                  input[type="range"][aria-label="Theme hue slider"]::-moz-range-thumb {
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 50%;
+                    background: ${theme.primary};
+                    border: 2px solid white;
+                    box-shadow: 0 0 12px ${theme.primary}80;
+                    cursor: pointer;
+                  }
+                `}</style>
+              </div>
+
+              {/* Preset Quick Picks */}
+              <div className="flex items-center gap-2">
                 {THEME_PRESETS.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setThemeId(t.id)}
-                    className={`w-8 h-8 rounded-full transition-all ${
-                      theme.id === t.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#141829] scale-110' : 'hover:scale-110'
+                    className={`w-6 h-6 rounded-full transition-all ${
+                      theme.id === t.id ? 'ring-2 ring-white ring-offset-1 ring-offset-[#141829] scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'
                     }`}
-                    style={{ background: t.primary, boxShadow: `0 0 10px ${t.primary}40` }}
+                    style={{ background: t.primary }}
                     title={t.label}
                     aria-label={`Select ${t.label} theme`}
                   />
                 ))}
+                <span className="text-xs text-slate-500 ml-2">{theme.label}</span>
               </div>
-              <p className="text-xs text-slate-400 mt-2">{theme.label}</p>
             </div>
 
             {/* Restart Tour / Reset Privacy */}
