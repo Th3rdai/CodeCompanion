@@ -47,3 +47,6 @@ __pycache__/
 .roo/
 .trae/
 .windsurf/
+*.png
+.playwright-mcp/
+.cc-build-projects.json
