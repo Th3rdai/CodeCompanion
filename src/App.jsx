@@ -822,7 +822,7 @@ export default function App() {
                       )}
                     </div>
                   ))}
-                  {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D />}
+                  {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D mode={mode} />}
                   <div ref={messagesEndRef} />
                 </>
               )}
