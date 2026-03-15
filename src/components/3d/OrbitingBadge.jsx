@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function OrbitingBadge({ status = 'online', size = 40 }) {
-  const { enabled } = use3DEffects();
+  const { enabled, theme } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
 
@@ -13,9 +13,9 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
       case 'offline':
         return '#ef4444';
       case 'streaming':
-        return '#6366f1';
+        return theme.primary;
       default:
-        return '#6366f1';
+        return theme.primary;
     }
   };
 
@@ -136,7 +136,7 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
         cleanup.then((fn) => fn?.());
       }
     };
-  }, [status, size, enabled]);
+  }, [status, size, enabled, theme]);
 
   if (!enabled) {
     const dotColor = getColor();

@@ -633,7 +633,17 @@ Format your response as:
         {scoreError && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-2">
             <span className="text-red-400 shrink-0">&times;</span>
-            <p className="text-sm text-red-300">{scoreError}</p>
+            <div className="flex-1">
+              <p className="text-sm text-red-300">{scoreError}</p>
+              {scoreError.includes('Pro') && (
+                <button
+                  onClick={() => { const evt = new CustomEvent('show-upgrade', { detail: { modeId: config.modeId } }); window.dispatchEvent(evt); }}
+                  className="mt-2 text-xs px-3 py-1.5 rounded-lg bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-600/40 transition-colors"
+                >
+                  Upgrade to Pro
+                </button>
+              )}
+            </div>
           </div>
         )}
 

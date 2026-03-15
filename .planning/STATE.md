@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 Phase: 7 of 7 (License Gating) — COMPLETE
 Feature-based license model: Implemented and validated
 Status: All tests pass (27 UI, 4 E2E, 16 unit), build clean
-Last activity: 2026-03-14 — Feature-based license model (features array, validateKey, isModeLocked, loadConversation guard)
+Last activity: 2026-03-14 — Theme customization (5 preset color themes with Settings picker)
 
 ## Post-v1.0 Enhancements (completed 2026-03-14)
 
@@ -72,6 +72,18 @@ Last activity: 2026-03-14 — Feature-based license model (features array, valid
 - Trial-expired path explicitly clears stale features from config
 - Only Skillz and Agentic are pro-gated; Prompting and Create remain free
 - `_getProFeatures()` derives pro features dynamically from `FEATURE_TIERS` registry
+
+### Theme Customization (completed 2026-03-14)
+
+- 5 preset color themes: Indigo Night (default), Emerald Matrix, Sunset Blaze, Cherry Blossom, Arctic Blue
+- Each theme defines primary/secondary/tertiary colors that cascade through CSS variables
+- `Effects3DContext` extended with `THEME_PRESETS`, `applyThemeToDOM()`, and localStorage persistence (`th3rdai_theme`)
+- `index.css` refactored: ~15 hardcoded `rgba(99,102,241,...)` replaced with `rgba(var(--color-neon-rgb), ...)` pattern
+- Theme picker in SettingsPanel General tab: row of colored circles with active ring indicator
+- 3D components updated: FloatingGeometry, TypingIndicator3D, TokenCounter, OrbitingBadge read theme from context
+- Sidebar ParticleField and App.jsx ParticleBurst/Splite use `theme.primary`
+- Status colors (green=online, red=offline) unchanged — semantic, not decorative
+- All 27 UI tests pass, build clean
 
 ### Pro Upgrade Module (completed 2026-03-15)
 

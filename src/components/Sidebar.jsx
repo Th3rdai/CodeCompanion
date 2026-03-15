@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import ContextMenu from './ContextMenu';
 import ParticleField from './3d/ParticleField';
+import { use3DEffects } from '../contexts/Effects3DContext';
 
 export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, onRename, onExport, onArchive, open, onClose, collapsed, onToggleCollapse, showArchived, onToggleArchived, modes }) {
   const [search, setSearch] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const { theme } = use3DEffects();
 
   const filtered = useMemo(() => {
     let list = history.filter(h => showArchived ? h.archived : !h.archived);
@@ -45,7 +47,7 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
         className={`fixed lg:relative top-0 left-0 h-full glass-heavy border-r border-slate-700/30 z-40 flex flex-col transition-all duration-200 overflow-hidden
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isCollapsed ? 'lg:w-14' : 'w-72'}`}>
-        <ParticleField particleCount={300} speed={0.15} color="#6366f1" />
+        <ParticleField particleCount={300} speed={0.15} color={theme.primary} />
 
         <div className={`border-b border-slate-700/30 relative z-10 ${isCollapsed ? 'p-2' : 'p-4 space-y-2'}`}>
           <button onClick={onNew}

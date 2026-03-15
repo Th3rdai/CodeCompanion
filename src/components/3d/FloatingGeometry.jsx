@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react';
 import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function FloatingGeometry({ shapeCount = 6 }) {
-  const { enabled } = use3DEffects();
+  const { enabled, theme } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
 
-  const colors = ['#6366f1', '#a855f7', '#60a5fa'];
+  const colors = [theme.primary, theme.secondary, theme.tertiary];
 
   useEffect(() => {
     if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -123,7 +123,7 @@ export default function FloatingGeometry({ shapeCount = 6 }) {
         cleanup.then((fn) => fn?.());
       }
     };
-  }, [shapeCount, enabled]);
+  }, [shapeCount, enabled, theme]);
 
   if (!enabled) return null;
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import McpServerPanel from './McpServerPanel';
 import McpClientPanel from './McpClientPanel';
-import { use3DEffects } from '../contexts/Effects3DContext';
+import { use3DEffects, THEME_PRESETS } from '../contexts/Effects3DContext';
 import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
 import { Download, Upload, Settings } from 'lucide-react';
@@ -19,7 +19,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
   const [ghValidating, setGhValidating] = useState(false);
   const [ghResult, setGhResult] = useState(null);
-  const { enabled: effects3D, setEnabled: setEffects3D } = use3DEffects();
+  const { enabled: effects3D, setEnabled: setEffects3D, theme, setThemeId } = use3DEffects();
 
   // Electron state
   const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
@@ -319,6 +319,27 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                   effects3D ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
+            </div>
+
+            {/* Theme Picker */}
+            <div className="glass rounded-lg p-4">
+              <p className="text-sm font-medium text-slate-200 mb-1">Color Theme</p>
+              <p className="text-xs text-slate-500 mb-3">Choose a vibe for glows, borders, and accents</p>
+              <div className="flex items-center gap-3">
+                {THEME_PRESETS.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setThemeId(t.id)}
+                    className={`w-8 h-8 rounded-full transition-all ${
+                      theme.id === t.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#141829] scale-110' : 'hover:scale-110'
+                    }`}
+                    style={{ background: t.primary, boxShadow: `0 0 10px ${t.primary}40` }}
+                    title={t.label}
+                    aria-label={`Select ${t.label} theme`}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 mt-2">{theme.label}</p>
             </div>
 
             {/* Restart Tour / Reset Privacy */}

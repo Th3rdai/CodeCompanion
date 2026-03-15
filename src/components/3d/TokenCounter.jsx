@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { use3DEffects } from '../../contexts/Effects3DContext';
 
 export default function TokenCounter({ tokens = 0, duration = 0 }) {
-  const { enabled } = use3DEffects();
+  const { enabled, theme } = use3DEffects();
   const containerRef = useRef(null);
   const [displayTokens, setDisplayTokens] = useState(0);
   const [opacity, setOpacity] = useState(0);
@@ -61,14 +61,14 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
     ctx.globalAlpha = opacity;
 
     // Draw wireframe box
-    ctx.strokeStyle = '#60a5fa';
+    ctx.strokeStyle = theme.tertiary;
     ctx.lineWidth = 2;
     const padding = 10;
     ctx.strokeRect(padding, padding, width - padding * 2, height - padding * 2);
 
     // Draw corner accents
     const cornerSize = 8;
-    ctx.strokeStyle = '#6366f1';
+    ctx.strokeStyle = theme.primary;
     ctx.lineWidth = 1.5;
 
     // Top-left
@@ -101,7 +101,7 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
 
     // Draw text
     ctx.globalAlpha = opacity;
-    ctx.fillStyle = '#60a5fa';
+    ctx.fillStyle = theme.tertiary;
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -111,11 +111,11 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
 
     if (duration) {
       ctx.font = '12px monospace';
-      ctx.fillStyle = '#a855f7';
+      ctx.fillStyle = theme.secondary;
       ctx.globalAlpha = opacity * 0.6;
       ctx.fillText(`${duration.toFixed(2)}s`, width / 2, height / 2 + 12);
     }
-  }, [displayTokens, opacity, duration]);
+  }, [displayTokens, opacity, duration, theme]);
 
   if (!enabled) {
     return (
@@ -141,7 +141,7 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
         height={60}
         style={{
           display: 'block',
-          filter: 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.4))',
+          filter: `drop-shadow(0 0 8px ${theme.tertiary}66)`,
         }}
       />
     </div>

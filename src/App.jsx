@@ -30,6 +30,7 @@ import ConnectionDot from './components/ConnectionDot';
 import UpgradePrompt from './components/UpgradePrompt';
 import { ChevronLeft, ChevronRight, PanelLeft } from 'lucide-react';
 import { isModeLocked } from './constants/tiers';
+import { use3DEffects } from './contexts/Effects3DContext';
 
 const MODES = [
   { id: 'chat',           label: 'Chat',                    icon: '💬', tier: 'free', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about code, building with AI, or just say hey..." },
@@ -88,6 +89,7 @@ function CopyButton({ text }) {
 export default function App() {
   // Electron detection
   const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+  const { theme } = use3DEffects();
 
   const [splashDismissed, setSplashDismissed] = useState(
     () => sessionStorage.getItem('th3rdai_splash_dismissed') === 'true'
@@ -607,7 +609,7 @@ export default function App() {
         </header>
 
         {/* Animated beam accent */}
-        <Splite color="#6366f1" height={1} speed={2} />
+        <Splite color={theme.primary} height={1} speed={2} />
 
         {/* Offline Banner — non-blocking info message */}
         {!connected && models.length > 0 && (
@@ -778,7 +780,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 relative">
-                  <ParticleBurst trigger={sendBurst} />
+                  <ParticleBurst trigger={sendBurst} color={theme.primary} />
                   <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel}
                     className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
                     {streaming ? '...' : 'Send'}

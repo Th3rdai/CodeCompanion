@@ -15,6 +15,7 @@
     "electron:build:mac": "npm run build && electron-builder --mac --config electron-builder.config.js",
     "electron:build:win": "npm run build && electron-builder --win --config electron-builder.config.js",
     "electron:build:linux": "npm run build && electron-builder --linux --config electron-builder.config.js",
+    "check:license-secrets": "node scripts/check-no-license-secrets.js",
     "test": "npx playwright test",
     "test:ui": "npx playwright test tests/ui --project=chromium",
     "test:e2e": "npx playwright test tests/e2e --project=chromium",
