@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 4 of 4 (all complete)
-status: verifying
-stopped_at: Completed 06-04-PLAN.md - Phase 06 complete
-last_updated: "2026-03-14T23:32:32.786Z"
-last_activity: 2026-03-14 — Desktop app integration verification
+current_plan: 1 of 1 (all complete)
+status: complete
+stopped_at: Completed 07-01-PLAN.md - Phase 07 complete
+last_updated: "2026-03-14T00:00:00.000Z"
+last_activity: 2026-03-14 — Feature-based license gating implementation
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 15
+  completed_plans: 15
   percent: 100
 ---
 
@@ -22,15 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Post-v1.0 — Builder mode scoring prompt engineering complete
+**Current focus:** Feature-based license gating complete — all 7 phases done
 
 ## Current Position
 
-Phase: 6 of 6 (Desktop App) — COMPLETE
-Current Plan: 4 of 4 (all complete)
-Next: Post-v1.0 enhancements
-Status: v1.0 roadmap complete — builder mode scoring engineered
-Last activity: 2026-03-14 — Builder scoring prompts engineered (Prompting, Skillz, Agentic)
+Phase: 7 of 7 (License Gating) — COMPLETE
+Feature-based license model: Implemented and validated
+Status: All tests pass (27 UI, 4 E2E, 16 unit), build clean
+Last activity: 2026-03-14 — Feature-based license model (features array, validateKey, isModeLocked, loadConversation guard)
 
 ## Post-v1.0 Enhancements (completed 2026-03-14)
 
@@ -59,6 +58,47 @@ Last activity: 2026-03-14 — Builder scoring prompts engineered (Prompting, Ski
 - "Apply Revision & Re-Score" button for one-click improvement cycle
 - Mode-aware revision prompts: TÂCHES for prompting, Agent Skills Spec for skillz, CrewAI+LangGraph for agentic
 - Verified D→B grade improvement across all three modes
+
+### Feature-Based License Gating (completed 2026-03-14)
+
+- Extended tier-only license model to feature-based: `features` array in license state enables independent mode licensing
+- `validateKey()` accepts both `{ tier: 'pro' }` (legacy) and `{ features: ['skillz','agentic'] }` (new) payloads
+- `isFeatureAllowed()` uses `features !== undefined` semantics — empty `[]` denies all pro features, `undefined` falls through to legacy tier check
+- `generate-license-key.js` supports `--features skillz,agentic` flag with validation against known feature names
+- `isModeLocked(modeId, licenseInfo)` updated to check features array then tier fallback
+- Mode-lock safety `useEffect` resets to chat when current mode becomes locked (deactivation, expiry)
+- `loadConversation` guard prevents loading history conversations in locked modes
+- SettingsPanel shows enabled features in license status display
+- Trial-expired path explicitly clears stale features from config
+- Only Skillz and Agentic are pro-gated; Prompting and Create remain free
+- `_getProFeatures()` derives pro features dynamically from `FEATURE_TIERS` registry
+
+### Pro Upgrade Module (completed 2026-03-15)
+
+**Session 1 — Backend License System:**
+- `lib/license-manager.js` — declarative `FEATURE_TIERS` registry, Ed25519 offline key validation, 14-day trial, app store purchase support
+- `lib/license-middleware.js` — `requireTier()` and `requireTierForMode` Express middleware
+- `scripts/generate-license-key.js` — Ed25519 keypair generation and license key signing utility
+- `server.js` — 4 license API routes, `requireTierForMode` on `/api/chat` and `/api/score`, `requireTier('mode:create')` on `/api/create-project`, `sanitizeConfigForClient` strips license key
+- `.gitignore` — added `scripts/.license-private-key` and `scripts/.license-public-key`
+
+**Session 2 — Frontend Integration:**
+- `src/constants/tiers.js` — frontend `MODE_TIERS` registry mirroring backend
+- `src/components/UpgradePrompt.jsx` — friendly upgrade modal with key activation, 14-day trial, purchase links
+- `src/App.jsx` — `tier` property on all MODES, `licenseInfo` state, locked-mode UI with PRO badges, UpgradePrompt modal
+- `src/components/SettingsPanel.jsx` — new License tab with tier display, key activation, trial start, deactivation
+- `src/components/builders/BaseBuilderPanel.jsx` — 403 upgrade_required handling
+- `src/components/CreateWizard.jsx` — friendly upgrade_required error message
+- `electron/preload.js` — license IPC bridge methods (getLicenseInfo, activateLicense, purchasePro, restorePurchases)
+- `electron/main.js` — license IPC handlers forwarding to server API
+- `tests/ui/builder-prompting.spec.js` — license API mock for Pro tier in tests
+
+**Design Decisions:**
+- Ed25519 asymmetric keys — public key in app, private key stays on signing server, offline-verifiable
+- Declarative FEATURE_TIERS — adding a premium feature = 1 line in backend + 1 line in frontend
+- 14-day full-access trial — one-time, tracked by `trialStartedAt`, no data loss on expiry
+- Middleware gating at route level keeps handlers clean
+- License state persisted in existing `.cc-config.json` via `updateConfig()`
 
 Progress: [██████████] 100%
 
@@ -144,7 +184,9 @@ None — all tasks complete.
 
 ### Future Backlog (lowest priority)
 
-- **Mac App Store** — Deferred to future work; not in current scope.
+- **Mac App Store receipt validation** — Electron `inAppPurchase` API integration for native purchases
+- **Microsoft Store** — Windows app store purchase flow
+- **Purchase page** — th3rdai.com/pro landing page for direct license key sales
 
 ### Blockers/Concerns
 
@@ -154,6 +196,7 @@ None — all tasks complete.
 
 ## Session Continuity
 
-Last session: 2026-03-14T23:26:45.904Z
-Stopped at: Completed 06-04-PLAN.md - Phase 06 complete
+Last session: 2026-03-14
+Stopped at: Phase 7 (License Gating) complete — feature-based model implemented, all tests pass
 Resume file: None
+Next: Phase 8 (Payment Integration) if needed, or ship v1.0

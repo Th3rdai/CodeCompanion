@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Actionable Guidance** - Copy-pasteable fix prompts, review history persistence, and model capability warnings (completed 2026-03-14)
 - [x] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging (completed 2026-03-14)
 - [x] **Phase 6: Desktop App** - Electron packaging for self-contained macOS, Linux, and Windows desktop application (completed 2026-03-14)
+- [x] **Phase 7: License Gating** - Feature-based license model; gate Skillz and Agentic; wire license API and Settings UI (completed 2026-03-14)
 
 ## Phase Details
 
@@ -113,6 +114,20 @@ Plans:
 - [x] 06-03-PLAN.md — electron-builder config, auto-updater with pre-update backup, app resources, landing page
 - [x] 06-04-PLAN.md — Integration smoke test and human verification of complete desktop app
 
+### Phase 7: License Gating
+**Goal**: Wire existing license infrastructure so builder modes (Prompting, Skillz, Agentic) and Create mode are gated. Extend license model to feature-based (independent licensing per mode). Expose license API, filter frontend modes, add License UI in Settings.
+**Depends on**: Phase 6 (desktop app complete)
+**Requirements**: LIC-01, LIC-02, LIC-03
+**Success Criteria** (what must be TRUE):
+  1. Unlicensed users cannot access /api/score or /api/create-project (403 upgrade_required)
+  2. Frontend shows only licensed modes in mode tabs
+  3. Settings has License section: activate key, start trial, view status, deactivate
+  4. Feature-based keys support independent Prompting/Skillz/Agentic licensing; legacy tier:pro keys grant all
+**Plans**: 1 plan
+
+Plans:
+- [x] 07-01-PLAN.md — Feature-based license model, server wiring, frontend filtering, Settings License UI
+
 ## Progress
 
 **Execution Order:**
@@ -127,3 +142,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 4. Actionable Guidance | 2/2 | Complete | 2026-03-14 |
 | 5. Onboarding and Help | 2/2 | Complete | 2026-03-14 |
 | 6. Desktop App | 4/4 | Complete | 2026-03-14 |
+| 7. License Gating | 1/1 | Complete | 2026-03-14 |

@@ -34,6 +34,12 @@
 - [x] **UX-04**: Privacy-first messaging visible in UI ("Your code never leaves your computer")
 - [x] **UX-05**: Model capability warnings — gentle guidance when a small model may give poor review results
 
+### License Gating (Phase 7)
+
+- [ ] **LIC-01**: Builder modes (Prompting, Skillz, Agentic) and Create mode are gated by license; unlicensed users see upgrade prompts
+- [ ] **LIC-02**: License model supports independent feature licensing (each mode can be sold separately)
+- [ ] **LIC-03**: Settings UI allows activating license key, starting trial, viewing status, and deactivating
+
 ## v2 Requirements
 
 ### Multi-File Review
@@ -84,10 +90,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-03 | Phase 5 | Complete |
 | UX-04 | Phase 5 | Complete |
 | UX-05 | Phase 4 | Complete |
+| LIC-01 | Phase 7 | Pending |
+| LIC-02 | Phase 7 | Pending |
+| LIC-03 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 20
+- License (Phase 7): 3 total
+- Mapped to phases: 23
 - Unmapped: 0
 
 ---

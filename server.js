@@ -6,6 +6,8 @@ const { Readable } = require('stream');
 // ── Lib imports ──────────────────────────────────────
 const { createLogger } = require('./lib/logger');
 const { initConfig, getConfig, updateConfig } = require('./lib/config');
+const { initLicense, getLicenseInfo, activateLicense, deactivateLicense, startTrial, isFeatureAllowed, FEATURE_TIERS } = require('./lib/license-manager');
+const { requireTier, requireTierForMode } = require('./lib/license-middleware');
 const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
@@ -38,6 +40,16 @@ function sanitizeConfigForClient(config) {
   safe.githubTokenConfigured = Boolean(safe.githubToken);
   if ('githubToken' in safe) {
     delete safe.githubToken;
+  }
+
+  // Strip raw license key from client responses, expose only tier info
+  if (safe.license) {
+    safe.license = {
+      tier: safe.license.tier || 'free',
+      features: safe.license.features || [],
+      source: safe.license.source || null,
+      expiresAt: safe.license.expiresAt || null,
+    };
   }
 
   if (safe.mcpServers && typeof safe.mcpServers === 'object') {
@@ -102,6 +114,7 @@ function createRateLimiter({ name, max, windowMs, methods }) {
 // ── Initialize modules ───────────────────────────────
 const dataRoot = process.env.CC_DATA_DIR || __dirname;
 initConfig(dataRoot);
+initLicense();
 initHistory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 
@@ -195,6 +208,34 @@ app.post('/api/config', (req, res) => {
   res.json(sanitizeConfigForClient(getConfig()));
 });
 
+// ── License API ─────────────────────────────────────
+
+app.get('/api/license', (req, res) => {
+  res.json(getLicenseInfo());
+});
+
+app.post('/api/license/activate', (req, res) => {
+  const { key } = req.body || {};
+  if (!key) return res.status(400).json({ error: 'License key is required' });
+  const result = activateLicense(key);
+  if (!result.success) return res.status(400).json(result);
+  log('INFO', `License activated: tier=${result.tier}`);
+  res.json(result);
+});
+
+app.post('/api/license/deactivate', (req, res) => {
+  const result = deactivateLicense();
+  log('INFO', 'License deactivated');
+  res.json(result);
+});
+
+app.post('/api/license/trial', (req, res) => {
+  const result = startTrial();
+  if (!result.success) return res.status(400).json(result);
+  log('INFO', `Trial started: ${result.trialDaysLeft} days`);
+  res.json(result);
+});
+
 // ── GET /api/models ──────────────────────────────────
 
 app.get('/api/models', async (req, res) => {
@@ -225,7 +266,7 @@ app.get('/api/models', async (req, res) => {
 
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', requireTierForMode, async (req, res) => {
   const { model, messages, mode } = req.body;
 
   if (!model || !messages || !mode) {
@@ -561,7 +602,7 @@ app.post('/api/review', async (req, res) => {
 
 // ── POST /api/score (builder mode scoring) ────────────
 
-app.post('/api/score', async (req, res) => {
+app.post('/api/score', requireTierForMode, async (req, res) => {
   const { model, mode, content, metadata } = req.body;
 
   if (!model || !content || !mode) {
@@ -878,7 +919,7 @@ app.post('/api/files/upload', (req, res) => {
 });
 
 // ── POST /api/create-project (ICM scaffold) ───────────
-app.post('/api/create-project', (req, res) => {
+app.post('/api/create-project', requireTier('mode:create'), (req, res) => {
   log('INFO', 'create-project body keys: ' + Object.keys(req.body || {}).join(', '));
   const { name, description, role, audience, tone, stages, outputRoot, overwrite, makerEnabled } = req.body;
   if (!name || !outputRoot) {
