@@ -1,14 +1,29 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
-import { marked } from 'marked';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { marked, Renderer } from 'marked';
 import hljs from 'highlight.js';
 import DOMPurify from 'dompurify';
 import 'highlight.js/styles/github-dark.min.css';
 import { highlightJargon, GLOSSARY } from './JargonGlossary';
+import MermaidBlock from './MermaidBlock';
 
-function renderMarkdown(text, enableJargon) {
+// ── Mermaid sentinel pattern ─────────────────────────
+const MERMAID_SENTINEL_RE = /<div data-mermaid-source="([^"]*)" class="mermaid-placeholder"><\/div>/g;
+
+function renderMarkdown(text, enableJargon, streaming) {
   if (!text) return '';
   try {
-    const raw = marked.parse(text, { breaks: true });
+    const renderer = new Renderer();
+    const originalCode = renderer.code.bind(renderer);
+
+    renderer.code = function({ text: codeText, lang, escaped }) {
+      if (lang === 'mermaid' && !streaming) {
+        const encoded = btoa(unescape(encodeURIComponent(codeText)));
+        return `<div data-mermaid-source="${encoded}" class="mermaid-placeholder"></div>`;
+      }
+      return originalCode({ text: codeText, lang, escaped });
+    };
+
+    const raw = marked.parse(text, { breaks: true, renderer });
     let sanitized = DOMPurify.sanitize(raw, {
       USE_PROFILES: { html: true },
       ALLOW_DATA_ATTR: true,
@@ -78,11 +93,9 @@ function addCodeBlockButtons(container) {
     if (!code) return;
 
     pre.style.position = 'relative';
-    // Add padding to prevent button overlap with code content
     pre.style.paddingTop = '32px';
     pre.style.paddingRight = '12px';
 
-    // Use the original markdown language class (set before hljs), not hljs auto-detected
     const lang = code.dataset.originalLang || getLanguageFromClass(code);
     const ext = getFileExtension(lang);
 
@@ -90,7 +103,6 @@ function addCodeBlockButtons(container) {
     toolbar.className = 'code-actions';
     toolbar.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;opacity:1;z-index:10;';
 
-    // Language label
     if (lang) {
       const label = document.createElement('span');
       label.textContent = lang;
@@ -98,7 +110,6 @@ function addCodeBlockButtons(container) {
       toolbar.appendChild(label);
     }
 
-    // Copy button
     const copyBtn = document.createElement('button');
     copyBtn.textContent = 'Copy';
     copyBtn.title = 'Copy code to clipboard';
@@ -110,7 +121,6 @@ function addCodeBlockButtons(container) {
     });
     toolbar.appendChild(copyBtn);
 
-    // Download button
     const dlBtn = document.createElement('button');
     dlBtn.textContent = 'Download';
     dlBtn.title = `Download as .${ext} file`;
@@ -134,25 +144,71 @@ function addCodeBlockButtons(container) {
   });
 }
 
-export default function MarkdownContent({ content, enableJargon = true }) {
-  const ref = useRef(null);
+function applyHighlightAndButtons(container) {
+  if (!container) return;
+  container.querySelectorAll('pre code').forEach(block => {
+    const origLang = getLanguageFromClass(block);
+    if (origLang) block.dataset.originalLang = origLang;
+    hljs.highlightElement(block);
+  });
+  addCodeBlockButtons(container);
+}
+
+// ── Split HTML into segments around mermaid placeholders ──
+function splitAtMermaid(html) {
+  const segments = [];
+  let lastIndex = 0;
+
+  // Reset regex state
+  MERMAID_SENTINEL_RE.lastIndex = 0;
+
+  let match;
+  while ((match = MERMAID_SENTINEL_RE.exec(html)) !== null) {
+    // Add HTML before this mermaid block
+    if (match.index > lastIndex) {
+      segments.push({ type: 'html', content: html.slice(lastIndex, match.index) });
+    }
+    // Add mermaid source (base64 decoded)
+    try {
+      const decoded = decodeURIComponent(escape(atob(match[1])));
+      segments.push({ type: 'mermaid', content: decoded });
+    } catch {
+      // If decode fails, keep as HTML
+      segments.push({ type: 'html', content: match[0] });
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining HTML
+  if (lastIndex < html.length) {
+    segments.push({ type: 'html', content: html.slice(lastIndex) });
+  }
+
+  return segments;
+}
+
+// ── Component ────────────────────────────────────────
+
+export default function MarkdownContent({ content, enableJargon = true, streaming = false }) {
+  const containerRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const dismissedAt = useRef(0);
 
+  // Memoize the rendered HTML to avoid re-parsing on every render
+  const html = useMemo(() => renderMarkdown(content, enableJargon, streaming), [content, enableJargon, streaming]);
+
+  // Check if there are mermaid blocks
+  const hasMermaid = html.includes('data-mermaid-source');
+  const segments = useMemo(() => hasMermaid ? splitAtMermaid(html) : null, [html, hasMermaid]);
+
+  // Apply hljs + code buttons to all HTML segments
   useEffect(() => {
-    if (ref.current) {
-      // Capture original language class before hljs overwrites it
-      ref.current.querySelectorAll('pre code').forEach(block => {
-        const origLang = getLanguageFromClass(block);
-        if (origLang) block.dataset.originalLang = origLang;
-        hljs.highlightElement(block);
-      });
-      addCodeBlockButtons(ref.current);
+    if (containerRef.current) {
+      applyHighlightAndButtons(containerRef.current);
     }
-  }, [content]);
+  }, [html]);
 
   const handleMouseOver = useCallback((e) => {
-    // Suppress re-trigger briefly after user dismissed tooltip
     if (Date.now() - dismissedAt.current < 500) return;
     const target = e.target;
     if (target.classList?.contains('jargon-term')) {
@@ -184,7 +240,21 @@ export default function MarkdownContent({ content, enableJargon = true }) {
 
   return (
     <div onMouseOver={handleMouseOver} onMouseOut={handleMouseOut}>
-      <div ref={ref} className="prose" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, enableJargon) }} />
+      <div ref={containerRef} className="prose">
+        {segments ? (
+          // Mixed content: HTML segments + MermaidBlock components
+          segments.map((seg, i) =>
+            seg.type === 'mermaid' ? (
+              <MermaidBlock key={`m-${i}`} code={seg.content} />
+            ) : (
+              <div key={`h-${i}`} dangerouslySetInnerHTML={{ __html: seg.content }} />
+            )
+          )
+        ) : (
+          // Fast path: no mermaid blocks — single HTML render (same as before)
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        )}
+      </div>
       {tooltip && (
         <div
           className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in cursor-pointer"

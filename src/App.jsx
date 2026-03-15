@@ -39,6 +39,7 @@ const MODES = [
   { id: 'refactor',       label: 'Clean Up',                icon: '✨', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
   { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
   { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
+  { id: 'diagram',        label: 'Diagram',                 icon: '📊', desc: 'Visualize systems and processes',  placeholder: "Describe a system, process, or relationship and I'll create a diagram..." },
   { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
   { id: 'prompting',      label: 'Prompting',               icon: '🎯', desc: 'Craft and score AI prompts',       placeholder: '' },
   { id: 'skillz',         label: 'Skillz',                  icon: '⚡', desc: 'Build Claude Code skills',         placeholder: '' },
@@ -815,7 +816,7 @@ export default function App() {
                   ) : null}
                   {messages.map((msg, i) => (
                     <div key={i} className="relative group">
-                      <MessageBubble role={msg.role} content={msg.content} />
+                      <MessageBubble role={msg.role} content={msg.content} streaming={streaming && i === messages.length - 1 && msg.role === 'assistant'} />
                       {msg.role === 'assistant' && !streaming && (
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
                       )}

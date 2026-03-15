@@ -47,6 +47,7 @@
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.577.0",
     "marked": "^17.0.4",
+    "mermaid": "^11.13.0",
     "postcss": "^8.5.8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

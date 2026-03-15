@@ -18,16 +18,19 @@ You are a full-stack developer building **Code Companion**, a web application th
 | mcp-server.js | MCP stdio entry point |
 | lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, mcp-client-manager, tool-call-handler) |
 | mcp/ | MCP tool registrations and Zod schemas |
-| src/App.jsx | Main React app with 11 modes |
-| src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar with multi-select, etc.) |
+| src/App.jsx | Main React app with 12 modes |
+| src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar with multi-select, MermaidBlock, etc.) |
 | src/components/builders/ | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel) |
 | src/components/3d/ | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.) |
 | .planning/ | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md) |
 | test/ | Unit tests and Playwright E2E tests |
 | dist/ | Production build output |
 
-## Eleven Modes
-Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Review, Create, Prompting, Skillz, Agentic
+## Twelve Modes
+Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Diagram, Review, Create, Prompting, Skillz, Agentic
+
+### Diagram Mode
+Renders Mermaid.js diagrams inline in AI responses. Any mode can produce `\`\`\`mermaid` code blocks that render as interactive SVG diagrams. Mermaid.js is lazy-loaded on first use (separate Vite chunk). During streaming, mermaid blocks show as raw code; after completion, they render as diagrams. Export buttons (Source/SVG/PNG) appear on each diagram. The `MarkdownContent` component uses a custom `marked` renderer to intercept mermaid blocks and a split-and-render pattern to mix HTML segments with React `MermaidBlock` components.
 
 ### Builder Modes (Prompting, Skillz, Agentic)
 Three builder modes share a common BaseBuilderPanel architecture with config-driven fields, AI-powered scoring via `/api/score`, and CRUD workflows (create, load, view, revise, score, save, download). Each mode scores content across 4 categories with letter grades (A-F). Revision flow: AI generates improved content in `<revised_prompt>` tags → user clicks "Apply Revision & Re-Score" → formDataRef syncs immediately → re-scoring reads updated content.

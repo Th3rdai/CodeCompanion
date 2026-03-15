@@ -25,7 +25,7 @@ export default function MessageBubble({ role, content, streaming }) {
           <pre className="font-mono text-sm whitespace-pre-wrap text-slate-200">{content}</pre>
         ) : (
           <div className="relative group">
-            <MarkdownContent content={content} />
+            <MarkdownContent content={content} streaming={streaming} />
             {!streaming && (
               <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <CopyButton text={content} />

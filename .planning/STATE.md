@@ -215,6 +215,15 @@ Recent decisions affecting current work:
 - **Implementation:** lib/build-scaffolder.js, POST /api/build-project, BuildWizard.jsx, App.jsx (Build in MODES, handleBuildSuccess), tiers.js and license-manager.js (mode:build free)
 - **Scope:** Scaffold combines GSD (.planning/) and ICM (stages/); temp-dir strategy; path safety and error codes; Build reuses createModeAllowedRoots
 
+### Mermaid.js Diagram Rendering (completed 2026-03-15)
+
+- **MermaidBlock.jsx**: New component — lazy-loads mermaid.js, renders SVG with dark theme (indigo colors), error fallback with raw code, export toolbar (Source/SVG/PNG)
+- **MarkdownContent.jsx**: Custom `marked` renderer intercepts ` ```mermaid ` blocks, emits `<div data-mermaid-source>` sentinels (survive DOMPurify), split-and-render pattern produces mixed HTML + MermaidBlock React children. Fast path (no mermaid) unchanged.
+- **Streaming safety**: `streaming` prop threaded from App.jsx → MessageBubble → MarkdownContent. During streaming, mermaid renders as regular code. After completion, renders as diagram.
+- **Diagram mode**: New mode with system prompt tuned for flowcharts, sequence, ER, class, state, Gantt, pie, mindmap diagrams. Works across all modes (any response with mermaid blocks renders diagrams).
+- **Vite chunking**: mermaid in separate chunk (~532KB), not loaded until first diagram encounter. Main bundle decreased.
+- **Files**: MermaidBlock.jsx (new), MarkdownContent.jsx, MessageBubble.jsx, App.jsx, lib/prompts.js, index.css, vite.config.js
+
 ### File Loading for Builder Forms (completed 2026-03-15)
 
 - **File Browser → Builder routing:** Files selected in File Browser now route to builder panels (Prompting, Skillz, Agentic) via `builderAttachRef` pattern (same as existing `reviewAttachRef`)
