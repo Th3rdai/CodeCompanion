@@ -39,7 +39,7 @@ function FileTreeNode({ node, depth, onFileClick }) {
   );
 }
 
-export default function FileBrowser({ projectFolder, onAttachFile, onClose, onClearFolder, onSetFolder }) {
+export default function FileBrowser({ projectFolder, onAttachFile, onClose, onClearFolder, onSetFolder, attachLabel }) {
   const [tree, setTree] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -341,7 +341,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
           <div className="p-2 border-t border-slate-700/30">
             <button onClick={handleAttach}
               className="w-full btn-neon text-white text-sm rounded-lg py-2.5 font-medium">
-              + Attach to Chat
+              {attachLabel || '+ Attach to Chat'}
             </button>
           </div>
         </div>

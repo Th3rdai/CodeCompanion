@@ -215,6 +215,14 @@ Recent decisions affecting current work:
 - **Implementation:** lib/build-scaffolder.js, POST /api/build-project, BuildWizard.jsx, App.jsx (Build in MODES, handleBuildSuccess), tiers.js and license-manager.js (mode:build free)
 - **Scope:** Scaffold combines GSD (.planning/) and ICM (stages/); temp-dir strategy; path safety and error codes; Build reuses createModeAllowedRoots
 
+### File Loading for Builder Forms (completed 2026-03-15)
+
+- **File Browser → Builder routing:** Files selected in File Browser now route to builder panels (Prompting, Skillz, Agentic) via `builderAttachRef` pattern (same as existing `reviewAttachRef`)
+- **Load from File button:** Native file picker button in BaseBuilderPanel header (input phase) — accepts .md, .txt, .yaml, .yml
+- **parseLoaded enhancement:** SkillzPanel and AgenticPanel `parseLoaded()` now handle YAML frontmatter (`---` delimiters), extract description from frontmatter, and fall back to treating entire body as instructions when no `## Instructions` section exists
+- **Contextual button labels:** FileBrowser "Attach to Chat" button changes to "Load into Form" in builder modes and "Load for Review" in review mode
+- **Files changed:** App.jsx, FileBrowser.jsx, BaseBuilderPanel.jsx, SkillzPanel.jsx, AgenticPanel.jsx
+
 ### Pending Todos
 
 - **Phase 16 Phase 2:** Simple View — BuildHeader (status badge, progress bar, advanced toggle), BuildSimpleView ("What's Next" AI card, quick action buttons), POST /api/build/projects/:id/next-action endpoint with chatComplete

@@ -32,6 +32,8 @@ Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code 
 ### Builder Modes (Prompting, Skillz, Agentic)
 Three builder modes share a common BaseBuilderPanel architecture with config-driven fields, AI-powered scoring via `/api/score`, and CRUD workflows (create, load, view, revise, score, save, download). Each mode scores content across 4 categories with letter grades (A-F). Revision flow: AI generates improved content in `<revised_prompt>` tags → user clicks "Apply Revision & Re-Score" → formDataRef syncs immediately → re-scoring reads updated content.
 
+**File Loading:** Files can be loaded into builder forms via two paths: (1) File Browser "Load into Form" button routes files through `builderAttachRef` → `loadFileIntoForm()`, or (2) native "Load from File" picker in the builder header. Both call `config.parseLoaded(content)` to deserialize file content into form fields. The `parseLoaded` functions handle YAML frontmatter (`---` delimiters) and fall back to treating the full body as instructions when no structured sections are found.
+
 **Scoring Methodologies:**
 - **Prompting**: TÂCHES meta-prompting methodology — evaluates clarity (Golden Rule), specificity, structure (XML tags, success criteria), effectiveness
 - **Skillz**: Agent Skills Specification (agentskills.io) — evaluates completeness, format compliance (name format, frontmatter, progressive disclosure), instruction quality (WHY explanations, workflow phases), reusability

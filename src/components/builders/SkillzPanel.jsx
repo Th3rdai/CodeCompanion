@@ -56,30 +56,54 @@ const SKILLZ_CONFIG = {
     const result = { skillName: '', description: '', instructions: '', inputPattern: '', outputFormat: '', exampleUsage: '' };
     if (!content) return result;
 
+    let body = content;
+
+    // Handle YAML frontmatter (--- ... ---) — common in real SKILL.md files
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+    if (fmMatch) {
+      const fm = fmMatch[1];
+      body = fmMatch[2].trim();
+
+      // Extract description from frontmatter
+      const descMatch = fm.match(/description:\s*(.+)/);
+      if (descMatch) result.description = descMatch[1].trim().replace(/^["']|["']$/g, '');
+    }
+
     // Parse heading
-    const nameMatch = content.match(/^# (.+)$/m);
+    const nameMatch = body.match(/^# (.+)$/m);
     if (nameMatch) result.skillName = nameMatch[1];
 
     // Parse sections
-    const sections = content.split(/\n## /);
+    const sections = body.split(/\n## /);
     // First section after title is description (before any ## heading)
     if (sections[0]) {
       const afterTitle = sections[0].replace(/^# .+\n*/, '').trim();
       if (afterTitle && !afterTitle.startsWith('## ')) {
-        result.description = afterTitle;
+        // If no description from frontmatter, use the text after the title
+        if (!result.description) result.description = afterTitle;
       }
     }
 
+    let hasInstructionSection = false;
     for (let i = 1; i < sections.length; i++) {
       const section = sections[i];
       const headerEnd = section.indexOf('\n');
       const header = section.substring(0, headerEnd).trim().toLowerCase();
-      const body = section.substring(headerEnd).trim();
+      const sectionBody = section.substring(headerEnd).trim();
 
-      if (header.includes('instruction')) result.instructions = body;
-      else if (header.includes('input')) result.inputPattern = body;
-      else if (header.includes('output')) result.outputFormat = body;
-      else if (header.includes('example')) result.exampleUsage = body;
+      if (header.includes('instruction')) { result.instructions = sectionBody; hasInstructionSection = true; }
+      else if (header.includes('input') && header.includes('pattern')) result.inputPattern = sectionBody;
+      else if (header.includes('output') && header.includes('format')) result.outputFormat = sectionBody;
+      else if (header.includes('example')) result.exampleUsage = sectionBody;
+    }
+
+    // If no ## Instructions section found, treat the entire body (after title/description) as instructions
+    if (!hasInstructionSection) {
+      const afterHeading = body.replace(/^# .+\n*/, '').trim();
+      const afterDescription = result.description && afterHeading.startsWith(result.description)
+        ? afterHeading.slice(result.description.length).trim()
+        : afterHeading;
+      if (afterDescription) result.instructions = afterDescription;
     }
 
     return result;

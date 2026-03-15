@@ -66,6 +66,7 @@ export default function BaseBuilderPanel({
   savedData,
   onSaveBuilder,
   config,
+  onLoadFile,
 }) {
   // ── State ────────────────────────────────────────────
   const [phase, setPhase] = useState('input'); // 'input' | 'loading' | 'scored' | 'revising'
@@ -77,6 +78,7 @@ export default function BaseBuilderPanel({
   const [reviseStreaming, setReviseStreaming] = useState(false);
 
   const reviseEndRef = useRef(null);
+  const fileInputRef = useRef(null);
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
   const isLoading = phase === 'loading';
@@ -107,6 +109,43 @@ export default function BaseBuilderPanel({
       }
     }
   }, [savedData]);
+
+  // ── Load file into form ────────────────────────────────
+  const loadFileIntoForm = useCallback((fileData) => {
+    if (!fileData?.content || !config?.parseLoaded) return;
+    const parsed = config.parseLoaded(fileData.content);
+    if (parsed) {
+      setFormData(parsed);
+      formDataRef.current = parsed;
+      setScoreData(null);
+      setScoreError('');
+      setReviseMessages([]);
+      setPhase('input');
+      onToast?.(`Loaded: ${fileData.name}`);
+    }
+  }, [config, onToast]);
+
+  // ── Expose loadFileIntoForm via ref for App.jsx routing ──
+  useEffect(() => {
+    if (onLoadFile) {
+      onLoadFile.current = loadFileIntoForm;
+    }
+    return () => {
+      if (onLoadFile) onLoadFile.current = null;
+    };
+  }, [onLoadFile, loadFileIntoForm]);
+
+  // ── Native file input handler ──────────────────────────
+  const handleFileInput = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      loadFileIntoForm({ name: file.name, content: ev.target.result, lines: ev.target.result.split('\n').length });
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, [loadFileIntoForm]);
 
   // ── Field update helper ──────────────────────────────
   const updateField = useCallback((name, value) => {
@@ -624,6 +663,22 @@ Format your response as:
           {config.subtitle && (
             <p className="text-sm text-slate-400 max-w-md mx-auto">{config.subtitle}</p>
           )}
+          {/* Load from file button */}
+          <div className="flex justify-center pt-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".md,.txt,.yaml,.yml"
+              onChange={handleFileInput}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-400 hover:text-slate-200 hover:border-slate-500 hover:bg-slate-700/30 transition-colors"
+            >
+              Load from File
+            </button>
+          </div>
         </div>
 
         {/* Error */}

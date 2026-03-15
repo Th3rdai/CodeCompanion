@@ -151,11 +151,15 @@ export default function App() {
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);
   const reviewAttachRef = useRef(null);
+  const builderAttachRef = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
   const [savedBuilderData, setSavedBuilderData] = useState(null);
   const [buildProjects, setBuildProjects] = useState(null); // null=loading, []=empty
   const [activeBuildProject, setActiveBuildProject] = useState(null);
   const [showBuildWizard, setShowBuildWizard] = useState(false);
+
+  // Auto-update state
+  const [updateBanner, setUpdateBanner] = useState(null); // null | { type: 'available' | 'ready', version: string }
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
@@ -189,6 +193,18 @@ export default function App() {
       });
     }
   }, [isElectron]);
+
+  // Listen for auto-update events (Electron only)
+  useEffect(() => {
+    if (!window.electronAPI?.isElectron) return;
+
+    window.electronAPI.onUpdateAvailable((info) => {
+      setUpdateBanner({ type: 'available', version: info.version });
+    });
+    window.electronAPI.onUpdateDownloaded((info) => {
+      setUpdateBanner({ type: 'ready', version: info.version });
+    });
+  }, []);
 
   function showToast(msg) { setToast(msg); }
 
@@ -453,6 +469,11 @@ export default function App() {
       reviewAttachRef.current(fileData);
       return;
     }
+    // In builder modes, route file to BaseBuilderPanel to load into form
+    if (BUILDER_MODES.includes(mode) && builderAttachRef.current) {
+      builderAttachRef.current(fileData);
+      return;
+    }
     setAttachedFiles(prev => [...prev, fileData]);
     showToast(`Attached: ${fileData.name}`);
   }
@@ -566,6 +587,32 @@ export default function App() {
 
   return (
     <div className="h-screen flex mesh-gradient">
+      {/* Auto-update banner */}
+      {updateBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-3 px-4 py-2 text-sm"
+          style={{ background: updateBanner.type === 'ready' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(99, 102, 241, 0.15)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <span className="text-slate-200">
+            {updateBanner.type === 'available'
+              ? `Version ${updateBanner.version} is available and downloading...`
+              : `Version ${updateBanner.version} is ready to install`}
+          </span>
+          {updateBanner.type === 'ready' && (
+            <button
+              onClick={() => window.electronAPI.restartForUpdate()}
+              className="btn-neon text-white rounded px-3 py-1 text-xs font-medium"
+            >
+              Restart &amp; Update
+            </button>
+          )}
+          <button
+            onClick={() => setUpdateBanner(null)}
+            className="text-slate-400 hover:text-white ml-2"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <a href="#chat-input" className="skip-link">Skip to chat input</a>
 
       <Sidebar history={history} activeId={activeConvId} onSelect={loadConversation} onNew={startNew}
@@ -705,6 +752,7 @@ export default function App() {
                   onToast={setToast}
                   savedData={savedBuilderData}
                   onSaveBuilder={handleSaveBuilder}
+                  onLoadFile={builderAttachRef}
                 />
               ) : mode === 'skillz' ? (
                 <SkillzPanel
@@ -714,6 +762,7 @@ export default function App() {
                   onToast={setToast}
                   savedData={savedBuilderData}
                   onSaveBuilder={handleSaveBuilder}
+                  onLoadFile={builderAttachRef}
                 />
               ) : (
                 <AgenticPanel
@@ -723,6 +772,7 @@ export default function App() {
                   onToast={setToast}
                   savedData={savedBuilderData}
                   onSaveBuilder={handleSaveBuilder}
+                  onLoadFile={builderAttachRef}
                 />
               )
             ) : (
@@ -855,6 +905,7 @@ export default function App() {
               <FileBrowser
                 projectFolder={projectFolder}
                 onAttachFile={attachFile}
+                attachLabel={BUILDER_MODES.includes(mode) ? 'Load into Form' : mode === 'review' ? 'Load for Review' : '+ Attach to Chat'}
                 onClose={() => setShowFileBrowser(false)}
                 onClearFolder={async () => {
                   setProjectFolder('');
