@@ -19,7 +19,7 @@ You are a full-stack developer building **Code Companion**, a web application th
 | lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, mcp-client-manager, tool-call-handler) |
 | mcp/ | MCP tool registrations and Zod schemas |
 | src/App.jsx | Main React app with 11 modes |
-| src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, etc.) |
+| src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar with multi-select, etc.) |
 | src/components/builders/ | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel) |
 | src/components/3d/ | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.) |
 | .planning/ | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md) |

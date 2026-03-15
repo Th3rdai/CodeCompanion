@@ -244,6 +244,7 @@ Recent decisions affecting current work:
 - [x] Added rate limiting for `/api/build/*` routes (Plan Risk #8)
 - [x] Multi-tool convention files: CLAUDE.md, .cursorrules, .windsurfrules, .opencode/instructions.md
 - [x] Committed and pushed to GitHub (afe87c2)
+- [x] Multi-select chat history: toggle select mode, checkboxes, select all, bulk export (MD/TXT), bulk archive/unarchive, bulk delete
 
 ## Session Continuity
 

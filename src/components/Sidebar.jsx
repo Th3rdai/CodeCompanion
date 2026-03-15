@@ -3,10 +3,40 @@ import ContextMenu from './ContextMenu';
 import ParticleField from './3d/ParticleField';
 import { use3DEffects } from '../contexts/Effects3DContext';
 
-export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, onRename, onExport, onArchive, open, onClose, collapsed, onToggleCollapse, showArchived, onToggleArchived, modes }) {
+export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, onRename, onExport, onArchive, onBulkDelete, onBulkExport, onBulkArchive, open, onClose, collapsed, onToggleCollapse, showArchived, onToggleArchived, modes }) {
   const [search, setSearch] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [multiSelect, setMultiSelect] = useState(false);
   const { theme } = use3DEffects();
+
+  const multiSelectMode = multiSelect && !collapsed;
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const filteredIds = filtered.map(h => h.id);
+    const allSelected = filteredIds.length > 0 && filteredIds.every(id => selectedIds.has(id));
+    setSelectedIds(allSelected ? new Set() : new Set(filteredIds));
+  }
+
+  function exitMultiSelect() {
+    setMultiSelect(false);
+    setSelectedIds(new Set());
+  }
+
+  function handleBulkAction(action, ...args) {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    action(ids, ...args);
+    exitMultiSelect();
+  }
 
   const filtered = useMemo(() => {
     let list = history.filter(h => showArchived ? h.archived : !h.archived);
@@ -78,6 +108,37 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
               {showArchived ? '📦 Archived' : '💬 Active'}
             </button>
             <span className="text-xs text-slate-600">{filtered.length} chat{filtered.length !== 1 ? 's' : ''}</span>
+            <button onClick={() => multiSelectMode ? exitMultiSelect() : setMultiSelect(true)}
+              className={`ml-auto text-xs px-2 py-1 rounded-lg transition-colors ${
+                multiSelectMode
+                  ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
+              }`}
+              title={multiSelectMode ? 'Cancel selection' : 'Select multiple'}>
+              {multiSelectMode ? '✕ Cancel' : '☐ Select'}
+            </button>
+          </div>
+        )}
+
+        {multiSelectMode && (
+          <div className="px-3 py-2 border-b border-slate-700/30 relative z-10 flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-indigo-300 font-medium mr-1">{selectedIds.size} selected</span>
+            <button onClick={toggleSelectAll}
+              className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">
+              {filtered.length > 0 && filtered.every(h => selectedIds.has(h.id)) ? 'Deselect All' : 'Select All'}
+            </button>
+            <div className="flex-1" />
+            {selectedIds.size > 0 && (<>
+              <button onClick={() => handleBulkAction(onBulkExport, 'md')}
+                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors" title="Export as Markdown">📥 MD</button>
+              <button onClick={() => handleBulkAction(onBulkExport, 'txt')}
+                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors" title="Export as Text">📄 TXT</button>
+              <button onClick={() => handleBulkAction(onBulkArchive, showArchived ? false : true)}
+                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
+                title={showArchived ? 'Unarchive' : 'Archive'}>{showArchived ? '📂' : '📦'}</button>
+              <button onClick={() => handleBulkAction(onBulkDelete)}
+                className="text-xs px-2 py-1 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors" title="Delete selected">🗑️</button>
+            </>)}
           </div>
         )}
 
@@ -94,20 +155,30 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
           )}
           {filtered.map(h => {
             const modeIcon = modes?.find(m => m.id === h.mode)?.icon || '💬';
+            const isSelected = selectedIds.has(h.id);
             return (
               <div key={h.id}
                 className={`group flex items-center rounded-lg cursor-pointer transition-colors
                   ${isCollapsed ? 'justify-center p-2 mb-1' : 'gap-2 px-3 py-2.5 mb-1'}
-                  ${activeId === h.id
-                    ? 'bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm'
-                    : 'hover:bg-indigo-500/10'}`}
-                onClick={() => { onSelect(h.id); onClose(); }}
+                  ${isSelected && multiSelectMode
+                    ? 'bg-indigo-600/20 border border-indigo-500/30'
+                    : activeId === h.id
+                      ? 'bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm'
+                      : 'hover:bg-indigo-500/10'}`}
+                onClick={() => { if (multiSelectMode) { toggleSelect(h.id); } else { onSelect(h.id); onClose(); } }}
                 onContextMenu={(e) => handleContextMenu(e, h)}
                 title={isCollapsed ? (h.title || 'Untitled') : undefined}>
                 {isCollapsed ? (
                   <span className="text-base leading-none" role="img" aria-hidden="true">{modeIcon}</span>
                 ) : (
                   <>
+                    {multiSelectMode && (
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors text-xs ${
+                        isSelected
+                          ? 'bg-indigo-500 border-indigo-400 text-white'
+                          : 'border-slate-500 text-transparent hover:border-slate-400'
+                      }`}>✓</span>
+                    )}
                     <span className="text-sm shrink-0">{modeIcon}</span>
                     {h.overallGrade && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
@@ -125,9 +196,11 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
                         {h.model && ' · '}{new Date(h.createdAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); handleContextMenu(e, h); }}
-                      className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1"
-                      aria-label="More options">⋯</button>
+                    {!multiSelectMode && (
+                      <button onClick={(e) => { e.stopPropagation(); handleContextMenu(e, h); }}
+                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1"
+                        aria-label="More options">⋯</button>
+                    )}
                   </>
                 )}
               </div>

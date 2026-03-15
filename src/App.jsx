@@ -305,6 +305,31 @@ export default function App() {
     } catch {}
   }
 
+  async function bulkDeleteConversations(ids) {
+    for (const id of ids) {
+      try { await fetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } } catch {}
+    }
+    fetchHistory();
+    showToast(`Deleted ${ids.length} conversation${ids.length !== 1 ? 's' : ''}`);
+  }
+
+  async function bulkExportConversations(ids, format) {
+    for (const id of ids) { await exportConversation(id, format); }
+  }
+
+  async function bulkArchiveConversations(ids, archive) {
+    for (const id of ids) {
+      try {
+        const res = await fetch(`/api/history/${id}`); const conv = await res.json();
+        conv.archived = archive;
+        await fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
+        if (activeConvId === id && archive) { setMessages([]); setActiveConvId(null); }
+      } catch {}
+    }
+    fetchHistory();
+    showToast(`${archive ? 'Archived' : 'Unarchived'} ${ids.length} conversation${ids.length !== 1 ? 's' : ''}`);
+  }
+
   function handleRenameRequest(id) { const h = history.find(c => c.id === id); if (h) setRenaming({ id, title: h.title || 'Untitled' }); }
   function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedBuilderData(null); }
 
@@ -537,7 +562,8 @@ export default function App() {
 
       <Sidebar history={history} activeId={activeConvId} onSelect={loadConversation} onNew={startNew}
         onDelete={deleteConversation} onRename={handleRenameRequest} onExport={exportConversation}
-        onArchive={archiveConversation} open={sidebarOpen} onClose={() => setSidebarOpen(false)}
+        onArchive={archiveConversation} onBulkDelete={bulkDeleteConversations} onBulkExport={bulkExportConversations}
+        onBulkArchive={bulkArchiveConversations} open={sidebarOpen} onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebarCollapsed}
         showArchived={showArchived} onToggleArchived={() => setShowArchived(!showArchived)} modes={MODES} />
 
