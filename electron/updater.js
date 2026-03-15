@@ -1,6 +1,4 @@
-const { autoUpdater } = require('electron-updater');
 const { ipcMain } = require('electron');
-const log = require('electron-log');
 const { createBackup } = require('./data-manager');
 
 /**
@@ -8,13 +6,27 @@ const { createBackup } = require('./data-manager');
  * Checks for updates on launch and provides IPC handlers
  */
 function initAutoUpdater(win, dataDir) {
+  let autoUpdater;
+  let log;
+
+  try {
+    log = require('electron-log');
+    const updaterModule = require('electron-updater');
+    autoUpdater = updaterModule.autoUpdater;
+  } catch (err) {
+    console.error('[Auto-Updater] Failed to load:', err.message);
+    return;
+  }
+
   // Configure logging
   autoUpdater.logger = log;
   autoUpdater.logger.transports.file.level = 'info';
   log.info('[Auto-Updater] Initializing...');
 
   // Check for updates on startup (does not download automatically)
-  autoUpdater.checkForUpdatesAndNotify();
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+    log.error('[Auto-Updater] Initial check failed:', err.message);
+  });
 
   // Event: Update available
   autoUpdater.on('update-available', (info) => {
@@ -27,16 +39,13 @@ function initAutoUpdater(win, dataDir) {
     log.info('[Auto-Updater] Update downloaded:', info.version);
 
     try {
-      // Create pre-update backup per user decision
       log.info('[Auto-Updater] Creating pre-update backup...');
       const backupPath = await createBackup(dataDir);
       log.info('[Auto-Updater] Backup created:', backupPath);
     } catch (err) {
       log.error('[Auto-Updater] Backup failed:', err);
-      // Continue anyway - user data is still safe
     }
 
-    // Notify renderer that update is ready
     win.webContents.send('update-downloaded', info);
   });
 

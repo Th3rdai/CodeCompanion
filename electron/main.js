@@ -124,7 +124,12 @@ function spawnServer(port) {
   return new Promise((resolve, reject) => {
     console.log(`[Main] Spawning server on port ${port}...`);
 
-    const serverPath = path.join(__dirname, '..', 'server.js');
+    // In packaged mode, asarUnpack puts server.js in app.asar.unpacked/
+    let serverPath = path.join(__dirname, '..', 'server.js');
+    if (app.isPackaged) {
+      serverPath = serverPath.replace('app.asar', 'app.asar.unpacked');
+    }
+    console.log(`[Main] Server path: ${serverPath}`);
     const proc = fork(serverPath, [], {
       env: {
         ...process.env,

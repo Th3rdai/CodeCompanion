@@ -2,6 +2,7 @@ module.exports = {
   appId: 'com.th3rdai.code-companion',
   productName: 'Code Companion',
   directories: { output: 'release' },
+  asar: false,
   files: [
     'dist/**/*',
     'lib/**/*',
@@ -14,18 +15,34 @@ module.exports = {
     'node_modules/**/*',
     '!node_modules/@playwright/**/*',
     '!node_modules/playwright/**/*',
+    '!node_modules/playwright-core/**/*',
     '!node_modules/electron/**/*',
     '!src/**/*',
     '!test/**/*',
+    '!tests/**/*',
     '!.planning/**/*',
     '!landing/**/*',
     '!MAKER_framework/**/*',
     '!test-results/**/*',
+    '!scripts/**/*',
+    '!journal/**/*',
+    '!design-system/**/*',
+    '!.playwright-mcp/**/*',
   ],
   mac: {
     target: ['dmg', 'zip'],
     icon: 'resources/icon.png',
     category: 'public.app-category.developer-tools',
+    // Skip code signing entirely until Apple Developer account is configured
+    // Users must right-click → Open on first launch to bypass Gatekeeper
+    // When ready, uncomment and configure:
+    // hardenedRuntime: true,
+    // entitlements: 'resources/entitlements.mac.plist',
+    // entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
+    // identity: 'Developer ID Application: Th3rdAI (TEAM_ID)',
+    // notarize: { teamId: 'TEAM_ID' },
+    identity: null,
+    gatekeeperAssess: false,
   },
   dmg: {
     background: 'resources/dmg-background.png',
