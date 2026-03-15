@@ -47,6 +47,8 @@ __pycache__/
 .roo/
 .trae/
 .windsurf/
+# Screenshots and temp images (allow resources/ icons)
 *.png
+!resources/*.png
 .playwright-mcp/
 .cc-build-projects.json
