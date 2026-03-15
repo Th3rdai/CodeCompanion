@@ -127,7 +127,13 @@ export default function App() {
     });
   }
   const [showSettings, setShowSettings] = useState(false);
-  const [showFileBrowser, setShowFileBrowser] = useState(false);
+  const [showFileBrowser, _setShowFileBrowser] = useState(() => {
+    try { return localStorage.getItem('cc-file-browser-open') === 'true'; } catch { return false; }
+  });
+  const setShowFileBrowser = (v) => {
+    _setShowFileBrowser(v);
+    try { localStorage.setItem('cc-file-browser-open', String(v)); } catch {}
+  };
   const [showGitHub, setShowGitHub] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [renaming, setRenaming] = useState(null);
@@ -469,6 +475,8 @@ export default function App() {
   function handleDrop(e) {
     e.preventDefault(); dragCounter.current = 0; setDragging(false);
     Array.from(e.dataTransfer.files).forEach(file => {
+      // Skip directories — they have no size and can't be read as text
+      if (file.size === 0 && file.type === '') return;
       const reader = new FileReader();
       reader.onload = (ev) => { attachFile({ name: file.name, content: ev.target.result, lines: ev.target.result.split('\n').length }); };
       reader.readAsText(file);
@@ -848,7 +856,10 @@ export default function App() {
                 projectFolder={projectFolder}
                 onAttachFile={attachFile}
                 onClose={() => setShowFileBrowser(false)}
-                onClearFolder={() => setProjectFolder('')}
+                onClearFolder={async () => {
+                  setProjectFolder('');
+                  try { await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectFolder: '' }) }); } catch {}
+                }}
                 onSetFolder={async (folder) => {
                   setProjectFolder(folder);
                   try {

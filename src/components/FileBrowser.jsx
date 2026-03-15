@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function FileTreeNode({ node, depth, onFileClick }) {
   const [open, setOpen] = useState(depth < 2);
@@ -50,6 +50,9 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
   const [launchingOpenCode, setLaunchingOpenCode] = useState(false);
   const [launchError, setLaunchError] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [dropping, setDropping] = useState(null); // { total, done }
+  const dragCounter = useRef(0);
 
   const folderPath = tree?.root || projectFolder;
 
@@ -108,8 +111,101 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     }
   }
 
+  function handleDragEnter(e) { e.preventDefault(); e.stopPropagation(); dragCounter.current++; setDragging(true); }
+  function handleDragLeave(e) { e.preventDefault(); e.stopPropagation(); dragCounter.current--; if (dragCounter.current === 0) setDragging(false); }
+  function handleDragOver(e) { e.preventDefault(); e.stopPropagation(); }
+
+  function isDroppedFolder(e) {
+    const items = Array.from(e.dataTransfer.items || []);
+    if (items.length === 1 && items[0].webkitGetAsEntry) {
+      const entry = items[0].webkitGetAsEntry();
+      if (entry && entry.isDirectory) return true;
+    }
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 1 && files[0].size === 0 && files[0].type === '') return true;
+    return false;
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault(); e.stopPropagation(); dragCounter.current = 0; setDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length === 0) return;
+
+    // Folder dropped — try to open it as the project folder
+    if (isDroppedFolder(e)) {
+      // Electron: File objects have .path with absolute filesystem path
+      if (files[0].path) {
+        setDropping({ total: 1, done: 0, message: 'Opening folder...' });
+        try {
+          const res = await fetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(files[0].path)}`);
+          const data = await res.json();
+          if (data.tree && onSetFolder) {
+            onSetFolder(files[0].path);
+            setDropping({ total: 1, done: 1, message: 'Folder loaded!' });
+            setTimeout(() => setDropping(null), 1200);
+            return;
+          }
+        } catch {}
+        setDropping(null);
+      }
+      // Browser: can't get filesystem path — prompt user to type it
+      setFolderInput(files[0].name);
+      setDropping({ total: 1, done: 1, message: `Type the full path to "${files[0].name}" below` });
+      setTimeout(() => setDropping(null), 3000);
+      return;
+    }
+
+    // Regular file drops — attach to chat
+    let done = 0;
+    setDropping({ total: files.length, done: 0 });
+    files.forEach(file => {
+      if (file.size === 0 && file.type === '') { done++; return; } // skip dirs
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        onAttachFile({ name: file.name, content: ev.target.result, lines: ev.target.result.split('\n').length });
+        done++;
+        setDropping({ total: files.length, done });
+        if (done === files.length) setTimeout(() => setDropping(null), 1200);
+      };
+      reader.onerror = () => {
+        done++;
+        if (done === files.length) setTimeout(() => setDropping(null), 1200);
+      };
+      reader.readAsText(file);
+    });
+  }
+
   return (
-    <div className="w-80 glass-heavy border-l border-slate-700/30 flex flex-col h-full">
+    <div className="w-80 glass-heavy border-l border-slate-700/30 flex flex-col h-full relative"
+      onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
+
+      {dragging && (
+        <div className="absolute inset-0 z-50 bg-indigo-900/80 backdrop-blur-sm border-2 border-dashed border-indigo-400 rounded-lg flex flex-col items-center justify-center gap-2 pointer-events-none">
+          <span className="text-3xl">📂</span>
+          <span className="text-sm text-indigo-200 font-medium">Drop files or a folder</span>
+        </div>
+      )}
+
+      {dropping && (
+        <div className="absolute inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3 pointer-events-none">
+          <span className="text-2xl">{dropping.done === dropping.total ? '✅' : '📂'}</span>
+          <span className="text-sm text-indigo-200 font-medium">
+            {dropping.message
+              ? dropping.message
+              : dropping.done === dropping.total
+                ? `${dropping.total} file${dropping.total !== 1 ? 's' : ''} attached!`
+                : `Reading ${dropping.done + 1} of ${dropping.total}...`}
+          </span>
+          {dropping.total > 1 && (
+            <div className="w-40 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                style={{ width: `${(dropping.done / dropping.total) * 100}%` }} />
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="p-3 border-b border-slate-700/30 flex items-center gap-2">
         <span className="text-sm font-medium text-slate-200 flex-1">📂 File Browser</span>
         <button onClick={() => loadTree()} className="text-slate-400 hover:text-indigo-300 text-sm transition-colors" title="Refresh" aria-label="Refresh file tree">&#x27F3;</button>
