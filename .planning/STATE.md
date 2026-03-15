@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 1 of 1 (all complete)
-status: complete
-stopped_at: Completed 07-01-PLAN.md - Phase 07 complete
+current_plan: Phase 16 in progress
+status: in_progress
+stopped_at: Phase 16 Build Dashboard — Phase 1 (Registry + Shell) complete
 last_updated: "2026-03-14T00:00:00.000Z"
-last_activity: 2026-03-14 — Feature-based license gating implementation
+last_activity: 2026-03-14 — Build Dashboard Phase 1 implemented (bug fixes, auto-register, import route)
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_phases: 16
+  completed_phases: 8
+  total_plans: 17
+  completed_plans: 16
+  percent: 94
 ---
 
 # Project State
@@ -22,14 +22,36 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Feature-based license gating complete — all 7 phases done
+**Current focus:** Phase 16 (Build Dashboard) — Phase 1 complete, Phases 2-5 pending
 
 ## Current Position
 
-Phase: 7 of 7 (License Gating) — COMPLETE
-Feature-based license model: Implemented and validated
-Status: All tests pass (27 UI, 4 E2E, 16 unit), build clean
-Last activity: 2026-03-14 — Theme customization (5 preset color themes with Settings picker)
+Phase: 16 (Build Dashboard — Full Project Dashboard) — IN PROGRESS
+Phase 1 (Registry + Shell): COMPLETE — bug fixes, auto-register, import route, rate limiting
+Phases 2-5: Pending — Simple View, AI Research/Planning, Advanced View, Handoff+Polish
+Status: All tests pass (27 UI, 4 E2E), build clean
+Last activity: 2026-03-14 — Build Dashboard Phase 1 implemented
+
+### Build Dashboard Phase 1 Details (completed 2026-03-14)
+
+**Bug fix:** `isWithinBasePath` — function was imported and used in `server.js` (line 1024) but never defined or exported from `lib/file-browser.js`. Added the function and exported it.
+
+**New export:** `getAppRoot()` added to `lib/config.js` — exposes the private `_appRoot` variable for modules (like `build-scaffolder.js`) that need the app data directory path without passing it through every call.
+
+**Auto-registration (Plan Risk #5):** `lib/build-scaffolder.js` now calls `addProject()` from `build-registry.js` after successful atomic rename. If registry write fails, scaffold still succeeds (project exists on disk) with a warning. Prevents orphaned projects that exist on disk but don't appear in the dashboard.
+
+**Import route:** Added `POST /api/build/projects` for importing existing projects by folder path. Validates the folder exists and contains a `.planning/` directory before registering. Derives project name from folder basename.
+
+**Rate limiting (Plan Risk #8):** Added `app.use('/api/build/projects', createRateLimiter(...))` for POST/DELETE methods on all build registry routes.
+
+**Multi-tool convention files:** Build scaffolder now generates identical project instructions in all four AI coding tool convention files: `CLAUDE.md` (Claude Code), `.cursorrules` (Cursor), `.windsurfrules` (Windsurf), `.opencode/instructions.md` (OpenCode). Users open the project in any supported tool and get GSD + ICM context automatically.
+
+**Discovery:** Full Build dashboard infrastructure already existed from prior session:
+- `lib/build-registry.js` — project registry with atomic writes and path validation
+- `lib/gsd-bridge.js` — GSD CLI bridge using `gsd-tools.cjs` (execFileSync, no shell)
+- `src/components/BuildPanel.jsx` — full dashboard with project list, phase list, plan viewer, auto-refresh
+- Server routes: state/roadmap/progress/phase-detail endpoints
+- App.jsx: `buildProjects`, `activeBuildProject`, `showBuildWizard` state management
 
 ## Post-v1.0 Enhancements (completed 2026-03-14)
 
@@ -189,6 +211,12 @@ Recent decisions affecting current work:
 - [Phase 06]: Ollama setup wizard as overlay (not error state) with 5 states and friendly messaging
 - [Phase 06]: Model pull streams NDJSON progress for real-time UI updates with percentage and download size
 - [Phase 06]: Auto-approved checkpoint:human-verify per auto-mode protocol for integration verification
+
+### Phase 15: Build Mode (GSD + ICM) — Approved and Implemented
+
+- **Approved plan:** `.planning/phases/build-mode-gsd-icm/DRAFT-PLAN.md` (revised for gaps, edge cases, implementation risks; approved 2026-03-14)
+- **Implementation:** lib/build-scaffolder.js, POST /api/build-project, BuildWizard.jsx, App.jsx (Build in MODES, handleBuildSuccess), tiers.js and license-manager.js (mode:build free)
+- **Scope:** Scaffold combines GSD (.planning/) and ICM (stages/); temp-dir strategy; path safety and error codes; Build reuses createModeAllowedRoots
 
 ### Pending Todos
 

@@ -19,6 +19,14 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging (completed 2026-03-14)
 - [x] **Phase 6: Desktop App** - Electron packaging for self-contained macOS, Linux, and Windows desktop application (completed 2026-03-14)
 - [x] **Phase 7: License Gating** - Feature-based license model; gate Skillz and Agentic; wire license API and Settings UI (completed 2026-03-14)
+- [ ] **Phase 8: Payment Integration** - Stripe/Paddle checkout, purchase flow (planned)
+- [ ] **Phase 9: License Batch Generation** - Bulk key generation, lib/license-generator.js (planned)
+- [ ] **Phase 10: License Payment Webhook** - Auto-generate keys on purchase completion (planned)
+- [ ] **Phase 11: License Server API** - Online validation, revocation endpoint (planned)
+- [ ] **Phase 12: License Key Pool** - Pre-generated key pool, claim API (planned)
+- [ ] **Phase 13: License Email Delivery** - Send keys via email with template (planned)
+- [ ] **Phase 14: License Revocation** - Revoke keys, audit log (planned)
+- [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
 
 ## Phase Details
 
@@ -128,6 +136,51 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — Feature-based license model, server wiring, frontend filtering, Settings License UI
 
+### Phase 8: Payment Integration
+**Goal**: Customers can purchase Pro via Stripe or Paddle; checkout flow integrated
+**Depends on**: Phase 7
+**Plans**: PLAN.md (planning only)
+
+### Phase 9: License Batch Generation
+**Goal**: Generate hundreds or thousands of keys from CSV/JSON; extract shared lib/license-generator.js
+**Depends on**: Phase 7
+**Plans**: 09-01-PLAN.md
+
+### Phase 10: License Payment Webhook
+**Goal**: Auto-generate and deliver keys when purchase completes (Stripe/Paddle webhook)
+**Depends on**: Phase 9
+**Plans**: 10-01-PLAN.md
+
+### Phase 11: License Server API
+**Goal**: Online validation and revocation; admin revoke endpoint
+**Depends on**: Phase 9, Phase 10
+**Plans**: 11-01-PLAN.md
+
+### Phase 12: License Key Pool
+**Goal**: Pre-generate key pool; optional claim API for post-purchase assignment
+**Depends on**: Phase 9
+**Plans**: 12-01-PLAN.md
+
+### Phase 13: License Email Delivery
+**Goal**: Send license keys via email with branded template (SendGrid, Resend, etc.)
+**Depends on**: Phase 9
+**Plans**: 13-01-PLAN.md
+
+### Phase 14: License Revocation
+**Goal**: Revoke keys (chargebacks, abuse); validation checks revocation
+**Depends on**: Phase 10 or 11
+**Plans**: 14-01-PLAN.md
+
+### Phase 15: Build Mode (GSD + ICM)
+**Goal**: Add a Build mode that scaffolds a new project combining get-shit-done (GSD) and ICM Framework so users can build apps, tools, or software using both methodologies
+**Depends on**: Phase 5 (Create mode and wizard patterns exist)
+**Requirements**: BUILD-01, BUILD-02, BUILD-03
+**Success Criteria** (what must be TRUE):
+  1. Build mode appears in mode tabs next to Create; BuildWizard completes and scaffolds a project with `.planning/` (GSD) and `stages/` (ICM)
+  2. Scaffolded project has CLAUDE.md, CONTEXT.md, skills/gsd-workflows.md; user can open in Cursor/Claude Code and use GSD and ICM workflows
+  3. Path outside allowed root returns 403; already exists without overwrite returns 409; chat input hidden when Build selected
+**Plans**: Approved plan in `.planning/phases/build-mode-gsd-icm/` (DRAFT-PLAN.md revised and approved 2026-03-14)
+
 ## Progress
 
 **Execution Order:**
@@ -143,3 +196,21 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 5. Onboarding and Help | 2/2 | Complete | 2026-03-14 |
 | 6. Desktop App | 4/4 | Complete | 2026-03-14 |
 | 7. License Gating | 1/1 | Complete | 2026-03-14 |
+| 8. Payment Integration | 0/1 | Planned | — |
+| 9. License Batch Generation | 0/1 | Planned | — |
+| 10. License Payment Webhook | 0/1 | Planned | — |
+| 11. License Server API | 0/1 | Planned | — |
+| 12. License Key Pool | 0/1 | Planned | — |
+| 13. License Email Delivery | 0/1 | Planned | — |
+| 14. License Revocation | 0/1 | Planned | — |
+| 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
+
+## License Distribution Roadmap (Phases 9–14)
+
+**Suggested execution order:**
+1. **Phase 9** (Batch) — Foundation; extract license-generator
+2. **Phase 13** (Email) — Needed for any automated delivery
+3. **Phase 10** (Webhook) — When adding Stripe/Paddle
+4. **Phase 11** (Server API) — When online validation/revocation needed
+5. **Phase 14** (Revocation) — When revoking keys required
+6. **Phase 12** (Key Pool) — Optional; for pre-generated key campaigns

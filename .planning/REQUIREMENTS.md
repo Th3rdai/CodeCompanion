@@ -40,6 +40,12 @@
 - [ ] **LIC-02**: License model supports independent feature licensing (each mode can be sold separately)
 - [ ] **LIC-03**: Settings UI allows activating license key, starting trial, viewing status, and deactivating
 
+### Build Mode (Phase 15)
+
+- [x] **BUILD-01**: Build mode appears in mode tabs next to Create; BuildWizard scaffolds a project with `.planning/` (GSD) and `stages/` (ICM)
+- [x] **BUILD-02**: Scaffolded project includes CLAUDE.md, CONTEXT.md, skills/gsd-workflows.md; user can use GSD and ICM in Cursor/Claude Code
+- [x] **BUILD-03**: API returns 403 for path outside allowed root, 409 for already exists without overwrite; chat input hidden when Build selected
+
 ## v2 Requirements
 
 ### Multi-File Review
@@ -93,11 +99,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LIC-01 | Phase 7 | Pending |
 | LIC-02 | Phase 7 | Pending |
 | LIC-03 | Phase 7 | Pending |
+| BUILD-01 | Phase 15 | Complete |
+| BUILD-02 | Phase 15 | Complete |
+| BUILD-03 | Phase 15 | Complete |
 
 **Coverage:**
 - v1 requirements: 20 total
 - License (Phase 7): 3 total
-- Mapped to phases: 23
+- Build Mode (Phase 15): 3 total
+- Mapped to phases: 26
 - Unmapped: 0
 
 ---

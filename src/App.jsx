@@ -12,6 +12,8 @@ import SplashScreen from './components/3d/SplashScreen';
 import HeaderScene from './components/3d/HeaderScene';
 import EmptyStateScene from './components/3d/EmptyStateScene';
 import CreateWizard from './components/CreateWizard';
+import BuildWizard from './components/BuildWizard';
+import BuildPanel from './components/BuildPanel';
 import ReviewPanel from './components/ReviewPanel';
 import PromptingPanel from './components/builders/PromptingPanel';
 import SkillzPanel from './components/builders/SkillzPanel';
@@ -44,6 +46,7 @@ const MODES = [
   { id: 'skillz',    label: 'Skillz',    icon: '⚡', tier: 'pro', desc: 'Build Claude Code skills', placeholder: '' },
   { id: 'agentic',   label: 'Agentic',   icon: '🤖', tier: 'pro', desc: 'Design AI agents',        placeholder: '' },
   { id: 'create',         label: 'Create',                  icon: '🛠️', tier: 'free', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
+  { id: 'build',          label: 'Build',                   icon: '🏗️', tier: 'free', desc: 'Start a GSD+ICM project to build apps and tools', placeholder: 'Scaffold a project with planning and stages...' },
 ];
 
 const BUILDER_MODES = ['prompting', 'skillz', 'agentic'];
@@ -148,6 +151,9 @@ export default function App() {
   const [savedBuilderData, setSavedBuilderData] = useState(null);
   const [licenseInfo, setLicenseInfo] = useState({ tier: 'free' });
   const [showUpgrade, setShowUpgrade] = useState(null); // null or mode object
+  const [buildProjects, setBuildProjects] = useState(null); // null=loading, []=empty
+  const [activeBuildProject, setActiveBuildProject] = useState(null);
+  const [showBuildWizard, setShowBuildWizard] = useState(false);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
@@ -172,6 +178,15 @@ export default function App() {
     } catch { return null; }
   }
 
+  // Fetch build projects for BuildPanel
+  async function fetchBuildProjects() {
+    try {
+      const res = await fetch('/api/build/projects');
+      const data = await res.json();
+      setBuildProjects(Array.isArray(data) ? data : []);
+    } catch { setBuildProjects([]); }
+  }
+
   // Reset to chat if current mode becomes locked (e.g., license deactivated)
   useEffect(() => {
     if (licenseInfo && mode && isModeLocked(mode, licenseInfo)) {
@@ -184,6 +199,7 @@ export default function App() {
     fetchConfig();
     fetchModels();
     fetchHistory();
+    fetchBuildProjects();
 
     // Load license first, then restore last mode (avoids showing a locked mode briefly)
     fetchLicense().then((info) => {
@@ -523,6 +539,27 @@ export default function App() {
     setShowGitHub(false);
   }
 
+  async function handleBuildProjectCreated(projectPath, data) {
+    try {
+      await fetch('/api/build/projects/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: data?.name || projectPath.split('/').pop(), projectPath }),
+      });
+    } catch {}
+    await fetchBuildProjects();
+    setActiveBuildProject(null); // will be set after projects reload
+    setShowBuildWizard(false);
+    // Find the newly registered project and select it
+    try {
+      const res = await fetch('/api/build/projects');
+      const projects = await res.json();
+      const newest = projects.find(p => p.path === projectPath);
+      if (newest) setActiveBuildProject(newest.id);
+      setBuildProjects(projects);
+    } catch {}
+  }
+
   const currentMode = MODES.find(m => m.id === mode);
 
   // Splash screen — shown once per browser session
@@ -708,6 +745,25 @@ export default function App() {
                   onSuccess={handleCreateSuccess}
                   onToast={showToast}
                 />
+              ) : mode === 'build' ? (
+                showBuildWizard || buildProjects === null || (Array.isArray(buildProjects) && buildProjects.length === 0 && !activeBuildProject) ? (
+                  <BuildWizard
+                    defaultOutputRoot={projectFolder || '~/AI_Dev/'}
+                    onSuccess={handleBuildProjectCreated}
+                    onToast={showToast}
+                    onCancel={buildProjects?.length > 0 ? () => setShowBuildWizard(false) : undefined}
+                  />
+                ) : (
+                  <BuildPanel
+                    projects={buildProjects}
+                    activeProject={activeBuildProject}
+                    onSelectProject={setActiveBuildProject}
+                    onNewProject={() => setShowBuildWizard(true)}
+                    onViewFiles={(p) => { setProjectFolder(p); setShowFileBrowser(true); }}
+                    onRefresh={fetchBuildProjects}
+                    onToast={showToast}
+                  />
+                )
               ) : (
                 <>
                   {messages.length === 0 ? (
@@ -743,7 +799,7 @@ export default function App() {
             )}
 
             {/* Input — hidden in Create and Review modes */}
-            {mode !== 'create' && mode !== 'review' && !BUILDER_MODES.includes(mode) && (
+            {mode !== 'create' && mode !== 'build' && mode !== 'review' && !BUILDER_MODES.includes(mode) && (
             <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
               <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
               <div className="flex gap-2">

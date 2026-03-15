@@ -13,6 +13,9 @@ const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
 const { buildFileTree, readProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
+const { scaffoldBuildProject } = require('./lib/build-scaffolder');
+const GsdBridge = require('./lib/gsd-bridge');
+const { validateProjects, addProject, getProject, removeProject } = require('./lib/build-registry');
 const { cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken } = require('./lib/github');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
@@ -162,6 +165,8 @@ const SCORE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_SCORE || 20);
 
 app.use('/api/chat', createRateLimiter({ name: 'chat', max: CHAT_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/create-project', createRateLimiter({ name: 'create-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/build-project', createRateLimiter({ name: 'build-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/build/projects', createRateLimiter({ name: 'build-registry', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'DELETE'] }));
 app.use('/api/github/clone', createRateLimiter({ name: 'github-clone', max: GITHUB_CLONE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-connection', max: MCP_TEST_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
@@ -944,6 +949,126 @@ app.post('/api/create-project', requireTier('mode:create'), (req, res) => {
     return res.status(500).json({ success: false, error: err.message, code: 'SERVER_ERROR' });
   }
 });
+
+// ── POST /api/build-project (GSD + ICM scaffold) ─────
+app.post('/api/build-project', (req, res) => {
+  const { name, description, outputRoot, audience, tone, overwrite } = req.body || {};
+  if (!name || !outputRoot) {
+    return res.status(400).json({ success: false, error: 'name and outputRoot are required', code: 'MISSING_FIELDS' });
+  }
+  const config = getConfig();
+  try {
+    const result = scaffoldBuildProject(
+      { name, description, outputRoot, audience, tone, overwrite: overwrite === true },
+      config
+    );
+    if (result.success) {
+      log('INFO', `Build project created: ${result.projectPath}`);
+      return res.status(201).json(result);
+    }
+    const code = result.code || 'SCAFFOLD_FAILED';
+    const status = code === 'PATH_OUTSIDE_ROOT' ? 403 : code === 'ALREADY_EXISTS' ? 409 : 400;
+    return res.status(status).json({ success: false, error: result.errors?.[0] || 'Scaffold failed', code });
+  } catch (err) {
+    log('ERROR', 'build-project failed', { error: err.message });
+    return res.status(500).json({ success: false, error: err.message, code: 'SERVER_ERROR' });
+  }
+});
+
+// ── Build Dashboard API ──────────────────────────────
+
+// Helper: resolve project from registry by ID and validate
+function _resolveBuildProject(req, res) {
+  const project = getProject(dataRoot, req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found in registry' });
+  if (!require('fs').existsSync(project.path)) {
+    return res.status(404).json({ error: 'Project directory missing', path: project.path });
+  }
+  return project;
+}
+
+app.get('/api/build/projects', (req, res) => {
+  const projects = validateProjects(dataRoot);
+  res.json(projects);
+});
+
+app.post('/api/build/projects/register', (req, res) => {
+  const { name, projectPath } = req.body || {};
+  if (!name || !projectPath) {
+    return res.status(400).json({ error: 'name and projectPath are required' });
+  }
+  const id = addProject(dataRoot, { name, projectPath });
+  res.json({ success: true, id });
+});
+
+// Import existing project by path
+app.post('/api/build/projects', (req, res) => {
+  const { path: importPath, name } = req.body || {};
+  if (!importPath) {
+    return res.status(400).json({ error: 'path is required' });
+  }
+  const resolved = require('path').resolve(importPath.replace(/^~/, require('os').homedir()));
+  if (!fs.existsSync(resolved)) {
+    return res.status(404).json({ error: 'Folder not found' });
+  }
+  if (!fs.existsSync(path.join(resolved, '.planning'))) {
+    return res.status(400).json({ error: 'No .planning/ directory found. This folder does not appear to be a Build project.' });
+  }
+  const projectName = name || path.basename(resolved);
+  const id = addProject(dataRoot, { name: projectName, projectPath: resolved });
+  res.json({ success: true, id });
+});
+
+app.delete('/api/build/projects/:id', (req, res) => {
+  const removed = removeProject(dataRoot, req.params.id);
+  if (!removed) return res.status(404).json({ error: 'Project not found' });
+  res.json({ success: true });
+});
+
+app.get('/api/build/projects/:id/state', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  try {
+    const bridge = new GsdBridge(project.path);
+    res.json(bridge.getState());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/build/projects/:id/roadmap', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  try {
+    const bridge = new GsdBridge(project.path);
+    res.json(bridge.getRoadmap());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/build/projects/:id/progress', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  try {
+    const bridge = new GsdBridge(project.path);
+    res.json(bridge.getProgress());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/build/projects/:id/phase/:n', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  try {
+    const bridge = new GsdBridge(project.path);
+    res.json(bridge.getPhaseDetail(req.params.n));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // ── GitHub Integration API ───────────────────────────
 

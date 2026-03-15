@@ -17,6 +17,7 @@ export const MODE_TIERS = {
   skillz: 'pro',
   agentic: 'pro',
   create: 'free',
+  build: 'free',
 };
 
 export function isModeLocked(modeId, licenseInfo) {
