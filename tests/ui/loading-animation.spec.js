@@ -1,45 +1,82 @@
 /**
  * Component tests for LoadingAnimation
  * Tests bouncing animation, rotating messages, accessibility, and filename display
+ * Uses a delayed API mock to ensure loading state is visible long enough to test
  */
 
 import { test, expect } from '@playwright/test';
 
+const mockReportCardResponse = {
+  type: 'report-card',
+  data: {
+    overallGrade: 'A',
+    cleanBillOfHealth: true,
+    topPriority: { category: 'bugs', title: 'None', explanation: 'All good' },
+    categories: {
+      bugs: { grade: 'A', summary: 'Clean', findings: [] },
+      security: { grade: 'A', summary: 'Clean', findings: [] },
+      readability: { grade: 'A', summary: 'Clean', findings: [] },
+      completeness: { grade: 'A', summary: 'Clean', findings: [] }
+    }
+  }
+};
+
 test.describe('LoadingAnimation Component', () => {
-  test('displays bouncing dots animation', async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    // Mock models API so the app thinks Ollama is connected
+    await context.route('**/api/models', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'test-model' }], ollamaUrl: 'http://localhost:11434' })
+      });
+    });
+
+    // Mock review API with a 3s delay so loading state stays visible
+    await context.route('**/api/review', async (route) => {
+      await new Promise(r => setTimeout(r, 3000));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockReportCardResponse)
+      });
+    });
+
     await page.goto('/');
-
-    // Navigate to Review mode
+    await page.evaluate(() => {
+      localStorage.setItem('th3rdai_onboarding_complete', 'true');
+      localStorage.setItem('cc-selected-model', 'test-model');
+    });
+    await page.reload();
+    // Wait for model fetch to complete and button to become enabled
+    await page.waitForResponse('**/api/models');
     await page.click('button:has-text("Review")');
+  });
 
-    // Submit code to trigger loading state
-    await page.fill('#review-code', 'function test() { return true; }');
-    await page.click('button:has-text("Run Code Review")');
+  test('displays bouncing dots animation', async ({ page }) => {
+    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByRole('button', { name: /run code review/i }).click();
 
     // Check for bouncing dots (3 animated elements)
+    await expect(page.locator('.animate-bounce').first()).toBeVisible();
     const bouncingDots = await page.locator('.animate-bounce').count();
     expect(bouncingDots).toBe(3);
   });
 
   test('displays rotating encouraging messages', async ({ page }) => {
-    await page.goto('/');
-    await page.click('button:has-text("Review")');
-
-    // Submit code to trigger loading state
-    await page.fill('#review-code', 'function test() { return true; }');
-    await page.click('button:has-text("Run Code Review")');
+    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByRole('button', { name: /run code review/i }).click();
 
     // Wait for loading state
-    await page.waitForSelector('section[aria-label="Review in progress"]');
+    await expect(page.locator('section[aria-label="Review in progress"]')).toBeVisible();
 
     // Check that at least one encouraging message is displayed
-    const messageText = await page.locator('section[aria-label="Review in progress"] p.text-slate-400').first().textContent();
+    const messageText = await page.locator('section[aria-label="Review in progress"] p.text-slate-300').first().textContent();
 
-    // Message should be one of the encouraging phrases
     const encouragingPhrases = [
       'Looking for ways to make your code even better!',
       'Checking for any gotchas...',
-      'Making sure everything\'s ship-shape!',
+      "Making sure everything's ship-shape!",
       'Scanning for those sneaky edge cases...'
     ];
 
@@ -50,12 +87,8 @@ test.describe('LoadingAnimation Component', () => {
   });
 
   test('has aria-live region for screen reader accessibility', async ({ page }) => {
-    await page.goto('/');
-    await page.click('button:has-text("Review")');
-
-    // Submit code to trigger loading state
-    await page.fill('#review-code', 'function test() { return true; }');
-    await page.click('button:has-text("Run Code Review")');
+    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByRole('button', { name: /run code review/i }).click();
 
     // Check for aria-live region
     const ariaLiveRegion = await page.locator('[aria-live="polite"]').count();
@@ -63,16 +96,12 @@ test.describe('LoadingAnimation Component', () => {
   });
 
   test('displays filename when provided', async ({ page }) => {
-    await page.goto('/');
-    await page.click('button:has-text("Review")');
-
-    // Fill in filename and code
-    await page.fill('#review-filename', 'test.js');
-    await page.fill('#review-code', 'function test() { return true; }');
-    await page.click('button:has-text("Run Code Review")');
+    await page.getByPlaceholder(/server\.js/i).fill('test.js');
+    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByRole('button', { name: /run code review/i }).click();
 
     // Check that filename is displayed during loading
-    await page.waitForSelector('section[aria-label="Review in progress"]');
+    await expect(page.locator('section[aria-label="Review in progress"]')).toBeVisible();
     const content = await page.locator('section[aria-label="Review in progress"]').textContent();
     expect(content).toContain('test.js');
   });

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Onboarding first launch', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage to simulate first launch
-    await page.goto('http://localhost:5173');
+    await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('th3rdai_onboarding_complete'));
     await page.reload();
   });
