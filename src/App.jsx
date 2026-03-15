@@ -527,6 +527,17 @@ export default function App() {
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
   async function handleCreateSuccess(projectPath) {
+    // Verify the folder was actually created before saving to config
+    try {
+      const verify = await fetch(`/api/files/tree?depth=1&folder=${encodeURIComponent(projectPath)}`);
+      if (!verify.ok) {
+        showToast('Project folder was not found on disk. Try creating again.');
+        return;
+      }
+    } catch {
+      showToast('Could not verify project folder exists.');
+      return;
+    }
     setProjectFolder(projectPath);
     try {
       await fetch('/api/config', {
@@ -746,12 +757,12 @@ export default function App() {
                   onToast={showToast}
                 />
               ) : mode === 'build' ? (
-                showBuildWizard || buildProjects === null || (Array.isArray(buildProjects) && buildProjects.length === 0 && !activeBuildProject) ? (
+                showBuildWizard ? (
                   <BuildWizard
                     defaultOutputRoot={projectFolder || '~/AI_Dev/'}
                     onSuccess={handleBuildProjectCreated}
                     onToast={showToast}
-                    onCancel={buildProjects?.length > 0 ? () => setShowBuildWizard(false) : undefined}
+                    onCancel={() => setShowBuildWizard(false)}
                   />
                 ) : (
                   <BuildPanel

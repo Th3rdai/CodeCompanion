@@ -16,7 +16,7 @@ const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
 const GsdBridge = require('./lib/gsd-bridge');
 const { validateProjects, addProject, getProject, removeProject } = require('./lib/build-registry');
-const { cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken } = require('./lib/github');
+const { cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken, createRepo, initAndPush } = require('./lib/github');
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 const { registerAllTools } = require('./mcp/tools');
@@ -179,7 +179,12 @@ app.use('/api', mcpApiRouter);
 
 app.get('/api/config', (req, res) => {
   debug('Config requested');
-  res.json(sanitizeConfigForClient(getConfig()));
+  const config = sanitizeConfigForClient(getConfig());
+  // Don't serve a stale projectFolder that no longer exists on disk
+  if (config.projectFolder && !fs.existsSync(config.projectFolder)) {
+    config.projectFolder = '';
+  }
+  res.json(config);
 });
 
 // ── POST /api/config ─────────────────────────────────
@@ -720,6 +725,7 @@ app.post('/api/launch-claude-code', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
 
   try {
     if (ideLauncher) {
@@ -750,17 +756,22 @@ app.post('/api/launch-cursor', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
 
   try {
     if (ideLauncher) {
-      // Use cross-platform launcher
       await ideLauncher.launchIDE('cursor', folder);
       log('INFO', `Launched Cursor in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      // Fallback to macOS-only command (dev mode)
-      const { execSync } = require('child_process');
-      execSync(`open -a "Cursor" "${folder}"`);
+      const cursorCli = '/Applications/Cursor.app/Contents/Resources/app/bin/cursor';
+      if (fs.existsSync(cursorCli)) {
+        const { execFile } = require('child_process');
+        execFile(cursorCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+      } else {
+        const { execSync } = require('child_process');
+        execSync(`open -a "Cursor" "${folder}"`);
+      }
       log('INFO', `Launched Cursor in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
@@ -776,17 +787,22 @@ app.post('/api/launch-windsurf', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
 
   try {
     if (ideLauncher) {
-      // Use cross-platform launcher
       await ideLauncher.launchIDE('windsurf', folder);
       log('INFO', `Launched Windsurf in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      // Fallback to macOS-only command (dev mode)
-      const { execSync } = require('child_process');
-      execSync(`open -a "Windsurf" "${folder}"`);
+      const { execFile } = require('child_process');
+      const windsurfCli = '/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf';
+      if (fs.existsSync(windsurfCli)) {
+        execFile(windsurfCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+      } else {
+        const { execSync } = require('child_process');
+        execSync(`open -a "Windsurf" "${folder}"`);
+      }
       log('INFO', `Launched Windsurf in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
@@ -802,15 +818,14 @@ app.post('/api/launch-opencode', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
 
   try {
     if (ideLauncher) {
-      // Use cross-platform launcher
       await ideLauncher.launchIDE('opencode', folder);
       log('INFO', `Launched OpenCode in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      // Fallback to macOS-only command (dev mode)
       const { execSync } = require('child_process');
       const script = `tell application "Terminal"
       activate
@@ -1001,7 +1016,7 @@ app.post('/api/build/projects/register', (req, res) => {
   res.json({ success: true, id });
 });
 
-// Import existing project by path
+// Import existing project by path (auto-scaffolds .planning/ if missing)
 app.post('/api/build/projects', (req, res) => {
   const { path: importPath, name } = req.body || {};
   if (!importPath) {
@@ -1011,12 +1026,24 @@ app.post('/api/build/projects', (req, res) => {
   if (!fs.existsSync(resolved)) {
     return res.status(404).json({ error: 'Folder not found' });
   }
-  if (!fs.existsSync(path.join(resolved, '.planning'))) {
-    return res.status(400).json({ error: 'No .planning/ directory found. This folder does not appear to be a Build project.' });
-  }
   const projectName = name || path.basename(resolved);
+  let scaffolded = false;
+
+  // Auto-scaffold .planning/ if missing
+  if (!fs.existsSync(path.join(resolved, '.planning'))) {
+    try {
+      const { scaffoldPlanning } = require('./lib/build-scaffolder');
+      scaffoldPlanning(resolved, projectName);
+      scaffolded = true;
+      log('INFO', `Auto-scaffolded .planning/ for imported project: ${resolved}`);
+    } catch (err) {
+      log('ERROR', `Failed to scaffold .planning/ for import: ${err.message}`);
+      return res.status(500).json({ error: 'Failed to create planning structure: ' + err.message });
+    }
+  }
+
   const id = addProject(dataRoot, { name: projectName, projectPath: resolved });
-  res.json({ success: true, id });
+  res.json({ success: true, id, scaffolded });
 });
 
 app.delete('/api/build/projects/:id', (req, res) => {
@@ -1177,6 +1204,53 @@ app.get('/api/github/token/status', async (req, res) => {
 
   const result = await validateToken(token);
   res.json({ configured: true, ...result });
+});
+
+// POST /api/github/create — create a new GitHub repo
+app.post('/api/github/create', async (req, res) => {
+  const config = getConfig();
+  const token = config.githubToken;
+  if (!token) return res.status(401).json({ error: 'GitHub token not configured. Add one in Settings → GitHub.' });
+
+  const { name, description, isPrivate } = req.body || {};
+  if (!name) return res.status(400).json({ error: 'Repository name is required' });
+
+  try {
+    const result = await createRepo(token, name, { description, isPrivate });
+    if (result.success) {
+      log('INFO', `GitHub repo created: ${result.fullName}`);
+    } else {
+      log('ERROR', `GitHub create failed: ${result.error}`);
+    }
+    res.status(result.success ? 201 : 400).json(result);
+  } catch (err) {
+    log('ERROR', `GitHub create error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/github/push — init local repo and push to remote
+app.post('/api/github/push', (req, res) => {
+  const config = getConfig();
+  const token = config.githubToken;
+  if (!token) return res.status(401).json({ error: 'GitHub token not configured' });
+
+  const { localPath, remoteUrl, commitMessage, branch } = req.body || {};
+  if (!localPath || !remoteUrl) return res.status(400).json({ error: 'localPath and remoteUrl are required' });
+  if (!fs.existsSync(localPath)) return res.status(404).json({ error: 'Local path does not exist' });
+
+  try {
+    const result = initAndPush(localPath, remoteUrl, token, { commitMessage, branch });
+    if (result.success) {
+      log('INFO', `Pushed to GitHub: ${remoteUrl}`);
+    } else {
+      log('ERROR', `Push failed: ${result.error}`);
+    }
+    res.json(result);
+  } catch (err) {
+    log('ERROR', `Push error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── GET /api/logs ────────────────────────────────────

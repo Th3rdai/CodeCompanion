@@ -49,78 +49,31 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   const [launchingCursor, setLaunchingCursor] = useState(false);
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
   const [launchingOpenCode, setLaunchingOpenCode] = useState(false);
+  const [launchError, setLaunchError] = useState(null);
 
   const folderPath = tree?.root || projectFolder;
 
-  async function handleLaunchClaude() {
-    if (!folderPath) return;
-    setLaunchingClaude(true);
-    try {
-      const res = await fetch('/api/launch-claude-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectPath: folderPath })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) console.error('Launch Claude failed:', data.error);
-    } catch (err) {
-      console.error('Launch Claude failed:', err);
-    } finally {
-      setLaunchingClaude(false);
+  async function launchIDE(endpoint, name, setLoading) {
+    if (!folderPath) {
+      setLaunchError('No project folder set. Browse to a folder first.');
+      return;
     }
-  }
-
-  async function handleLaunchCursor() {
-    if (!folderPath) return;
-    setLaunchingCursor(true);
+    setLaunchError(null);
+    setLoading(true);
     try {
-      const res = await fetch('/api/launch-cursor', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectPath: folderPath })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) console.error('Launch Cursor failed:', data.error);
+      if (!res.ok || !data.success) {
+        setLaunchError(data.error || `Failed to open ${name}`);
+      }
     } catch (err) {
-      console.error('Launch Cursor failed:', err);
+      setLaunchError(`Could not reach server to open ${name}`);
     } finally {
-      setLaunchingCursor(false);
-    }
-  }
-
-  async function handleLaunchWindsurf() {
-    if (!folderPath) return;
-    setLaunchingWindsurf(true);
-    try {
-      const res = await fetch('/api/launch-windsurf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectPath: folderPath })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) console.error('Launch Windsurf failed:', data.error);
-    } catch (err) {
-      console.error('Launch Windsurf failed:', err);
-    } finally {
-      setLaunchingWindsurf(false);
-    }
-  }
-
-  async function handleLaunchOpenCode() {
-    if (!folderPath) return;
-    setLaunchingOpenCode(true);
-    try {
-      const res = await fetch('/api/launch-opencode', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectPath: folderPath })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) console.error('Launch OpenCode failed:', data.error);
-    } catch (err) {
-      console.error('Launch OpenCode failed:', err);
-    } finally {
-      setLaunchingOpenCode(false);
+      setLoading(false);
     }
   }
 
@@ -166,33 +119,40 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
       {projectFolder && (
         <div className="px-3 py-2 border-b border-slate-700/30 flex flex-wrap gap-2">
           <button
-            onClick={handleLaunchClaude}
+            onClick={() => launchIDE('/api/launch-claude-code', 'Claude Code', setLaunchingClaude)}
             disabled={launchingClaude || !folderPath}
             className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors disabled:opacity-50"
           >
             {launchingClaude ? 'Opening...' : '⌨ Claude'}
           </button>
           <button
-            onClick={handleLaunchCursor}
+            onClick={() => launchIDE('/api/launch-cursor', 'Cursor', setLaunchingCursor)}
             disabled={launchingCursor || !folderPath}
             className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors disabled:opacity-50"
           >
             {launchingCursor ? 'Opening...' : '🖱 Cursor'}
           </button>
           <button
-            onClick={handleLaunchWindsurf}
+            onClick={() => launchIDE('/api/launch-windsurf', 'Windsurf', setLaunchingWindsurf)}
             disabled={launchingWindsurf || !folderPath}
             className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
           >
             {launchingWindsurf ? 'Opening...' : '🌊 Windsurf'}
           </button>
           <button
-            onClick={handleLaunchOpenCode}
+            onClick={() => launchIDE('/api/launch-opencode', 'OpenCode', setLaunchingOpenCode)}
             disabled={launchingOpenCode || !folderPath}
             className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50"
           >
             {launchingOpenCode ? 'Opening...' : '💻 OpenCode'}
           </button>
+        </div>
+      )}
+
+      {launchError && (
+        <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-xs flex items-start gap-2">
+          <span className="flex-1">{launchError}</span>
+          <button onClick={() => setLaunchError(null)} className="text-red-300 hover:text-white shrink-0">✕</button>
         </div>
       )}
 
