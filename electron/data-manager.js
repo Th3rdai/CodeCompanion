@@ -5,14 +5,42 @@ const archiver = require('archiver');
 const extractZip = require('extract-zip');
 
 /**
- * Resolves the data directory for Code Companion
- * Uses OS-appropriate user data directory by default
- * Falls back to portable mode if configured
+ * Resolves the portable app root — the directory containing the app itself.
+ * Data lives as a sibling folder so deleting the parent = full uninstall.
+ *
+ * Layout:
+ *   SomeFolder/
+ *   ├── Code Companion.app | CodeCompanion.exe | CodeCompanion-linux
+ *   └── CodeCompanion-Data/
+ *
+ * In dev mode, data goes next to the project root.
+ */
+function getPortableRoot() {
+  if (app.isPackaged) {
+    // macOS: appPath is /path/to/Code Companion.app/Contents/Resources/app
+    // Windows/Linux: appPath is /path/to/resources/app
+    const appPath = app.getAppPath();
+
+    if (process.platform === 'darwin') {
+      // Walk up from .app/Contents/Resources/app → directory containing .app
+      const dotApp = appPath.replace(/\/Contents\/Resources\/app\/?$/, '');
+      return path.dirname(dotApp);
+    }
+    // Windows/Linux: exe is in the app root folder
+    return path.dirname(app.getPath('exe'));
+  }
+  // Dev mode: project root
+  return path.join(__dirname, '..');
+}
+
+/**
+ * Resolves the data directory for Code Companion.
+ * Self-contained: data lives next to the app so uninstall = delete the folder.
+ * Automatically migrates from the legacy OS user-data location on first run.
  */
 function resolveDataDirectory() {
-  // TODO: Check config for portable mode toggle in future
-  // For now, always use OS user data directory
-  const dataDir = path.join(app.getPath('userData'), 'CodeCompanion-Data');
+  const portableRoot = getPortableRoot();
+  const dataDir = path.join(portableRoot, 'CodeCompanion-Data');
 
   // Create directory if it doesn't exist
   if (!fs.existsSync(dataDir)) {
@@ -23,6 +51,17 @@ function resolveDataDirectory() {
     const destReadme = path.join(dataDir, 'README.txt');
     if (fs.existsSync(readmePath)) {
       fs.copyFileSync(readmePath, destReadme);
+    }
+  }
+
+  // Migrate from legacy OS user-data location if it exists and portable dir is empty
+  const legacyDir = path.join(app.getPath('userData'), 'CodeCompanion-Data');
+  if (legacyDir !== dataDir && fs.existsSync(legacyDir)) {
+    const portableFiles = fs.readdirSync(dataDir).filter(f => f !== 'README.txt');
+    if (portableFiles.length === 0) {
+      console.log('[Data Manager] Migrating from legacy OS location to portable...');
+      copyDirectoryRecursive(legacyDir, dataDir);
+      console.log('[Data Manager] Migration complete. Legacy data preserved at:', legacyDir);
     }
   }
 

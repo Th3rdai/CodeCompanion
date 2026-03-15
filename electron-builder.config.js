@@ -60,6 +60,15 @@ module.exports = {
     oneClick: false,
     allowToChangeInstallationDirectory: true,
     installerIcon: 'resources/icon.png',
+    uninstallerIcon: 'resources/icon.png',
+    installerHeaderIcon: 'resources/icon.png',
+    license: 'LICENSE',
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    shortcutName: 'Code Companion',
+    runAfterFinish: true,
+    installerSidebar: 'resources/nsis-sidebar.bmp',
+    uninstallerSidebar: 'resources/nsis-sidebar.bmp',
   },
   linux: {
     target: ['AppImage', 'zip'],
@@ -69,7 +78,7 @@ module.exports = {
   publish: {
     provider: 'github',
     owner: 'th3rdai',
-    repo: 'code-companion',
+    repo: 'CodeCompanion',
   },
   extraResources: [
     { from: 'resources/data-readme.txt', to: 'data-readme.txt' },

@@ -29,10 +29,30 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [actualPort, setActualPort] = useState(null);
   const [portError, setPortError] = useState('');
 
+  // Update state
+  const [updateStatus, setUpdateStatus] = useState(null); // null | 'checking' | 'available' | 'downloading' | 'ready' | 'up-to-date' | 'error'
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [updateError, setUpdateError] = useState(null);
+
   useEffect(() => {
     fetchGhTokenStatus();
     if (isElectron) {
       fetchElectronData();
+
+      // Listen for update events
+      window.electronAPI.onUpdateAvailable((info) => {
+        setUpdateStatus('available');
+        setUpdateInfo(info);
+      });
+      window.electronAPI.onUpdateDownloadProgress?.((progress) => {
+        setUpdateStatus('downloading');
+        setDownloadProgress(Math.round(progress.percent));
+      });
+      window.electronAPI.onUpdateDownloaded((info) => {
+        setUpdateStatus('ready');
+        setUpdateInfo(info);
+      });
     }
   }, [isElectron]);
 
@@ -94,6 +114,33 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
       }
     } catch (err) {
       setPortError(err.message);
+    }
+  }
+
+  async function handleCheckForUpdates() {
+    setUpdateStatus('checking');
+    setUpdateError(null);
+    try {
+      const result = await window.electronAPI.checkForUpdates();
+      if (result.success && result.updateInfo) {
+        // Events will handle status changes
+      } else if (result.success) {
+        setUpdateStatus('up-to-date');
+      } else {
+        setUpdateStatus('error');
+        setUpdateError(result.error || 'Check failed');
+      }
+    } catch (err) {
+      setUpdateStatus('error');
+      setUpdateError(err.message);
+    }
+  }
+
+  async function handleRestartForUpdate() {
+    try {
+      await window.electronAPI.restartForUpdate();
+    } catch (err) {
+      setUpdateError(err.message);
     }
   }
 
@@ -399,6 +446,63 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                       </p>
                     )}
                   </div>
+                </div>
+
+                {/* Software Updates */}
+                <div className="glass rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm font-medium text-slate-200">Software Updates</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {updateStatus === 'up-to-date' && 'You\'re running the latest version'}
+                        {updateStatus === 'available' && `Version ${updateInfo?.version} is available`}
+                        {updateStatus === 'downloading' && `Downloading update... ${downloadProgress}%`}
+                        {updateStatus === 'ready' && `Version ${updateInfo?.version} ready to install`}
+                        {updateStatus === 'checking' && 'Checking for updates...'}
+                        {updateStatus === 'error' && (updateError || 'Update check failed')}
+                        {!updateStatus && 'Check for the latest version'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Download progress bar */}
+                  {updateStatus === 'downloading' && (
+                    <div className="mb-3">
+                      <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                          style={{ width: `${downloadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    {updateStatus === 'ready' ? (
+                      <button
+                        onClick={handleRestartForUpdate}
+                        className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium"
+                      >
+                        Restart &amp; Update
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCheckForUpdates}
+                        disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
+                        className="glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-50 rounded-lg px-4 py-2 text-sm font-medium transition-colors border border-slate-600"
+                      >
+                        {updateStatus === 'checking' ? (
+                          <span className="inline-block spin">&#x27F3;</span>
+                        ) : (
+                          'Check for Updates'
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {updateStatus === 'error' && (
+                    <p className="text-xs text-red-400 mt-2">{updateError}</p>
+                  )}
                 </div>
 
                 {/* App Version */}

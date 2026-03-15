@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="164" height="314" viewBox="0 0 164 314">
+  <defs>
+    <linearGradient id="accentGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <pattern id="dotGrid" x="0" y="0" width="12" height="12" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="0.8" fill="#ffffff" opacity="0.06"/>
+    </pattern>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="164" height="314" fill="#0f172a"/>
+
+  <!-- Subtle dot grid texture -->
+  <rect width="164" height="314" fill="url(#dotGrid)"/>
+
+  <!-- Vertical gradient accent strip on left edge -->
+  <rect x="0" y="0" width="6" height="314" fill="url(#accentGrad)"/>
+
+  <!-- Faint secondary accent line -->
+  <rect x="8" y="20" width="1" height="274" fill="#6366f1" opacity="0.2"/>
+
+  <!-- "Code Companion" text rotated vertically along the left side -->
+  <text
+    x="30"
+    y="280"
+    transform="rotate(-90, 30, 280)"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="18"
+    font-weight="600"
+    fill="#ffffff"
+    letter-spacing="2"
+  >Code Companion</text>
+
+  <!-- Subtle decorative geometric elements -->
+  <rect x="130" y="24" width="16" height="16" rx="2" fill="#6366f1" opacity="0.08"/>
+  <rect x="110" y="48" width="10" height="10" rx="1" fill="#8b5cf6" opacity="0.06"/>
+  <rect x="140" y="56" width="8" height="8" rx="1" fill="#6366f1" opacity="0.05"/>
+
+  <!-- Th3rdAI branding at bottom -->
+  <text
+    x="82"
+    y="298"
+    text-anchor="middle"
+    font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+    font-size="9"
+    font-weight="400"
+    fill="#6366f1"
+    opacity="0.6"
+    letter-spacing="1.5"
+  >Th3rdAI</text>
+
+  <!-- Bottom accent line -->
+  <rect x="52" y="304" width="60" height="1" fill="#6366f1" opacity="0.15"/>
+</svg>

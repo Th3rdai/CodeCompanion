@@ -34,6 +34,17 @@ function initAutoUpdater(win, dataDir) {
     win.webContents.send('update-available', info);
   });
 
+  // Event: Download progress
+  autoUpdater.on('download-progress', (progress) => {
+    log.info(`[Auto-Updater] Download progress: ${Math.round(progress.percent)}%`);
+    win.webContents.send('update-download-progress', {
+      percent: progress.percent,
+      bytesPerSecond: progress.bytesPerSecond,
+      transferred: progress.transferred,
+      total: progress.total,
+    });
+  });
+
   // Event: Update downloaded - create backup before applying
   autoUpdater.on('update-downloaded', async (info) => {
     log.info('[Auto-Updater] Update downloaded:', info.version);

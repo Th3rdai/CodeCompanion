@@ -22,12 +22,12 @@ async function main() {
     1024
   );
 
-  // Convert dmg-background.svg to dmg-background.png (660x400)
+  // Convert dmg-background.svg to dmg-background.png (540x380)
   await convertSvgToPng(
     path.join(resourcesDir, 'dmg-background.svg'),
     path.join(resourcesDir, 'dmg-background.png'),
-    660,
-    400
+    540,
+    380
   );
 
   console.log('Icon conversion complete!');
