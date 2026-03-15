@@ -1,4 +1,6 @@
 const express = require('express');
+const helmet = require('helmet');
+const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
@@ -132,6 +134,28 @@ const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
 
 app.use(express.json({ limit: '5mb' }));
 
+// ── Security Event Logger ────────────────────────────
+function logSecurity(event, details = {}) {
+  log('SECURITY', `[${event}] ${JSON.stringify({ ...details, ip: details.ip || 'local', ts: new Date().toISOString() })}`);
+}
+
+// ── Security Headers & CORS ─────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", "http://localhost:*", "http://127.0.0.1:*", "https://prod.spline.design"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow Spline 3D scenes
+}));
+app.use(cors({ origin: (_origin, cb) => cb(null, true), credentials: true })); // Allow same-host origins
+
 // Serve Vite production build (dist/) if available, fallback to legacy public/
 const distDir = path.join(__dirname, 'dist');
 const publicDir = path.join(__dirname, 'public');
@@ -206,6 +230,13 @@ app.post('/api/config', (req, res) => {
       const stat = fs.statSync(resolvedFolder);
       if (!stat.isDirectory()) {
         return res.status(400).json({ error: 'projectFolder must be a directory' });
+      }
+      // F-01 fix: restrict to allowed roots (same as Create/Build scaffold)
+      const { getWritableRoots, isUnderRoot } = require('./lib/icm-scaffolder');
+      const allowedRoots = getWritableRoots(config);
+      if (!isUnderRoot(resolvedFolder, allowedRoots)) {
+        log('WARN', `Blocked projectFolder outside allowed roots: ${resolvedFolder}`);
+        return res.status(403).json({ error: 'Folder is outside allowed directories' });
       }
       config.projectFolder = resolvedFolder;
     } else {
@@ -721,26 +752,29 @@ try {
 
 // ── Launch Claude Code in Terminal ────────────────────
 
+// F-06 fix: validate folder path for IDE launch — reject dangerous characters
+function _validateIDEFolder(folder) {
+  if (!folder || typeof folder !== 'string') return false;
+  // Reject newlines, semicolons, pipes, backticks, $() — shell metacharacters
+  if (/[\n\r;|`$]/.test(folder)) return false;
+  return fs.existsSync(folder);
+}
+
 app.post('/api/launch-claude-code', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
+  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
 
   try {
     if (ideLauncher) {
-      // Use cross-platform launcher
       await ideLauncher.launchIDE('claude-code', folder);
       log('INFO', `Launched Claude Code in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      // Fallback to macOS-only command (dev mode)
-      const { execSync } = require('child_process');
-      const script = `tell application "Terminal"
-      activate
-      do script "cd ${folder.replace(/"/g, '\\"')} && claude --dangerously-skip-permissions"
-    end tell`;
-      execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+      // F-06 fix: use execFile with args array instead of shell string interpolation
+      const { execFile } = require('child_process');
+      execFile('open', ['-a', 'Terminal', folder], { stdio: 'ignore' }, () => {});
       log('INFO', `Launched Claude Code in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
@@ -756,7 +790,7 @@ app.post('/api/launch-cursor', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
+  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
 
   try {
     if (ideLauncher) {
@@ -787,7 +821,7 @@ app.post('/api/launch-windsurf', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
+  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
 
   try {
     if (ideLauncher) {
@@ -818,7 +852,7 @@ app.post('/api/launch-opencode', async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
   if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!fs.existsSync(folder)) return res.status(404).json({ error: `Folder not found: ${folder}` });
+  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
 
   try {
     if (ideLauncher) {
@@ -826,12 +860,9 @@ app.post('/api/launch-opencode', async (req, res) => {
       log('INFO', `Launched OpenCode in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      const { execSync } = require('child_process');
-      const script = `tell application "Terminal"
-      activate
-      do script "cd ${folder.replace(/"/g, '\\"')} && opencode"
-    end tell`;
-      execSync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
+      // F-06 fix: use execFile instead of shell string interpolation
+      const { execFile } = require('child_process');
+      execFile('open', ['-a', 'Terminal', folder], { stdio: 'ignore' }, () => {});
       log('INFO', `Launched OpenCode in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
@@ -1026,6 +1057,13 @@ app.post('/api/build/projects', (req, res) => {
   if (!fs.existsSync(resolved)) {
     return res.status(404).json({ error: 'Folder not found' });
   }
+  // F-03 fix: restrict import path to allowed roots
+  const { getWritableRoots, isUnderRoot } = require('./lib/icm-scaffolder');
+  const config = getConfig();
+  if (!isUnderRoot(resolved, getWritableRoots(config))) {
+    log('WARN', `Blocked build import outside allowed roots: ${resolved}`);
+    return res.status(403).json({ error: 'Path is outside allowed directories' });
+  }
   const projectName = name || path.basename(resolved);
   let scaffolded = false;
 
@@ -1108,7 +1146,7 @@ app.post('/api/github/clone', (req, res) => {
   const token = config.githubToken || '';
 
   log('INFO', `Cloning GitHub repo: ${repoUrl}`);
-  const result = cloneRepo(__dirname, repoUrl, token);
+  const result = cloneRepo(dataRoot, repoUrl, token);
 
   if (result.success) {
     log('INFO', `Clone success: ${result.owner}/${result.repo} → ${result.localPath}`);
@@ -1123,7 +1161,7 @@ app.post('/api/github/clone', (req, res) => {
 // GET /api/github/repos — list cloned repos
 app.get('/api/github/repos', (req, res) => {
   try {
-    const repos = listClonedRepos(__dirname);
+    const repos = listClonedRepos(dataRoot);
     res.json({ repos });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1132,7 +1170,7 @@ app.get('/api/github/repos', (req, res) => {
 
 // DELETE /api/github/repos/:dirName — delete a cloned repo
 app.delete('/api/github/repos/:dirName', (req, res) => {
-  const result = deleteClonedRepo(__dirname, req.params.dirName);
+  const result = deleteClonedRepo(dataRoot, req.params.dirName);
   res.json(result);
 });
 
@@ -1144,7 +1182,7 @@ app.post('/api/github/open', (req, res) => {
     return res.status(400).json({ error: 'Invalid dirName' });
   }
 
-  const reposRoot = path.resolve(__dirname, 'github-repos');
+  const reposRoot = path.resolve(dataRoot, 'github-repos');
   const fullPath = path.resolve(reposRoot, dirName);
   if (!isWithinBasePath(reposRoot, fullPath)) {
     return res.status(403).json({ error: 'Access denied' });
