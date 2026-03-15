@@ -1,287 +1,220 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-03-13
+**Analysis Date:** 2026-03-14
 
 ## Directory Layout
 
 ```
 AIApp-CodeCompanion/
-├── server.js                   # Express backend entry point (793 lines)
-├── mcp-server.js              # MCP server for CLI/stdio transport
-├── package.json               # Dependencies, build/dev scripts
-├── index.html                 # Vite HTML entry point
-├── vite.config.js             # Vite build config
-├── playwright.config.js       # E2E test config
-├── .cc-config.json            # User config (Ollama URL, project folder)
+├── server.js                   # Express backend entry point
+├── mcp-server.js               # MCP stdio server (Cursor, Claude Code)
+├── package.json                # Dependencies, scripts (electron:dev, electron:build)
+├── index.html                  # Vite HTML entry
+├── vite.config.js              # Vite + React + Tailwind, proxy /api /mcp → 3000
+├── electron-builder.config.js  # Electron packaging config
 │
-├── src/                        # React frontend source
-│   ├── main.jsx              # React entry: Effects3DProvider + App
-│   ├── App.jsx               # Main app component (664 lines) — mode logic, chat, history
-│   ├── index.css             # Tailwind + custom styles
+├── electron/                   # Electron main process
+│   ├── main.js                 # App lifecycle, spawn server, BrowserWindow, IPC
+│   ├── preload.js              # contextBridge → window.electronAPI
+│   ├── data-manager.js         # resolveDataDirectory, migrateDevData, export/import
+│   ├── window-state.js         # loadWindowState, saveWindowState
+│   ├── menu.js                 # createMenu (File, Edit, View, Help)
+│   ├── updater.js              # initAutoUpdater
+│   ├── ollama-setup.js         # checkOllamaRunning, installOllama, pullModel
+│   ├── ide-launcher.js         # launchIDE (cursor, windsurf, opencode, claude-code)
+│   └── splash.html             # Splash screen before app load
+│
+├── src/                        # React frontend
+│   ├── main.jsx                # React entry: Effects3DProvider + App
+│   ├── App.jsx                 # Main app: mode routing, chat, history, panels
+│   ├── index.css               # Tailwind + custom styles
 │   │
-│   ├── components/           # React components by feature
-│   │   ├── Sidebar.jsx       # Conversation list, search, archive
-│   │   ├── MessageBubble.jsx # User/assistant message display
-│   │   ├── MarkdownContent.jsx  # Markdown rendering with syntax highlighting
-│   │   ├── Toast.jsx         # Notification popups
-│   │   ├── RenameModal.jsx   # Conversation rename dialog
-│   │   ├── SettingsPanel.jsx # Ollama URL, GitHub token config
-│   │   ├── CreateWizard.jsx  # ICM project scaffolding UI
-│   │   ├── DashboardPanel.jsx # Analytics, mode/model usage
-│   │   ├── FileBrowser.jsx   # Project file tree, file reading
-│   │   ├── GitHubPanel.jsx   # Clone repos, browse GitHub
-│   │   ├── McpClientPanel.jsx # MCP client connection UI
-│   │   ├── McpServerPanel.jsx # MCP server HTTP endpoint status
-│   │   ├── ContextMenu.jsx   # Right-click menus
-│   │   ├── ui/
-│   │   │   └── Splite.jsx    # Splittable panel component
-│   │   └── 3d/               # Three.js + Spline 3D effects
-│   │       ├── SplashScreen.jsx    # Animated intro screen
-│   │       ├── HeaderScene.jsx     # Animated header with geometry
-│   │       ├── EmptyStateScene.jsx # Idle screen animation
-│   │       ├── FloatingGeometry.jsx # Floating 3D cubes/shapes
-│   │       ├── ParticleField.jsx   # Background particle effect
-│   │       ├── ParticleBurst.jsx   # Burst animation on send
-│   │       ├── TypingIndicator3D.jsx # 3D typing indicator
-│   │       ├── TokenCounter.jsx    # Token usage display
-│   │       ├── OrbitingBadge.jsx   # Orbiting badge element
-│   │       ├── SplineScene.jsx     # Spline design loader
-│   │       └── Spline3DError.jsx   # Fallback for Spline errors
+│   ├── components/
+│   │   ├── Sidebar.jsx         # Conversation list, archive, mode filter
+│   │   ├── MessageBubble.jsx   # User/assistant message display
+│   │   ├── MarkdownContent.jsx  # Markdown + syntax highlighting (highlight.js)
+│   │   ├── Toast.jsx           # Notification popup
+│   │   ├── RenameModal.jsx     # Conversation rename
+│   │   ├── SettingsPanel.jsx   # Ollama URL, project folder, GitHub, MCP
+│   │   ├── CreateWizard.jsx    # ICM project scaffolding UI
+│   │   ├── ReviewPanel.jsx     # Review mode: upload/paste/browse, ReportCard
+│   │   ├── ReportCard.jsx      # Report card display (grades, findings)
+│   │   ├── FileBrowser.jsx     # Project file tree, attach to chat
+│   │   ├── GitHubPanel.jsx     # Clone, browse, open repo
+│   │   ├── McpClientPanel.jsx  # MCP client connection UI (in Settings)
+│   │   ├── McpServerPanel.jsx  # MCP server status (in Settings)
+│   │   ├── OnboardingWizard.jsx # First-time onboarding
+│   │   ├── OllamaSetup.jsx     # Ollama install/pull wizard (Electron)
+│   │   ├── JargonGlossary.jsx  # Glossary panel
+│   │   ├── PrivacyBanner.jsx   # Privacy notice
+│   │   ├── ConnectionDot.jsx   # Connection status indicator
+│   │   ├── LoadingAnimation.jsx
+│   │   ├── DictateButton.jsx
+│   │   ├── ContextMenu.jsx
+│   │   ├── ui/Splite.jsx       # Animated beam accent
+│   │   ├── builders/           # Builder mode panels
+│   │   │   ├── BaseBuilderPanel.jsx
+│   │   │   ├── PromptingPanel.jsx
+│   │   │   ├── SkillzPanel.jsx
+│   │   │   ├── AgenticPanel.jsx
+│   │   │   └── BuilderScoreCard.jsx
+│   │   └── 3d/                 # Three.js / Spline effects
+│   │       ├── SplashScreen.jsx
+│   │       ├── HeaderScene.jsx
+│   │       ├── EmptyStateScene.jsx
+│   │       ├── FloatingGeometry.jsx
+│   │       ├── ParticleField.jsx
+│   │       ├── ParticleBurst.jsx
+│   │       ├── TypingIndicator3D.jsx
+│   │       ├── TokenCounter.jsx
+│   │       ├── OrbitingBadge.jsx
+│   │       ├── SplineScene.jsx
+│   │       └── Spline3DError.jsx
 │   │
 │   └── contexts/
-│       └── Effects3DContext.jsx # Context for 3D effect state/controls
+│       └── Effects3DContext.jsx
 │
-├── lib/                        # Backend business logic modules
-│   ├── ollama-client.js       # Ollama REST API client (80 lines)
-│   │   └── Exports: listModels, checkConnection, chatStream, chatComplete
-│   ├── history.js             # Conversation CRUD with JSON files (71 lines)
-│   │   └── Exports: initHistory, listConversations, getConversation, saveConversation, deleteConversation
-│   ├── config.js              # Config file I/O (52 lines)
-│   │   └── Exports: initConfig, getConfig, updateConfig
-│   ├── logger.js              # Custom logger with timestamps (49 lines)
-│   │   └── Exports: createLogger
-│   ├── file-browser.js        # File tree building, text file detection (110 lines)
-│   │   └── Exports: buildFileTree, readProjectFile, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS
-│   ├── github.js              # GitHub API client, git clone wrapper (311 lines)
-│   │   └── Exports: cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken
-│   ├── icm-scaffolder.js      # ICM project template scaffolding (317 lines)
-│   │   └── Exports: scaffoldProject
-│   ├── tool-call-handler.js   # TOOL_CALL parsing and MCP execution (84 lines)
-│   │   └── Exports: ToolCallHandler class with parseToolCalls, executeTool, buildToolsPrompt
-│   ├── mcp-client-manager.js  # MCP client lifecycle and registry (125 lines)
-│   │   └── Exports: McpClientManager class
-│   ├── mcp-api-routes.js      # MCP HTTP routes (176 lines)
-│   │   └── Exports: createMcpApiRoutes, recordToolCall
-│   └── prompts.js             # System prompts for each mode (90 lines)
-│       └── Exports: SYSTEM_PROMPTS object
+├── lib/                        # Backend modules
+│   ├── config.js               # initConfig, getConfig, updateConfig → .cc-config.json
+│   ├── history.js              # initHistory, listConversations, getConversation, saveConversation, deleteConversation
+│   ├── logger.js               # createLogger
+│   ├── ollama-client.js        # listModels, checkConnection, chatStream, chatComplete, chatStructured
+│   ├── prompts.js              # SYSTEM_PROMPTS (chat, explain, bugs, refactor, translate-*, review, review-fallback, create)
+│   ├── review.js               # reviewCode (structured + fallback)
+│   ├── review-schema.js        # ReportCardSchema, reportCardJsonSchema (Zod)
+│   ├── builder-score.js        # scoreContent (prompting, skillz, agentic)
+│   ├── builder-schemas.js      # PromptScoreSchema, SkillScoreSchema, AgentScoreSchema
+│   ├── file-browser.js         # buildFileTree, readProjectFile, isWithinBasePath, TEXT_EXTENSIONS, IGNORE_DIRS
+│   ├── github.js               # cloneRepo, deleteClonedRepo, listClonedRepos, listUserRepos, validateToken
+│   ├── icm-scaffolder.js       # scaffoldProject
+│   ├── mcp-client-manager.js   # McpClientManager (connect, disconnect, callTool, getAllTools)
+│   ├── mcp-api-routes.js       # createMcpApiRoutes (MCP server/client CRUD)
+│   ├── tool-call-handler.js    # ToolCallHandler (parseToolCalls, executeTool, buildToolsPrompt)
+│   └── maker-skill.js          # Maker skill (builder support)
 │
-├── public/                    # Static assets (legacy, overridden by dist/)
-│   ├── favicon.png
-│   ├── apple-touch-icon.png
-│   └── ...
+├── mcp/                        # MCP server tools and schemas
+│   ├── tools.js                # registerAllTools (6 mode + 5 utility tools)
+│   └── schemas.js              # modeToolSchema, browseFilesSchema, readFileSchema, etc. (Zod)
 │
-├── dist/                      # Vite production build output (optional)
-│   ├── index.html
-│   └── assets/
+├── public/                     # Static assets (fallback if dist/ missing)
+├── dist/                       # Vite build output (served by Express when present)
+├── resources/                  # Electron icons, data-readme.txt
+├── github-repos/               # Cloned repos (created at runtime)
 │
-├── history/                   # Conversation storage (created at runtime)
-│   ├── {uuid}.json           # Each conversation as JSON file
-│   └── ...
+├── tests/                      # Playwright tests
+│   ├── ui/                     # Component tests (JargonGlossary, OnboardingWizard, etc.)
+│   ├── e2e/                    # E2E (review-workflow.spec.js)
+│   └── test/                   # Unit (icm-scaffolder), E2E (create-mode)
 │
-├── logs/                      # Server logs (created if DEBUG enabled)
-│   └── ...
+├── .planning/
+│   └── codebase/               # ARCHITECTURE.md, STRUCTURE.md, STACK.md, etc.
 │
-├── mcp/                       # MCP server configuration and tools
-│   └── tools/                # Tool definitions (if any bundled)
-│
-├── test/                      # Test suite
-│   ├── unit/
-│   │   └── icm-scaffolder.test.js
-│   └── e2e/
-│       └── create-mode.spec.js
-│
-├── MAKER_framework/           # Unrelated external framework (generated, not part of core)
-│
-├── .planning/                 # GSD phase planning documents
-│   ├── codebase/             # Analysis docs (ARCHITECTURE.md, STRUCTURE.md, etc.)
-│   └── phases/               # Phase execution plans
-│
-└── !ARCHIVES/                # Archived/legacy code (pre-Vite build)
+└── !ARCHIVES/                  # Archived legacy code
 ```
 
 ## Directory Purposes
 
-**src/**
-- Purpose: React frontend source code
-- Contains: JSX components, CSS, context providers
-- Key files: `App.jsx` (main logic), `main.jsx` (entry)
+**electron/**
+- Purpose: Desktop app shell, data isolation, IDE launching
+- Key: main.js spawns server, preload.js exposes IPC; data in userData/CodeCompanion-Data
+
+**src/components/builders/**
+- Purpose: Builder mode panels (prompting, skillz, agentic) with score cards
+- Extends BaseBuilderPanel; uses BuilderScoreCard for display
 
 **lib/**
-- Purpose: Backend business logic and utilities
-- Contains: API clients, data access, domain logic
-- Key files: `ollama-client.js`, `history.js`, `file-browser.js`, `github.js`
-
-**public/**
-- Purpose: Static assets served by Express
-- Contains: Images, fonts, favicon
-- Note: Overridden by `dist/` if Vite build exists
-
-**dist/**
-- Purpose: Vite production build output
-- Contains: Minified HTML, JS, CSS, assets
-- Generated: `npm run build`
-- Served: If exists, takes precedence over `public/`
-
-**history/**
-- Purpose: Conversation history storage
-- Contains: `{uuid}.json` files, one per conversation
-- Generated: At runtime when user saves conversations
-- Structure: `{ id, title, mode, model, messages, createdAt, archived }`
-
-**test/**
-- Purpose: Automated tests
-- Contains: Unit tests (`test/unit/`), E2E tests (`test/e2e/`)
-- Key files: `icm-scaffolder.test.js`, `create-mode.spec.js`
+- Purpose: Backend business logic, schemas, API clients
+- review.js + review-schema.js: Review mode structured output
+- builder-score.js + builder-schemas.js: Builder mode scoring
 
 **mcp/**
-- Purpose: MCP server configuration
-- Contains: Tool registrations, MCP server setup
-- Key files: Managed by MCP SDK
+- Purpose: MCP tool definitions shared by HTTP and stdio transports
+- tools.js: registerAllTools with createModeHandler for 6 modes
+- schemas.js: Zod schemas for tool parameters
 
 ## Key File Locations
 
 **Entry Points:**
+- `server.js`: Express app, route mounting, MCP HTTP at `/mcp`
+- `src/main.jsx`: React bootstrap
+- `electron/main.js`: Electron app, server spawn, window management
+- `mcp-server.js`: MCP stdio server
 
-- `index.html`: HTML document root. Loads Vite entry and Tailwind fonts.
-- `src/main.jsx`: React entry point. Sets up Effects3DProvider, mounts App.
-- `server.js`: Express server entry. Initializes modules, mounts routes, starts listening.
+**Persistence:**
+- Config: `{dataRoot}/.cc-config.json` — ollamaUrl, projectFolder, githubToken, mcpClients, mcpServer, preferredPort, lastActiveMode
+- History: `{dataRoot}/history/{uuid}.json`
+- Logs: `{dataRoot}/logs/app.log`, `logs/debug.log`
+- Dev dataRoot: `CC_DATA_DIR` or `__dirname`
+- Electron dataRoot: `app.getPath('userData')/CodeCompanion-Data`
 
-**Configuration:**
+**Shared Schemas:**
+- `lib/review-schema.js`: ReportCardSchema (overallGrade, topPriority, categories)
+- `lib/builder-schemas.js`: PromptScoreSchema, SkillScoreSchema, AgentScoreSchema
+- `mcp/schemas.js`: modeToolSchema, browseFilesSchema, readFileSchema
 
-- `.cc-config.json`: User config (Ollama URL, project folder, GitHub token, MCP settings)
-- `vite.config.js`: Build config, React plugin, Tailwind integration
-- `playwright.config.js`: E2E test runner config
-- `package.json`: Dependencies, scripts
+**Mode Routing:**
+- `src/App.jsx`: MODES array (line ~31), BUILDER_MODES (line 44)
+- Conditional render: review → ReviewPanel; BUILDER_MODES → PromptingPanel/SkillzPanel/AgenticPanel; create → CreateWizard; else → chat area
 
-**Core Logic:**
+## API Routes Summary
 
-- `server.js`: Main API router with `/api/chat`, `/api/history`, `/api/files`, `/api/github`, `/api/create-project`
-- `src/App.jsx`: Main React component with mode switching, message handling, UI orchestration
-- `lib/ollama-client.js`: Ollama API integration (models, chat stream, completion)
-- `lib/history.js`: Conversation persistence (list, get, save, delete)
-- `lib/file-browser.js`: Project file tree building and text file detection
-
-**Testing:**
-
-- `test/unit/icm-scaffolder.test.js`: Unit tests for project scaffolding
-- `test/e2e/create-mode.spec.js`: Playwright E2E tests for create wizard
-
-**System Prompts:**
-
-- `lib/prompts.js`: SYSTEM_PROMPTS object with prompts for each mode (chat, explain, bugs, refactor, translate-tech, translate-biz, dashboard, create)
-
-## Naming Conventions
-
-**Files:**
-
-- Components: `PascalCase.jsx` (e.g., `Sidebar.jsx`, `MessageBubble.jsx`)
-- Libraries: `kebab-case.js` (e.g., `ollama-client.js`, `file-browser.js`)
-- Tests: `*.test.js` or `*.spec.js` (e.g., `icm-scaffolder.test.js`)
-- Config: lowercase with extension (e.g., `.cc-config.json`, `vite.config.js`)
-
-**Directories:**
-
-- Components: lowercase (e.g., `components/`, `components/3d/`)
-- Features: lowercase plural (e.g., `components/`, `contexts/`)
-- Tests: `test/` with subdirs by type (e.g., `test/unit/`, `test/e2e/`)
-
-**Variables & Functions:**
-
-- React components: `PascalCase` (e.g., `function App() {}`, `export default Sidebar`)
-- Functions/hooks: `camelCase` (e.g., `fetchConfig()`, `showToast()`, `useCallback`)
-- Constants: `UPPER_SNAKE_CASE` (e.g., `TEXT_EXTENSIONS`, `IGNORE_DIRS`, `SYSTEM_PROMPTS`)
-- State variables: `camelCase` (e.g., `const [messages, setMessages]`, `const [streaming, setStreaming]`)
-
-**Routes:**
-
-- API endpoints: `/api/{resource}/{action}` (e.g., `/api/chat`, `/api/history/:id`, `/api/files/tree`)
-- RESTful verbs: GET (read), POST (create/execute), DELETE (remove), no PUT
-- Suffixes: Action-specific (e.g., `/api/github/clone`, `/api/github/token`)
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | /api/config | Get sanitized config |
+| POST | /api/config | Update ollamaUrl, projectFolder |
+| GET | /api/models | List Ollama models |
+| POST | /api/chat | SSE chat (streaming or tool-call loop) |
+| POST | /api/review | Structured report card or SSE fallback |
+| POST | /api/score | Builder score card or SSE fallback |
+| GET/POST/DELETE | /api/history, /api/history/:id | Conversation CRUD |
+| GET | /api/files/tree, /api/files/read | File browser |
+| POST | /api/files/upload | Inline file upload |
+| POST | /api/create-project | ICM scaffold |
+| POST/GET/DELETE | /api/github/* | Clone, repos, token, browse |
+| POST | /api/launch-{cursor,windsurf,opencode,claude-code} | IDE launcher |
+| GET | /api/logs | Debug log viewer |
+| * | /mcp | MCP HTTP transport |
+| GET/POST | /api/mcp/server/* | MCP server toggle, tools, stats |
+| GET/POST/PUT/DELETE | /api/mcp/clients/* | MCP client CRUD, connect, disconnect |
 
 ## Where to Add New Code
 
-**New Feature (Chat Mode):**
-- Primary code: Add mode to `MODES` array in `src/App.jsx` (line 23), add system prompt to `lib/prompts.js`
-- UI panel: Create `src/components/NewModePanel.jsx` if custom UI needed
-- Backend route: Add handler in `server.js` if special processing needed
-- Tests: Add case in `test/e2e/` for user flow
+**New Chat Mode:**
+- Add to MODES in `src/App.jsx`
+- Add SYSTEM_PROMPTS key in `lib/prompts.js`
+- Optionally add MCP tool in `mcp/tools.js` via createModeHandler
 
-**New Component:**
-- Implementation: `src/components/{FeatureName}.jsx`
-- Import in `src/App.jsx` and render conditionally based on mode/state
-- Use Tailwind CSS classes for styling (no separate CSS files)
-- Export as default: `export default function ComponentName() {}`
+**New Builder Mode:**
+- Add to MODES and BUILDER_MODES in `src/App.jsx`
+- Add schema in `lib/builder-schemas.js` (SCORE_SCHEMAS)
+- Add panel in `src/components/builders/`
+- Add case in `server.js` POST /api/score validModes
+- Add score logic in `lib/builder-score.js`
 
-**New Backend Utility:**
-- Implementation: `lib/{domain}.js` with clear exports
-- Initialize in `server.js` lines 5-19 if stateful
-- Export named functions, not default
-- Example: `module.exports = { func1, func2 }`
+**New API Route:**
+- Add handler in `server.js` or mount router from `lib/`
+- Add rate limiter if needed (see createRateLimiter pattern)
 
-**3D Effect:**
-- Implementation: `src/components/3d/{EffectName}.jsx`
-- Use Three.js or @splinetool/react-spline
-- Integrate with `Effects3DContext` for shared state
-- Import and use in layout components (Sidebar, header sections)
-
-**Test:**
-- Unit: `test/unit/{module}.test.js` using Jest
-- E2E: `test/e2e/{feature}.spec.js` using Playwright
-- Run: `npm test` (if configured) or `npx playwright test`
-
-**Styling:**
-- Use Tailwind CSS utility classes directly in JSX
-- No CSS modules or separate stylesheets
-- Custom utilities in `src/index.css` if needed
-- Design tokens: indigo/slate color palette, glass-morphism effects
+**New Electron IPC:**
+- Add handler in `electron/main.js` ipcMain.handle
+- Expose in `electron/preload.js` contextBridge
 
 ## Special Directories
 
-**history/**
-- Purpose: Conversation storage
-- Generated: Yes (created at runtime when user saves)
-- Committed: No (.gitignore excludes)
-- Structure: JSON files, named by UUID
+**history/** (under dataRoot)
+- Generated at runtime
+- Not committed (.gitignore)
+- One JSON file per conversation
+
+**github-repos/**
+- Created when user clones repos
+- Sibling to app root
+- Path: `path.resolve(__dirname, 'github-repos')`
 
 **dist/**
-- Purpose: Vite production build output
-- Generated: Yes (`npm run build`)
-- Committed: No (.gitignore excludes)
-- Note: Served by Express if present, fallback to `public/`
-
-**logs/**
-- Purpose: Debug logs
-- Generated: Yes (when DEBUG=1)
-- Committed: No (.gitignore excludes)
-- Structure: Timestamped log files
-
-**node_modules/**
-- Purpose: Installed dependencies
-- Generated: Yes (`npm install`)
-- Committed: No (.gitignore excludes)
-
-**MAKER_framework/**
-- Purpose: External framework (unrelated to core app)
-- Generated: Yes (external tool)
-- Committed: Yes (but separate from src/)
-- Note: Not part of Code Companion codebase structure
-
-**!ARCHIVES/**
-- Purpose: Archived legacy code (pre-Vite)
-- Generated: No (manually organized)
-- Committed: Yes
-- Note: Reference only, not used in running app
+- Generated by `npm run build`
+- Served by Express when present; fallback to public/
 
 ---
 
-*Structure analysis: 2026-03-13*
+*Structure analysis: 2026-03-14*

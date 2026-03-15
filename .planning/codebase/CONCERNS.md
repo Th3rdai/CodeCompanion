@@ -1,6 +1,25 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-03-13
+**Analysis Date:** 2026-03-14
+
+**See also:** `.planning/codebase/RISKS.md` — v2.0 builder modes and desktop/web parity risks with severity ratings and mitigations.
+
+## v2.0 Builder Modes & Desktop Parity (Near-Term)
+
+**Builder modes (Prompting/Skillz/Agentic):**
+- Zero test coverage for `src/components/builders/*`, `lib/builder-score.js`, `/api/score` — regressions go unnoticed
+- Save title uses `data.name` but formData has no `name` field — results in "Prompt: undefined (date)" etc. (`src/App.jsx` line 316)
+- Download filename uses `formData.name` which is undefined — always falls back to generic `prompt.md`/`SKILL.md`/`agent.md` (`BaseBuilderPanel.jsx` line 223)
+- Parse logic in `parseLoaded` is regex-fragile — edge cases (empty sections, alternate headings) can corrupt form state
+- Small models (&lt;7B) often fail structured output; SSE fallback may return prose, causing `JSON.parse` to fail with unhelpful message
+
+**Desktop/web parity:**
+- Data paths diverge: Electron uses `userData/CodeCompanion-Data`, web uses `./history` and `./.cc-config.json` — no shared location, manual export/import
+- Builder modes work identically in both (same API, same components) — no known desktop-specific bugs
+
+**Full risk ratings and mitigations:** `.planning/codebase/RISKS.md`
+
+---
 
 ## Tech Debt
 
@@ -245,6 +264,20 @@
 - Blocks: Safety net for accidental deletions
 - Priority: Low (users manage deletion via archive feature)
 
+## Builder Mode Quality Gaps
+
+**Builder modes (Prompting, Skillz, Agentic) have zero test coverage:**
+- Issue: New builder workstream (`BaseBuilderPanel`, `BuilderScoreCard`, `PromptingPanel`, `SkillzPanel`, `AgenticPanel`) is untested
+- Files: `src/components/builders/BaseBuilderPanel.jsx` (615 lines), `lib/builder-score.js`, `lib/builder-schemas.js`, `server.js` POST `/api/score`
+- Impact: Regressions in scoring, form validation, or API contract go unnoticed. Roadmap builder workstream is fragile
+- Fix approach: Add unit tests for `lib/builder-score.js` (scoreContent, getTimeoutForModel), `lib/builder-schemas.js` (Zod schema validation). Add E2E tests for at least one builder mode (e.g., Prompting) covering form submit → mock score API → score card display
+
+**BaseBuilderPanel is a large config-driven component:**
+- Issue: 615-line component with inline `TagInput`, multiple phases (input/loading/scored/revising), and config-driven fields
+- Files: `src/components/builders/BaseBuilderPanel.jsx`
+- Impact: Refactoring or adding new builder modes risks breaking existing ones. No isolation tests
+- Fix approach: Extract `TagInput` to separate file. Add Playwright E2E for Prompting mode happy path with mocked `/api/score`
+
 ## Test Coverage Gaps
 
 **Untested areas:**
@@ -279,6 +312,12 @@
 - Risk: Security regression goes unnoticed. Users could accidentally read sensitive files
 - Priority: High
 
+**Builder modes (Prompting, Skillz, Agentic):**
+- What's not tested: Form submission, score API, score card display, revise flow, saved data restore
+- Files: `src/components/builders/`, `lib/builder-score.js`, `lib/builder-schemas.js`, `server.js` POST `/api/score`
+- Risk: New builder workstream can regress without detection. Schema changes may break UI
+- Priority: High (roadmap-relevant)
+
 **Create mode with unusual characters in project name:**
 - What's not tested: Unicode characters, very long names, special filesystem characters
 - Files: `lib/icm-scaffolder.js`
@@ -299,4 +338,4 @@
 
 ---
 
-*Concerns audit: 2026-03-13*
+*Concerns audit: 2026-03-14*

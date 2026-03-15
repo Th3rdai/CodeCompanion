@@ -1,208 +1,195 @@
 # Architecture
 
-**Analysis Date:** 2026-03-13
+**Analysis Date:** 2026-03-14
 
 ## Pattern Overview
 
-**Overall:** Monolithic Express backend + React frontend with real-time streaming
+**Overall:** Monolithic Express backend + React frontend + optional Electron shell, with real-time SSE streaming and dual MCP transport (HTTP + stdio)
 
 **Key Characteristics:**
-- Backend-driven request/response for chat operations via Server-Sent Events (SSE)
-- Modular backend with separated concerns (Ollama client, file system, GitHub, history)
-- React frontend with mode-based UI switching (chat, explain, bugs, refactor, translate, dashboard, create)
-- Model Context Protocol (MCP) integration for external tool execution with agentic loops
-- JSON-based local file storage for conversation history (no database)
-- Optional MCP server for exposing tools over HTTP
+- **Four system boundaries:** Frontend (React), Backend (Express), Electron (optional), MCP (server + client)
+- Backend-driven request/response for chat via Server-Sent Events (SSE)
+- Mode-based UI switching: 8 chat modes + 3 builder modes (prompting, skillz, agentic)
+- Dual MCP: HTTP transport at `/mcp` for in-app clients; stdio transport in `mcp-server.js` for Cursor/Claude Code
+- MCP client manager connects to external MCP servers; tool calls parsed from Ollama responses (`TOOL_CALL: serverId.toolName(args)`)
+- JSON-based local file storage; persistence path varies by runtime (dev vs Electron)
+- Structured outputs: Review mode (report card), Builder modes (score cards) with Zod schemas
+
+## System Boundaries
+
+**Frontend (React):**
+- Location: `src/`, `src/components/`, `src/contexts/`
+- Entry: `src/main.jsx` → `Effects3DProvider` → `App`
+- Serves: Browser or Electron renderer
+- Depends on: `/api/*` REST endpoints, `window.electronAPI` when in Electron
+
+**Backend (Express):**
+- Location: `server.js`, `lib/`
+- Entry: `server.js` (standalone) or spawned by `electron/main.js` as child process
+- Serves: Static files (`dist/` or `public/`), API routes, MCP HTTP endpoint
+- Depends on: Ollama REST API, filesystem, optional `electron/ide-launcher.js`
+
+**Electron:**
+- Location: `electron/main.js`, `electron/preload.js`, `electron/data-manager.js`, `electron/window-state.js`, `electron/menu.js`, `electron/updater.js`, `electron/ollama-setup.js`, `electron/ide-launcher.js`
+- Entry: `electron/main.js` (when `npm run electron:dev`)
+- Responsibilities: Spawn server child process, manage BrowserWindow, IPC bridge, data directory resolution, window state, auto-updater, Ollama setup wizard, IDE launching
+- Data path: `app.getPath('userData')/CodeCompanion-Data` (migrates from legacy `./data`, `./history`, `.cc-config.json`)
+
+**MCP Server (stdio):**
+- Location: `mcp-server.js`, `mcp/tools.js`, `mcp/schemas.js`
+- Entry: `node mcp-server.js` (used by Cursor, Claude Code)
+- Transport: StdioServerTransport
+- Tools: 6 mode tools + 5 utility tools (list_models, get_status, browse_files, read_file, list_conversations)
+
+**MCP Server (HTTP):**
+- Location: Same `mcp/tools.js`, `mcp/schemas.js`; mounted in `server.js` at `app.all('/mcp')`
+- Transport: StreamableHTTPServerTransport
+- Factory: `createMcpServer()` per request (stateless, concurrency-safe)
+
+**MCP Client Manager:**
+- Location: `lib/mcp-client-manager.js`, `lib/tool-call-handler.js`
+- Purpose: Connect to external MCP servers (stdio or HTTP), execute tool calls, inject tool descriptions into chat system prompt
+- Used by: `POST /api/chat` when external tools are connected
 
 ## Layers
 
 **Presentation Layer (Frontend):**
-- Purpose: Provide mode-specific UI for code analysis and PM communication
-- Location: `src/`, `src/components/`, `src/contexts/`
-- Contains: React components, hooks, state management, 3D effects
-- Depends on: Express REST API at `/api/*`
-- Used by: Browser clients
+- Purpose: Mode-specific UI for chat, review, create, builders
+- Location: `src/App.jsx`, `src/components/`
+- Contains: Mode tabs, ReviewPanel, CreateWizard, PromptingPanel/SkillzPanel/AgenticPanel, MessageBubble, FileBrowser, GitHubPanel, SettingsPanel
+- Depends on: Express REST API, `window.electronAPI` (Electron only)
+- Key state: `mode`, `messages`, `savedReview`, `savedBuilderData`, `projectFolder`, `selectedModel`
 
 **API Layer (Backend Routes):**
-- Purpose: Handle HTTP requests, orchestrate business logic, stream responses
-- Location: `server.js` (main router), `lib/mcp-api-routes.js` (MCP routes)
-- Contains: Express route handlers for chat, config, history, files, GitHub, create
-- Depends on: Business logic modules (ollama-client, history, config, file-browser, tools)
-- Used by: Frontend, MCP clients, external services
+- Purpose: HTTP handlers, orchestration, SSE streaming
+- Location: `server.js` (main router), `lib/mcp-api-routes.js` (MCP CRUD)
+- Key routes: `/api/chat`, `/api/review`, `/api/score`, `/api/config`, `/api/history`, `/api/files/*`, `/api/github/*`, `/api/create-project`, `/api/launch-*`, `/mcp`
+- Depends on: lib modules, ToolCallHandler, McpClientManager
 
 **Business Logic Layer:**
-- Purpose: Implement core domain operations
-- Location: `lib/`
-- Contains: `ollama-client.js`, `history.js`, `file-browser.js`, `github.js`, `icm-scaffolder.js`
-- Depends on: External services (Ollama, GitHub API), filesystem
-- Used by: API layer, tool handlers
+- Purpose: Domain operations
+- Location: `lib/ollama-client.js`, `lib/review.js`, `lib/builder-score.js`, `lib/file-browser.js`, `lib/github.js`, `lib/icm-scaffolder.js`
+- Depends on: Ollama API, filesystem, GitHub API
+- Shared schemas: `lib/review-schema.js`, `lib/builder-schemas.js`
 
 **Tool Execution Layer:**
-- Purpose: Execute MCP tool calls in agentic loops
+- Purpose: Parse and execute MCP tool calls in agentic loop
 - Location: `lib/tool-call-handler.js`, `lib/mcp-client-manager.js`
-- Contains: TOOL_CALL pattern parsing, MCP client lifecycle management
-- Depends on: MCP clients (registered tools), network connections
-- Used by: Chat endpoint for external tool execution
+- Pattern: `TOOL_CALL: serverId.toolName(args)` → `mcpClientManager.callTool(serverId, toolName, args)`
+- Used by: `/api/chat` when `buildToolsPrompt()` returns non-empty string
 
 **Data Access Layer:**
-- Purpose: Persist and retrieve conversations, configurations
+- Purpose: Config and history persistence
 - Location: `lib/config.js`, `lib/history.js`
-- Contains: JSON file I/O for `.cc-config.json` and `history/*.json`
-- Depends on: Filesystem
-- Used by: API layer, business logic
-
-**Infrastructure Layer:**
-- Purpose: Logging, metrics, process management
-- Location: `lib/logger.js`, performance metrics in `server.js`
-- Contains: Custom logger, CPU metrics, request tracking
-- Depends on: Node.js built-ins (fs, path, os)
-- Used by: All layers
+- Config path: `{dataRoot}/.cc-config.json` (dataRoot = `CC_DATA_DIR` or `__dirname`)
+- History path: `{dataRoot}/history/*.json`
+- Electron: dataRoot = `app.getPath('userData')/CodeCompanion-Data`
 
 ## Data Flow
 
-**Chat Request with Tool Calls:**
+**Chat Request (no external tools):**
+1. User sends message → `POST /api/chat` with `{ model, messages, mode }`
+2. Backend selects `SYSTEM_PROMPTS[mode]` from `lib/prompts.js`
+3. `chatStream()` to Ollama, stream response via SSE
+4. Frontend appends tokens, renders markdown
 
-1. User sends message via frontend → `POST /api/chat` with `{ model, messages, mode }`
-2. Backend enriches system prompt with tool descriptions from connected MCP clients
-3. If external tools available:
-   - **Tool-call loop** (max 5 rounds):
-     - Call `chatComplete()` to Ollama with full messages
-     - Parse response for `TOOL_CALL: serverId.toolName(args)` patterns
-     - If found: execute each tool via MCP, append results to messages, loop
-     - If none found: break and return final text
-4. Stream final response to frontend via SSE as `data: {chunk}` events
-5. Frontend renders streamed chunks in real-time
+**Chat Request (with MCP clients connected):**
+1. `POST /api/chat` → `toolCallHandler.buildToolsPrompt()` appends tool list to system prompt
+2. Tool-call loop (max 5 rounds): `chatComplete()` → parse `TOOL_CALL:` patterns → `toolCallHandler.executeTool()` → append results to messages → repeat
+3. When no tool calls found, stream final text as SSE tokens
+4. Frontend receives `{ token }`, `{ done }`, `{ error }` events
 
-**Direct Chat (No Tools):**
+**Review Mode:**
+1. User submits code in ReviewPanel → `POST /api/review` with `{ model, code, filename }`
+2. `lib/review.js` calls `chatStructured()` with `reportCardJsonSchema` from `lib/review-schema.js`
+3. On success: return `{ type: 'report-card', data }` (Zod-validated)
+4. On failure: fallback to `chatStream()`, stream via SSE with `{ fallback: true }`
+5. ReviewPanel renders ReportCard with categories (bugs, security, readability, completeness)
 
-1. User sends message → `POST /api/chat`
-2. Backend calls `chatStream()` to Ollama
-3. Response streamed directly via SSE to frontend
-4. Frontend appends chunks and renders markdown
+**Builder Modes (prompting, skillz, agentic):**
+1. User submits content in PromptingPanel/SkillzPanel/AgenticPanel → `POST /api/score` with `{ model, mode, content, metadata }`
+2. `lib/builder-score.js` uses `SCORE_SCHEMAS[mode]` from `lib/builder-schemas.js`
+3. On success: return `{ type: 'score-card', data }`
+4. On failure: fallback to chat stream
+5. Builder panels render BuilderScoreCard
 
-**History Persistence:**
+**Mode Routing (Frontend):**
+- `src/App.jsx` MODES array: chat, explain, bugs, refactor, translate-tech, translate-biz, review, create, prompting, skillz, agentic
+- BUILDER_MODES: prompting, skillz, agentic
+- Conditional render: `mode === 'review'` → ReviewPanel; `BUILDER_MODES.includes(mode)` → builder panels; `mode === 'create'` → CreateWizard; else → chat + EmptyStateScene
 
-1. User saves conversation (explicit action in UI)
-2. Frontend calls `POST /api/history` with conversation data
-3. Backend generates UUID, writes to `history/{id}.json`
-4. Frontend fetches `GET /api/history` to reload list
+**Persistence Paths:**
+- Dev: `CC_DATA_DIR` or `__dirname` → `./.cc-config.json`, `./history/`
+- Electron: `app.getPath('userData')/CodeCompanion-Data` → `.cc-config.json`, `history/`, `logs/`
+- Migration: `electron/data-manager.js` migrates legacy `./data`, `./history`, `./.cc-config.json` on first run
 
-**File Browsing:**
-
-1. User selects project folder in UI
-2. Frontend requests `GET /api/files/tree?folder=...&maxDepth=...`
-3. Backend recursively walks directory, filters ignored paths
-4. Returns tree structure of text files
-5. User can read files via `GET /api/files/read?folder=...&file=...`
-
-**GitHub Integration:**
-
-1. User provides GitHub token via settings
-2. Frontend calls `POST /api/github/token` to store token in config
-3. User clones repo: `POST /api/github/clone` with repo URL
-4. Backend calls `git clone` to `history/` directory
-5. File browser then displays cloned repo structure
-
-**Create Mode (ICM Scaffolding):**
-
-1. User launches Create wizard
-2. Provides project name, description, template selection
-3. Frontend calls `POST /api/create-project` with scaffolding params
-4. Backend calls `scaffoldProject()` from `lib/icm-scaffolder.js`
-5. Creates project directory with pre-built files/structure
-
-**State Management:**
-
-- Frontend: React `useState`, local storage for splash screen state
-- Backend: In-memory config object, file-based history
-- Session: Stored in `sessionStorage` (splash dismissal)
-- Persistent: `.cc-config.json`, `history/*.json`
+**Electron IPC Bridge:**
+- `electron/preload.js` exposes `window.electronAPI`: getAppVersion, getDataDir, exportData, importData, getLastMode, setLastMode, getPortConfig, setPortConfig, getActualPort, onPortFallback, checkForUpdates, restartForUpdate, launchIDE, checkOllama, installOllama, pullModel, onPullProgress
 
 ## Key Abstractions
 
 **Conversation:**
-- Purpose: Encapsulate message exchange between user and Ollama
-- Examples: `lib/history.js` CRUD operations, `src/App.jsx` message state
-- Pattern: Each conversation is a JSON object with `id`, `title`, `messages`, `mode`, `model`, `createdAt`, `archived`
-
-**Message:**
-- Purpose: Single turn in conversation (user or assistant)
-- Examples: `{ role: 'user'|'assistant'|'tool', content: string }`
-- Pattern: Sent to Ollama API, accumulated in conversation
+- Schema: `{ id, title, mode, model, messages, createdAt, archived, reviewData?, builderData? }`
+- reviewData: `{ reportData, filename, deepDiveMessages }`
+- builderData: `{ modeId, name, scoreData, ... }`
+- Stored: `lib/history.js` → `{dataRoot}/history/{id}.json`
 
 **Mode:**
-- Purpose: Determine system prompt and UX behavior
-- Examples: `chat`, `explain`, `bugs`, `refactor`, `translate-tech`, `translate-biz`, `dashboard`, `create`
-- Pattern: Selected in UI, controls `SYSTEM_PROMPTS[mode]` injected into requests
+- Frontend: `MODES` in `src/App.jsx` (id, label, icon, desc, placeholder)
+- Backend: `SYSTEM_PROMPTS` keys in `lib/prompts.js` (chat, explain, bugs, refactor, translate-tech, translate-biz, review, review-fallback, create)
+- MCP tools: mode keys map to `codecompanion_chat`, `codecompanion_explain`, etc. in `mcp/tools.js`
 
-**Tool Call:**
-- Purpose: Represent an MCP tool invocation triggered by Ollama
-- Examples: Parsed from `TOOL_CALL: serverId.toolName(args)` in response
-- Pattern: Executed in agentic loop with results fed back to Ollama
+**Report Card (Review):**
+- Schema: `lib/review-schema.js` — overallGrade, topPriority, categories (bugs, security, readability, completeness), cleanBillOfHealth
+- Each category: grade, summary, findings (title, severity, explanation, suggestedFix)
 
-**File Tree:**
-- Purpose: Represent project directory structure for browsing
-- Examples: Built by `lib/file-browser.js` from filesystem
-- Pattern: Nested objects with `{ name, path, children, isDir, lines }`
+**Score Card (Builders):**
+- Schemas: `lib/builder-schemas.js` — PromptScoreSchema, SkillScoreSchema, AgentScoreSchema
+- Categories vary by mode (e.g., prompting: clarity, specificity, structure, effectiveness)
 
 ## Entry Points
 
-**Backend:**
-- Location: `server.js` (line 1)
-- Triggers: Node.js process, `npm start` or `node server.js`
-- Responsibilities: Initialize Express, mount routes, listen on port 3000
+**Backend (standalone):**
+- `server.js` — `node server.js` or `npm start`
+- Initializes: initConfig(dataRoot), initHistory(dataRoot), McpClientManager, ToolCallHandler
+- Listens on PORT (default 3000)
+
+**Backend (Electron):**
+- `electron/main.js` forks `server.js` with `CC_DATA_DIR=dataDir`, `PORT=actualPort`
+- Server sends `process.send({ type: 'server-ready', port })` when ready
+- Main loads `http://localhost:{port}` in BrowserWindow
 
 **Frontend:**
-- Location: `src/main.jsx` (React entry point), `index.html` (HTML entry)
-- Triggers: Browser load, `npm run dev` or served by Express static middleware
-- Responsibilities: Bootstrap React, mount Effects3DProvider, render App component
+- `src/main.jsx` — ReactDOM.createRoot, Effects3DProvider, App
+- Vite dev: port 5173, proxy `/api` and `/mcp` to 3000
+- Production: Express serves `dist/` or `public/`
 
-**Chat Endpoint:**
-- Location: `server.js` line 185 (`app.post('/api/chat')`)
-- Triggers: User presses Enter with message in UI
-- Responsibilities: Stream Ollama response, execute tool calls, manage agentic loop
-
-**History Loading:**
-- Location: `server.js` line 398 (`app.get('/api/history')`)
-- Triggers: App mount, conversation list refresh
-- Responsibilities: List all conversations from `history/` directory
+**MCP stdio:**
+- `mcp-server.js` — `node mcp-server.js`
+- Uses `__dirname` as appRoot for config/history
+- Registers same tools as HTTP MCP via `registerAllTools()`
 
 ## Error Handling
 
-**Strategy:** Try-catch with user-facing error messages via toast notifications
+**Strategy:** Try-catch with user-facing toasts and SSE error events
 
 **Patterns:**
-
-- **Network errors:** Catch fetch failures, show "Connection failed" toast, set `connected: false`
-- **Ollama errors:** Catch chatComplete/chatStream failures, send SSE error event, end stream
-- **File system errors:** Catch fs operations, return empty arrays or error codes
-- **Tool execution:** Catch tool failures, append error message to tool results, continue loop
-- **Validation errors:** Return 400 status with error message (missing model, invalid mode)
-
-**Example (Chat Endpoint):**
-```javascript
-try {
-  responseText = await chatComplete(config.ollamaUrl, model, loopMessages);
-} catch (err) {
-  log('ERROR', `Ollama chatComplete failed`, { error: err.message });
-  sendEvent({ error: `Ollama error: ${err.message}` });
-  res.write('data: [DONE]\n\n');
-  return res.end();
-}
-```
+- Ollama errors: send `{ error }` SSE event, write `data: [DONE]\n\n`, end stream
+- Tool execution: append error to tool results, continue loop
+- Validation: 400 with message (missing model, invalid mode)
+- File path traversal: 403 from `lib/file-browser.js` via `readProjectFile`
+- Rate limiting: 429 with Retry-After header (chat, review, score, create-project, github/clone, mcp test-connection)
 
 ## Cross-Cutting Concerns
 
-**Logging:** Custom `lib/logger.js` with timestamp, level (INFO/ERROR/DEBUG), and messages. Debug mode enabled via `DEBUG=1` env var.
+**Logging:** `lib/logger.js` — createLogger(dataRoot), writes to `logs/app.log`, `logs/debug.log`; DEBUG=1 enables console debug
 
-**Validation:** System prompts checked for known modes, request payloads checked for required fields (model, messages, mode). File paths sanitized in file-browser.
+**Rate Limiting:** In-memory per-IP buckets in `server.js`; env vars: RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_CHAT, etc.
 
-**Authentication:** GitHub token optional, stored in `.cc-config.json` (user responsibility to manage). No session-based auth for local-only design.
+**Config Sanitization:** `sanitizeConfigForClient()` masks githubToken, MCP env vars before sending to frontend
 
-**Rate Limiting:** None enforced. Agentic loop capped at 5 rounds max to prevent infinite recursion.
-
-**Performance:** Streaming via SSE to show user progressive results. Tool-call execution is synchronous (no parallel). Metrics tracked in memory (request count, latency, traffic, CPU).
+**IDE Launcher:** Conditionally required in server.js when `CC_DATA_DIR` or `process.versions.electron`; fallback to macOS-only osascript/execSync in dev
 
 ---
 
-*Architecture analysis: 2026-03-13*
+*Architecture analysis: 2026-03-14*

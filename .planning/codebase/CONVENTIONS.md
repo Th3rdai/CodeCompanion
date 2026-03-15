@@ -1,6 +1,6 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-13
+**Analysis Date:** 2026-03-14
 
 ## Naming Patterns
 
@@ -37,8 +37,14 @@
 - String quotes: double quotes for JSX attributes, consistent throughout
 
 **Linting:**
-- No ESLint config detected — linting relies on code review standards
+- No ESLint, Prettier, or Biome config detected — linting relies on code review standards
 - Import organization follows Node.js conventions (built-in first, then npm, then local)
+- No automated format-on-save or pre-commit hooks for style consistency
+
+**Type Safety:**
+- No TypeScript — codebase is JavaScript only (`.js`, `.jsx`)
+- No JSDoc type annotations for function signatures or complex objects
+- Zod used for runtime validation in `lib/builder-schemas.js`, `lib/review.js` — schema-driven validation where structured output is critical
 
 **Comments:**
 - JSDoc-style for module exports and public APIs, e.g., `/** module description */`
@@ -203,4 +209,15 @@
 
 ---
 
-*Convention analysis: 2026-03-13*
+## Builder Mode Conventions
+
+**Config-driven panels:**
+- Builder modes (Prompting, Skillz, Agentic) use `BaseBuilderPanel` in `src/components/builders/BaseBuilderPanel.jsx` with a config object
+- Each mode defines a config with `modeId`, `fields`, `endpoint`, and `title` — see `src/components/builders/PromptingPanel.jsx`, `SkillzPanel.jsx`, `AgenticPanel.jsx`
+- Schemas live in `lib/builder-schemas.js` (Zod); scoring logic in `lib/builder-score.js`
+
+**Field types:**
+- Supported: `text`, `textarea`, `tags`
+- Tag inputs use `TagInput` component (inline in BaseBuilderPanel)
+
+*Convention analysis: 2026-03-14*

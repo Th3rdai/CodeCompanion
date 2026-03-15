@@ -6,8 +6,11 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ## Features
 
-- **Eight specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Review, Create
+- **Eleven specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Review, Create, Prompting, Skillz, Agentic
 - **Code Review with Report Card** — color-coded letter grades (A-F) for bugs, security, readability, and completeness with conversational deep-dives
+- **Prompt Builder** — craft, score, revise, and download AI prompts with quality grades for clarity, specificity, structure, and effectiveness
+- **Skill Builder** — create, score, and export SKILL.md files for Claude Code with grades for completeness, format, instructions, and reusability
+- **Agent Designer** — design, score, and download AI agent definitions with grades for purpose, tool design, workflow logic, and safety guardrails
 - **Friendly-teacher tone** — analogies, zero jargon, patience across all modes
 - **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
@@ -149,9 +152,11 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── config.js          # Config getter/setter (.cc-config.json)
 │   ├── logger.js          # File + stderr logging
 │   ├── ollama-client.js   # Ollama API client (stream + complete)
-│   ├── prompts.js         # System prompts for all 8 modes
+│   ├── prompts.js         # System prompts for all 11 modes
 │   ├── review.js          # Review orchestration (structured output + fallback)
 │   ├── review-schema.js   # Report card JSON schema
+│   ├── builder-score.js   # Builder mode scoring orchestration
+│   ├── builder-schemas.js # Zod schemas for prompt/skill/agent scoring
 │   ├── icm-scaffolder.js  # Create mode workspace scaffolding engine
 │   ├── maker-skill.js     # MAKER framework integration
 │   ├── file-browser.js    # Project file tree + reader
@@ -164,8 +169,14 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── tools.js           # 11 MCP tool registrations
 │   └── schemas.js         # Zod input schemas
 ├── src/                   # React frontend (Vite)
-│   ├── App.jsx            # Main app with 8 modes
+│   ├── App.jsx            # Main app with 11 modes
 │   └── components/
+│       ├── builders/
+│       │   ├── BaseBuilderPanel.jsx  # Shared builder lifecycle component
+│       │   ├── BuilderScoreCard.jsx  # Score display with grade badges
+│       │   ├── PromptingPanel.jsx    # Prompt builder config
+│       │   ├── SkillzPanel.jsx       # Skill builder config
+│       │   └── AgenticPanel.jsx      # Agent designer config
 │       ├── ReviewPanel.jsx       # Code review input (paste/upload/browse tabs)
 │       ├── ReportCard.jsx        # Color-coded grade display + export
 │       ├── LoadingAnimation.jsx  # Animated review loading state

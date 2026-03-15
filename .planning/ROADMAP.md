@@ -15,8 +15,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Review Engine** - Backend structured output endpoint that generates report cards with grades, findings, and top priority (completed 2026-03-13)
 - [x] **Phase 2: Tone Unification** - Rewrite all system prompts and mode labels for friendly-teacher vibe-coder persona (completed 2026-03-13)
 - [x] **Phase 3: Report Card UI** - Visual report card display with color-coded grades, deep-dive conversation, and all input methods (completed 2026-03-14)
-- [ ] **Phase 4: Actionable Guidance** - Copy-pasteable fix prompts, review history persistence, and model capability warnings
-- [ ] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging
+- [x] **Phase 4: Actionable Guidance** - Copy-pasteable fix prompts, review history persistence, and model capability warnings (completed 2026-03-14)
+- [x] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging (completed 2026-03-14)
 - [x] **Phase 6: Desktop App** - Electron packaging for self-contained macOS, Linux, and Windows desktop application (completed 2026-03-14)
 
 ## Phase Details
@@ -78,8 +78,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Fix prompts: schema extension, system prompt update, FindingCard UI blocks, bulk copy
-- [ ] 04-02-PLAN.md — Review history persistence with sidebar grade badges, deep-dive save/restore, model tier warnings
+- [x] 04-01-PLAN.md — Fix prompts: schema extension, system prompt update, FindingCard UI blocks, bulk copy
+- [x] 04-02-PLAN.md — Review history persistence with sidebar grade badges, deep-dive save/restore, model tier warnings
 
 ### Phase 5: Onboarding and Help
 **Goal**: A first-time user understands what Code Companion does, how to use it, and can get help with any technical term they encounter — all while knowing their code stays private
@@ -92,8 +92,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — OnboardingWizard vibe-coder content update with Ollama troubleshooting and Lucide mode icons
-- [ ] 05-02-PLAN.md — GLOSSARY audit for vibe-coder language, PrivacyBanner verification, test scaffolds
+- [x] 05-01-PLAN.md — OnboardingWizard vibe-coder content update with Ollama troubleshooting and Lucide mode icons
+- [x] 05-02-PLAN.md — GLOSSARY audit for vibe-coder language, PrivacyBanner verification, test scaffolds
 
 ### Phase 6: Desktop App
 **Goal**: Code Companion runs as a self-contained Electron desktop application on macOS, Linux, and Windows, with native window management, auto-free port detection, cross-platform IDE launchers, and distributable installers
@@ -108,10 +108,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Electron main process, embedded Express with free port, data directory management, window state + last-mode persistence
-- [ ] 06-02-PLAN.md — Cross-platform IDE launchers, Ollama setup wizard with auto-install and model pull progress
-- [ ] 06-03-PLAN.md — electron-builder config, auto-updater with pre-update backup, app resources, landing page
-- [ ] 06-04-PLAN.md — Integration smoke test and human verification of complete desktop app
+- [x] 06-01-PLAN.md — Electron main process, embedded Express with free port, data directory management, window state + last-mode persistence
+- [x] 06-02-PLAN.md — Cross-platform IDE launchers, Ollama setup wizard with auto-install and model pull progress
+- [x] 06-03-PLAN.md — electron-builder config, auto-updater with pre-update backup, app resources, landing page
+- [x] 06-04-PLAN.md — Integration smoke test and human verification of complete desktop app
 
 ## Progress
 
@@ -124,6 +124,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Review Engine | 2/2 | Complete | 2026-03-13 |
 | 2. Tone Unification | 2/2 | Complete | 2026-03-13 |
 | 3. Report Card UI | 2/2 | Complete | 2026-03-14 |
-| 4. Actionable Guidance | 0/2 | In progress | - |
-| 5. Onboarding and Help | 0/2 | Not started | - |
-| 6. Desktop App | 0/4 | Complete    | 2026-03-14 |
+| 4. Actionable Guidance | 2/2 | Complete | 2026-03-14 |
+| 5. Onboarding and Help | 2/2 | Complete | 2026-03-14 |
+| 6. Desktop App | 4/4 | Complete | 2026-03-14 |

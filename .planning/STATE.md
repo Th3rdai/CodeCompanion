@@ -22,15 +22,43 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Phase 6 Plan 1 complete — Electron desktop shell
+**Current focus:** Post-v1.0 — Builder mode scoring prompt engineering complete
 
 ## Current Position
 
 Phase: 6 of 6 (Desktop App) — COMPLETE
 Current Plan: 4 of 4 (all complete)
-Next: Phase complete - ready for milestone or next phase
-Status: Phase 6 complete - Desktop app verified and ready
-Last activity: 2026-03-14 — Desktop app integration verification
+Next: Post-v1.0 enhancements
+Status: v1.0 roadmap complete — builder mode scoring engineered
+Last activity: 2026-03-14 — Builder scoring prompts engineered (Prompting, Skillz, Agentic)
+
+## Post-v1.0 Enhancements (completed 2026-03-14)
+
+### Builder Mode Implementation
+- Three builder modes added: Prompting, Skillz, Agentic
+- Shared BaseBuilderPanel with config-driven lifecycle (input → loading → scored → revising)
+- `/api/score` endpoint with Zod schema validation and SSE fallback
+- Save/download with mode-aware filename and title extraction
+
+### Builder Bug Fixes
+- Fixed download filename using wrong field (added `nameField` config)
+- Fixed save title always "Untitled" (extract from `formData.skillName|agentName|purpose`)
+- Fixed auto-save creating duplicates (removed auto-save on score)
+- Fixed score fallback stream (`Readable.fromWeb` approach)
+- Fixed browser caching stale HTML (added `Cache-Control: no-cache` headers)
+- Fixed mode tabs cut off on small screens (flex-wrap with responsive sizing)
+
+### Scoring Prompt Engineering
+- **Prompting**: Rewritten using TÂCHES meta-prompting methodology (clarity Golden Rule, specificity, structure, effectiveness)
+- **Skillz**: Rewritten using Agent Skills Specification from agentskills.io (completeness, format compliance, instruction quality, reusability)
+- **Agentic**: Rewritten using CrewAI role patterns + LangGraph state machine workflows (purpose clarity, tool design, workflow logic, safety guardrails)
+
+### Revision Flow
+- AI generates improved content in `<revised_prompt>` tags
+- `applyRevision()` extracts and updates formData via `formDataRef` (synchronous) + `setFormData` (re-render)
+- "Apply Revision & Re-Score" button for one-click improvement cycle
+- Mode-aware revision prompts: TÂCHES for prompting, Agent Skills Spec for skillz, CrewAI+LangGraph for agentic
+- Verified D→B grade improvement across all three modes
 
 Progress: [██████████] 100%
 
@@ -112,7 +140,11 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+None — all tasks complete.
+
+### Future Backlog (lowest priority)
+
+- **Mac App Store** — Deferred to future work; not in current scope.
 
 ### Blockers/Concerns
 

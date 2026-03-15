@@ -1,25 +1,28 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-03-13
+**Analysis Date:** 2026-03-14
 
 ## Test Framework
 
 **Unit Tests:**
 - Framework: Node.js built-in `test` module (`node:test`)
-- Assertions: Node.js `assert/strict` module
-- Test file location: `test/unit/`
-- Example: `test/unit/icm-scaffolder.test.js`
+- Assertions: Node.js `assert/strict` or `assert` module
+- Test file location: `tests/` (root level) and `tests/test/unit/`
+- Examples: `tests/rate-limit.test.js`, `tests/tone-validation.test.js`, `tests/mcp-security.test.js`, `tests/ui-labels.test.js`, `tests/test/unit/icm-scaffolder.test.js`
 
-**E2E Tests:**
+**UI / E2E Tests:**
 - Framework: Playwright (`@playwright/test`)
-- Test file location: `test/e2e/`
-- Config file: `playwright.config.js`
-- Example: `test/e2e/create-mode.spec.js`
+- Test file locations: `tests/ui/` (UI flows), `tests/e2e/` (workflow E2E)
+- Config file: `playwright.config.js` (testDir: `./tests`)
+- Examples: `tests/ui/report-card-interactions.spec.js`, `tests/e2e/review-workflow.spec.js`, `tests/test/e2e/create-mode.spec.js`
 
 **Run Commands:**
 ```bash
-node test/unit/icm-scaffolder.test.js    # Run single unit test
-npx playwright test                       # Run all E2E tests
+node tests/rate-limit.test.js             # Run single unit test (spawns server)
+node tests/tone-validation.test.js        # Run tone validation (no server)
+npx playwright test                       # Run all Playwright tests
+npx playwright test tests/ui              # Run UI tests only (test:ui)
+npx playwright test tests/e2e             # Run E2E tests only (test:e2e)
 npx playwright test --headed              # Run with browser visible
 npx playwright test --debug               # Run with Playwright Inspector
 ```
@@ -27,23 +30,42 @@ npx playwright test --debug               # Run with Playwright Inspector
 ## Test File Organization
 
 **Location:**
-- Unit tests: co-located in `test/unit/` directory (mirrors source structure loosely)
-- E2E tests: co-located in `test/e2e/` directory
-- Test data/fixtures: generated inline within test functions (no separate fixture files)
+- Unit tests: `tests/*.test.js` (root) and `tests/test/unit/`
+- UI tests: `tests/ui/*.spec.js` — full E2E against server (not component tests)
+- E2E tests: `tests/e2e/` and `tests/test/e2e/`
+- Test data/fixtures: generated inline; no shared fixture files
 
 **Naming:**
-- Unit tests: `.test.js` suffix, e.g., `icm-scaffolder.test.js`
-- E2E tests: `.spec.js` suffix, e.g., `create-mode.spec.js`
-- Descriptive names based on module/feature under test
+- Unit tests: `.test.js` suffix
+- Playwright tests: `.spec.js` suffix
+- Descriptive names: `report-card-interactions.spec.js`, `loading-animation.spec.js`
 
 **Structure:**
 ```
-test/
-├── unit/
-│   └── icm-scaffolder.test.js
-└── e2e/
-    └── create-mode.spec.js
+tests/
+├── rate-limit.test.js
+├── tone-validation.test.js
+├── mcp-security.test.js
+├── ui-labels.test.js
+├── ui/
+│   ├── report-card-interactions.spec.js
+│   ├── loading-animation.spec.js
+│   ├── input-methods.spec.js
+│   ├── onboarding.spec.js
+│   ├── glossary.spec.js
+│   ├── JargonGlossary.spec.js
+│   ├── OnboardingWizard.spec.js
+│   └── privacy-banner.spec.js
+├── e2e/
+│   └── review-workflow.spec.js
+└── test/
+    ├── unit/
+    │   └── icm-scaffolder.test.js
+    └── e2e/
+        └── create-mode.spec.js
 ```
+
+**Note:** `playwright-ct.config.js` exists for component testing but is not used by default scripts. All UI tests run as full E2E via `playwright.config.js`.
 
 ## Unit Test Structure
 
@@ -271,27 +293,26 @@ test('API guardrails reject duplicate creates', async ({ request }) => {
 const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
-  testDir: './test/e2e',          // E2E test directory
-  timeout: 45_000,                // Test timeout (45 seconds)
-  expect: { timeout: 10_000 },    // Assertion timeout
+  testDir: './tests',             // All tests (ui + e2e + test/*)
+  timeout: 45_000,
+  expect: { timeout: 10_000 },
   use: {
-    baseURL: 'http://127.0.0.1:4173',  // Test server URL
-    headless: true                      // Run without browser UI
+    baseURL: 'http://127.0.0.1:4173',
+    headless: true
   },
   webServer: {
-    command: 'PORT=4173 node server.js',  // Start server before tests
+    command: 'PORT=4173 node server.js',
     port: 4173,
-    reuseExistingServer: true,            // Reuse server across tests
-    timeout: 120_000                      // Server startup timeout
+    reuseExistingServer: true,
+    timeout: 120_000
   }
 });
 ```
 
 **Key settings:**
+- `testDir: './tests'`: Runs all `.spec.js` under tests/ (ui, e2e, test/e2e)
 - `baseURL`: Must match test server port (4173)
-- `headless: true`: Faster, no browser window
 - `reuseExistingServer: true`: Faster runs if server already running
-- `webServer.command`: Starts Express server with custom port
 
 ## Test Coverage
 
@@ -299,14 +320,22 @@ module.exports = defineConfig({
 
 **What IS tested:**
 - Critical paths: scaffolder project creation, file system operations, API routes
-- Error conditions: invalid paths, duplicate projects, API failures
-- UI workflows: Create mode wizard end-to-end
+- Error conditions: invalid paths, duplicate projects, API failures, rate limiting, MCP config validation
+- UI workflows: Create mode wizard, Review mode (paste/upload/browse), report card progressive disclosure, loading animation, onboarding, glossary, privacy banner
+- Tone validation: system prompts (PM terms, analogies, personality archetypes)
+- UI labels: MODES array parsing, jargon/PM term checks
 
 **What is NOT tested:**
+- Builder modes (Prompting, Skillz, Agentic): `BaseBuilderPanel`, `BuilderScoreCard`, `lib/builder-score.js`, `lib/builder-schemas.js`, `POST /api/score`
 - Full chat streaming flow (complex Ollama integration)
-- All UI components individually (no Jest/Vitest setup)
 - Frontend state management edge cases
 - GitHub integration (requires token)
+
+**Mock duplication:** `mockReportCardResponse` is duplicated in three files with slight variations:
+- `tests/ui/loading-animation.spec.js`
+- `tests/ui/report-card-interactions.spec.js`
+- `tests/e2e/review-workflow.spec.js`
+Consider extracting to `tests/fixtures/review-mocks.js`.
 
 **Running E2E tests:**
 ```bash
@@ -338,4 +367,4 @@ npx playwright show-report
 
 ---
 
-*Testing analysis: 2026-03-13*
+*Testing analysis: 2026-03-14*
