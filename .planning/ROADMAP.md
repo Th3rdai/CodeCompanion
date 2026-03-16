@@ -239,7 +239,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 13. License Email Delivery | 0/1 | Planned | — |
 | 14. License Revocation | 0/1 | Planned | — |
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
-| 16. Build Dashboard | 1/5 | In Progress|  |
+| 16. Build Dashboard | 2/5 | In Progress|  |
 | 17. Auto-Update & Installer | ad-hoc | Complete | 2026-03-15 |
 
 ## License Distribution Roadmap (Phases 9–14)
