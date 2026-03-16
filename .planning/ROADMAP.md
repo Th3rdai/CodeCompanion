@@ -19,13 +19,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging (completed 2026-03-14)
 - [x] **Phase 6: Desktop App** - Electron packaging for self-contained macOS, Linux, and Windows desktop application (completed 2026-03-14)
 - [x] **Phase 7: License Gating** - Feature-based license model; gate Skillz and Agentic; wire license API and Settings UI (completed 2026-03-14)
-- [ ] **Phase 8: Payment Integration** - Stripe/Paddle checkout, purchase flow (planned)
-- [ ] **Phase 9: License Batch Generation** - Bulk key generation, lib/license-generator.js (planned)
-- [ ] **Phase 10: License Payment Webhook** - Auto-generate keys on purchase completion (planned)
-- [ ] **Phase 11: License Server API** - Online validation, revocation endpoint (planned)
-- [ ] **Phase 12: License Key Pool** - Pre-generated key pool, claim API (planned)
-- [ ] **Phase 13: License Email Delivery** - Send keys via email with template (planned)
-- [ ] **Phase 14: License Revocation** - Revoke keys, audit log (planned)
+- [ ] ~~**Phase 8: Payment Integration**~~ - Stripe/Paddle checkout, purchase flow (DEFERRED — MIT license, no paid tier)
+- [ ] ~~**Phase 9: License Batch Generation**~~ - Bulk key generation, lib/license-generator.js (DEFERRED)
+- [ ] ~~**Phase 10: License Payment Webhook**~~ - Auto-generate keys on purchase completion (DEFERRED)
+- [ ] ~~**Phase 11: License Server API**~~ - Online validation, revocation endpoint (DEFERRED)
+- [ ] ~~**Phase 12: License Key Pool**~~ - Pre-generated key pool, claim API (DEFERRED)
+- [ ] ~~**Phase 13: License Email Delivery**~~ - Send keys via email with template (DEFERRED)
+- [ ] ~~**Phase 14: License Revocation**~~ - Revoke keys, audit log (DEFERRED)
 - [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
 - [x] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell, Simple View, AI Research/Planning, Advanced View, Handoff+Polish (completed 2026-03-15)
 - [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
@@ -231,23 +231,17 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 5. Onboarding and Help | 2/2 | Complete | 2026-03-14 |
 | 6. Desktop App | 4/4 | Complete | 2026-03-14 |
 | 7. License Gating | 1/1 | Complete | 2026-03-14 |
-| 8. Payment Integration | 0/1 | Planned | — |
-| 9. License Batch Generation | 0/1 | Planned | — |
-| 10. License Payment Webhook | 0/1 | Planned | — |
-| 11. License Server API | 0/1 | Planned | — |
-| 12. License Key Pool | 0/1 | Planned | — |
-| 13. License Email Delivery | 0/1 | Planned | — |
-| 14. License Revocation | 0/1 | Planned | — |
+| 8. Payment Integration | — | Deferred | — |
+| 9. License Batch Generation | — | Deferred | — |
+| 10. License Payment Webhook | — | Deferred | — |
+| 11. License Server API | — | Deferred | — |
+| 12. License Key Pool | — | Deferred | — |
+| 13. License Email Delivery | — | Deferred | — |
+| 14. License Revocation | — | Deferred | — |
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
 | 16. Build Dashboard | 5/5 | Complete    | 2026-03-16 |
-| 17. Auto-Update & Installer | ad-hoc | Complete | 2026-03-15 |
+| 17. Auto-Update & Installer | ad-hoc | Complete    | 2026-03-16 |
 
-## License Distribution Roadmap (Phases 9–14)
+## License Distribution Roadmap (Phases 8–14) — DEFERRED
 
-**Suggested execution order:**
-1. **Phase 9** (Batch) — Foundation; extract license-generator
-2. **Phase 13** (Email) — Needed for any automated delivery
-3. **Phase 10** (Webhook) — When adding Stripe/Paddle
-4. **Phase 11** (Server API) — When online validation/revocation needed
-5. **Phase 14** (Revocation) — When revoking keys required
-6. **Phase 12** (Key Pool) — Optional; for pre-generated key campaigns
+Project is MIT licensed. These phases are deferred until a paid tier is needed. Plans exist on disk in `.planning/phases/` for future reference.
