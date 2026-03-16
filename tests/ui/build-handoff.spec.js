@@ -1,3 +1,6 @@
+// build-handoff.spec.js
+// Build Dashboard — Claude Code Handoff (Phase 16, P5)
+// Tests for GSD slash command generation and clipboard copy
 const { test, expect } = require('@playwright/test');
 
 test.describe('Build Dashboard — Claude Code Handoff', () => {

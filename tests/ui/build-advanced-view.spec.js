@@ -1,3 +1,6 @@
+// build-advanced-view.spec.js
+// Build Dashboard — Advanced View (Phase 16, P4)
+// Tests for phase accordion, file pills, and file viewer
 const { test, expect } = require('@playwright/test');
 
 test.describe('Build Dashboard — Advanced View', () => {

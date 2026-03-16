@@ -1,3 +1,6 @@
+// build-ai-ops.spec.js
+// Build Dashboard — AI Operations (Phase 16, P3)
+// Tests for research/plan SSE streaming and offline handling
 const { test, expect } = require('@playwright/test');
 
 test.describe('Build Dashboard — AI Operations', () => {

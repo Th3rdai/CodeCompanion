@@ -46,6 +46,16 @@
 - [x] **BUILD-02**: Scaffolded project includes CLAUDE.md, CONTEXT.md, skills/gsd-workflows.md; user can use GSD and ICM in Cursor/Claude Code
 - [x] **BUILD-03**: API returns 403 for path outside allowed root, 409 for already exists without overwrite; chat input hidden when Build selected
 
+### Build Dashboard (Phase 16)
+
+- [ ] **BDASH-P2-01**: BuildHeader shows status badge and progress bar
+- [ ] **BDASH-P2-02**: Simple/advanced toggle persists in localStorage
+- [ ] **BDASH-P2-03**: "What's Next" card displays AI recommendation
+- [ ] **BDASH-P3-01**: Research and plan endpoints return SSE streams
+- [ ] **BDASH-P4-01**: File viewer displays whitelisted planning files
+- [ ] **BDASH-P4-02**: File editor saves with atomic write
+- [ ] **BDASH-P5-01**: Handoff shows copy-pasteable GSD commands
+
 ## v2 Requirements
 
 ### Multi-File Review
@@ -102,14 +112,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUILD-01 | Phase 15 | Complete |
 | BUILD-02 | Phase 15 | Complete |
 | BUILD-03 | Phase 15 | Complete |
+| BDASH-P2-01 | Phase 16 | Planned |
+| BDASH-P2-02 | Phase 16 | Planned |
+| BDASH-P2-03 | Phase 16 | Planned |
+| BDASH-P3-01 | Phase 16 | Planned |
+| BDASH-P4-01 | Phase 16 | Planned |
+| BDASH-P4-02 | Phase 16 | Planned |
+| BDASH-P5-01 | Phase 16 | Planned |
 
 **Coverage:**
 - v1 requirements: 20 total
 - License (Phase 7): 3 total
 - Build Mode (Phase 15): 3 total
-- Mapped to phases: 26
+- Build Dashboard (Phase 16): 7 total
+- Mapped to phases: 33
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-14 — REVW-01–04, LIC-01–03 marked complete to match Phase 1 & 7*
+*Last updated: 2026-03-15 — Added Build Dashboard (Phase 16) requirements BDASH-P2-01 through BDASH-P5-01*
