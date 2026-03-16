@@ -4,12 +4,12 @@ milestone: v1.0
 milestone_name: milestone
 current_plan: All current work complete
 status: complete
-stopped_at: Session complete — all features implemented, security fixes applied, tests passing
-last_updated: "2026-03-15T19:30:00.000Z"
-last_activity: 2026-03-15 — Hue slider theme picker, OWASP remediation, Build dashboard, GitHub Publish, PeaceMaker
+stopped_at: Session complete — auto-update UI, portable mode, premium installer design
+last_updated: "2026-03-15T21:35:00.000Z"
+last_activity: 2026-03-15 — Auto-update UI, portable data directory, premium splash/DMG/NSIS branding, MIT license, authorship evidence, pre-release v1.0.0-beta.1
 progress:
-  total_phases: 16
-  completed_phases: 16
+  total_phases: 17
+  completed_phases: 17
   total_plans: 17
   completed_plans: 17
   percent: 100
@@ -22,12 +22,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** All phases complete. Security hardened. Ready for next milestone.
+**Current focus:** All 17 phases complete. Self-contained portable app with auto-update. Pre-release v1.0.0-beta.1 on GitHub.
 
 ## Current Position
 
-All 16 phases complete. All tests passing (27 UI, 4 E2E, 27 unit, 1 rate-limit).
-Last activity: 2026-03-15 — Hue slider, OWASP remediation, Build dashboard, GitHub Publish
+All 17 phases complete. All tests passing (27 UI, 4 E2E, 27 unit, 1 rate-limit).
+Last activity: 2026-03-15 — Auto-update UI, portable mode, premium installer branding, MIT license, pre-release v1.0.0-beta.1
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 
@@ -265,7 +265,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-14
-Stopped at: Phase 16 Build Dashboard — Phase 1 (Registry + Shell) complete + multi-tool support
+Last session: 2026-03-15
+Stopped at: Phase 17 complete — auto-update, portable mode, installer branding
 Resume file: None
-Next: Phase 16 Phase 2 (Simple View), then Phases 3–5 (AI Research/Planning, Advanced View, Handoff+Polish)
+Next: Phase 8 (Payment Integration) on hold per user. Phase 16 Phases 2–5 (Build Dashboard) pending.
