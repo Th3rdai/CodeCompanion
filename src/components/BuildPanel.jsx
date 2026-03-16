@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import MarkdownContent from './MarkdownContent';
 import BuildHeader from './BuildHeader';
 import BuildSimpleView from './BuildSimpleView';
+import BuildAdvancedView from './BuildAdvancedView';
 
 /**
  * BuildPanel — Multi-view dashboard for Build mode projects.
@@ -328,51 +329,14 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
         />
       )}
 
-      {/* Advanced View (phase list) */}
+      {/* Advanced View */}
       {viewMode === 'advanced' && (
-        <>
-          {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <span className="inline-block spin text-indigo-400">&#x27F3;</span>
-            </div>
-          ) : phases.length > 0 ? (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-300">Phases</h3>
-              {phases.map(phase => {
-                const status = phase.disk_status || phase.status || 'pending';
-                const dotColor = status === 'complete' ? 'bg-emerald-400' : status === 'in_progress' || status === 'partial' ? 'bg-amber-400' : 'bg-slate-500';
-                return (
-                  <div key={phase.number}
-                    className="glass rounded-lg p-3 cursor-pointer hover:border-indigo-500/30 border border-transparent transition-all"
-                    onClick={() => loadPhaseDetail(activeProject, phase.number)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm text-slate-200">{phase.number}. {phase.name || 'Unnamed'}</span>
-                        <span className="text-xs text-slate-500 ml-2">
-                          {phase.plan_count || 0} plan{(phase.plan_count || 0) !== 1 ? 's' : ''}
-                          {phase.summary_count > 0 && `, ${phase.summary_count} done`}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-500 shrink-0 capitalize">{status.replace('_', ' ')}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : !projectData ? (
-            <div className="glass rounded-xl p-6 text-center space-y-2">
-              <span className="inline-block spin text-indigo-400 text-lg">&#x27F3;</span>
-              <p className="text-sm text-slate-400">Loading project data...</p>
-            </div>
-          ) : (
-            <div className="glass rounded-xl p-6 text-center space-y-3">
-              <p className="text-sm text-slate-300">No phases found</p>
-              <p className="text-xs text-slate-500">Run <code className="text-indigo-400">/gsd:new-project</code> in Claude Code to create your roadmap</p>
-            </div>
-          )}
-        </>
+        <BuildAdvancedView
+          project={currentProject}
+          projectData={projectData}
+          onToast={onToast}
+          onViewPhase={(phaseNum) => loadPhaseDetail(activeProject, phaseNum)}
+        />
       )}
     </div>
   );
