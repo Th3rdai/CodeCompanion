@@ -1,4 +1,12 @@
-# Th3rdAI Code Companion — Vibe Coder Edition
+<p align="center">
+  <img src="resources/th3rdai-logo-sm.png" alt="Th3rdAI" width="200" />
+</p>
+
+<h1 align="center">Code Companion — Vibe Coder Edition</h1>
+
+<p align="center">
+  <em>by <a href="https://github.com/Th3rdai">Th3rdAI</a></em>
+</p>
 
 A locally-hosted AI code reviewer that helps vibe coders (non-technical users who generate code with AI tools) understand, review, and improve their AI-generated code. Powered by [Ollama](https://ollama.com) LLMs — no API keys, no cloud, full privacy.
 

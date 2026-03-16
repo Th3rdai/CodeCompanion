@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="resources/th3rdai-logo-sm.png" alt="Th3rdAI" width="150" />
+</p>
+
 # Security Policy
 
 ## Supported Versions

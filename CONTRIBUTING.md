@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="resources/th3rdai-logo-sm.png" alt="Th3rdAI" width="150" />
+</p>
+
 # Contributing to Code Companion
 
 Thanks for your interest in contributing! Code Companion is an open-source project by [Th3rdAI](https://github.com/Th3rdai).
