@@ -56,6 +56,14 @@
 - [ ] **BDASH-P4-02**: File editor saves with atomic write
 - [ ] **BDASH-P5-01**: Handoff shows copy-pasteable GSD commands
 
+### Security Pen Test Mode (Phase 18)
+
+- [ ] **SEC-01**: New "Security" mode appears in mode tabs with OWASP security assessment capability
+- [ ] **SEC-02**: Elite Agent skill file (OWASP-pentest-agent.md) with comprehensive OWASP web app and API testing methodology
+- [ ] **SEC-03**: System prompt and skill file reference OWASP Top 10 2021, API Security Top 10 2023, WSTG v4.2, and ASVS v4.0
+- [ ] **SEC-04**: POST /api/pentest endpoint returns structured vulnerability reports with chatStructured, falls back to chatStream
+- [ ] **SEC-05**: Structured output includes severity ratings (CVSS-simplified bands), per-category grades, and copy-paste remediation prompts
+
 ## v2 Requirements
 
 ### Multi-File Review
@@ -119,15 +127,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BDASH-P4-01 | Phase 16 | Planned |
 | BDASH-P4-02 | Phase 16 | Planned |
 | BDASH-P5-01 | Phase 16 | Planned |
+| SEC-01 | Phase 18 | Planned |
+| SEC-02 | Phase 18 | Planned |
+| SEC-03 | Phase 18 | Planned |
+| SEC-04 | Phase 18 | Planned |
+| SEC-05 | Phase 18 | Planned |
 
 **Coverage:**
 - v1 requirements: 20 total
 - License (Phase 7): 3 total
 - Build Mode (Phase 15): 3 total
 - Build Dashboard (Phase 16): 7 total
-- Mapped to phases: 33
+- Security Mode (Phase 18): 5 total
+- Mapped to phases: 38
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-15 — Added Build Dashboard (Phase 16) requirements BDASH-P2-01 through BDASH-P5-01*
+*Last updated: 2026-03-15 — Added Security Pen Test Mode (Phase 18) requirements SEC-01 through SEC-05*

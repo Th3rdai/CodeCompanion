@@ -29,6 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
 - [x] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell, Simple View, AI Research/Planning, Advanced View, Handoff+Polish (completed 2026-03-15)
 - [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
+- [ ] **Phase 18: Security Pen Test Mode** - OWASP-based web app and API penetration testing agent with Elite Agent skill, added as a mode next to Build (planned)
 
 ## Phase Details
 
@@ -216,6 +217,23 @@ Plans:
 **Completed**: 2026-03-15
 **UAT**: 9/9 passed (automated agent verification)
 
+### Phase 18: Security Pen Test Mode
+**Goal**: Add a Security mode to Code Companion that enables OWASP-based static code analysis for web application and API security vulnerabilities, with structured vulnerability reports, severity ratings, remediation prompts, and an Elite Agent skill file
+**Depends on**: Phase 7 (all core modes complete)
+**Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05
+**Success Criteria** (what must be TRUE):
+  1. New "Security" mode appears in mode tabs with OWASP security assessment description
+  2. Elite Agent skill file (OWASP-pentest-agent.md) with comprehensive web app and API testing methodology
+  3. Agent uses OWASP Top 10 2021, OWASP ASVS v4.0, WSTG v4.2, and API Security Top 10 2023 as knowledge base
+  4. Agent can analyze code for vulnerabilities, suggest test cases, and generate structured penetration test reports
+  5. Mode uses structured output with severity ratings, CVSS-simplified bands, and copy-paste remediation prompts
+**Plans**: 3 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Backend: Zod schema, pentestCode() orchestration, system prompts, test scaffolds
+- [ ] 18-02-PLAN.md — Elite Agent skill file (OWASP-pentest-agent.md) with OWASP methodology
+- [ ] 18-03-PLAN.md — Frontend: SecurityPanel, SecurityReport, mode registration, server endpoint, human verification
+
 ## Progress
 
 **Execution Order:**
@@ -241,6 +259,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
 | 16. Build Dashboard | 5/5 | Complete    | 2026-03-16 |
 | 17. Auto-Update & Installer | ad-hoc | Complete    | 2026-03-16 |
+| 18. Security Pen Test Mode | 0/3 | Planned | — |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 
