@@ -14,6 +14,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [testResult, setTestResult] = useState(null);
   const [folderResult, setFolderResult] = useState(null);
 
+  // Brand assets state
+  const [brandAssets, setBrandAssets] = useState([]);
+  const [brandLoaded, setBrandLoaded] = useState(false);
+
   // GitHub token state
   const [ghToken, setGhToken] = useState('');
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
@@ -34,6 +38,36 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [updateInfo, setUpdateInfo] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateError, setUpdateError] = useState(null);
+
+  // Load brand assets from config
+  useEffect(() => {
+    if (!brandLoaded) {
+      fetch('/api/config').then(r => r.json()).then(data => {
+        if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
+        setBrandLoaded(true);
+      }).catch(() => setBrandLoaded(true));
+    }
+  }, [brandLoaded]);
+
+  async function saveBrandAssets(assets) {
+    setBrandAssets(assets);
+    try {
+      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandAssets: assets }) });
+    } catch {}
+  }
+
+  function addBrandAsset() {
+    saveBrandAssets([...brandAssets, { label: '', path: '', description: '' }]);
+  }
+
+  function updateBrandAsset(index, field, value) {
+    const updated = brandAssets.map((a, i) => i === index ? { ...a, [field]: value } : a);
+    saveBrandAssets(updated);
+  }
+
+  function removeBrandAsset(index) {
+    saveBrandAssets(brandAssets.filter((_, i) => i !== index));
+  }
 
   useEffect(() => {
     fetchGhTokenStatus();
@@ -282,6 +316,54 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                   {folderResult.ok ? `Found ${folderResult.count} items in folder.` : `Error: ${folderResult.error}`}
                 </div>
               )}
+            </div>
+
+            {/* Brand Assets */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Brand Assets</label>
+              <p className="text-xs text-slate-500 mb-3">Logo and image files the AI will use for branding in diagrams, reports, and builds.</p>
+              <div className="space-y-2">
+                {brandAssets.map((asset, i) => (
+                  <div key={i} className="glass rounded-lg p-3 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={asset.label}
+                        onChange={e => updateBrandAsset(i, 'label', e.target.value)}
+                        placeholder="Label (e.g., Logo, Icon, Banner)"
+                        className="w-1/3 input-glow text-slate-100 rounded-lg px-3 py-1.5 text-xs"
+                      />
+                      <input
+                        type="text"
+                        value={asset.path}
+                        onChange={e => updateBrandAsset(i, 'path', e.target.value)}
+                        placeholder="/path/to/logo.png"
+                        className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-1.5 font-mono text-xs"
+                      />
+                      <button
+                        onClick={() => removeBrandAsset(i)}
+                        className="text-red-400 hover:text-red-300 text-xs px-2 transition-colors"
+                        title="Remove asset"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={asset.description || ''}
+                      onChange={e => updateBrandAsset(i, 'description', e.target.value)}
+                      placeholder="Description (e.g., Primary logo for light backgrounds, 512x512 PNG)"
+                      className="w-full input-glow text-slate-100 rounded-lg px-3 py-1.5 text-xs"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={addBrandAsset}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+                >
+                  + Add Brand Asset
+                </button>
+              </div>
             </div>
 
             {/* 3D Effects Toggle */}

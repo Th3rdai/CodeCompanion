@@ -207,6 +207,12 @@ app.post('/api/config', (req, res) => {
   const { ollamaUrl, projectFolder } = req.body;
   const config = getConfig();
 
+  // Brand assets
+  if (req.body.brandAssets !== undefined) {
+    config.brandAssets = Array.isArray(req.body.brandAssets) ? req.body.brandAssets : [];
+    log('INFO', `Brand assets updated: ${config.brandAssets.length} item(s)`);
+  }
+
   if (ollamaUrl) {
     config.ollamaUrl = ollamaUrl.replace(/\/+$/, '');
     log('INFO', `Ollama URL changed to: ${config.ollamaUrl}`);
@@ -288,9 +294,15 @@ app.post('/api/chat', async (req, res) => {
 
   const config = getConfig();
 
+  // Append brand assets context if configured
+  const brandAssets = config.brandAssets || [];
+  const brandPrompt = brandAssets.length > 0
+    ? `\n\n---\nBRAND ASSETS: The user has configured these brand/logo/image files. Use them when creating, building, generating reports, or producing diagrams that need branding:\n${brandAssets.map(a => `- ${a.label || 'Asset'}: ${a.path}${a.description ? ' — ' + a.description : ''}`).join('\n')}`
+    : '';
+
   // Append external tool descriptions if any MCP clients are connected
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
-  const enrichedSystemPrompt = systemPrompt + toolsPrompt;
+  const enrichedSystemPrompt = systemPrompt + brandPrompt + toolsPrompt;
   const hasExternalTools = toolsPrompt.length > 0;
 
   if (hasExternalTools) {
