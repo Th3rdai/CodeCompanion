@@ -6,7 +6,7 @@ import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
 import { Download, Upload, Settings } from 'lucide-react';
 
-export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose }) {
+export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose, onOpenMemoryPanel }) {
   const [activeTab, setActiveTab] = useState('general');
   const [url, setUrl] = useState(ollamaUrl);
   const [folder, setFolder] = useState(projectFolder || '');
@@ -32,6 +32,15 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
   const [preferredPort, setPreferredPort] = useState(3000);
   const [actualPort, setActualPort] = useState(null);
   const [portError, setPortError] = useState('');
+
+  // Memory state
+  const [memoryEnabled, setMemoryEnabled] = useState(false);
+  const [embeddingModel, setEmbeddingModel] = useState('');
+  const [maxContextTokens, setMaxContextTokens] = useState(500);
+  const [autoExtract, setAutoExtract] = useState(true);
+  const [memoryStats, setMemoryStats] = useState(null);
+  const [embeddingModels, setEmbeddingModels] = useState([]);
+  const [reembedding, setReembedding] = useState(false);
 
   // Update state
   const [updateStatus, setUpdateStatus] = useState(null); // null | 'checking' | 'available' | 'downloading' | 'ready' | 'up-to-date' | 'error'
@@ -67,6 +76,50 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
 
   function removeBrandAsset(index) {
     saveBrandAssets(brandAssets.filter((_, i) => i !== index));
+  }
+
+  // Fetch memory config and data on mount
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(data => {
+      if (data.memory) {
+        setMemoryEnabled(!!data.memory.enabled);
+        setEmbeddingModel(data.memory.embeddingModel || '');
+        setMaxContextTokens(data.memory.maxContextTokens || 500);
+        setAutoExtract(data.memory.autoExtract !== false);
+      }
+    }).catch(() => {});
+    fetch('/api/memory/models').then(r => r.json()).then(data => {
+      setEmbeddingModels(Array.isArray(data) ? data : (data.models || []));
+    }).catch(() => setEmbeddingModels([]));
+    fetch('/api/memory/stats').then(r => r.json()).then(data => {
+      setMemoryStats(data);
+    }).catch(() => {});
+  }, []);
+
+  async function saveMemoryConfig(updates) {
+    const memConfig = {
+      enabled: memoryEnabled,
+      embeddingModel,
+      maxContextTokens,
+      autoExtract,
+      ...updates,
+    };
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memory: memConfig }),
+      });
+    } catch {}
+  }
+
+  async function handleReembed() {
+    if (!confirm('Re-embed all memories with the current embedding model? This may take a while.')) return;
+    setReembedding(true);
+    try {
+      await fetch('/api/memory/reembed', { method: 'POST' });
+    } catch {}
+    setReembedding(false);
   }
 
   useEffect(() => {
@@ -268,6 +321,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
             { id: 'github', label: 'GitHub' },
             { id: 'mcp-server', label: 'MCP Server' },
             { id: 'mcp-clients', label: 'MCP Clients' },
+            { id: 'memory', label: 'Memory' },
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -675,6 +729,154 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
 
         {activeTab === 'mcp-server' && <McpServerPanel />}
         {activeTab === 'mcp-clients' && <McpClientPanel />}
+
+        {activeTab === 'memory' && (
+          <div className="space-y-5">
+            {/* Enable/Disable toggle */}
+            <div className="glass rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-200">Memory System</p>
+                <p className="text-xs text-slate-500 mt-0.5">Remember context from past conversations</p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !memoryEnabled;
+                  setMemoryEnabled(next);
+                  saveMemoryConfig({ enabled: next });
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+                  memoryEnabled ? 'bg-indigo-600' : 'bg-slate-600'
+                }`}
+                role="switch"
+                aria-checked={memoryEnabled}
+                aria-label="Toggle memory system">
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                  memoryEnabled ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            {/* Embedding Model dropdown */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Embedding Model</label>
+              {embeddingModels.length === 0 ? (
+                <div className="glass rounded-lg p-3 text-xs text-amber-400/80 border border-amber-500/20">
+                  No embedding models found. Run <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">ollama pull nomic-embed-text</code> to enable memory.
+                </div>
+              ) : (
+                <select
+                  value={embeddingModel}
+                  onChange={e => {
+                    setEmbeddingModel(e.target.value);
+                    saveMemoryConfig({ embeddingModel: e.target.value });
+                  }}
+                  className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2"
+                >
+                  <option value="">Auto-detect</option>
+                  {embeddingModels.map(m => (
+                    <option key={m.name || m} value={m.name || m}>{m.name || m}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Max Context Tokens slider */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Max Context Tokens <span className="text-slate-500 font-normal">({maxContextTokens})</span>
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="2000"
+                step="50"
+                value={maxContextTokens}
+                onChange={e => {
+                  const val = parseInt(e.target.value, 10);
+                  setMaxContextTokens(val);
+                }}
+                onMouseUp={() => saveMemoryConfig({ maxContextTokens })}
+                onTouchEnd={() => saveMemoryConfig({ maxContextTokens })}
+                className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                aria-label="Max context tokens"
+              />
+              <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                <span>100</span>
+                <span>2000</span>
+              </div>
+            </div>
+
+            {/* Auto-Extract toggle */}
+            <div className="glass rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-200">Auto-Extract</p>
+                <p className="text-xs text-slate-500 mt-0.5">Extract memories after each conversation</p>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !autoExtract;
+                  setAutoExtract(next);
+                  saveMemoryConfig({ autoExtract: next });
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+                  autoExtract ? 'bg-indigo-600' : 'bg-slate-600'
+                }`}
+                role="switch"
+                aria-checked={autoExtract}
+                aria-label="Toggle auto-extract">
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                  autoExtract ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            {/* Memory Stats card */}
+            {memoryStats && (
+              <div className="glass rounded-lg p-4">
+                <p className="text-sm font-medium text-slate-200 mb-3">Memory Stats</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="glass rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-indigo-300">{memoryStats.total ?? 0}</p>
+                    <p className="text-slate-500">Total</p>
+                  </div>
+                  <div className="glass rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-blue-300">{memoryStats.byType?.fact ?? 0}</p>
+                    <p className="text-slate-500">Facts</p>
+                  </div>
+                  <div className="glass rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-green-300">{memoryStats.byType?.project ?? 0}</p>
+                    <p className="text-slate-500">Projects</p>
+                  </div>
+                  <div className="glass rounded-lg p-2 text-center">
+                    <p className="text-lg font-bold text-orange-300">{memoryStats.byType?.pattern ?? 0}</p>
+                    <p className="text-slate-500">Patterns</p>
+                  </div>
+                  <div className="glass rounded-lg p-2 text-center col-span-2">
+                    <p className="text-lg font-bold text-purple-300">{memoryStats.byType?.summary ?? 0}</p>
+                    <p className="text-slate-500">Summaries</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { if (onOpenMemoryPanel) onOpenMemoryPanel(); }}
+                className="flex-1 glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border border-slate-600"
+              >
+                Manage Memories
+              </button>
+              <button
+                onClick={handleReembed}
+                disabled={reembedding}
+                className="flex-1 glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border border-slate-600 disabled:opacity-50"
+              >
+                {reembedding ? <span className="inline-block spin">&#x27F3;</span> : 'Re-embed All'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Buttons always visible */}
         <div className="flex gap-2 justify-end mt-6">

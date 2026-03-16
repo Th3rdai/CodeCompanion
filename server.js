@@ -10,8 +10,9 @@ const { Readable } = require('stream');
 const { createLogger } = require('./lib/logger');
 const { initConfig, getConfig, updateConfig } = require('./lib/config');
 const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
+const { initMemory, addMemory, getMemories, getMemory, updateMemory, deleteMemory, searchMemories, getStats: getMemoryStats, extractAndStore, buildMemoryContext } = require('./lib/memory');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
-const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
+const { listModels, checkConnection, chatStream, chatComplete, embed } = require('./lib/ollama-client');
 const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
@@ -111,6 +112,7 @@ function createRateLimiter({ name, max, windowMs, methods }) {
 const dataRoot = process.env.CC_DATA_DIR || __dirname;
 initConfig(dataRoot);
 initHistory(dataRoot);
+initMemory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 
 // ── Initialize MCP Client Manager ────────────────────
@@ -176,6 +178,7 @@ const GITHUB_CLONE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_GITHUB_CLO
 const MCP_TEST_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MCP_TEST || 12);
 const REVIEW_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_REVIEW || 20);
 const SCORE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_SCORE || 20);
+const MEMORY_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MEMORY || 30);
 
 app.use('/api/chat', createRateLimiter({ name: 'chat', max: CHAT_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/create-project', createRateLimiter({ name: 'create-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
@@ -185,6 +188,7 @@ app.use('/api/github/clone', createRateLimiter({ name: 'github-clone', max: GITH
 app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-connection', max: MCP_TEST_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/score', createRateLimiter({ name: 'score', max: SCORE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/memory', createRateLimiter({ name: 'memory', max: MEMORY_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'PUT', 'DELETE'] }));
 
 // ── MCP Management API routes ────────────────────────
 app.use('/api', mcpApiRouter);
@@ -302,8 +306,23 @@ app.post('/api/chat', async (req, res) => {
 
   // Append external tool descriptions if any MCP clients are connected
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
-  const enrichedSystemPrompt = systemPrompt + brandPrompt + toolsPrompt;
   const hasExternalTools = toolsPrompt.length > 0;
+
+  // ── Memory injection (Phase 3) ──
+  let memoryPrompt = '';
+  let memoryMeta = null;
+  if (config.memory?.enabled) {
+    try {
+      const embModel = config.memory.embeddingModel || 'nomic-embed-text';
+      const ctx = await buildMemoryContext(config.ollamaUrl, embModel, messages, config);
+      memoryPrompt = ctx.prompt;
+      memoryMeta = ctx.memories;
+    } catch (err) {
+      log('WARN', 'Memory retrieval failed, proceeding without', { error: err.message });
+    }
+  }
+
+  const enrichedSystemPrompt = systemPrompt + brandPrompt + memoryPrompt + toolsPrompt;
 
   if (hasExternalTools) {
     debug('External tools injected into system prompt', { toolsLength: toolsPrompt.length });
@@ -323,6 +342,16 @@ app.post('/api/chat', async (req, res) => {
   // Helper: send SSE event
   function sendEvent(data) {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+  }
+
+  // Send memory context metadata before streaming tokens
+  if (memoryMeta?.length > 0) {
+    sendEvent({
+      memoryContext: {
+        count: memoryMeta.length,
+        items: memoryMeta.map(m => ({ type: m.type, content: m.content }))
+      }
+    });
   }
 
   try {
@@ -880,11 +909,20 @@ app.get('/api/history/:id', (req, res) => {
   }
 });
 
-app.post('/api/history', (req, res) => {
+app.post('/api/history', async (req, res) => {
   try {
     const id = saveConversation(req.body);
     debug('Conversation saved', { id });
     res.json({ id });
+
+    // Fire-and-forget memory extraction (non-blocking — response already sent)
+    const config = getConfig();
+    if (config.memory?.enabled && config.memory?.autoExtract
+        && req.body.messages?.length >= 4) {
+      const embModel = config.memory.embeddingModel || 'nomic-embed-text';
+      extractAndStore(config.ollamaUrl, req.body.model, embModel, req.body)
+        .catch(err => log('WARN', 'Memory extraction failed', { error: err.message }));
+    }
   } catch (err) {
     const status = err.message.includes('Invalid conversation id') ? 400 : 500;
     res.status(status).json({ error: err.message });
@@ -899,6 +937,154 @@ app.delete('/api/history/:id', (req, res) => {
   } catch (err) {
     const status = err.message.includes('Invalid conversation id') ? 400 : 500;
     res.status(status).json({ error: err.message });
+  }
+});
+
+// ── Memory API ──────────────────────────────────────
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateMemoryId(req, res) {
+  const { id } = req.params;
+  if (!id || !UUID_REGEX.test(id)) {
+    res.status(400).json({ error: 'Invalid memory id' });
+    return null;
+  }
+  return id;
+}
+
+app.get('/api/memory/stats', (req, res) => {
+  try {
+    res.json(getMemoryStats());
+  } catch (err) {
+    log('ERROR', 'Failed to get memory stats', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/memory/models', async (req, res) => {
+  try {
+    const config = getConfig();
+    const models = await listModels(config.ollamaUrl);
+    const embeddingModels = models.filter(m =>
+      /embed|bert|minilm/i.test(m.family || '')
+    );
+    res.json(embeddingModels);
+  } catch (err) {
+    log('ERROR', 'Failed to list embedding models', { error: err.message });
+    res.json([]);
+  }
+});
+
+app.get('/api/memory/search', async (req, res) => {
+  try {
+    const q = req.query.q;
+    if (!q || typeof q !== 'string' || !q.trim()) {
+      return res.status(400).json({ error: 'Query parameter q is required' });
+    }
+    const config = getConfig();
+    const embModel = config.memory?.embeddingModel || 'nomic-embed-text';
+    const queryEmbedding = await embed(config.ollamaUrl, q.trim(), embModel);
+    const results = searchMemories(queryEmbedding, 10, 0.3);
+    // Strip embeddings from response to reduce payload
+    const cleaned = results.map(({ embedding, ...rest }) => rest);
+    res.json(cleaned);
+  } catch (err) {
+    log('ERROR', 'Memory search failed', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/memory', (req, res) => {
+  try {
+    const typeFilter = req.query.type || null;
+    let memories = getMemories(typeFilter ? { type: typeFilter } : undefined);
+
+    // Pagination
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const total = memories.length;
+    const start = (page - 1) * limit;
+    memories = memories.slice(start, start + limit);
+
+    // Strip embeddings from response
+    const cleaned = memories.map(({ embedding, ...rest }) => rest);
+    res.json({ memories: cleaned, total, page, limit });
+  } catch (err) {
+    log('ERROR', 'Failed to list memories', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/memory', async (req, res) => {
+  try {
+    const { type, content, source, confidence } = req.body;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ error: 'content is required' });
+    }
+    const validTypes = ['fact', 'pattern', 'project', 'summary'];
+    if (type && !validTypes.includes(type)) {
+      return res.status(400).json({ error: `type must be one of: ${validTypes.join(', ')}` });
+    }
+
+    // Generate embedding
+    let embeddingVec = null;
+    let embModel = '';
+    try {
+      const config = getConfig();
+      embModel = config.memory?.embeddingModel || 'nomic-embed-text';
+      embeddingVec = await embed(config.ollamaUrl, content.trim(), embModel);
+    } catch (embErr) {
+      log('WARN', 'Embedding generation failed for new memory', { error: embErr.message });
+    }
+
+    const memory = addMemory({
+      type: type || 'fact',
+      content: content.trim(),
+      source: source || null,
+      embedding: embeddingVec,
+      embeddingModel: embModel,
+      confidence: typeof confidence === 'number' ? confidence : 0.5,
+    });
+
+    const { embedding, ...cleaned } = memory;
+    res.json(cleaned);
+  } catch (err) {
+    log('ERROR', 'Failed to add memory', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/memory/:id', (req, res) => {
+  const id = validateMemoryId(req, res);
+  if (!id) return;
+
+  try {
+    const updated = updateMemory(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Memory not found' });
+    }
+    const { embedding, ...cleaned } = updated;
+    res.json(cleaned);
+  } catch (err) {
+    log('ERROR', 'Failed to update memory', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/memory/:id', (req, res) => {
+  const id = validateMemoryId(req, res);
+  if (!id) return;
+
+  try {
+    const deleted = deleteMemory(id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Memory not found' });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    log('ERROR', 'Failed to delete memory', { error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 

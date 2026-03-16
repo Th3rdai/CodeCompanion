@@ -29,7 +29,8 @@ import TokenCounter from './components/3d/TokenCounter';
 import OrbitingBadge from './components/3d/OrbitingBadge';
 import OllamaSetup from './components/OllamaSetup';
 import ConnectionDot from './components/ConnectionDot';
-import { ChevronLeft, ChevronRight, PanelLeft } from 'lucide-react';
+import MemoryPanel from './components/MemoryPanel';
+import { ChevronLeft, ChevronRight, PanelLeft, Brain } from 'lucide-react';
 import { use3DEffects } from './contexts/Effects3DContext';
 
 const MODES = [
@@ -161,6 +162,11 @@ export default function App() {
 
   // Auto-update state
   const [updateBanner, setUpdateBanner] = useState(null); // null | { type: 'available' | 'ready', version: string }
+
+  // Memory state
+  const [activeMemories, setActiveMemories] = useState(null);
+  const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+  const [memoryDropdownOpen, setMemoryDropdownOpen] = useState(false);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
@@ -354,7 +360,7 @@ export default function App() {
   }
 
   function handleRenameRequest(id) { const h = history.find(c => c.id === id); if (h) setRenaming({ id, title: h.title || 'Untitled' }); }
-  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedBuilderData(null); }
+  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedBuilderData(null); setActiveMemories(null); }
 
   async function handleSaveReview(reviewData) {
     const title = reviewData.filename
@@ -448,6 +454,7 @@ export default function App() {
           if (!line.startsWith('data: ')) continue; const payload = line.slice(6); if (payload === '[DONE]') break;
           try {
             const parsed = JSON.parse(payload);
+            if (parsed.memoryContext) { setActiveMemories(parsed.memoryContext); }
             if (parsed.token) { assistantContent += parsed.token; setMessages([...newMessages, { role: 'assistant', content: assistantContent }]); }
             if (parsed.done) { setStats({ tokens: parsed.eval_count, duration: parsed.total_duration ? (parsed.total_duration / 1e9).toFixed(1) : null }); }
             if (parsed.error) { assistantContent += `\n\nError: ${parsed.error}`; setMessages([...newMessages, { role: 'assistant', content: assistantContent }]); }
@@ -673,6 +680,42 @@ export default function App() {
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
             <ConnectionDot connected={connected} />
+            {activeMemories?.count > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setMemoryDropdownOpen(!memoryDropdownOpen)}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors text-purple-300 border-purple-500/30 bg-purple-600/10 hover:bg-purple-500/20"
+                  title="Memories used in this response"
+                >
+                  <Brain className="w-3.5 h-3.5" />
+                  Memory ({activeMemories.count})
+                </button>
+                {memoryDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-72 glass-heavy rounded-lg border border-slate-700/50 p-3 z-50 shadow-xl">
+                    <p className="text-xs font-medium text-slate-300 mb-2">Memories used:</p>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
+                      {activeMemories.items?.map((m, i) => (
+                        <div key={i} className="text-xs text-slate-400 glass rounded p-2">
+                          <span className={`inline-block px-1.5 py-0.5 rounded-full text-[9px] font-medium mr-1.5 ${
+                            m.type === 'fact' ? 'bg-blue-500/15 text-blue-300' :
+                            m.type === 'project' ? 'bg-green-500/15 text-green-300' :
+                            m.type === 'pattern' ? 'bg-orange-500/15 text-orange-300' :
+                            'bg-purple-500/15 text-purple-300'
+                          }`}>{m.type}</span>
+                          <span className="line-clamp-2">{m.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { setMemoryDropdownOpen(false); setShowMemoryPanel(true); }}
+                      className="mt-2 w-full text-xs text-indigo-300 hover:text-indigo-200 py-1 transition-colors"
+                    >
+                      Manage all memories...
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <button onClick={fetchModels} disabled={refreshing}
               className="text-slate-400 hover:text-indigo-300 text-sm px-2 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors disabled:opacity-50" title="Refresh models">
               <span className={refreshing ? 'inline-block spin' : ''}>&#x27F3;</span>
@@ -936,7 +979,8 @@ export default function App() {
         <PrivacyBanner />
       </main>
 
-      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} onOpenMemoryPanel={() => { setShowSettings(false); setShowMemoryPanel(true); }} />}
+      {showMemoryPanel && <MemoryPanel onClose={() => setShowMemoryPanel(false)} />}
       {renaming && <RenameModal currentName={renaming.title} onSave={(name) => renameConversation(renaming.id, name)} onClose={() => setRenaming(null)} />}
       {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
