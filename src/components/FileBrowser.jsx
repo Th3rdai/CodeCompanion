@@ -1,16 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
 
+// Persist folder expand/collapse state in sessionStorage
+const TREE_STATE_KEY = 'cc_file_tree_state';
+
+function getTreeState() {
+  try { return JSON.parse(sessionStorage.getItem(TREE_STATE_KEY) || '{}'); } catch { return {}; }
+}
+
+function setTreeState(path, isOpen) {
+  const state = getTreeState();
+  if (isOpen) { state[path] = true; } else { delete state[path]; }
+  try { sessionStorage.setItem(TREE_STATE_KEY, JSON.stringify(state)); } catch {}
+}
+
 function FileTreeNode({ node, depth, onFileClick }) {
-  const [open, setOpen] = useState(depth < 2);
+  const savedState = getTreeState();
+  const defaultOpen = depth === 0; // only root level open by default
+  const [open, setOpen] = useState(node.path ? (savedState[node.path] ?? defaultOpen) : defaultOpen);
   const indent = depth * 16;
+
+  const toggleOpen = () => {
+    const next = !open;
+    setOpen(next);
+    if (node.path) setTreeState(node.path, next);
+  };
 
   if (node.type === 'dir') {
     return (
       <div role="treeitem" aria-expanded={open} aria-label={`Folder: ${node.name}`}>
         <button className="w-full flex items-center gap-1 py-1.5 px-2 hover:bg-indigo-500/10 rounded cursor-pointer text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-colors"
           style={{ paddingLeft: indent }}
-          onClick={() => setOpen(!open)}
-          onKeyDown={e => { if (e.key === 'ArrowRight' && !open) setOpen(true); if (e.key === 'ArrowLeft' && open) setOpen(false); }}>
+          onClick={toggleOpen}
+          onKeyDown={e => { if (e.key === 'ArrowRight' && !open) toggleOpen(); if (e.key === 'ArrowLeft' && open) toggleOpen(); }}>
           <span className="text-xs text-slate-400" aria-hidden="true">{open ? '▾' : '▸'}</span>
           <span className="text-amber-400 text-xs" aria-hidden="true">📁</span>
           <span className="truncate">{node.name}</span>
@@ -81,7 +102,11 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     }
   }
 
-  useEffect(() => { if (projectFolder) loadTree(projectFolder); }, [projectFolder]);
+  useEffect(() => {
+    if (projectFolder) loadTree(projectFolder);
+    // Clear tree expand state when folder changes
+    try { sessionStorage.removeItem(TREE_STATE_KEY); } catch {}
+  }, [projectFolder]);
 
   async function loadTree(folder) {
     const target = folder || projectFolder;
