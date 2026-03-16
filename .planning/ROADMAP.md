@@ -189,10 +189,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Phase 1 (Registry + Shell): Build projects registered on scaffold; import existing by path; rate-limited API; multi-tool convention files (CLAUDE.md, .cursorrules, .windsurfrules, .opencode/instructions.md)
   2. Phases 2–5: Simple View, AI Research/Planning, Advanced View, Handoff+Polish (as planned)
-**Plans**: 4 plans
+**Plans**: 5 plans
 **Requirements**: P2-01, P2-02, P2-03, P3-01, P4-01, P4-02, P5-01
 
 Plans:
+- [ ] 16-00-PLAN.md — Wave 0: Test stub files for all phase 16 requirements (Nyquist validation)
 - [ ] 16-01-PLAN.md — Simple View: BuildHeader, BuildSimpleView, next-action endpoint, localStorage toggle
 - [ ] 16-02-PLAN.md — AI Research/Planning: SSE research+plan endpoints, streaming UI in Simple View
 - [ ] 16-03-PLAN.md — Advanced View: BuildAdvancedView, PlanningFileViewer, file read/write whitelist endpoints
@@ -238,7 +239,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 13. License Email Delivery | 0/1 | Planned | — |
 | 14. License Revocation | 0/1 | Planned | — |
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
-| 16. Build Dashboard | 0/4 | In Progress | — |
+| 16. Build Dashboard | 0/5 | In Progress | — |
 | 17. Auto-Update & Installer | ad-hoc | Complete | 2026-03-15 |
 
 ## License Distribution Roadmap (Phases 9–14)
