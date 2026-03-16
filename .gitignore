@@ -41,6 +41,7 @@ __pycache__/
 .cursor/
 .gemini/
 .github/
+!.github/workflows/
 .kiro/
 .opencode/
 .qoder/
