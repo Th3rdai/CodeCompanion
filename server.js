@@ -26,6 +26,7 @@ const McpClientManager = require('./lib/mcp-client-manager');
 const ToolCallHandler = require('./lib/tool-call-handler');
 const { createMcpApiRoutes } = require('./lib/mcp-api-routes');
 const { reviewCode } = require('./lib/review');
+const { pentestCode } = require('./lib/pentest');
 const { scoreContent } = require('./lib/builder-score');
 
 const app = express();
@@ -187,6 +188,7 @@ app.use('/api/build/projects', createRateLimiter({ name: 'build-registry', max: 
 app.use('/api/github/clone', createRateLimiter({ name: 'github-clone', max: GITHUB_CLONE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-connection', max: MCP_TEST_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/pentest', createRateLimiter({ name: 'pentest', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/score', createRateLimiter({ name: 'score', max: SCORE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/memory', createRateLimiter({ name: 'memory', max: MEMORY_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'PUT', 'DELETE'] }));
 
@@ -652,6 +654,128 @@ app.post('/api/review', async (req, res) => {
     log('ERROR', 'Review failed completely', { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: `Review failed: ${err.message}` });
+    }
+  }
+});
+
+// ── POST /api/pentest (OWASP security analysis) ────────
+app.post('/api/pentest', async (req, res) => {
+  const { model, code, filename } = req.body;
+
+  if (!model || !code) {
+    log('ERROR', 'Pentest request missing fields', { model: !!model, code: !!code });
+    return res.status(400).json({ error: 'Missing model or code' });
+  }
+
+  log('INFO', `Pentest request: model=${model} code=${code.length} chars`);
+
+  const config = getConfig();
+
+  try {
+    const result = await pentestCode(config.ollamaUrl, model, code, { filename });
+
+    if (result.type === 'security-report') {
+      // Structured output succeeded — return JSON
+      log('INFO', `Pentest complete: overall grade ${result.data.overallGrade}`);
+      return res.json(result);
+    }
+
+    // Chat fallback — stream via SSE
+    log('INFO', `Pentest fallback to chat mode: ${result.error}`);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    function sendEvent(data) {
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    // Signal fallback mode to client
+    sendEvent({ fallback: true, reason: result.error });
+
+    const ollamaRes = result.stream;
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text();
+      log('ERROR', `Ollama pentest fallback error: ${ollamaRes.status}`, { body: errText });
+      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    // Stream the fallback response (same pattern as /api/review)
+    const reader = ollamaRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let tokenCount = 0;
+
+    async function readStream() {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer);
+                if (parsed.message?.content) {
+                  sendEvent({ token: parsed.message.content });
+                  tokenCount++;
+                }
+                if (parsed.done) {
+                  sendEvent({ done: true });
+                }
+              } catch (e) { /* ignore parse error on final buffer */ }
+            }
+            if (!res.writableEnded) {
+              res.write('data: [DONE]\n\n');
+              res.end();
+            }
+            log('INFO', `Pentest fallback complete: ${tokenCount} tokens streamed`);
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message?.content) {
+                sendEvent({ token: parsed.message.content });
+                tokenCount++;
+              }
+              if (parsed.done) {
+                sendEvent({ done: true });
+                res.write('data: [DONE]\n\n');
+                res.end();
+                log('INFO', `Pentest fallback complete: ${tokenCount} tokens streamed`);
+                return;
+              }
+            } catch (e) { /* ignore parse error */ }
+          }
+        }
+      } catch (err) {
+        log('ERROR', 'Pentest fallback stream error', { error: err.message });
+        if (!res.writableEnded) {
+          sendEvent({ error: err.message });
+          res.write('data: [DONE]\n\n');
+          res.end();
+        }
+      }
+    }
+
+    readStream();
+
+    req.on('close', () => {
+      reader.cancel().catch(() => {});
+    });
+
+  } catch (err) {
+    log('ERROR', 'Pentest failed completely', { error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Pentest failed: ${err.message}` });
     }
   }
 });

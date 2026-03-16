@@ -15,6 +15,7 @@ import CreateWizard from './components/CreateWizard';
 import BuildWizard from './components/BuildWizard';
 import BuildPanel from './components/BuildPanel';
 import ReviewPanel from './components/ReviewPanel';
+import SecurityPanel from './components/SecurityPanel';
 import PromptingPanel from './components/builders/PromptingPanel';
 import SkillzPanel from './components/builders/SkillzPanel';
 import AgenticPanel from './components/builders/AgenticPanel';
@@ -41,6 +42,7 @@ const MODES = [
   { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
   { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
   { id: 'diagram',        label: 'Diagram',                 icon: '📊', desc: 'Visualize systems and processes',  placeholder: "Describe a system, process, or relationship and I'll create a diagram..." },
+  { id: 'pentest',        label: 'Security',                icon: '🛡️', desc: 'OWASP security assessment',        placeholder: '' },
   { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
   { id: 'prompting',      label: 'Prompting',               icon: '🎯', desc: 'Craft and score AI prompts',       placeholder: '' },
   { id: 'skillz',         label: 'Skillz',                  icon: '⚡', desc: 'Build Claude Code skills',         placeholder: '' },
@@ -153,8 +155,10 @@ export default function App() {
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);
   const reviewAttachRef = useRef(null);
+  const pentestAttachRef = useRef(null);
   const builderAttachRef = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
+  const [savedPentest, setSavedPentest] = useState(null);
   const [savedBuilderData, setSavedBuilderData] = useState(null);
   const [buildProjects, setBuildProjects] = useState(null); // null=loading, []=empty
   const [activeBuildProject, setActiveBuildProject] = useState(null);
@@ -285,6 +289,15 @@ export default function App() {
       } else {
         setSavedReview(null);
       }
+      // Restore saved pentest data when loading a security conversation
+      if (conv.mode === 'pentest' && conv.pentestData) {
+        setSavedPentest({
+          ...conv.pentestData,
+          deepDiveMessages: conv.pentestData.deepDiveMessages || []
+        });
+      } else {
+        setSavedPentest(null);
+      }
       // Restore saved builder data when loading a builder conversation
       if (conv.builderData) {
         setSavedBuilderData(conv.builderData);
@@ -360,7 +373,7 @@ export default function App() {
   }
 
   function handleRenameRequest(id) { const h = history.find(c => c.id === id); if (h) setRenaming({ id, title: h.title || 'Untitled' }); }
-  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedBuilderData(null); setActiveMemories(null); }
+  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedPentest(null); setSavedBuilderData(null); setActiveMemories(null); }
 
   async function handleSaveReview(reviewData) {
     const title = reviewData.filename
@@ -424,6 +437,48 @@ export default function App() {
     } catch {}
   }
 
+  async function handleSavePentest(pentestData) {
+    const title = pentestData.filename
+      ? `Security: ${pentestData.filename}`
+      : `Security Scan (${new Date().toLocaleString()})`;
+    const conv = {
+      id: activeConvId || undefined,
+      title,
+      mode: 'pentest',
+      model: selectedModel,
+      messages: [],
+      pentestData,
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      const res = await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(conv),
+      });
+      const { id } = await res.json();
+      setActiveConvId(id);
+      fetchHistory();
+      showToast('Security scan saved to history');
+    } catch {}
+  }
+
+  async function handleUpdatePentestDeepDive(deepDiveMessages) {
+    if (!activeConvId || mode !== 'pentest') return;
+    try {
+      const res = await fetch(`/api/history/${activeConvId}`);
+      const conv = await res.json();
+      if (conv.pentestData) {
+        conv.pentestData.deepDiveMessages = deepDiveMessages;
+        await fetch('/api/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(conv),
+        });
+      }
+    } catch {}
+  }
+
   // Build message with attached files
   function buildUserContent(text, files) {
     if (files.length === 0) return text;
@@ -475,6 +530,11 @@ export default function App() {
     // In review mode, route file to ReviewPanel instead of chat attachments
     if (mode === 'review' && reviewAttachRef.current) {
       reviewAttachRef.current(fileData);
+      return;
+    }
+    // In pentest mode, route file to SecurityPanel
+    if (mode === 'pentest' && pentestAttachRef.current) {
+      pentestAttachRef.current(fileData);
       return;
     }
     // In builder modes, route file to BaseBuilderPanel to load into form
@@ -787,6 +847,20 @@ export default function App() {
                 onSetSelectedModel={setSelectedModel}
                 onUpdateReviewDeepDive={handleUpdateReviewDeepDive}
               />
+            ) : mode === 'pentest' ? (
+              <SecurityPanel
+                selectedModel={selectedModel}
+                connected={connected}
+                streaming={streaming}
+                onAttachFromBrowser={pentestAttachRef}
+                onOpenFileBrowser={() => { setShowFileBrowser(true); setShowGitHub(false); }}
+                onToast={showToast}
+                savedPentest={savedPentest}
+                onSavePentest={handleSavePentest}
+                models={models}
+                onSetSelectedModel={setSelectedModel}
+                onUpdatePentestDeepDive={handleUpdatePentestDeepDive}
+              />
             ) : BUILDER_MODES.includes(mode) ? (
               mode === 'prompting' ? (
                 <PromptingPanel
@@ -878,7 +952,7 @@ export default function App() {
             )}
 
             {/* Stats — holographic token counter */}
-            {stats && mode !== 'review' && (
+            {stats && mode !== 'review' && mode !== 'pentest' && (
               <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
                 <span>Model: <strong className="text-slate-400">{selectedModel}</strong></span>
                 <TokenCounter tokens={stats.tokens} duration={stats.duration} />
@@ -886,7 +960,7 @@ export default function App() {
             )}
 
             {/* Input — hidden in Create and Review modes */}
-            {mode !== 'create' && mode !== 'build' && mode !== 'review' && !BUILDER_MODES.includes(mode) && (
+            {mode !== 'create' && mode !== 'build' && mode !== 'review' && mode !== 'pentest' && !BUILDER_MODES.includes(mode) && (
             <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
               <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
               <div className="flex gap-2">
@@ -954,7 +1028,7 @@ export default function App() {
               <FileBrowser
                 projectFolder={projectFolder}
                 onAttachFile={attachFile}
-                attachLabel={BUILDER_MODES.includes(mode) ? 'Load into Form' : mode === 'review' ? 'Load for Review' : '+ Attach to Chat'}
+                attachLabel={BUILDER_MODES.includes(mode) ? 'Load into Form' : mode === 'review' || mode === 'pentest' ? 'Load for Review' : '+ Attach to Chat'}
                 onClose={() => setShowFileBrowser(false)}
                 onClearFolder={async () => {
                   setProjectFolder('');
