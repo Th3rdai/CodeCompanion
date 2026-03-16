@@ -1,12 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 import MarkdownContent from './MarkdownContent';
+import BuildHeader from './BuildHeader';
+import BuildSimpleView from './BuildSimpleView';
 
 /**
  * BuildPanel — Multi-view dashboard for Build mode projects.
  * Views: project list → project dashboard → phase detail
  */
-export default function BuildPanel({ projects, activeProject, onSelectProject, onNewProject, onViewFiles, onRefresh, onToast }) {
+export default function BuildPanel({ projects, activeProject, onSelectProject, onNewProject, onViewFiles, onRefresh, onToast, selectedModel = null, ollamaConnected = false }) {
   const [view, setView] = useState(activeProject ? 'dashboard' : 'list');
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('cc_build_view_mode') || 'simple';
+  });
+  const toggleViewMode = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('cc_build_view_mode', mode);
+  };
   const [projectData, setProjectData] = useState(null); // roadmap + progress
   const [phaseDetail, setPhaseDetail] = useState(null);
   const [selectedPhase, setSelectedPhase] = useState(null);
@@ -286,92 +295,84 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
   const progress = projectData?.progress || {};
   const currentProject = projects?.find(p => p.id === activeProject);
 
+  const derivedStatus = progress.percent === 100 ? 'complete' : progress.percent > 0 ? 'in_progress' : 'not_started';
+
   return (
     <div className="flex-1 overflow-y-auto scrollbar-thin p-4 sm:p-6 space-y-4">
-      <div className="flex items-center justify-between mb-2">
-        <button onClick={() => { onSelectProject?.(null); setProjectData(null); }}
-          className="text-xs text-slate-400 hover:text-indigo-300 transition-colors">
-          ← All Projects
-        </button>
-        <div className="flex items-center gap-2">
-          <button onClick={() => loadProjectData(activeProject)}
-            className="text-xs text-slate-400 hover:text-indigo-300 px-2.5 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors">
-            ↻ Refresh
-          </button>
-          {currentProject && (
-            <button onClick={() => onViewFiles?.(currentProject.path)}
-              className="text-xs text-slate-400 hover:text-indigo-300 px-2.5 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors">
-              View Files
-            </button>
-          )}
-        </div>
-      </div>
+      <BuildHeader
+        projectName={currentProject?.name}
+        progress={progress}
+        status={derivedStatus}
+        viewMode={viewMode}
+        onToggleViewMode={toggleViewMode}
+        onRefresh={() => loadProjectData(activeProject)}
+        onBack={() => { onSelectProject?.(null); setProjectData(null); }}
+      />
 
-      <h2 className="text-lg font-bold text-slate-100">{currentProject?.name || 'Project'}</h2>
       <p className="text-xs text-slate-500">{currentProject?.path}</p>
 
       {error && (
         <div className="p-3 rounded-lg text-xs bg-red-500/10 border border-red-500/30 text-red-400">{error}</div>
       )}
 
-      {/* Progress Bar */}
-      {progress.percent !== undefined && (
-        <div className="glass rounded-lg p-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-slate-400">Progress</span>
-            <span className="text-xs text-indigo-300 font-medium">{progress.percent}%</span>
-          </div>
-          <div className="w-full bg-slate-700/50 rounded-full h-2">
-            <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-2 rounded-full transition-all"
-              style={{ width: `${progress.percent}%` }} />
-          </div>
-          <p className="text-xs text-slate-500 mt-1.5">
-            {progress.total_summaries || 0} / {progress.total_plans || 0} plans complete
-          </p>
-        </div>
+      {/* Simple View */}
+      {viewMode === 'simple' && (
+        <BuildSimpleView
+          project={currentProject}
+          projectData={projectData}
+          selectedModel={selectedModel}
+          ollamaConnected={ollamaConnected}
+          onToast={onToast}
+          onViewFiles={onViewFiles}
+          onViewPhases={() => toggleViewMode('advanced')}
+        />
       )}
 
-      {/* Phase List */}
-      {loading ? (
-        <div className="flex items-center justify-center p-8">
-          <span className="inline-block spin text-indigo-400">&#x27F3;</span>
-        </div>
-      ) : phases.length > 0 ? (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-slate-300">Phases</h3>
-          {phases.map(phase => {
-            const status = phase.disk_status || phase.status || 'pending';
-            const dotColor = status === 'complete' ? 'bg-emerald-400' : status === 'in_progress' || status === 'partial' ? 'bg-amber-400' : 'bg-slate-500';
-            return (
-              <div key={phase.number}
-                className="glass rounded-lg p-3 cursor-pointer hover:border-indigo-500/30 border border-transparent transition-all"
-                onClick={() => loadPhaseDetail(activeProject, phase.number)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-slate-200">{phase.number}. {phase.name || 'Unnamed'}</span>
-                    <span className="text-xs text-slate-500 ml-2">
-                      {phase.plan_count || 0} plan{(phase.plan_count || 0) !== 1 ? 's' : ''}
-                      {phase.summary_count > 0 && `, ${phase.summary_count} done`}
-                    </span>
+      {/* Advanced View (phase list) */}
+      {viewMode === 'advanced' && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <span className="inline-block spin text-indigo-400">&#x27F3;</span>
+            </div>
+          ) : phases.length > 0 ? (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-slate-300">Phases</h3>
+              {phases.map(phase => {
+                const status = phase.disk_status || phase.status || 'pending';
+                const dotColor = status === 'complete' ? 'bg-emerald-400' : status === 'in_progress' || status === 'partial' ? 'bg-amber-400' : 'bg-slate-500';
+                return (
+                  <div key={phase.number}
+                    className="glass rounded-lg p-3 cursor-pointer hover:border-indigo-500/30 border border-transparent transition-all"
+                    onClick={() => loadPhaseDetail(activeProject, phase.number)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-slate-200">{phase.number}. {phase.name || 'Unnamed'}</span>
+                        <span className="text-xs text-slate-500 ml-2">
+                          {phase.plan_count || 0} plan{(phase.plan_count || 0) !== 1 ? 's' : ''}
+                          {phase.summary_count > 0 && `, ${phase.summary_count} done`}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500 shrink-0 capitalize">{status.replace('_', ' ')}</span>
+                    </div>
                   </div>
-                  <span className="text-xs text-slate-500 shrink-0 capitalize">{status.replace('_', ' ')}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : !projectData ? (
-        <div className="glass rounded-xl p-6 text-center space-y-2">
-          <span className="inline-block spin text-indigo-400 text-lg">&#x27F3;</span>
-          <p className="text-sm text-slate-400">Loading project data...</p>
-        </div>
-      ) : (
-        <div className="glass rounded-xl p-6 text-center space-y-3">
-          <p className="text-sm text-slate-300">No phases found</p>
-          <p className="text-xs text-slate-500">Run <code className="text-indigo-400">/gsd:new-project</code> in Claude Code to create your roadmap</p>
-        </div>
+                );
+              })}
+            </div>
+          ) : !projectData ? (
+            <div className="glass rounded-xl p-6 text-center space-y-2">
+              <span className="inline-block spin text-indigo-400 text-lg">&#x27F3;</span>
+              <p className="text-sm text-slate-400">Loading project data...</p>
+            </div>
+          ) : (
+            <div className="glass rounded-xl p-6 text-center space-y-3">
+              <p className="text-sm text-slate-300">No phases found</p>
+              <p className="text-xs text-slate-500">Run <code className="text-indigo-400">/gsd:new-project</code> in Claude Code to create your roadmap</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
