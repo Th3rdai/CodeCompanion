@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 
-// Persist folder expand/collapse state in sessionStorage
+// Persist folder expand/collapse state in localStorage (survives refresh)
 const TREE_STATE_KEY = 'cc_file_tree_state';
 
 function getTreeState() {
-  try { return JSON.parse(sessionStorage.getItem(TREE_STATE_KEY) || '{}'); } catch { return {}; }
+  try { return JSON.parse(localStorage.getItem(TREE_STATE_KEY) || '{}'); } catch { return {}; }
 }
 
 function setTreeState(path, isOpen) {
   const state = getTreeState();
   if (isOpen) { state[path] = true; } else { delete state[path]; }
-  try { sessionStorage.setItem(TREE_STATE_KEY, JSON.stringify(state)); } catch {}
+  try { localStorage.setItem(TREE_STATE_KEY, JSON.stringify(state)); } catch {}
 }
 
 function FileTreeNode({ node, depth, onFileClick }) {
@@ -105,7 +105,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   useEffect(() => {
     if (projectFolder) loadTree(projectFolder);
     // Clear tree expand state when folder changes
-    try { sessionStorage.removeItem(TREE_STATE_KEY); } catch {}
+    try { localStorage.removeItem(TREE_STATE_KEY); } catch {}
   }, [projectFolder]);
 
   async function loadTree(folder) {
