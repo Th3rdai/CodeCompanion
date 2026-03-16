@@ -1140,6 +1140,38 @@ app.get('/api/build/projects/:id/phase/:n', (req, res) => {
   }
 });
 
+// POST /api/build/projects/:id/next-action — AI-powered "What's Next" recommendation
+app.use('/api/build/projects/:id/next-action', createRateLimiter({ name: 'build-next-action', max: 10, windowMs: 60000, methods: ['POST'] }));
+app.post('/api/build/projects/:id/next-action', async (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  try {
+    const config = getConfig();
+    const model = req.body.model || config.defaultModel;
+    const bridge = new GsdBridge(project.path);
+    const state = bridge.getState();
+    const progress = bridge.getProgress();
+
+    const stateStr = JSON.stringify(state).slice(0, 2000);
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a friendly project coach. Given the project state, suggest the single most important next action. Be concise (2-3 sentences). Use encouraging, non-technical language. If the project is complete, congratulate them.'
+      },
+      {
+        role: 'user',
+        content: `Project: ${project.name}\nProgress: ${JSON.stringify(progress)}\nState (truncated): ${stateStr}`
+      }
+    ];
+
+    const result = await chatComplete(config.ollamaUrl, model, messages, 30000);
+    res.json({ action: result, timestamp: new Date().toISOString() });
+  } catch (err) {
+    log('ERROR', `next-action failed: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // ── GitHub Integration API ───────────────────────────
 
