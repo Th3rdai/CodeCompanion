@@ -27,6 +27,7 @@ function renderMarkdown(text, enableJargon, streaming) {
     let sanitized = DOMPurify.sanitize(raw, {
       USE_PROFILES: { html: true },
       ALLOW_DATA_ATTR: true,
+      ADD_DATA_URI_TAGS: ['img'],
     });
     if (enableJargon) {
       sanitized = highlightJargon(sanitized);

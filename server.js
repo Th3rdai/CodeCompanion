@@ -356,7 +356,18 @@ app.post('/api/chat', async (req, res) => {
           debug('Executing tool call', { server: call.serverId, tool: call.toolName });
           const result = await toolCallHandler.executeTool(call.serverId, call.toolName, call.args);
           if (result.success) {
-            const content = result.result?.content?.map(c => c.text).join('\n') || JSON.stringify(result.result);
+            const parts = result.result?.content || [];
+            const textParts = parts.filter(c => c.type === 'text').map(c => c.text);
+            const imageParts = parts.filter(c => c.type === 'image');
+            let content = textParts.join('\n') || JSON.stringify(result.result);
+            // Embed images as markdown with base64 data URLs
+            for (const img of imageParts) {
+              const mimeType = img.mimeType || 'image/png';
+              const data = img.data; // base64
+              if (data) {
+                content += `\n\n![Generated Image](data:${mimeType};base64,${data})\n`;
+              }
+            }
             toolResults += `\nTool ${call.serverId}.${call.toolName} returned:\n${content}\n`;
           } else {
             toolResults += `\nTool ${call.serverId}.${call.toolName} failed: ${result.error}\n`;
