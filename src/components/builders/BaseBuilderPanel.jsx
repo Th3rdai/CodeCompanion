@@ -681,7 +681,7 @@ Format your response as:
                 disabled={reviseStreaming}
                 className="w-full text-xs px-4 py-2 rounded-lg border border-blue-500/30 text-blue-300 hover:bg-blue-500/10 transition-colors disabled:opacity-50"
               >
-                Apply Revision to Prompt
+                Apply Revision to {config.title.replace(' Builder', '').replace(' Designer', '')}
               </button>
             )}
             <button
@@ -692,7 +692,7 @@ Format your response as:
               disabled={reviseStreaming}
               className="w-full text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
             >
-              {hasRevision ? 'Apply Revision & Re-Score' : 'Re-Score Current Prompt'}
+              {hasRevision ? `Apply Revision & Re-Score` : `Re-Score Current ${config.title.replace(' Builder', '').replace(' Designer', '')}`}
             </button>
           </div>
         </div>
