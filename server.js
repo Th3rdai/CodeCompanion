@@ -1172,6 +1172,229 @@ app.post('/api/build/projects/:id/next-action', async (req, res) => {
   }
 });
 
+// POST /api/build/projects/:id/research — SSE stream AI research for a phase
+app.use('/api/build/projects/:id/research', createRateLimiter({ name: 'build-research', max: 5, windowMs: 60000, methods: ['POST'] }));
+app.post('/api/build/projects/:id/research', async (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  function sendEvent(data) {
+    if (!aborted && !res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+  }
+
+  try {
+    const config = getConfig();
+    const model = req.body.model || config.defaultModel;
+    const phaseNumber = req.body.phaseNumber;
+    if (!phaseNumber) {
+      sendEvent({ error: 'phaseNumber is required' });
+      return res.end();
+    }
+
+    const bridge = new GsdBridge(project.path);
+    const state = bridge.getState();
+    const roadmap = bridge.getRoadmap();
+
+    const stateStr = JSON.stringify(state).slice(0, 3000);
+    const roadmapStr = JSON.stringify(roadmap.phases || roadmap).slice(0, 3000);
+
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a technical researcher preparing context for project planning. Given the project state and roadmap, research phase ' + phaseNumber + '. Identify: 1) What needs to be built, 2) Key technical decisions, 3) Dependencies and risks, 4) Suggested approach. Be thorough but concise. Use markdown formatting.'
+      },
+      {
+        role: 'user',
+        content: `Project: ${project.name}\nPhase: ${phaseNumber}\n\nState (truncated):\n${stateStr}\n\nRoadmap phases (truncated):\n${roadmapStr}`
+      }
+    ];
+
+    const result = await chatComplete(config.ollamaUrl, model, messages, 180000);
+
+    // Stream result progressively as words
+    const words = result.split(/(\s+)/);
+    for (const word of words) {
+      if (aborted) break;
+      sendEvent({ token: word });
+    }
+
+    if (!aborted) sendEvent({ done: true });
+  } catch (err) {
+    log('ERROR', `build-research failed: ${err.message}`);
+    sendEvent({ error: err.message });
+  }
+  if (!res.writableEnded) res.end();
+});
+
+// POST /api/build/projects/:id/plan — SSE stream AI plan for a phase with write-after-validate
+app.use('/api/build/projects/:id/plan', createRateLimiter({ name: 'build-plan', max: 5, windowMs: 60000, methods: ['POST'] }));
+app.post('/api/build/projects/:id/plan', async (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  function sendEvent(data) {
+    if (!aborted && !res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+  }
+
+  try {
+    const config = getConfig();
+    const model = req.body.model || config.defaultModel;
+    const phaseNumber = req.body.phaseNumber;
+    const researchContext = req.body.researchContext || '';
+    if (!phaseNumber) {
+      sendEvent({ error: 'phaseNumber is required' });
+      return res.end();
+    }
+
+    const bridge = new GsdBridge(project.path);
+    const state = bridge.getState();
+
+    const stateStr = JSON.stringify(state).slice(0, 3000);
+
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a project planner. Given the research context and project state, create a concrete plan for phase ' + phaseNumber + '. Include: 1) Phase goal, 2) Tasks with specific file paths and actions, 3) Success criteria, 4) Estimated complexity. Format as markdown with clear headings.'
+      },
+      {
+        role: 'user',
+        content: `Project: ${project.name}\nPhase: ${phaseNumber}\n\nResearch context:\n${researchContext.slice(0, 4000)}\n\nState (truncated):\n${stateStr}`
+      }
+    ];
+
+    const result = await chatComplete(config.ollamaUrl, model, messages, 180000);
+
+    // Stream result progressively as words
+    const words = result.split(/(\s+)/);
+    for (const word of words) {
+      if (aborted) break;
+      sendEvent({ token: word });
+    }
+
+    // Write-after-validate
+    const validated = result.length > 100 && result.trim().startsWith('#') && result.trim().length > 0;
+    let written = false;
+
+    if (validated && req.body.writeToFile) {
+      try {
+        const planningDir = path.join(project.path, '.planning', 'phases');
+        const targetPath = path.join(planningDir, `phase-${phaseNumber}-ai-plan.md`);
+        // Validate path is within project
+        if (isWithinBasePath(targetPath, project.path)) {
+          // Ensure directory exists
+          fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+          // Atomic write: temp file then rename
+          const tmpPath = targetPath + `.tmp.${process.pid}`;
+          fs.writeFileSync(tmpPath, result, 'utf-8');
+          fs.renameSync(tmpPath, targetPath);
+          written = true;
+        } else {
+          log('WARN', `Blocked write outside project: ${targetPath}`);
+        }
+      } catch (writeErr) {
+        log('ERROR', `Failed to write plan: ${writeErr.message}`);
+      }
+    }
+
+    if (!aborted) sendEvent({ done: true, validated, written });
+  } catch (err) {
+    log('ERROR', `build-plan failed: ${err.message}`);
+    sendEvent({ error: err.message });
+  }
+  if (!res.writableEnded) res.end();
+});
+
+
+// ── Planning File Viewer API ─────────────────────────
+
+const PLANNING_FILE_WHITELIST = [
+  'ROADMAP.md', 'REQUIREMENTS.md', 'STATE.md', 'CONTEXT.md',
+  'PROJECT.md', 'RETROSPECTIVE.md', 'config.json'
+];
+
+// GET /api/build/projects/:id/files — list available planning files
+app.get('/api/build/projects/:id/files', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  try {
+    const planningDir = path.join(project.path, '.planning');
+    if (!fs.existsSync(planningDir)) {
+      return res.json({ files: [] });
+    }
+    const entries = fs.readdirSync(planningDir);
+    const files = PLANNING_FILE_WHITELIST.filter(f => entries.includes(f));
+    res.json({ files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/build/projects/:id/files/:filename — read a planning file
+app.get('/api/build/projects/:id/files/:filename', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  const { filename } = req.params;
+  if (!PLANNING_FILE_WHITELIST.includes(filename)) {
+    return res.status(403).json({ error: 'File not in whitelist' });
+  }
+  const fullPath = path.join(project.path, '.planning', filename);
+  const basePath = path.join(project.path, '.planning');
+  if (!isWithinBasePath(basePath, fullPath)) {
+    return res.status(403).json({ error: 'Path traversal blocked' });
+  }
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  try {
+    const content = fs.readFileSync(fullPath, 'utf-8');
+    res.json({ content, filename });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/build/projects/:id/files/:filename — write a planning file (atomic)
+app.put('/api/build/projects/:id/files/:filename', (req, res) => {
+  const project = _resolveBuildProject(req, res);
+  if (!project) return;
+  const { filename } = req.params;
+  if (!PLANNING_FILE_WHITELIST.includes(filename)) {
+    return res.status(403).json({ error: 'File not in whitelist' });
+  }
+  const fullPath = path.join(project.path, '.planning', filename);
+  const basePath = path.join(project.path, '.planning');
+  if (!isWithinBasePath(basePath, fullPath)) {
+    return res.status(403).json({ error: 'Path traversal blocked' });
+  }
+  const { content } = req.body || {};
+  if (!content || typeof content !== 'string') {
+    return res.status(400).json({ error: 'content must be a non-empty string' });
+  }
+  try {
+    const tmpPath = fullPath + '.tmp.' + process.pid;
+    fs.writeFileSync(tmpPath, content, 'utf-8');
+    fs.renameSync(tmpPath, fullPath);
+    res.json({ success: true, filename });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ── GitHub Integration API ───────────────────────────
 
