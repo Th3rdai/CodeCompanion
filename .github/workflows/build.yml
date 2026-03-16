@@ -1,5 +1,5 @@
 # Build unsigned Electron desktop installers for macOS, Windows, and Linux.
-# Triggers on version tags (v*) and manual dispatch.
+# Triggers on version tags (v*), pushes to master, and manual dispatch.
 # Uploads build artifacts; on tag push, also creates a GitHub Release.
 
 name: Build Desktop Installers
