@@ -153,6 +153,21 @@ function ToolbarButton({ onClick, icon: Icon, label, active, disabled }) {
 
 // ── MermaidBlock Component ───────────────────────────
 
+// Strip style/classDef/linkStyle directives that cause parse failures
+function sanitizeMermaid(src) {
+  return src
+    .split('\n')
+    .filter(line => {
+      const trimmed = line.trim();
+      return !trimmed.startsWith('style ') &&
+             !trimmed.startsWith('classDef ') &&
+             !trimmed.startsWith('linkStyle ') &&
+             !trimmed.startsWith('class ') &&
+             !trimmed.match(/^%%\{/); // strip init directives too
+    })
+    .join('\n');
+}
+
 export default function MermaidBlock({ code }) {
   const [svg, setSvg] = useState(null);
   const [error, setError] = useState(null);
@@ -162,6 +177,9 @@ export default function MermaidBlock({ code }) {
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef(null);
   const diagramRef = useRef(null);
+
+  // Sanitize mermaid source to remove style directives that cause parse errors
+  const cleanCode = sanitizeMermaid(code);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,7 +191,7 @@ export default function MermaidBlock({ code }) {
     setZoom(1);
 
     loadMermaid()
-      .then(mermaid => mermaid.render(id, code))
+      .then(mermaid => mermaid.render(id, cleanCode))
       .then(result => {
         if (!cancelled) {
           setSvg(result.svg);
@@ -195,7 +213,7 @@ export default function MermaidBlock({ code }) {
       cancelled = true;
       cleanupMermaidErrors();
     };
-  }, [code]);
+  }, [cleanCode]);
 
   const handleCopySource = useCallback(() => {
     navigator.clipboard.writeText(code).then(() => {
