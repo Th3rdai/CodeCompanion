@@ -12,7 +12,7 @@ const { initConfig, getConfig, updateConfig } = require('./lib/config');
 const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete } = require('./lib/ollama-client');
-const { buildFileTree, readProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
+const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
 const GsdBridge = require('./lib/gsd-bridge');
@@ -964,6 +964,28 @@ app.get('/api/files/read', (req, res) => {
     const status = err.message === 'File not found' ? 404 : err.message === 'Not a file' ? 400 : 500;
     log('ERROR', 'Failed to read file', { path: filePath, error: err.message, status });
     res.status(status).json({ error: `Cannot read file: ${err.message}` });
+  }
+});
+
+// POST /api/files/save — save content back to file with .bak backup
+app.post('/api/files/save', (req, res) => {
+  const { filePath, folder, content } = req.body;
+
+  if (!filePath || !folder || content === undefined) {
+    return res.status(400).json({ error: 'Missing filePath, folder, or content' });
+  }
+
+  try {
+    const result = saveProjectFile(folder, filePath, content);
+    log('INFO', 'File saved', { path: filePath, size: result.size, backedUp: result.backedUp });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    if (err.message.includes('Path traversal')) {
+      log('ERROR', 'Path traversal attempt blocked on save', { filePath, folder });
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    log('ERROR', 'Failed to save file', { path: filePath, error: err.message });
+    res.status(500).json({ error: `Cannot save file: ${err.message}` });
   }
 });
 

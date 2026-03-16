@@ -67,6 +67,7 @@ export default function BaseBuilderPanel({
   onSaveBuilder,
   config,
   onLoadFile,
+  projectFolder,
 }) {
   // ── State ────────────────────────────────────────────
   const [phase, setPhase] = useState('input'); // 'input' | 'loading' | 'scored' | 'revising'
@@ -76,6 +77,7 @@ export default function BaseBuilderPanel({
   const [reviseInput, setReviseInput] = useState('');
   const [reviseMessages, setReviseMessages] = useState([]);
   const [reviseStreaming, setReviseStreaming] = useState(false);
+  const [sourceFile, setSourceFile] = useState(null); // { name, path, folder } — tracks loaded file for save-back
 
   const reviseEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -121,9 +123,11 @@ export default function BaseBuilderPanel({
       setScoreError('');
       setReviseMessages([]);
       setPhase('input');
+      // Track source file for save-back (path from File Browser, or just name from native picker)
+      setSourceFile(fileData.path ? { name: fileData.name, path: fileData.path, folder: projectFolder } : null);
       onToast?.(`Loaded: ${fileData.name}`);
     }
-  }, [config, onToast]);
+  }, [config, onToast, projectFolder]);
 
   // ── Expose loadFileIntoForm via ref for App.jsx routing ──
   useEffect(() => {
@@ -285,6 +289,27 @@ export default function BaseBuilderPanel({
     onToast?.('Saved successfully');
   }, [formData, scoreData, selectedModel, config, onSaveBuilder, onToast]);
 
+  // ── Save to original file (with .bak backup) ───────
+  const handleSaveToFile = useCallback(async () => {
+    if (!sourceFile?.path || !sourceFile?.folder) return;
+    try {
+      const content = config.buildContent(formDataRef.current);
+      const res = await fetch('/api/files/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: sourceFile.path, folder: sourceFile.folder, content }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        onToast?.(`Save failed: ${data.error}`);
+        return;
+      }
+      onToast?.(data.backedUp ? `Saved to ${sourceFile.name} (backup: ${sourceFile.name}.bak)` : `Saved to ${sourceFile.name}`);
+    } catch (err) {
+      onToast?.(`Save failed: ${err.message}`);
+    }
+  }, [sourceFile, config, onToast]);
+
   // ── New / reset ──────────────────────────────────────
   const handleNew = useCallback(() => {
     const initial = {};
@@ -296,6 +321,7 @@ export default function BaseBuilderPanel({
     setScoreError('');
     setReviseMessages([]);
     setReviseInput('');
+    setSourceFile(null);
     setPhase('input');
   }, [config]);
 
@@ -480,6 +506,17 @@ Format your response as:
     return (
       <section className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" aria-label={`${config.title} score report`}>
         <div className="max-w-3xl mx-auto space-y-4">
+          {/* Source file info */}
+          {sourceFile && (
+            <div className="glass rounded-lg border border-slate-700/30 px-3 py-2 flex items-center gap-2 text-xs">
+              <span className="text-slate-500">Source:</span>
+              <span className="text-indigo-300 font-medium truncate">{sourceFile.name}</span>
+              <span className="text-slate-600 truncate flex-1" title={sourceFile.folder + '/' + sourceFile.path}>
+                {sourceFile.folder}/{sourceFile.path}
+              </span>
+            </div>
+          )}
+
           <BuilderScoreCard
             data={scoreData}
             categories={config.categories}
@@ -500,6 +537,14 @@ Format your response as:
             >
               Download
             </button>
+            {sourceFile && (
+              <button
+                onClick={handleSaveToFile}
+                className="text-xs px-4 py-2 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 transition-colors"
+              >
+                Save to File
+              </button>
+            )}
             <button
               onClick={() => { setReviseMessages([]); setReviseInput(''); setPhase('revising'); }}
               className="text-xs px-4 py-2 rounded-lg border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 transition-colors"
@@ -539,6 +584,11 @@ Format your response as:
             &larr; Back to Score
           </button>
           <span className="text-xs text-slate-500">Revise {config.title}</span>
+          {sourceFile && (
+            <span className="text-xs text-indigo-400/70 ml-auto truncate max-w-[200px]" title={sourceFile.folder + '/' + sourceFile.path}>
+              {sourceFile.name}
+            </span>
+          )}
         </div>
 
         {/* Current content + score summary */}
@@ -680,6 +730,17 @@ Format your response as:
             </button>
           </div>
         </div>
+
+        {/* Source file info */}
+        {sourceFile && (
+          <div className="glass rounded-lg border border-slate-700/30 px-3 py-2 flex items-center gap-2 text-xs max-w-3xl mx-auto">
+            <span className="text-slate-500">Editing:</span>
+            <span className="text-indigo-300 font-medium">{sourceFile.name}</span>
+            <span className="text-slate-600 truncate flex-1" title={sourceFile.folder + '/' + sourceFile.path}>
+              {sourceFile.folder}/{sourceFile.path}
+            </span>
+          </div>
+        )}
 
         {/* Error */}
         {scoreError && (

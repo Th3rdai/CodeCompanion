@@ -754,6 +754,7 @@ export default function App() {
                   savedData={savedBuilderData}
                   onSaveBuilder={handleSaveBuilder}
                   onLoadFile={builderAttachRef}
+                  projectFolder={projectFolder}
                 />
               ) : mode === 'skillz' ? (
                 <SkillzPanel
@@ -764,6 +765,7 @@ export default function App() {
                   savedData={savedBuilderData}
                   onSaveBuilder={handleSaveBuilder}
                   onLoadFile={builderAttachRef}
+                  projectFolder={projectFolder}
                 />
               ) : (
                 <AgenticPanel
@@ -774,6 +776,7 @@ export default function App() {
                   savedData={savedBuilderData}
                   onSaveBuilder={handleSaveBuilder}
                   onLoadFile={builderAttachRef}
+                  projectFolder={projectFolder}
                 />
               )
             ) : (
