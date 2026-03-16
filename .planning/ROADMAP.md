@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
 - [x] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell, Simple View, AI Research/Planning, Advanced View, Handoff+Polish (completed 2026-03-15)
 - [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
-- [ ] **Phase 18: Security Pen Test Mode** - OWASP-based web app and API penetration testing agent with Elite Agent skill, added as a mode next to Build (planned)
+- [x] **Phase 18: Security Pen Test Mode** - OWASP-based web app and API penetration testing agent with Elite Agent skill, added as a mode next to Build (planned) (completed 2026-03-16)
 
 ## Phase Details
 
@@ -259,7 +259,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
 | 16. Build Dashboard | 5/5 | Complete    | 2026-03-16 |
 | 17. Auto-Update & Installer | ad-hoc | Complete    | 2026-03-16 |
-| 18. Security Pen Test Mode | 2/3 | In Progress|  |
+| 18. Security Pen Test Mode | 3/3 | Complete   | 2026-03-16 |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 

@@ -58,7 +58,7 @@
 
 ### Security Pen Test Mode (Phase 18)
 
-- [ ] **SEC-01**: New "Security" mode appears in mode tabs with OWASP security assessment capability
+- [x] **SEC-01**: New "Security" mode appears in mode tabs with OWASP security assessment capability
 - [x] **SEC-02**: Elite Agent skill file (OWASP-pentest-agent.md) with comprehensive OWASP web app and API testing methodology
 - [x] **SEC-03**: System prompt and skill file reference OWASP Top 10 2021, API Security Top 10 2023, WSTG v4.2, and ASVS v4.0
 - [x] **SEC-04**: POST /api/pentest endpoint returns structured vulnerability reports with chatStructured, falls back to chatStream
