@@ -199,12 +199,16 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
                         Files
                       </button>
                     )}
-                    {!p.exists && (
-                      <button onClick={(e) => { e.stopPropagation(); handleRemoveProject(p.id); }}
-                        className="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">
-                        Remove
-                      </button>
-                    )}
+                    <button onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Remove "${p.name}" from the project list?${p.exists ? '\n\nThis only removes it from the list — the folder on disk is not deleted.' : ''}`)) {
+                          handleRemoveProject(p.id);
+                        }
+                      }}
+                      className="text-xs text-red-400/70 hover:text-red-400 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                      title="Remove from list">
+                      Remove
+                    </button>
                   </div>
                 </div>
               </div>
