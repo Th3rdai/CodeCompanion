@@ -50,7 +50,7 @@ describe('UI Label Validation', () => {
 
   it('should have verb-led or transformation-clear labels', () => {
     // Action verbs commonly used in UI
-    const ACTION_VERBS = ['chat', 'explain', 'check', 'clean', 'review', 'create'];
+    const ACTION_VERBS = ['chat', 'explain', 'check', 'clean', 'review', 'create', 'diagram'];
 
     for (const mode of modes) {
       const label = mode.label.toLowerCase();
