@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 13: License Email Delivery** - Send keys via email with template (planned)
 - [ ] **Phase 14: License Revocation** - Revoke keys, audit log (planned)
 - [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
-- [ ] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell (Phase 1 complete), Simple View, AI Research/Planning, Advanced View, Handoff+Polish (in progress)
+- [x] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell, Simple View, AI Research/Planning, Advanced View, Handoff+Polish (completed 2026-03-15)
 - [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
 
 ## Phase Details
@@ -193,11 +193,11 @@ Plans:
 **Requirements**: P2-01, P2-02, P2-03, P3-01, P4-01, P4-02, P5-01
 
 Plans:
-- [ ] 16-00-PLAN.md — Wave 0: Test stub files for all phase 16 requirements (Nyquist validation)
-- [ ] 16-01-PLAN.md — Simple View: BuildHeader, BuildSimpleView, next-action endpoint, localStorage toggle
-- [ ] 16-02-PLAN.md — AI Research/Planning: SSE research+plan endpoints, streaming UI in Simple View
-- [ ] 16-03-PLAN.md — Advanced View: BuildAdvancedView, PlanningFileViewer, file read/write whitelist endpoints
-- [ ] 16-04-PLAN.md — Handoff+Polish: ClaudeCodeHandoff, prop threading, error states, refresh-from-disk
+- [x] 16-00-PLAN.md — Wave 0: Test stub files for all phase 16 requirements (Nyquist validation)
+- [x] 16-01-PLAN.md — Simple View: BuildHeader, BuildSimpleView, next-action endpoint, localStorage toggle
+- [x] 16-02-PLAN.md — AI Research/Planning: SSE research+plan endpoints, streaming UI in Simple View
+- [x] 16-03-PLAN.md — Advanced View: BuildAdvancedView, PlanningFileViewer, file read/write whitelist endpoints
+- [x] 16-04-PLAN.md — Handoff+Polish: ClaudeCodeHandoff, prop threading, error states, refresh-from-disk
 
 **Notes**: Uses lib/build-registry.js, lib/gsd-bridge.js, BuildPanel.jsx; POST /api/build/projects for import; isWithinBasePath, getAppRoot() added
 
@@ -239,7 +239,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 13. License Email Delivery | 0/1 | Planned | — |
 | 14. License Revocation | 0/1 | Planned | — |
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
-| 16. Build Dashboard | 4/5 | In Progress|  |
+| 16. Build Dashboard | 5/5 | Complete | 2026-03-15 |
 | 17. Auto-Update & Installer | ad-hoc | Complete | 2026-03-15 |
 
 ## License Distribution Roadmap (Phases 9–14)
