@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
+milestone: v4.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 16-04-PLAN.md
-last_updated: "2026-03-16T01:17:17.010Z"
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-16T05:46:22.675Z"
 last_activity: 2026-03-15 — Auto-update UI, portable mode, premium installer branding, MIT license, pre-release v1.0.0-beta.1
 progress:
-  total_phases: 17
+  total_phases: 18
   completed_phases: 8
-  total_plans: 26
-  completed_plans: 20
+  total_plans: 29
+  completed_plans: 22
   percent: 100
 ---
 
@@ -170,6 +170,7 @@ Progress: [██████████] 100%
 | Phase 16 P03 | 147 | 2 tasks | 4 files |
 | Phase 16 P02 | 159 | 2 tasks | 2 files |
 | Phase 16 P04 | 116 | 2 tasks | 3 files |
+| Phase 18 P01 | 208 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -221,6 +222,9 @@ Recent decisions affecting current work:
 - [Phase 16]: SSE-over-POST pattern with ReadableStream reader in React for POST-based SSE endpoints
 - [Phase 16]: Context-aware GSD command list in ClaudeCodeHandoff derived from project phase/plan state
 - [Phase 16]: Friendly network error messages with retry buttons and loading skeletons for null state
+- [Phase 18]: Pentest getTimeoutForModel uses longer timeouts (90s-240s) than review due to 6-category output complexity
+- [Phase 18]: CVSS bands use descriptive strings not numeric scores for vibe-coder accessibility
+- [Phase 18]: Pentest system prompt kept under 2000 tokens with compact embedded OWASP reference tables
 
 ### Phase 15: Build Mode (GSD + ICM) — Approved and Implemented
 
@@ -278,7 +282,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:43:13.843Z
-Stopped at: Completed 16-04-PLAN.md
+Last session: 2026-03-16T05:46:03.953Z
+Stopped at: Completed 18-01-PLAN.md
 Resume file: None
 Next: Phases 8-14 (license distribution) deferred — project is MIT licensed. Feature enhancements ongoing (diagrams, file loading, etc.).
