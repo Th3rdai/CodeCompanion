@@ -28,6 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 14: License Revocation** - Revoke keys, audit log (planned)
 - [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
 - [ ] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell (Phase 1 complete), Simple View, AI Research/Planning, Advanced View, Handoff+Polish (in progress)
+- [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
 
 ## Phase Details
 
@@ -188,8 +189,31 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Phase 1 (Registry + Shell): Build projects registered on scaffold; import existing by path; rate-limited API; multi-tool convention files (CLAUDE.md, .cursorrules, .windsurfrules, .opencode/instructions.md)
   2. Phases 2–5: Simple View, AI Research/Planning, Advanced View, Handoff+Polish (as planned)
-**Plans**: Phase 1 complete (2026-03-14); Phases 2–5 pending
+**Plans**: 4 plans
+**Requirements**: P2-01, P2-02, P2-03, P3-01, P4-01, P4-02, P5-01
+
+Plans:
+- [ ] 16-01-PLAN.md — Simple View: BuildHeader, BuildSimpleView, next-action endpoint, localStorage toggle
+- [ ] 16-02-PLAN.md — AI Research/Planning: SSE research+plan endpoints, streaming UI in Simple View
+- [ ] 16-03-PLAN.md — Advanced View: BuildAdvancedView, PlanningFileViewer, file read/write whitelist endpoints
+- [ ] 16-04-PLAN.md — Handoff+Polish: ClaudeCodeHandoff, prop threading, error states, refresh-from-disk
+
 **Notes**: Uses lib/build-registry.js, lib/gsd-bridge.js, BuildPanel.jsx; POST /api/build/projects for import; isWithinBasePath, getAppRoot() added
+
+### Phase 17: Auto-Update, Portable Mode & Installer Design
+**Goal**: Self-contained portable app (delete folder = full uninstall), in-app auto-update with UI, premium installer/splash branding
+**Depends on**: Phase 6 (desktop app)
+**Success Criteria** (what must be TRUE):
+  1. Data directory stored next to app as sibling folder, not in OS user-data — delete the folder removes everything
+  2. Auto-migration from legacy OS data location on first run (non-destructive)
+  3. Settings shows "Check for Updates" button with download progress and "Restart & Update"
+  4. Global notification banner appears when update available/downloaded
+  5. Splash screen uses premium neon/glassmorphism design with animations
+  6. DMG background and NSIS installer have matching branded visuals
+  7. electron-builder publish config points to correct GitHub repo
+**Plans**: Ad-hoc (no formal plans — implemented directly)
+**Completed**: 2026-03-15
+**UAT**: 9/9 passed (automated agent verification)
 
 ## Progress
 
@@ -214,7 +238,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 13. License Email Delivery | 0/1 | Planned | — |
 | 14. License Revocation | 0/1 | Planned | — |
 | 15. Build Mode (GSD + ICM) | 1/1 | Complete | 2026-03-14 |
-| 16. Build Dashboard | 1/1 | Complete | 2026-03-15 |
+| 16. Build Dashboard | 0/4 | In Progress | — |
+| 17. Auto-Update & Installer | ad-hoc | Complete | 2026-03-15 |
 
 ## License Distribution Roadmap (Phases 9–14)
 
