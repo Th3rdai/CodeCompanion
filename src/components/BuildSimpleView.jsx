@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Lightbulb, RefreshCw, FolderOpen, Layers, Search, FileText, Save } from 'lucide-react';
+import { Lightbulb, RefreshCw, FolderOpen, Layers, Search, FileText, Save, AlertTriangle } from 'lucide-react';
 import MarkdownContent from './MarkdownContent';
+import ClaudeCodeHandoff from './ClaudeCodeHandoff';
 
 /**
  * Parse SSE stream from a fetch Response.
@@ -233,6 +234,21 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
   const phaseNumber = getNextPhaseNumber();
   const isStreaming = streaming !== null;
 
+  // Loading skeleton when projectData hasn't loaded yet
+  if (!projectData && project?.id) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="glass rounded-xl p-5 space-y-3 animate-pulse">
+            <div className="h-4 bg-slate-700/40 rounded w-1/3" />
+            <div className="h-3 bg-slate-700/30 rounded w-2/3" />
+            <div className="h-3 bg-slate-700/20 rounded w-1/2" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* What's Next AI Card */}
@@ -270,13 +286,20 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
 
         {/* Error state */}
         {ollamaConnected && !loading && error && (
-          <div className="space-y-2">
-            <p className="text-xs text-red-400">{error}</p>
+          <div className="glass rounded-lg p-3 space-y-2 border border-red-500/20 bg-red-500/5">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+              <p className="text-xs text-red-400">
+                {error.includes('fetch') || error.includes('network') || error.includes('Failed to fetch')
+                  ? 'Could not reach the server. Is it running?'
+                  : error}
+              </p>
+            </div>
             <button
               onClick={fetchNextAction}
               className="text-xs text-indigo-300 hover:text-indigo-200 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors cursor-pointer"
             >
-              Try Again
+              Retry
             </button>
           </div>
         )}
@@ -356,7 +379,18 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
 
             {/* Stream error */}
             {streamError && (
-              <div className="text-xs text-red-400 py-1">{streamError}</div>
+              <div className="glass rounded-lg p-3 space-y-2 border border-red-500/20 bg-red-500/5">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                  <p className="text-xs text-red-400">{streamError}</p>
+                </div>
+                <button
+                  onClick={() => { setStreamError(null); }}
+                  className="text-xs text-indigo-300 hover:text-indigo-200 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors cursor-pointer"
+                >
+                  Try Again
+                </button>
+              </div>
             )}
 
             {/* Streaming status */}
@@ -422,6 +456,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
           )}
         </div>
       </div>
+
+      {/* Claude Code Handoff */}
+      <ClaudeCodeHandoff project={project} projectData={projectData} onToast={onToast} />
     </div>
   );
 }

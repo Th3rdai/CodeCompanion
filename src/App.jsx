@@ -801,6 +801,8 @@ export default function App() {
                     onViewFiles={(p) => { setProjectFolder(p); setShowFileBrowser(true); }}
                     onRefresh={fetchBuildProjects}
                     onToast={showToast}
+                    selectedModel={selectedModel}
+                    ollamaConnected={connected}
                   />
                 )
               ) : (
