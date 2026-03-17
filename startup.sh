@@ -5,7 +5,7 @@
 
 APP_NAME="Th3rdAI Code Companion"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-PORT=3000
+PORT=8900
 LOG_DIR="$APP_DIR/logs"
 APP_LOG="$LOG_DIR/app.log"
 DEBUG_LOG="$LOG_DIR/debug.log"

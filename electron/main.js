@@ -63,7 +63,7 @@ function getPreferredPort() {
   } catch (err) {
     console.error('[Main] Error reading preferred port:', err);
   }
-  return 3000; // Default
+  return 8900; // Default
 }
 
 /**

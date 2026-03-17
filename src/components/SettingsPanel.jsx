@@ -53,12 +53,13 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateError, setUpdateError] = useState(null);
 
-  // Load brand assets and timeout from config
+  // Load brand assets, timeout, and port from config
   useEffect(() => {
     if (!brandLoaded) {
       fetch('/api/config').then(r => r.json()).then(data => {
         if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
         if (data.reviewTimeoutSec != null) setReviewTimeoutSec(data.reviewTimeoutSec);
+        if (data.preferredPort != null) setPreferredPort(data.preferredPort);
         setBrandLoaded(true);
       }).catch(() => setBrandLoaded(true));
     }
@@ -199,11 +200,26 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     }
     setPortError('');
     try {
-      const result = await window.electronAPI.setPortConfig(portNum);
-      if (result.success) {
-        showToast('Port preference saved. Takes effect on next launch.');
+      if (isElectron) {
+        // Electron mode: use IPC
+        const result = await window.electronAPI.setPortConfig(portNum);
+        if (result.success) {
+          showToast('Port preference saved. Takes effect on next launch.');
+        } else {
+          setPortError(result.error || 'Failed to save port');
+        }
       } else {
-        setPortError(result.error || 'Failed to save port');
+        // Non-Electron mode: use API
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferredPort: portNum })
+        });
+        if (response.ok) {
+          showToast('Port preference saved. Restart server to apply.');
+        } else {
+          setPortError('Failed to save port');
+        }
       }
     } catch (err) {
       setPortError(err.message);
@@ -464,6 +480,42 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               <p className="text-xs text-slate-400 mt-1.5">How long to wait for AI code reviews before timing out. Larger models need more time.</p>
             </div>
 
+            {/* Port Configuration */}
+            <div className="glass rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Settings className="w-4 h-4 text-slate-400" />
+                <p className="text-sm font-medium text-slate-200">Server Port</p>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs text-slate-400">Preferred Port</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={preferredPort}
+                    onChange={(e) => setPreferredPort(e.target.value)}
+                    min="1024"
+                    max="65535"
+                    className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-sm"
+                  />
+                  <button
+                    onClick={handleSavePort}
+                    className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
+                  >
+                    Save
+                  </button>
+                </div>
+                {portError && (
+                  <p className="text-xs text-red-400">{portError}</p>
+                )}
+                {actualPort && (
+                  <p className="text-xs text-slate-500">
+                    Currently running on port <span className="text-indigo-300 font-medium">{actualPort}</span>
+                  </p>
+                )}
+                <p className="text-xs text-slate-400">Takes effect on next {isElectron ? 'launch' : 'server restart'}. Port must be between 1024-65535.</p>
+              </div>
+            </div>
+
             {/* 3D Effects Toggle */}
             <div className="glass rounded-lg p-4 flex items-center justify-between">
               <div>
@@ -588,41 +640,6 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     {dataDir && (
                       <p className="text-xs text-slate-500">
                         Data location: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300 text-[10px]">{dataDir}</code>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Port Configuration */}
-                <div className="glass rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Settings className="w-4 h-4 text-slate-400" />
-                    <p className="text-sm font-medium text-slate-200">Port Configuration</p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-xs text-slate-400">Preferred Port</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={preferredPort}
-                        onChange={(e) => setPreferredPort(e.target.value)}
-                        min="1024"
-                        max="65535"
-                        className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-sm"
-                      />
-                      <button
-                        onClick={handleSavePort}
-                        className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap"
-                      >
-                        Save
-                      </button>
-                    </div>
-                    {portError && (
-                      <p className="text-xs text-red-400">{portError}</p>
-                    )}
-                    {actualPort && (
-                      <p className="text-xs text-slate-500">
-                        Currently running on port <span className="text-indigo-300 font-medium">{actualPort}</span>
                       </p>
                     )}
                   </div>

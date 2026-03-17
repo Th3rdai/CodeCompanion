@@ -32,7 +32,6 @@ const { scanProjectForValidation, generateValidateCommand } = require('./lib/val
 const { scoreContent } = require('./lib/builder-score');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0'; // use 0.0.0.0 to allow remote access
 const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
 
@@ -123,6 +122,11 @@ initConfig(dataRoot);
 initHistory(dataRoot);
 initMemory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
+
+// ── Port configuration ───────────────────────────────
+// Priority: process.env.PORT > config.preferredPort > 8900
+const config = getConfig();
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (config.preferredPort || 8900);
 
 // ── Initialize MCP Client Manager ────────────────────
 const mcpClientManager = new McpClientManager({ log, debug });
@@ -256,6 +260,25 @@ app.post('/api/config', (req, res) => {
     config.ollamaUrl = ollamaUrl.replace(/\/+$/, '');
     log('INFO', `Ollama URL changed to: ${config.ollamaUrl}`);
   }
+
+  // Review timeout
+  if (req.body.reviewTimeoutSec !== undefined) {
+    const timeout = parseInt(req.body.reviewTimeoutSec, 10);
+    if (timeout >= 60 && timeout <= 600) {
+      config.reviewTimeoutSec = timeout;
+      log('INFO', `Review timeout set to: ${config.reviewTimeoutSec}s`);
+    }
+  }
+
+  // Preferred port (takes effect on next server restart)
+  if (req.body.preferredPort !== undefined) {
+    const port = parseInt(req.body.preferredPort, 10);
+    if (port >= 1024 && port <= 65535) {
+      config.preferredPort = port;
+      log('INFO', `Preferred port set to: ${config.preferredPort} (takes effect on restart)`);
+    }
+  }
+
   if (projectFolder !== undefined) {
     if (projectFolder) {
       log('INFO', `Config projectFolder received: "${projectFolder}"`);
@@ -2534,7 +2557,7 @@ const server = serverInstance.listen(PORT, HOST, () => {
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
     console.error(`\n  Port ${PORT} is already in use. Stop the process using it, or use a different port:\n`);
-    console.error(`    PORT=3001 node server.js\n`);
+    console.error(`    PORT=8903 node server.js\n`);
     console.error(`  To stop whatever is on port ${PORT}:  lsof -ti:${PORT} | xargs kill\n`);
   } else {
     console.error('Server error:', err);
