@@ -507,11 +507,15 @@ export default function App() {
     setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null);
     setSendBurst(true); setTimeout(() => setSendBurst(false), 100);
 
+    // Save user message immediately so it survives a reload
+    saveConversation(newMessages, mode);
+
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, mode, messages: newMessages.map(m => ({ role: m.role, content: m.content })) }) });
       const reader = res.body.getReader(); const decoder = new TextDecoder();
       let assistantContent = ''; let buffer = '';
+      let lastSaveTime = Date.now();
       while (true) {
         const { done, value } = await reader.read(); if (done) break;
         buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop();
@@ -520,10 +524,37 @@ export default function App() {
           try {
             const parsed = JSON.parse(payload);
             if (parsed.memoryContext) { setActiveMemories(parsed.memoryContext); }
-            if (parsed.token) { assistantContent += parsed.token; setMessages([...newMessages, { role: 'assistant', content: assistantContent }]); }
-            if (parsed.done) { setStats({ tokens: parsed.eval_count, duration: parsed.total_duration ? (parsed.total_duration / 1e9).toFixed(1) : null }); }
-            if (parsed.error) { assistantContent += `\n\nError: ${parsed.error}`; setMessages([...newMessages, { role: 'assistant', content: assistantContent }]); }
+            if (parsed.token) {
+              assistantContent += parsed.token;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+                  return updated;
+                }
+                return [...prev, { role: 'assistant', content: assistantContent }];
+              });
+            }
+            if (parsed.done) { const dur = Number(parsed.total_duration); setStats({ tokens: parsed.eval_count, duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null }); }
+            if (parsed.error) {
+              assistantContent += `\n\nError: ${parsed.error}`;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+                  return updated;
+                }
+                return [...prev, { role: 'assistant', content: assistantContent }];
+              });
+            }
           } catch {}
+        }
+        // Auto-save every 5 seconds during streaming
+        if (assistantContent && Date.now() - lastSaveTime > 5000) {
+          lastSaveTime = Date.now();
+          saveConversation([...newMessages, { role: 'assistant', content: assistantContent }], mode);
         }
       }
       const finalMessages = [...newMessages, { role: 'assistant', content: assistantContent }];
@@ -603,6 +634,35 @@ export default function App() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('Markdown downloaded');
+  }
+  function handleSaveChat() {
+    if (!messages.length) { showToast('No conversation to save'); return; }
+    // Build brief filename from first user message
+    const firstUser = messages.find(m => m.role === 'user');
+    const snippet = firstUser
+      ? firstUser.content.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 2).join('-').toLowerCase() || 'chat'
+      : 'chat';
+    const date = new Date().toISOString().slice(0, 10);
+    const modeLabel = MODES.find(m => m.id === mode)?.label || mode;
+
+    // Format entire conversation as markdown
+    const lines = [`# ${modeLabel} — ${date}\n`];
+    for (const msg of messages) {
+      if (msg.role === 'user') {
+        lines.push(`## You\n\n${msg.content}\n`);
+      } else if (msg.role === 'assistant') {
+        lines.push(`## Assistant\n\n${msg.content}\n`);
+      }
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${snippet}-${date}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Chat saved');
   }
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
@@ -1091,6 +1151,10 @@ export default function App() {
                     <button onClick={handleDownloadMarkdown} title="Download last AI response as Markdown file"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📝 Markdown
+                    </button>
+                    <button onClick={handleSaveChat} title="Save entire conversation as Markdown file"
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                      💾 Save Chat
                     </button>
                     <button onClick={handleClearInput} title="Clear input text and attached files"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
