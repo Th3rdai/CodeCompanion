@@ -1,7 +1,7 @@
 const { defineConfig } = require('@playwright/test');
 
-// When server runs with HTTPS (cert present), set BASE_URL=https://127.0.0.1:4173 so tests hit the right protocol
-const baseURL = process.env.BASE_URL || 'http://127.0.0.1:4173';
+// Server runs with HTTPS by default (self-signed cert). Use BASE_URL env var to override if needed.
+const baseURL = process.env.BASE_URL || 'https://127.0.0.1:4173';
 const useHTTPS = baseURL.startsWith('https://');
 
 module.exports = defineConfig({

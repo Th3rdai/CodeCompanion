@@ -130,8 +130,8 @@ export default function McpServerPanel() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">Endpoint URL</label>
               <div className="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2">
-                <code className="flex-1 text-xs text-indigo-300 font-mono">http://localhost:3000/mcp</code>
-                <CopyButton text="http://localhost:3000/mcp" />
+                <code className="flex-1 text-xs text-indigo-300 font-mono">https://localhost:8900/mcp</code>
+                <CopyButton text="https://localhost:8900/mcp" />
               </div>
             </div>
             <div>

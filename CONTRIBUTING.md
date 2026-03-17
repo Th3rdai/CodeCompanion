@@ -21,11 +21,26 @@ Thanks for your interest in contributing! Code Companion is an open-source proje
 - **Both:** `npm run dev` (Vite + Express together)
 - **Production-style run:** `./deploy.sh` or `npm run build && ./startup.sh`
 
+## Testing
+
+Before submitting a PR, run the full test suite:
+
+```bash
+npm test                  # All tests (unit + Playwright UI + E2E)
+npm run test:unit         # Unit tests only (node:test)
+npm run test:ui           # Playwright UI component tests
+npm run test:e2e          # Playwright E2E workflow tests
+```
+
+**Playwright Configuration:** The server runs on HTTPS by default (`https://localhost:4173`). Tests are configured to use HTTPS and ignore self-signed certificate errors. If you need to test with HTTP, set `BASE_URL=http://127.0.0.1:4173` environment variable.
+
+**Validation Command:** Use `/validate-project` slash command in Claude Code to run the comprehensive 7-phase validation suite (build, tests, API smoke tests, workflow tests).
+
 ## Pull Requests
 
 - Create a feature branch from `master`
 - Keep changes focused — one feature or fix per PR
-- Test your changes locally before submitting
+- Test your changes locally before submitting (run `npm test`)
 - Write a clear PR description explaining what and why
 
 ## Code Style
