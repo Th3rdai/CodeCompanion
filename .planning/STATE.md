@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-16T05:57:37.054Z"
-last_activity: 2026-03-15 — Auto-update UI, portable mode, premium installer branding, MIT license, pre-release v1.0.0-beta.1
+last_updated: "2026-03-17T02:45:00.000Z"
+last_activity: 2026-03-17 — Deploy script, remote access + HTTPS (cert/), installers (all platforms), PAT excluded from package
 progress:
   total_phases: 18
   completed_phases: 9
@@ -275,6 +275,8 @@ Recent decisions affecting current work:
 
 ### Completed This Session
 
+- [x] **Deploy & installers (2026-03-17):** `deploy.sh` for one-command install+run; `electron:build*` scripts use `--publish never`; NSIS uses `resources/icon.ico`; `.cc-config.json` and `CodeCompanion-Data` excluded from package (PAT never shipped); macOS/Windows/Linux builds produce DMG, NSIS EXE, AppImage + ZIPs.
+- [x] **Remote access & HTTPS:** Server binds `0.0.0.0`, optional HTTPS via `cert/server.crt` + `cert/server.key`, `cert/README.txt` in package, `startup.sh` health check uses HTTPS when certs present; HSTS only cleared when not using HTTPS.
 - [x] Fixed `isWithinBasePath` bug (imported but undefined in file-browser.js)
 - [x] Exported `getAppRoot()` from config.js
 - [x] Auto-register projects in build-registry after scaffold (Plan Risk #5)

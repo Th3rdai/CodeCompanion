@@ -60,3 +60,7 @@ tests/test/
 tests/test-results/
 tests/test-results-*/
 tests/test-results-*/
+# Certificate private keys and generated certs (do not commit)
+cert/*.key
+cert/*.crt
+!cert/README.txt

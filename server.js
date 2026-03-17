@@ -3,6 +3,7 @@ const helmet = require('helmet');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 const os = require('os');
 const { Readable } = require('stream');
 
@@ -31,8 +32,13 @@ const { scoreContent } = require('./lib/builder-score');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0'; // use 0.0.0.0 to allow remote access
 const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
 
+// HTTPS: use cert/server.crt + cert/server.key if present (self-signed or otherwise)
+const certPath = path.join(__dirname, 'cert', 'server.crt');
+const keyPath = path.join(__dirname, 'cert', 'server.key');
+const useHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
 
 function maskSensitiveValue(value) {
   if (!value) return '';
@@ -148,6 +154,14 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false, // Allow Spline 3D scenes
 }));
 app.use(cors({ origin: (_origin, cb) => cb(null, true), credentials: true })); // Allow same-host origins
+
+// When serving HTTP only, clear HSTS so browsers don't upgrade to HTTPS
+app.use((_req, res, next) => {
+  if (!useHttps && _req.get('x-forwarded-proto') !== 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=0');
+  }
+  next();
+});
 
 // Serve Vite production build (dist/) if available, fallback to legacy public/
 const distDir = path.join(__dirname, 'dist');
@@ -306,6 +320,26 @@ app.post('/api/chat', async (req, res) => {
     ? `\n\n---\nBRAND ASSETS: The user has configured these brand/logo/image files. Use them when creating, building, generating reports, or producing diagrams that need branding:\n${brandAssets.map(a => `- ${a.label || 'Asset'}: ${a.path}${a.description ? ' — ' + a.description : ''}`).join('\n')}`
     : '';
 
+  // Inject project folder context so the AI knows what files exist
+  let projectPrompt = '';
+  if (config.projectFolder && fs.existsSync(config.projectFolder)) {
+    try {
+      const { tree } = buildFileTree(config.projectFolder, 3);
+      function flattenTree(nodes, prefix = '') {
+        let lines = [];
+        for (const n of nodes || []) {
+          if (n.type === 'file') lines.push(prefix + n.path);
+          else lines.push(...flattenTree(n.children, prefix));
+        }
+        return lines;
+      }
+      const fileList = flattenTree(tree);
+      if (fileList.length > 0) {
+        projectPrompt = `\n\n---\nPROJECT FOLDER: ${config.projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join('\n')}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ''}`;
+      }
+    } catch {}
+  }
+
   // Append external tool descriptions if any MCP clients are connected
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
   const hasExternalTools = toolsPrompt.length > 0;
@@ -324,7 +358,7 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const enrichedSystemPrompt = systemPrompt + brandPrompt + memoryPrompt + toolsPrompt;
+  const enrichedSystemPrompt = systemPrompt + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt;
 
   if (hasExternalTools) {
     debug('External tools injected into system prompt', { toolsLength: toolsPrompt.length });
@@ -1978,19 +2012,60 @@ app.get('*', (req, res) => {
 
 // ── Start ────────────────────────────────────────────
 
-app.listen(PORT, () => {
+function getLocalNetworkUrl() {
+  try {
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name] || []) {
+        if (net.family === 'IPv4' && !net.internal) return `${useHttps ? 'https' : 'http'}://${net.address}:${PORT}`;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+const proto = useHttps ? 'https' : 'http';
+const http = require('http');
+
+let serverInstance;
+
+if (useHttps) {
+  serverInstance = https.createServer({ cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) }, app);
+
+  // Also start an HTTP server on PORT+1 that redirects to HTTPS on PORT.
+  // Users with old http://localhost:PORT bookmarks can update to the new URL.
+  const HTTP_REDIRECT_PORT = PORT + 1;
+  http.createServer((req, res) => {
+    const host = (req.headers.host || `localhost:${PORT}`).split(':')[0];
+    res.writeHead(301, { Location: `https://${host}:${PORT}${req.url}` });
+    res.end();
+  }).listen(HTTP_REDIRECT_PORT, HOST, () => {
+    log('INFO', `HTTP→HTTPS redirect on port ${HTTP_REDIRECT_PORT}`);
+  });
+} else {
+  serverInstance = http.createServer(app);
+}
+
+const server = serverInstance.listen(PORT, HOST, () => {
   const config = getConfig();
-  log('INFO', `Th3rdAI Code Companion started on http://localhost:${PORT}`);
+  const localUrl = `${proto}://localhost:${PORT}`;
+  const remoteUrl = HOST === '0.0.0.0' ? getLocalNetworkUrl() : null;
+  log('INFO', `Th3rdAI Code Companion started on ${localUrl}${useHttps ? ' (HTTPS)' : ''}`);
+  if (remoteUrl) log('INFO', `Remote access: ${remoteUrl}`);
   log('INFO', `Ollama endpoint: ${config.ollamaUrl}`);
   log('INFO', `History dir: ${path.join(dataRoot, 'history')}`);
   log('INFO', `Log dir: ${logDir}`);
   log('INFO', `MCP HTTP server: enabled at /mcp`);
   log('INFO', `Debug mode: ${DEBUG ? 'ON' : 'OFF (set DEBUG=1 to enable console debug output)'}`);
-  console.log(`\n  Th3rdAI Code Companion running at http://localhost:${PORT}`);
+  console.log(`\n  Th3rdAI Code Companion running at ${localUrl}${useHttps ? ' (HTTPS — accept the self-signed cert warning in your browser)' : ''}`);
+  if (remoteUrl) console.log(`  Remote access: ${remoteUrl}`);
   console.log(`  Ollama endpoint: ${config.ollamaUrl}`);
   console.log(`  MCP HTTP server: /mcp`);
   console.log(`  Logs: ${logDir}`);
-  console.log(`  Tip: run with DEBUG=1 for verbose console output\n`);
+  console.log(`  Tip: run with DEBUG=1 for verbose console output`);
+  if (!useHttps) console.log(`  Tip: add cert/server.crt + cert/server.key to enable HTTPS`);
+  if (useHttps)  console.log(`  SSL issues? Clear HSTS for localhost at chrome://net-internals/#hsts`);
+  console.log();
 
   // Notify Electron parent process that server is ready
   if (process.send) {
@@ -2009,6 +2084,18 @@ app.listen(PORT, () => {
       });
     }
   }
+});
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n  Port ${PORT} is already in use. Stop the process using it, or use a different port:\n`);
+    console.error(`    PORT=3001 node server.js\n`);
+    console.error(`  To stop whatever is on port ${PORT}:  lsof -ti:${PORT} | xargs kill\n`);
+  } else {
+    console.error('Server error:', err);
+  }
+  log('ERROR', `Server failed: ${err.message}`);
+  process.exit(1);
 });
 
 // Export app for potential programmatic use

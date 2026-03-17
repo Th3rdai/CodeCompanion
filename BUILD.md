@@ -7,11 +7,13 @@
 
 ## Quick Build
 
+Builds are **local only** (no GitHub publish) unless you pass `--publish` explicitly.
+
 ```bash
 # Install dependencies
 npm install
 
-# Build for current platform
+# Build for current platform (output in release/)
 npm run electron:build
 ```
 
@@ -21,12 +23,22 @@ npm run electron:build
 # macOS (DMG + ZIP)
 npm run electron:build:mac
 
-# Windows (NSIS installer + ZIP)
+# Windows (NSIS installer + ZIP; requires resources/icon.ico for NSIS)
 npm run electron:build:win
 
 # Linux (AppImage + ZIP)
 npm run electron:build:linux
 ```
+
+**Note:** User config (e.g. GitHub PAT in Settings) and `.cc-config.json` are excluded from the package so installers never contain your tokens.
+
+## What’s included in the package
+
+The built app (DMG, EXE, AppImage, and portable ZIPs) includes:
+
+- App binary, `dist/`, `server.js`, `mcp-server.js`, and runtime dependencies
+- **startup.sh**, **deploy.sh**, **rebuild.sh** (for running or reinstalling from the unpacked app)
+- **cert/README.txt** — instructions for enabling HTTPS with a self-signed certificate (add `server.crt` and `server.key` in the `cert/` folder, then restart)
 
 ## Output
 

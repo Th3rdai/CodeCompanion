@@ -46,13 +46,29 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ### Install & Run
 
+**Option A — One command (install + build + start):**
+```bash
+cd AIApp-CodeCompanion
+./deploy.sh
+```
+
+**Option B — Manual steps:**
 ```bash
 cd AIApp-CodeCompanion
 npm install
 ./startup.sh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser. **SSL errors on localhost?** Use [http://127.0.0.1:3000](http://127.0.0.1:3000) or clear HSTS for `localhost` (Chrome: `chrome://net-internals/#hsts`). **Optional HTTPS:** Add `cert/server.crt` and `cert/server.key` (see `cert/README.txt`) and restart; then use `https://localhost:3000` and accept the self-signed cert in the browser.
+
+**Desktop installers:** For a packaged app (no Node/npm required), use the [downloads page](https://th3rdai.com/downloads/) or build from source: `npm run electron:build` (see [BUILD.md](BUILD.md)). Produces DMG (macOS), EXE (Windows), and AppImage (Linux).
+
+**Remote access:** The server binds to all interfaces by default (`HOST=0.0.0.0`), so you can open the app from another device on your network using the host machine’s IP (e.g. `http://192.168.1.5:3000`). On startup the server logs a "Remote access:" URL. To listen only on localhost, run with `HOST=127.0.0.1 ./startup.sh`. Use **http** (not https)—the app does not serve TLS by default, so `https://` will cause SSL errors. If the browser still forces https or assets fail to load, clear HSTS for the host (Chrome: `chrome://net-internals/#hsts` → delete domain for the IP), then open the URL with `http://` explicitly. Ensure the host firewall allows inbound TCP on port 3000.
+
+**Remote access not working?**
+1. **From the other device** run: `curl -s -o /dev/null -w "%{http_code}" http://HOST_IP:3000/api/config` (replace `HOST_IP` with the Mac’s IP, e.g. `192.168.50.7`). If you get `200`, the server is reachable; if connection refused or timeout, the host is blocking it.
+2. **On the Mac (host):** macOS Firewall often blocks incoming connections. Open **System Settings → Network → Firewall → Options**, then either add **Node** to “Allow incoming connections” or turn firewall off temporarily to test. If Node isn’t listed, run once: `./scripts/allow-remote-access.sh` (or the `socketfilterfw --add` command in that script), then in Firewall Options set that app to “Allow incoming” and restart the app.
+3. Use **http://** (not https) and the exact URL from the server’s “Remote access:” line.
 
 ### Quick Rebuild
 

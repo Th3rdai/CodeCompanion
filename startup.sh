@@ -11,6 +11,16 @@ APP_LOG="$LOG_DIR/app.log"
 DEBUG_LOG="$LOG_DIR/debug.log"
 MAX_WAIT=10
 
+# Detect HTTPS: use certs if present, fall back to HTTP
+if [ -f "$APP_DIR/cert/server.crt" ] && [ -f "$APP_DIR/cert/server.key" ]; then
+  PROTO="https"
+  CURL_OPTS="-k"   # -k = allow self-signed cert
+else
+  PROTO="http"
+  CURL_OPTS=""
+fi
+BASE_URL="$PROTO://localhost:$PORT"
+
 echo ""
 echo "  🤖 $APP_NAME Startup"
 echo "  ─────────────────────────────────"
@@ -109,7 +119,7 @@ while [ $SECONDS_WAITED -lt $MAX_WAIT ]; do
   fi
 
   # Check if the port is responding
-  if curl -s --max-time 2 "http://localhost:$PORT/api/config" > /dev/null 2>&1; then
+  if curl -s $CURL_OPTS --max-time 2 "$BASE_URL/api/config" > /dev/null 2>&1; then
     SERVER_UP=true
     break
   fi
@@ -133,7 +143,7 @@ echo "  [6/6] Running health checks..."
 
 # Check Express server
 EXPRESS_OK=false
-CONFIG=$(curl -s --max-time 5 "http://localhost:$PORT/api/config" 2>/dev/null)
+CONFIG=$(curl -s $CURL_OPTS --max-time 5 "$BASE_URL/api/config" 2>/dev/null)
 if [ $? -eq 0 ] && [ -n "$CONFIG" ]; then
   EXPRESS_OK=true
   OLLAMA_URL=$(echo "$CONFIG" | grep -o '"ollamaUrl":"[^"]*"' | cut -d'"' -f4)
@@ -142,7 +152,7 @@ fi
 # Check Ollama connection
 OLLAMA_OK=false
 MODEL_COUNT=0
-MODELS_RESPONSE=$(curl -s --max-time 5 "http://localhost:$PORT/api/models" 2>/dev/null)
+MODELS_RESPONSE=$(curl -s $CURL_OPTS --max-time 5 "$BASE_URL/api/models" 2>/dev/null)
 if echo "$MODELS_RESPONSE" | grep -q '"connected":true'; then
   OLLAMA_OK=true
   MODEL_COUNT=$(echo "$MODELS_RESPONSE" | grep -o '"name"' | wc -l | tr -d ' ')
@@ -150,7 +160,7 @@ fi
 
 # Check MCP HTTP endpoint
 MCP_OK=false
-MCP_RESPONSE=$(curl -s --max-time 5 -X POST "http://localhost:$PORT/mcp" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"healthcheck","version":"1.0.0"}},"id":1}' 2>/dev/null)
+MCP_RESPONSE=$(curl -s $CURL_OPTS --max-time 5 -X POST "$BASE_URL/mcp" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"healthcheck","version":"1.0.0"}},"id":1}' 2>/dev/null)
 if echo "$MCP_RESPONSE" | grep -q '"result"'; then
   MCP_OK=true
 fi
@@ -163,7 +173,7 @@ echo "  $APP_NAME — Status"
 echo "  ═════════════════════════════════"
 echo ""
 echo "  Express Server:  $([ "$EXPRESS_OK" = true ] && echo '✅ Running' || echo '❌ Not responding')"
-echo "  URL:             http://localhost:$PORT"
+echo "  URL:             $BASE_URL"
 echo "  PID:             $SERVER_PID"
 echo "  Ollama URL:      ${OLLAMA_URL:-unknown}"
 echo "  Ollama Status:   $([ "$OLLAMA_OK" = true ] && echo "✅ Connected ($MODEL_COUNT models)" || echo '❌ Not connected')"
@@ -173,12 +183,12 @@ echo ""
 echo "  Logs:"
 echo "    App log:       $APP_LOG"
 echo "    Debug log:     $DEBUG_LOG"
-echo "    View in app:   http://localhost:$PORT/api/logs"
-echo "    View debug:    http://localhost:$PORT/api/logs?type=debug"
+echo "    View in app:   $BASE_URL/api/logs"
+echo "    View debug:    $BASE_URL/api/logs?type=debug"
 echo ""
 
 if [ "$EXPRESS_OK" = true ] && [ "$OLLAMA_OK" = true ]; then
-  echo "  🟢 All systems go — open http://localhost:$PORT"
+  echo "  🟢 All systems go — open $BASE_URL"
 elif [ "$EXPRESS_OK" = true ]; then
   echo "  🟡 Server is up but can't reach Ollama."
   echo "     Make sure Ollama is running, then check"
