@@ -57,6 +57,18 @@ Both scaffolders automatically copy IDE command files from `IDE_COMMANDS/` (app 
 ### Tutorial (Create & Build wizards)
 - **Tutorial** button toggles step-by-step guidance. Step 1: user fills project info (no prefill). Step 2+: contextual suggestions from **POST /api/tutorial-suggestions** (Ollama) using project name/description/role. **Focus or click** a field to get a suggestion; **double-click** for a new suggestion (step 1 cycles static alternatives; step 2+ re-calls API). Tab or right-click to accept; user can always type manually.
 
+### Settings Panel
+Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes:
+- Ollama Server URL with test connection
+- Project Folder with validation
+- Create template path (Commands + ICM-fw)
+- Brand Assets (label/path/description rows)
+- **Review Timeout** slider (60s–600s, step 30s, default 300s) — configurable backend timeout for AI code reviews stored as `reviewTimeoutSec` in `.cc-config.json`, passed through to `reviewCode()` in `lib/review.js`
+- 3D Visual Effects toggle
+- Color Theme picker (hue slider + 5 presets)
+- Welcome Tour restart
+- Electron-only: Data Management, Port Configuration, Software Updates
+
 ## Rules
 - Stream AI responses in real-time (Server-Sent Events)
 - Auto-detect available Ollama models on startup

@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
 last_updated: "2026-03-17T02:45:00.000Z"
-last_activity: 2026-03-17 — Tutorial (focus/click suggestions, double-click new suggestion); Create template path (Commands + ICM-fw copy); docs + GitHub commit
+last_activity: 2026-03-17 — Settings: configurable review timeout (60-600s slider), TokenCounter crash fix (duration.toFixed guard)
 progress:
   total_phases: 18
   completed_phases: 9
@@ -286,6 +286,7 @@ Recent decisions affecting current work:
 - [x] Multi-tool convention files: CLAUDE.md, .cursorrules, .windsurfrules, .opencode/instructions.md
 - [x] Committed and pushed to GitHub (afe87c2)
 - [x] Multi-select chat history: toggle select mode, checkboxes, select all, bulk export (MD/TXT), bulk archive/unarchive, bulk delete
+- [x] **Settings: Configurable review timeout (2026-03-17):** Added `reviewTimeoutSec` config (default 300s), slider in Settings General tab (60s–600s), wired through `server.js` → `review.js`. Fixed TokenCounter crash: `parsed.total_duration` now guarded with `Number()` + `Number.isFinite()` before `.toFixed()` in App.jsx
 
 ## Session Continuity
 

@@ -16,6 +16,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [testResult, setTestResult] = useState(null);
   const [folderResult, setFolderResult] = useState(null);
 
+  // Backend timeout state
+  const [reviewTimeoutSec, setReviewTimeoutSec] = useState(300);
+
   // Brand assets state
   const [brandAssets, setBrandAssets] = useState([]);
   const [brandLoaded, setBrandLoaded] = useState(false);
@@ -50,11 +53,12 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateError, setUpdateError] = useState(null);
 
-  // Load brand assets from config
+  // Load brand assets and timeout from config
   useEffect(() => {
     if (!brandLoaded) {
       fetch('/api/config').then(r => r.json()).then(data => {
         if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
+        if (data.reviewTimeoutSec != null) setReviewTimeoutSec(data.reviewTimeoutSec);
         setBrandLoaded(true);
       }).catch(() => setBrandLoaded(true));
     }
@@ -429,6 +433,35 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   + Add Brand Asset
                 </button>
               </div>
+            </div>
+
+            {/* Review Timeout */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Review Timeout <span className="text-slate-500 font-normal">({reviewTimeoutSec}s)</span>
+              </label>
+              <input
+                type="range"
+                min="60"
+                max="600"
+                step="30"
+                value={reviewTimeoutSec}
+                onChange={e => setReviewTimeoutSec(parseInt(e.target.value, 10))}
+                onMouseUp={() => {
+                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
+                }}
+                onTouchEnd={() => {
+                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
+                }}
+                className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                aria-label="Review timeout seconds"
+              />
+              <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                <span>60s</span>
+                <span>5 min</span>
+                <span>10 min</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">How long to wait for AI code reviews before timing out. Larger models need more time.</p>
             </div>
 
             {/* 3D Effects Toggle */}

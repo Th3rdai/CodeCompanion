@@ -603,7 +603,7 @@ app.post('/api/review', async (req, res) => {
   const config = getConfig();
 
   try {
-    const result = await reviewCode(config.ollamaUrl, model, code, { filename });
+    const result = await reviewCode(config.ollamaUrl, model, code, { filename, timeoutSec: config.reviewTimeoutSec });
 
     if (result.type === 'report-card') {
       // Structured output succeeded — return JSON
