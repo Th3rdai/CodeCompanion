@@ -227,13 +227,29 @@ app.get('/api/config', (req, res) => {
 // ── POST /api/config ─────────────────────────────────
 
 app.post('/api/config', (req, res) => {
-  const { ollamaUrl, projectFolder } = req.body;
+  const { ollamaUrl, projectFolder, icmTemplatePath } = req.body;
   const config = getConfig();
 
   // Brand assets
   if (req.body.brandAssets !== undefined) {
     config.brandAssets = Array.isArray(req.body.brandAssets) ? req.body.brandAssets : [];
     log('INFO', `Brand assets updated: ${config.brandAssets.length} item(s)`);
+  }
+
+  if (icmTemplatePath !== undefined) {
+    const val = typeof icmTemplatePath === 'string' ? icmTemplatePath.trim() : '';
+    if (val) {
+      const resolved = resolveFolder(val);
+      if (resolved && fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+        config.icmTemplatePath = resolved;
+        log('INFO', `icmTemplatePath set to: ${config.icmTemplatePath}`);
+      } else {
+        config.icmTemplatePath = '';
+        log('WARN', `icmTemplatePath ignored (not a directory or missing): ${val}`);
+      }
+    } else {
+      config.icmTemplatePath = '';
+    }
   }
 
   if (ollamaUrl) {

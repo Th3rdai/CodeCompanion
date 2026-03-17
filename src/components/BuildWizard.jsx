@@ -100,7 +100,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
   const slug = useMemo(() => slugify(name), [name]);
   const projectPathPreview = name ? `${outputRoot.replace(/\/?$/, '/')}${slug}` : '';
 
-  const handleTutorialFocus = useCallback((fieldKey, currentValue, setValue) => {
+  const handleTutorialSuggestFill = useCallback((fieldKey, currentValue, setValue) => {
     if (!tutorialActive) return;
     const suggestions = effectiveSuggestions || {};
     const suggested = suggestions[fieldKey];
@@ -272,7 +272,8 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                onFocus={() => handleTutorialFocus('name', name, setName)}
+                onFocus={() => handleTutorialSuggestFill('name', name, setName)}
+                onClick={() => handleTutorialSuggestFill('name', name, setName)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('name')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="My App"
@@ -298,7 +299,8 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 id="build-desc"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                onFocus={() => handleTutorialFocus('description', description, setDescription)}
+                onFocus={() => handleTutorialSuggestFill('description', description, setDescription)}
+                onClick={() => handleTutorialSuggestFill('description', description, setDescription)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('description')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="e.g. A small tool to automate X, an app that does Y"
@@ -330,7 +332,8 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 type="text"
                 value={audience}
                 onChange={e => setAudience(e.target.value)}
-                onFocus={() => handleTutorialFocus('audience', audience, setAudience)}
+                onFocus={() => handleTutorialSuggestFill('audience', audience, setAudience)}
+                onClick={() => handleTutorialSuggestFill('audience', audience, setAudience)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('audience')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="Who will use this?"
@@ -353,7 +356,8 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
               id="build-tone"
               value={tone}
               onChange={e => setTone(e.target.value)}
-              onFocus={() => handleTutorialFocus('tone', tone, setTone)}
+              onFocus={() => handleTutorialSuggestFill('tone', tone, setTone)}
+              onClick={() => handleTutorialSuggestFill('tone', tone, setTone)}
               onDoubleClick={() => handleTutorialClickForNewSuggestion('tone')}
               onContextMenu={acceptTutorialHint}
               className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
@@ -397,7 +401,8 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 type="text"
                 value={outputRoot}
                 onChange={e => setOutputRoot(e.target.value)}
-                onFocus={() => handleTutorialFocus('outputRoot', outputRoot, setOutputRoot)}
+                onFocus={() => handleTutorialSuggestFill('outputRoot', outputRoot, setOutputRoot)}
+                onClick={() => handleTutorialSuggestFill('outputRoot', outputRoot, setOutputRoot)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('outputRoot')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="~/AI_Dev/"

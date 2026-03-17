@@ -51,7 +51,7 @@ const STEP1_ALTERNATIVES = {
   ],
 };
 
-export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess, onToast, step: controlledStep, onStepChange, prefill, tutorialActive, tutorialSuggestions }) {
+export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess, onOpenInBuild, onToast, step: controlledStep, onStepChange, prefill, tutorialActive, tutorialSuggestions }) {
   const [internalStep, setInternalStep] = useState(1);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -123,7 +123,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
   const slug = useMemo(() => slugify(name), [name]);
   const projectPathPreview = name ? `${outputRoot.replace(/\/?$/, '/')}${slug}` : '';
 
-  const handleTutorialFocus = useCallback((fieldKey, currentValue, setValue) => {
+  const handleTutorialSuggestFill = useCallback((fieldKey, currentValue, setValue) => {
     if (!tutorialActive) return;
     const suggestions = effectiveSuggestions || {};
     const suggested = suggestions[fieldKey];
@@ -245,6 +245,23 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       <div className="glass rounded-xl p-6 max-w-2xl mx-auto space-y-4" role="status" aria-live="polite">
         <h2 className="text-lg font-bold text-green-400">Your project is ready!</h2>
         <p className="text-sm text-slate-300">{result.projectPath}</p>
+
+        {/* Action buttons - shown prominently before file list */}
+        <div className="flex flex-wrap gap-3 py-2 border-y border-slate-700/30">
+          <button
+            onClick={() => onOpenInBuild?.(result.projectPath, result)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium text-sm transition-colors cursor-pointer shadow-lg shadow-indigo-500/20"
+          >
+            🏗️ Open in Build
+          </button>
+          <button
+            onClick={() => { setResult(null); setStep(1); setForm({ name: '', description: '', outputRoot: defaultOutputRoot, customFields: [] }); }}
+            className="px-5 py-2.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:bg-slate-700/40 rounded-xl transition-colors cursor-pointer"
+          >
+            Create Another
+          </button>
+        </div>
+
         <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
           {(result.files || []).slice(0, 20).map((f, i) => (
             <li key={i}>{f}</li>
@@ -297,7 +314,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                onFocus={() => handleTutorialFocus('name', name, setName)}
+                onFocus={() => handleTutorialSuggestFill('name', name, setName)}
+                onClick={() => handleTutorialSuggestFill('name', name, setName)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('name')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="My Blog Assistant"
@@ -323,7 +341,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 id="create-desc"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                onFocus={() => handleTutorialFocus('description', description, setDescription)}
+                onFocus={() => handleTutorialSuggestFill('description', description, setDescription)}
+                onClick={() => handleTutorialSuggestFill('description', description, setDescription)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('description')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="What is this project for?"
@@ -349,7 +368,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={role}
                 onChange={e => setRole(e.target.value)}
-                onFocus={() => handleTutorialFocus('role', role, setRole)}
+                onFocus={() => handleTutorialSuggestFill('role', role, setRole)}
+                onClick={() => handleTutorialSuggestFill('role', role, setRole)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('role')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="e.g. content writing assistant, research analyst"
@@ -381,7 +401,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={audience}
                 onChange={e => setAudience(e.target.value)}
-                onFocus={() => handleTutorialFocus('audience', audience, setAudience)}
+                onFocus={() => handleTutorialSuggestFill('audience', audience, setAudience)}
+                onClick={() => handleTutorialSuggestFill('audience', audience, setAudience)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('audience')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="Who will use the output?"
@@ -404,7 +425,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
               id="create-tone"
               value={tone}
               onChange={e => setTone(e.target.value)}
-              onFocus={() => handleTutorialFocus('tone', tone, setTone)}
+              onFocus={() => handleTutorialSuggestFill('tone', tone, setTone)}
+              onClick={() => handleTutorialSuggestFill('tone', tone, setTone)}
               onDoubleClick={() => handleTutorialClickForNewSuggestion('tone')}
               onContextMenu={acceptTutorialHint}
               className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
@@ -513,7 +535,8 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={outputRoot}
                 onChange={e => setOutputRoot(e.target.value)}
-                onFocus={() => handleTutorialFocus('outputRoot', outputRoot, setOutputRoot)}
+                onFocus={() => handleTutorialSuggestFill('outputRoot', outputRoot, setOutputRoot)}
+                onClick={() => handleTutorialSuggestFill('outputRoot', outputRoot, setOutputRoot)}
                 onDoubleClick={() => handleTutorialClickForNewSuggestion('outputRoot')}
                 onContextMenu={acceptTutorialHint}
                 placeholder="~/AI_Dev/"

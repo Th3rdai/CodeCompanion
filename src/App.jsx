@@ -109,6 +109,7 @@ export default function App() {
   const [connected, setConnected] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [projectFolder, setProjectFolder] = useState('');
+  const [icmTemplatePath, setIcmTemplatePath] = useState('');
   const [mode, _setMode] = useState('chat');
 
   // Wrap setMode to persist last active mode in Electron
@@ -232,6 +233,7 @@ export default function App() {
       const data = await res.json();
       setOllamaUrl(data.ollamaUrl || '');
       setProjectFolder(data.projectFolder || '');
+      setIcmTemplatePath(data.icmTemplatePath || '');
     } catch {}
   }
 
@@ -269,12 +271,13 @@ export default function App() {
     try { const res = await fetch('/api/history'); setHistory(await res.json()); } catch {}
   }
 
-  async function handleSaveSettings(newUrl, newFolder) {
+  async function handleSaveSettings(newUrl, newFolder, newIcmTemplatePath) {
     try {
       await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder }) });
+        body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder, icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath }) });
       setOllamaUrl(newUrl);
       setProjectFolder(newFolder);
+      if (newIcmTemplatePath !== undefined) setIcmTemplatePath(newIcmTemplatePath);
       await fetchModels();
       if (newFolder) setShowFileBrowser(true);
     } catch {}
@@ -648,6 +651,30 @@ export default function App() {
     } catch {}
   }
 
+  async function handleCreateOpenInBuild(projectPath, data) {
+    // Register the created project in the Build registry and switch to Build mode
+    const name = data?.name || projectPath.split('/').pop();
+    try {
+      await fetch('/api/build/projects/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, projectPath }),
+      });
+    } catch {}
+    await fetchBuildProjects();
+    // Find and select the newly registered project
+    try {
+      const res = await fetch('/api/build/projects');
+      const projects = await res.json();
+      const newest = projects.find(p => p.path === projectPath);
+      if (newest) setActiveBuildProject(newest.id);
+      setBuildProjects(projects);
+    } catch {}
+    setShowBuildWizard(false);
+    setMode('build');
+    showToast(`"${name}" opened in Build mode`);
+  }
+
   const currentMode = MODES.find(m => m.id === mode);
 
   // Splash screen — shown once per browser session
@@ -941,6 +968,7 @@ export default function App() {
                   <CreateWizard
                     defaultOutputRoot={projectFolder || '~/AI_Dev/'}
                     onSuccess={handleCreateSuccess}
+                    onOpenInBuild={handleCreateOpenInBuild}
                     onToast={showToast}
                     step={showTutorial ? tutorialStep : undefined}
                     onStepChange={showTutorial ? setTutorialStep : undefined}
@@ -1129,7 +1157,7 @@ export default function App() {
         <PrivacyBanner />
       </main>
 
-      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} onOpenMemoryPanel={() => { setShowSettings(false); setShowMemoryPanel(true); }} />}
+      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} icmTemplatePath={icmTemplatePath} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} onOpenMemoryPanel={() => { setShowSettings(false); setShowMemoryPanel(true); }} />}
       {showMemoryPanel && <MemoryPanel onClose={() => setShowMemoryPanel(false)} />}
       {renaming && <RenameModal currentName={renaming.title} onSave={(name) => renameConversation(renaming.id, name)} onClose={() => setRenaming(null)} />}
       {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}

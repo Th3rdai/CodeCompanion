@@ -6,10 +6,12 @@ import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
 import { Download, Upload, Settings } from 'lucide-react';
 
-export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClose, onOpenMemoryPanel }) {
+export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePath, onSave, onClose, onOpenMemoryPanel }) {
   const [activeTab, setActiveTab] = useState('general');
   const [url, setUrl] = useState(ollamaUrl);
   const [folder, setFolder] = useState(projectFolder || '');
+  const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || '');
+  useEffect(() => setIcmTemplate(icmTemplatePath || ''), [icmTemplatePath]);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [folderResult, setFolderResult] = useState(null);
@@ -370,6 +372,15 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
                   {folderResult.ok ? `Found ${folderResult.count} items in folder.` : `Error: ${folderResult.error}`}
                 </div>
               )}
+            </div>
+
+            {/* Create template (Commands + ICM-fw) */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Create template path</label>
+              <input type="text" value={icmTemplate} onChange={e => setIcmTemplate(e.target.value)}
+                placeholder="e.g. /Users/you/AI_Dev/_AI-IDEs (contains Commands and ICM-fw)"
+                className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
+              <p className="text-xs text-slate-400 mt-1.5">Folder that contains <code className="bg-slate-700/50 px-1 rounded">Commands</code> and <code className="bg-slate-700/50 px-1 rounded">ICM-fw</code>. New Create projects will copy these into the project.</p>
             </div>
 
             {/* Brand Assets */}
@@ -881,7 +892,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
         {/* Buttons always visible */}
         <div className="flex gap-2 justify-end mt-6">
           <button onClick={onClose} className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors">Cancel</button>
-          <button onClick={async () => { await onSave(url, folder); onClose(); }}
+          <button onClick={async () => { await onSave(url, folder, icmTemplate); onClose(); }}
             className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium">
             Save &amp; Close
           </button>

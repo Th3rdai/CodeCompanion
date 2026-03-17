@@ -20,9 +20,9 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **Skill Builder** — create, score, and export SKILL.md files for Claude Code with grades for completeness, format, instructions, and reusability
 - **Agent Designer** — design, score, and download AI agent definitions with grades for purpose, tool design, workflow logic, and safety guardrails
 - **Friendly-teacher tone** — analogies, zero jargon, patience across all modes
-- **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support
+- **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support. Set **Create template path** in Settings to copy your **Commands** and **ICM-fw** folders into each new project (e.g. `.cursor/commands` and framework files at project root).
 - **Build mode** — GSD+ICM project scaffolding and dashboard: start a new project with planning and stages, then manage phases and progress from the Build panel
-- **Tutorial for Build & Create** — Step-by-step walkthrough for both wizards: click **Tutorial** to see explanations for each step and use **Fill with example** to prefill the form with sample data
+- **Tutorial for Build & Create** — Step-by-step walkthrough: click **Tutorial** for explanations; focus or click an empty field to get a suggestion (step 2+ uses AI-generated suggestions from your project info). Double-click a field to get a different suggestion; right-click to accept. **Fill with example** prefills the current step.
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
@@ -122,7 +122,7 @@ npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-
 
 ### Tutorial (Build & Create)
 
-In **Create** or **Build** mode, click **Tutorial** above the wizard to open the step-by-step guide. For each step you get a short explanation and a **Fill with example** button that prefills the current step's fields with sample data (e.g. project name, description, audience, tone, output path, or stages). Use **Previous** / **Next** in the tutorial to move through steps; the wizard step stays in sync so you can edit the form and then continue the tutorial.
+In **Create** or **Build** mode, click **Tutorial** above the wizard to open the step-by-step guide. For each step you get a short explanation and a **Fill with example** button that prefills the current step. With the tutorial on, **focus or click** an empty field to get a suggestion (Tab or right-click to accept). **Double-click** a field to get a different suggestion (step 1 cycles static examples; step 2+ requests new AI suggestions from your project info). Use **Previous** / **Next** in the tutorial to move through steps; the wizard stays in sync so you can edit and continue.
 
 ### File Browser and "Load into Form"
 
@@ -150,7 +150,7 @@ In **Create** or **Build** mode, click **Tutorial** above the wizard to open the
 ### Themes and settings
 
 - **Settings → General:** Pick a color theme (Indigo Night, Emerald Matrix, Sunset Blaze, Cherry Blossom, Arctic Blue). Your choice is saved.
-- **Settings** also covers Ollama URL, project folder, license (if applicable), MCP clients, and data export/import.
+- **Settings → General** also includes **Create template path**: a folder that contains `Commands` and `ICM-fw` subfolders (e.g. `/Users/you/AI_Dev/_AI-IDEs`). When set, new Create projects copy `Commands` into `.cursor/commands` and `ICM-fw` contents into the project root. Settings also covers Ollama URL, project folder, license (if applicable), MCP clients, and data export/import.
 
 ### Desktop installers
 
@@ -302,7 +302,7 @@ Settings are stored in `.cc-config.json`:
 ```json
 {
   "ollamaUrl": "http://localhost:11434",
-  "icmTemplatePath": "/Users/you/AI_Dev/ICM_FW/ICM-Framework-Template",
+  "icmTemplatePath": "/Users/you/AI_Dev/_AI-IDEs",
   "createModeAllowedRoots": ["/Users/you/AI_Dev"],
   "projectFolder": "/path/to/your/project",
   "mcpClients": [
@@ -317,6 +317,8 @@ Settings are stored in `.cc-config.json`:
   ]
 }
 ```
+
+- **icmTemplatePath**: Optional. Folder that contains `Commands` and `ICM-fw` subfolders (e.g. your IDE templates). When set, **Create** mode copies `Commands` → `.cursor/commands` and `ICM-fw` contents into the project root for each new project. Set in **Settings → General** as "Create template path".
 
 ## License
 

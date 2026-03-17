@@ -16,7 +16,7 @@ You are a full-stack developer building **Code Companion**, a web application th
 |------|---------|
 | server.js | Express app, API routes, MCP HTTP endpoint |
 | mcp-server.js | MCP stdio entry point |
-| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, mcp-client-manager, mcp-api-routes, tool-call-handler) |
+| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, tool-call-handler) |
 | mcp/ | MCP tool registrations and Zod schemas |
 | src/App.jsx | Main React app with 14 modes |
 | src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar with multi-select, MermaidBlock, etc.) |
@@ -41,6 +41,12 @@ Three builder modes share a common BaseBuilderPanel architecture with config-dri
 - **Prompting**: TÂCHES meta-prompting methodology — evaluates clarity (Golden Rule), specificity, structure (XML tags, success criteria), effectiveness
 - **Skillz**: Agent Skills Specification (agentskills.io) — evaluates completeness, format compliance (name format, frontmatter, progressive disclosure), instruction quality (WHY explanations, workflow phases), reusability
 - **Agentic**: CrewAI + LangGraph hybrid — evaluates purpose clarity (role/goal/backstory/scope), tool design (schemas, safety annotations), workflow logic (state machine, self-correction loops, termination), safety guardrails (blast radius, confirmation gates, human escalation)
+
+### Create mode and template copy
+- **Create** wizard: 5 steps; optional **Create template path** in Settings (stored as `icmTemplatePath` in config). When set, after scaffolding, `lib/icm-scaffolder.js` copies `<icmTemplatePath>/Commands` → new project `.cursor/commands` and `<icmTemplatePath>/ICM-fw` contents into project root. If path is missing or invalid, scaffold still succeeds without template copy.
+
+### Tutorial (Create & Build wizards)
+- **Tutorial** button toggles step-by-step guidance. Step 1: user fills project info (no prefill). Step 2+: contextual suggestions from **POST /api/tutorial-suggestions** (Ollama) using project name/description/role. **Focus or click** a field to get a suggestion; **double-click** for a new suggestion (step 1 cycles static alternatives; step 2+ re-calls API). Tab or right-click to accept; user can always type manually.
 
 ## Rules
 - Stream AI responses in real-time (Server-Sent Events)

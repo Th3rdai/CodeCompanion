@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
 last_updated: "2026-03-17T02:45:00.000Z"
-last_activity: 2026-03-17 — Deploy script, remote access + HTTPS (cert/), installers (all platforms), PAT excluded from package
+last_activity: 2026-03-17 — Tutorial (focus/click suggestions, double-click new suggestion); Create template path (Commands + ICM-fw copy); docs + GitHub commit
 progress:
   total_phases: 18
   completed_phases: 9
