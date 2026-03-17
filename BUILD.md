@@ -15,6 +15,9 @@ npm install
 
 # Build for current platform (output in release/)
 npm run electron:build
+
+# Build all platforms (macOS + Windows + Linux) in one go
+./scripts/build-installers.sh
 ```
 
 ## Platform-Specific Builds
