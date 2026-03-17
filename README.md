@@ -14,13 +14,15 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ## Features
 
-- **Eleven specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Review, Create, Prompting, Skillz, Agentic
+- **Fourteen specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Review, Create, Prompting, Skillz, Agentic, Build
 - **Code Review with Report Card** — color-coded letter grades (A-F) for bugs, security, readability, and completeness with conversational deep-dives
 - **Prompt Builder** — craft, score, revise, and download AI prompts with quality grades for clarity, specificity, structure, and effectiveness
 - **Skill Builder** — create, score, and export SKILL.md files for Claude Code with grades for completeness, format, instructions, and reusability
 - **Agent Designer** — design, score, and download AI agent definitions with grades for purpose, tool design, workflow logic, and safety guardrails
 - **Friendly-teacher tone** — analogies, zero jargon, patience across all modes
 - **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support
+- **Build mode** — GSD+ICM project scaffolding and dashboard: start a new project with planning and stages, then manage phases and progress from the Build panel
+- **Tutorial for Build & Create** — Step-by-step walkthrough for both wizards: click **Tutorial** to see explanations for each step and use **Fill with example** to prefill the form with sample data
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
@@ -56,8 +58,10 @@ cd AIApp-CodeCompanion
 ```bash
 cd AIApp-CodeCompanion
 npm install
+npm run build
 ./startup.sh
 ```
+(For development with hot reload, use `npm run dev` instead of `npm run build` + `./startup.sh`.)
 
 Open [http://localhost:3000](http://localhost:3000) in your browser. **SSL errors on localhost?** Use [http://127.0.0.1:3000](http://127.0.0.1:3000) or clear HSTS for `localhost` (Chrome: `chrome://net-internals/#hsts`). **Optional HTTPS:** Add `cert/server.crt` and `cert/server.key` (see `cert/README.txt`) and restart; then use `https://localhost:3000` and accept the self-signed cert in the browser.
 
@@ -89,10 +93,68 @@ npm run preview      # Build + serve
 ### Automated Tests
 
 ```bash
-npm run test:unit    # Node unit tests (scaffolder and backend logic)
-npm run test:e2e     # Playwright browser + API end-to-end tests
-npm test             # Run unit + e2e suites
+npm test             # All Playwright tests
+npm run test:e2e      # Playwright E2E tests (browser + API)
+npm run test:ui       # Playwright UI tests
+npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-limit, etc.)
 ```
+
+## User Guide
+
+### Modes at a glance
+
+| Mode | What it does |
+|------|----------------|
+| **Chat** | General conversation about code, building with AI, or anything else. |
+| **Explain This** | Paste code and get a step-by-step walkthrough in plain English. |
+| **Safety Check** | Spot potential bugs and security issues before they cause trouble. |
+| **Clean Up** | Get refactoring suggestions and copy-pasteable prompts to improve code. |
+| **Code → Plain English** | Turn code or technical text into language anyone can understand. |
+| **Idea → Code Spec** | Describe what you want built and get clear instructions for your AI coding tool. |
+| **Diagram** | Describe a system, process, or relationship and get a Mermaid diagram (flowchart, sequence, ER, etc.). Export as Source, SVG, or PNG. |
+| **Security** | OWASP-style static code analysis. Paste or upload code (or point at a file/folder), get a structured report with severity bands and remediation. Export as Copy, .md, .html, or **PDF** (opens print dialog — choose “Save as PDF”). |
+| **Review** | Full code report card with letter grades (A–F) for bugs, security, readability, and completeness. Export as Markdown or JSON. |
+| **Prompting** | Craft and score AI prompts (TÂCHES methodology). Load from file, revise with AI, download. |
+| **Skillz** | Build and score SKILL.md files for Claude Code (Agent Skills Spec). Load, revise, export. |
+| **Agentic** | Design and score AI agent definitions (CrewAI/LangGraph style). Load, revise, export. |
+| **Create** | 5-step wizard to scaffold a new project with ICM/MAKER framework support. Voice dictation on fields. |
+| **Build** | Start a GSD+ICM project: scaffold planning and stages, then manage it from the Build dashboard. |
+
+### Tutorial (Build & Create)
+
+In **Create** or **Build** mode, click **Tutorial** above the wizard to open the step-by-step guide. For each step you get a short explanation and a **Fill with example** button that prefills the current step's fields with sample data (e.g. project name, description, audience, tone, output path, or stages). Use **Previous** / **Next** in the tutorial to move through steps; the wizard step stays in sync so you can edit the form and then continue the tutorial.
+
+### File Browser and "Load into Form"
+
+- Open **Files** in the toolbar to browse your project. You can **Load into Form** in Prompting, Skillz, or Agentic to pull a file’s content into the current builder. In Review or Security, use **Load for Review** to attach code for review or scan.
+- **Share with AI** copies your project structure (tree) so you can paste it into chats or other tools.
+
+### Conversation history
+
+- Conversations are saved automatically. Use the sidebar to search, open, or delete them.
+- **Multi-select:** Turn on select mode (checkbox), then select multiple conversations to **Export** (Markdown or text), **Archive**, or **Delete** in bulk.
+
+### Security report export (PDF)
+
+- In **Security** mode, after a scan you’ll see Copy, .md, .html, and **PDF**. **PDF** opens the report in a new tab and triggers the browser’s print dialog — choose “Save as PDF” (or your system’s equivalent) to download a real PDF. If the popup is blocked, the app falls back to downloading the report as HTML and reminds you to open it and use Print → Save as PDF.
+
+### Diagram export
+
+- In **Diagram** mode (or any mode where the AI returns a Mermaid diagram), each diagram has export buttons: **Source** (raw Mermaid), **SVG**, and **PNG**.
+
+### Optional HTTPS and remote access
+
+- **HTTPS:** Put `server.crt` and `server.key` in the `cert/` folder (see `cert/README.txt` for a self-signed example). Restart the app and use `https://localhost:3000` (accept the self-signed cert once).
+- **Remote access:** The server binds to all interfaces by default. Use the “Remote access:” URL from the startup log (e.g. `http://192.168.1.5:3000`). Use **http** unless you’ve enabled HTTPS. If the browser still forces https, clear HSTS for that host.
+
+### Themes and settings
+
+- **Settings → General:** Pick a color theme (Indigo Night, Emerald Matrix, Sunset Blaze, Cherry Blossom, Arctic Blue). Your choice is saved.
+- **Settings** also covers Ollama URL, project folder, license (if applicable), MCP clients, and data export/import.
+
+### Desktop installers
+
+- Installers (DMG on macOS, EXE on Windows, AppImage on Linux) include the app, **startup.sh**, **deploy.sh**, and **rebuild.sh**. Your settings and history live in a data folder (see the data readme in the app). GitHub PAT and other secrets in Settings are never packaged.
 
 ## MCP Server
 
@@ -173,27 +235,32 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 ├── startup.sh             # Launch script with health checks
 ├── rebuild.sh             # Quick rebuild + restart script
 ├── lib/
-│   ├── config.js          # Config getter/setter (.cc-config.json)
-│   ├── logger.js          # File + stderr logging
-│   ├── ollama-client.js   # Ollama API client (stream + complete)
-│   ├── prompts.js         # System prompts for all 11 modes
-│   ├── review.js          # Review orchestration (structured output + fallback)
-│   ├── review-schema.js   # Report card JSON schema
-│   ├── builder-score.js   # Builder mode scoring orchestration
-│   ├── builder-schemas.js # Zod schemas for prompt/skill/agent scoring
-│   ├── icm-scaffolder.js  # Create mode workspace scaffolding engine
-│   ├── maker-skill.js     # MAKER framework integration
-│   ├── file-browser.js    # Project file tree + reader
-│   ├── history.js         # Conversation persistence
-│   ├── github.js          # GitHub repo cloning + management
-│   ├── mcp-client-manager.js  # External MCP server connections
-│   ├── mcp-api-routes.js      # MCP management REST API
-│   └── tool-call-handler.js   # Tool-call parsing + execution loop
+│   ├── config.js             # Config getter/setter (.cc-config.json)
+│   ├── logger.js             # File + stderr logging
+│   ├── ollama-client.js      # Ollama API client (stream + complete)
+│   ├── prompts.js            # System prompts for all modes
+│   ├── review.js             # Review orchestration (structured output + fallback)
+│   ├── review-schema.js      # Report card JSON schema
+│   ├── builder-score.js      # Builder mode scoring orchestration
+│   ├── builder-schemas.js    # Zod schemas for prompt/skill/agent scoring
+│   ├── icm-scaffolder.js     # Create mode workspace scaffolding engine
+│   ├── build-scaffolder.js   # Build mode GSD+ICM project scaffolding
+│   ├── build-registry.js     # Build dashboard project registry
+│   ├── gsd-bridge.js         # GSD CLI bridge for build mode
+│   ├── maker-skill.js        # MAKER framework integration
+│   ├── pentest.js            # Security (OWASP) assessment orchestration
+│   ├── pentest-schema.js     # Pentest report Zod schema
+│   ├── file-browser.js       # Project file tree + reader
+│   ├── history.js            # Conversation persistence
+│   ├── github.js             # GitHub repo cloning + management
+│   ├── mcp-client-manager.js # External MCP server connections
+│   ├── mcp-api-routes.js     # MCP management REST API
+│   └── tool-call-handler.js  # Tool-call parsing + execution loop
 ├── mcp/
 │   ├── tools.js           # 11 MCP tool registrations
 │   └── schemas.js         # Zod input schemas
 ├── src/                   # React frontend (Vite)
-│   ├── App.jsx            # Main app with 11 modes
+│   ├── App.jsx            # Main app with 14 modes
 │   └── components/
 │       ├── builders/
 │       │   ├── BaseBuilderPanel.jsx  # Shared builder lifecycle component
@@ -203,6 +270,8 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │       │   └── AgenticPanel.jsx      # Agent designer config
 │       ├── ReviewPanel.jsx       # Code review input (paste/upload/browse tabs)
 │       ├── ReportCard.jsx        # Color-coded grade display + export
+│       ├── SecurityPanel.jsx     # Security (OWASP) scan input and fallback report
+│       ├── SecurityReport.jsx    # Structured security report with export (MD, HTML, PDF)
 │       ├── LoadingAnimation.jsx  # Animated review loading state
 │       ├── CreateWizard.jsx      # 5-step project creation wizard
 │       ├── FileBrowser.jsx       # File tree + IDE launchers
@@ -218,8 +287,9 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │       ├── Sidebar.jsx           # Conversation history sidebar
 │       ├── DictateButton.jsx     # Voice input button
 │       └── 3d/                   # Visual effects (SplashScreen, etc.)
-├── test/
-│   ├── unit/              # Node unit tests
+├── tests/
+│   ├── unit/              # Node unit tests (node:test)
+│   ├── ui/                # Playwright UI tests
 │   └── e2e/               # Playwright end-to-end tests
 ├── playwright.config.js   # Playwright test runner configuration
 └── dist/                  # Production build output

@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import DictateButton from './DictateButton';
+import { CREATE_TUTORIAL_STEPS } from '../data/tutorialSteps';
 
 const STEPS = [
   { id: 1, title: 'Project Info', fields: ['name', 'description', 'role'] },
@@ -30,8 +31,28 @@ function slugify(name) {
   return s || 'project';
 }
 
-export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess, onToast }) {
-  const [step, setStep] = useState(1);
+const TUTORIAL_HINT = 'Press Tab to keep and move on, or right-click in the field to accept this suggestion.';
+const TUTORIAL_CLICK_HINT = 'Double-click in the field to get a different suggestion.';
+
+// Alternatives for step 1 (cycle on left-click when tutorial is on)
+const STEP1_ALTERNATIVES = {
+  name: ['My Blog Assistant', 'My Research Helper', 'My Content Studio', 'My Data Explorer'],
+  description: [
+    'A project to draft and refine blog posts with an AI writing assistant.',
+    'A project for research and analysis with an AI that helps find and summarize sources.',
+    'A project for creating and editing content with a friendly AI writing partner.',
+    'A project to explore and visualize data with AI-assisted analysis.',
+  ],
+  role: [
+    'Content writing assistant that helps draft and edit posts in a friendly, clear tone.',
+    'Research analyst that finds sources, summarizes key points, and suggests directions.',
+    'Writing partner that keeps tone consistent and suggests improvements.',
+    'Data assistant that helps interpret and explain findings clearly.',
+  ],
+};
+
+export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess, onToast, step: controlledStep, onStepChange, prefill, tutorialActive, tutorialSuggestions }) {
+  const [internalStep, setInternalStep] = useState(1);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [role, setRole] = useState('');
@@ -46,9 +67,116 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
   const [makerEnabled, setMakerEnabled] = useState(false);
   const [overwrite, setOverwrite] = useState(false);
   const [result, setResult] = useState(null);
+  const [hintField, setHintField] = useState(null);
+  const [contextualSuggestions, setContextualSuggestions] = useState(null);
+  const [contextualSuggestionsLoading, setContextualSuggestionsLoading] = useState(false);
+  const [loadingSuggestionFor, setLoadingSuggestionFor] = useState(null);
+  const [step1CycleIndex, setStep1CycleIndex] = useState({ name: 0, description: 0, role: 0 });
+
+  const step = controlledStep !== undefined ? controlledStep : internalStep;
+  const setStep = (n) => {
+    setInternalStep(n);
+    onStepChange?.(n);
+  };
+
+  useEffect(() => setHintField(null), [step]);
+  // Clear contextual suggestions when returning to step 1 so we refetch when they advance again
+  useEffect(() => {
+    if (step === 1) setContextualSuggestions(null);
+  }, [step]);
+  // Fetch contextual suggestions when entering step 2+ with project info filled
+  useEffect(() => {
+    if (step < 2 || !tutorialActive || contextualSuggestions || contextualSuggestionsLoading) return;
+    const hasProjectInfo = name.trim() || description.trim();
+    if (!hasProjectInfo) return;
+    setContextualSuggestionsLoading(true);
+    fetch('/api/tutorial-suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name.trim(), description: description.trim(), role: role.trim() || undefined, mode: 'create' })
+    })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText)))
+      .then(data => setContextualSuggestions(data))
+      .catch(() => setContextualSuggestions(null))
+      .finally(() => setContextualSuggestionsLoading(false));
+  }, [step, tutorialActive, name, description, role]);
+
+  // Derive suggestions from current wizard step so we're not dependent on parent's tutorialStep
+  const staticStepSuggestions = CREATE_TUTORIAL_STEPS[step - 1]?.prefill ?? {};
+  const effectiveSuggestions = (step >= 2 && contextualSuggestions)
+    ? { ...staticStepSuggestions, ...contextualSuggestions }
+    : staticStepSuggestions;
+
+  useEffect(() => {
+    if (!prefill?.data) return;
+    const d = prefill.data;
+    if (d.name !== undefined) setName(d.name);
+    if (d.description !== undefined) setDescription(d.description);
+    if (d.role !== undefined) setRole(d.role);
+    if (d.audience !== undefined) setAudience(d.audience);
+    if (d.tone !== undefined) { setTone(d.tone); setToneCustom(''); }
+    if (d.toneCustom !== undefined) setToneCustom(d.toneCustom);
+    if (d.stages !== undefined && Array.isArray(d.stages)) setStages(d.stages.map(s => ({ name: s.name || '', purpose: s.purpose || '' })));
+    if (d.outputRoot !== undefined) setOutputRoot(d.outputRoot);
+  }, [prefill]);
 
   const slug = useMemo(() => slugify(name), [name]);
   const projectPathPreview = name ? `${outputRoot.replace(/\/?$/, '/')}${slug}` : '';
+
+  const handleTutorialFocus = useCallback((fieldKey, currentValue, setValue) => {
+    if (!tutorialActive) return;
+    const suggestions = effectiveSuggestions || {};
+    const suggested = suggestions[fieldKey];
+    if (suggested == null || suggested === '') return;
+    if (fieldKey === 'tone') {
+      setValue(suggested);
+      setHintField('tone');
+      return;
+    }
+    if (String(currentValue ?? '').trim() !== '') return;
+    setValue(suggested);
+    setHintField(fieldKey);
+  }, [tutorialActive, effectiveSuggestions]);
+
+  const handleTutorialClickForNewSuggestion = useCallback((fieldKey) => {
+    if (!tutorialActive) return;
+    const setters = { name: setName, description: setDescription, role: setRole, audience: setAudience, tone: setTone, outputRoot: setOutputRoot };
+    const setValue = setters[fieldKey];
+    if (!setValue) return;
+
+    if (step >= 2 && (fieldKey === 'audience' || fieldKey === 'tone' || fieldKey === 'outputRoot')) {
+      setLoadingSuggestionFor(fieldKey);
+      fetch('/api/tutorial-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), description: description.trim(), role: role.trim() || undefined, mode: 'create' })
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText)))
+        .then((data) => {
+          const value = data[fieldKey];
+          if (value != null && value !== '') {
+            setValue(value);
+            setHintField(fieldKey);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingSuggestionFor(null));
+      return;
+    }
+
+    if (step === 1 && (fieldKey === 'name' || fieldKey === 'description' || fieldKey === 'role')) {
+      const options = STEP1_ALTERNATIVES[fieldKey];
+      if (!options?.length) return;
+      setStep1CycleIndex(prev => {
+        const next = (prev[fieldKey] + 1) % options.length;
+        setValue(options[next]);
+        setHintField(fieldKey);
+        return { ...prev, [fieldKey]: next };
+      });
+    }
+  }, [tutorialActive, step, name, description, role]);
+
+  const acceptTutorialHint = () => setHintField(null);
 
   const validateStep = () => {
     if (step === 1 && !name.trim()) return 'Project name is required.';
@@ -169,12 +297,23 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
+                onFocus={() => handleTutorialFocus('name', name, setName)}
+                onDoubleClick={() => handleTutorialClickForNewSuggestion('name')}
+                onContextMenu={acceptTutorialHint}
                 placeholder="My Blog Assistant"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 autoFocus
               />
               <DictateButton onResult={text => setName(prev => prev ? prev + ' ' + text : text)} />
             </div>
+            {hintField === 'name' && (
+              <p className="mt-1 text-xs text-amber-400/90" role="status">
+                {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
+              </p>
+            )}
+            {loadingSuggestionFor === 'name' && (
+              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            )}
             {name && <p className="mt-1 text-xs text-slate-500">Slug: {slug}</p>}
           </div>
           <div>
@@ -184,12 +323,23 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 id="create-desc"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
+                onFocus={() => handleTutorialFocus('description', description, setDescription)}
+                onDoubleClick={() => handleTutorialClickForNewSuggestion('description')}
+                onContextMenu={acceptTutorialHint}
                 placeholder="What is this project for?"
                 rows={2}
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm resize-none"
               />
               <DictateButton onResult={text => setDescription(prev => prev ? prev + ' ' + text : text)} />
             </div>
+            {hintField === 'description' && (
+              <p className="mt-1 text-xs text-amber-400/90" role="status">
+                {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
+              </p>
+            )}
+            {loadingSuggestionFor === 'description' && (
+              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            )}
           </div>
           <div>
             <label htmlFor="create-role" className="block text-xs text-slate-400 mb-1">AI role</label>
@@ -199,11 +349,22 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={role}
                 onChange={e => setRole(e.target.value)}
+                onFocus={() => handleTutorialFocus('role', role, setRole)}
+                onDoubleClick={() => handleTutorialClickForNewSuggestion('role')}
+                onContextMenu={acceptTutorialHint}
                 placeholder="e.g. content writing assistant, research analyst"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
               <DictateButton onResult={text => setRole(prev => prev ? prev + ' ' + text : text)} />
             </div>
+            {hintField === 'role' && (
+              <p className="mt-1 text-xs text-amber-400/90" role="status">
+                {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
+              </p>
+            )}
+            {loadingSuggestionFor === 'role' && (
+              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            )}
           </div>
         </div>
       )}
@@ -220,11 +381,22 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={audience}
                 onChange={e => setAudience(e.target.value)}
+                onFocus={() => handleTutorialFocus('audience', audience, setAudience)}
+                onDoubleClick={() => handleTutorialClickForNewSuggestion('audience')}
+                onContextMenu={acceptTutorialHint}
                 placeholder="Who will use the output?"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
               <DictateButton onResult={text => setAudience(prev => prev ? prev + ' ' + text : text)} />
             </div>
+            {hintField === 'audience' && (
+              <p className="mt-1 text-xs text-amber-400/90" role="status">
+                {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
+              </p>
+            )}
+            {loadingSuggestionFor === 'audience' && (
+              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            )}
           </div>
           <div>
             <label htmlFor="create-tone" className="block text-xs text-slate-400 mb-1">Tone</label>
@@ -232,12 +404,23 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
               id="create-tone"
               value={tone}
               onChange={e => setTone(e.target.value)}
+              onFocus={() => handleTutorialFocus('tone', tone, setTone)}
+              onDoubleClick={() => handleTutorialClickForNewSuggestion('tone')}
+              onContextMenu={acceptTutorialHint}
               className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
             >
               {TONE_OPTIONS.map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
+            {hintField === 'tone' && (
+              <p className="mt-1 text-xs text-amber-400/90" role="status">
+                {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
+              </p>
+            )}
+            {loadingSuggestionFor === 'tone' && (
+              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            )}
             {tone === 'Custom' && (
               <div className="flex gap-2 items-start mt-2">
                 <input
@@ -330,11 +513,22 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 type="text"
                 value={outputRoot}
                 onChange={e => setOutputRoot(e.target.value)}
+                onFocus={() => handleTutorialFocus('outputRoot', outputRoot, setOutputRoot)}
+                onDoubleClick={() => handleTutorialClickForNewSuggestion('outputRoot')}
+                onContextMenu={acceptTutorialHint}
                 placeholder="~/AI_Dev/"
                 className="flex-1 min-w-0 input-glow text-slate-100 font-mono rounded-lg px-4 py-2.5 text-sm"
               />
               <DictateButton onResult={text => setOutputRoot(prev => prev ? prev + text : text)} />
             </div>
+            {hintField === 'outputRoot' && (
+              <p className="mt-1 text-xs text-amber-400/90" role="status">
+                {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
+              </p>
+            )}
+            {loadingSuggestionFor === 'outputRoot' && (
+              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            )}
           </div>
           {name && (
             <div className="p-3 rounded-lg bg-slate-800/50 text-xs text-slate-400 font-mono">

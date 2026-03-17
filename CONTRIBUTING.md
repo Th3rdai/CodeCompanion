@@ -18,7 +18,8 @@ Thanks for your interest in contributing! Code Companion is an open-source proje
 
 - **Backend:** `node server.js` (Express on port 3000)
 - **Frontend:** `npx vite` (React + Tailwind on port 5173)
-- **Both:** `npm run dev`
+- **Both:** `npm run dev` (Vite + Express together)
+- **Production-style run:** `./deploy.sh` or `npm run build && ./startup.sh`
 
 ## Pull Requests
 

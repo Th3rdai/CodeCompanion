@@ -14,7 +14,7 @@ const { initHistory, listConversations, getConversation, saveConversation, delet
 const { initMemory, addMemory, getMemories, getMemory, updateMemory, deleteMemory, searchMemories, getStats: getMemoryStats, extractAndStore, buildMemoryContext } = require('./lib/memory');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete, embed } = require('./lib/ollama-client');
-const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS } = require('./lib/file-browser');
+const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
 const GsdBridge = require('./lib/gsd-bridge');
@@ -27,7 +27,8 @@ const McpClientManager = require('./lib/mcp-client-manager');
 const ToolCallHandler = require('./lib/tool-call-handler');
 const { createMcpApiRoutes } = require('./lib/mcp-api-routes');
 const { reviewCode } = require('./lib/review');
-const { pentestCode } = require('./lib/pentest');
+const { pentestCode, pentestFolder } = require('./lib/pentest');
+const { scanProjectForValidation, generateValidateCommand } = require('./lib/validate');
 const { scoreContent } = require('./lib/builder-score');
 
 const app = express();
@@ -36,9 +37,10 @@ const HOST = process.env.HOST || '0.0.0.0'; // use 0.0.0.0 to allow remote acces
 const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
 
 // HTTPS: use cert/server.crt + cert/server.key if present (self-signed or otherwise)
+// Set FORCE_HTTP=1 to disable HTTPS (e.g. for rate-limit test or local validation)
 const certPath = path.join(__dirname, 'cert', 'server.crt');
 const keyPath = path.join(__dirname, 'cert', 'server.key');
-const useHttps = fs.existsSync(certPath) && fs.existsSync(keyPath);
+const useHttps = process.env.FORCE_HTTP !== '1' && fs.existsSync(certPath) && fs.existsSync(keyPath);
 
 function maskSensitiveValue(value) {
   if (!value) return '';
@@ -204,6 +206,7 @@ app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-
 app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/pentest', createRateLimiter({ name: 'pentest', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/score', createRateLimiter({ name: 'score', max: SCORE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
+app.use('/api/tutorial-suggestions', createRateLimiter({ name: 'tutorial-suggestions', max: 20, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/memory', createRateLimiter({ name: 'memory', max: MEMORY_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'PUT', 'DELETE'] }));
 
 // ── MCP Management API routes ────────────────────────
@@ -814,6 +817,377 @@ app.post('/api/pentest', async (req, res) => {
   }
 });
 
+// ── POST /api/pentest/remediate (generate fixed code from findings) ──
+app.post('/api/pentest/remediate', async (req, res) => {
+  const { model, code, filename, findings } = req.body;
+
+  if (!model || !code || !findings) {
+    return res.status(400).json({ error: 'Missing model, code, or findings' });
+  }
+
+  const config = getConfig();
+  log('INFO', `Remediate request: model=${model} code=${code.length} chars`);
+
+  const systemPrompt = `You are a senior security engineer. The user will provide code that was scanned for security vulnerabilities, along with the findings. Your job is to:
+
+1. First, output a REMEDIATION REPORT section in markdown explaining each fix you will make, why it matters, and the OWASP category it addresses.
+2. Then, output the COMPLETE revised/fixed file(s) with all security vulnerabilities remediated. Include the full file content, not just snippets.
+
+Format your response EXACTLY as follows:
+
+# Remediation Report
+(your detailed technical writeup here)
+
+---REVISED_FILES---
+---FILE: filename.ext---
+(complete fixed file content here)
+---END_FILE---
+
+If there are multiple files, repeat the FILE/END_FILE block for each.
+Important: Include the COMPLETE file content in each block, not just the changed lines.`;
+
+  const userContent = `Here is the code to remediate:\n\nFilename: ${filename || 'unknown'}\n\n\`\`\`\n${code}\n\`\`\`\n\nSecurity findings:\n${findings}`;
+
+  try {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    function sendEvent(data) {
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    const ollamaRes = await chatStream(config.ollamaUrl, model, [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent }
+    ]);
+
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text();
+      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    const reader = ollamaRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let tokenCount = 0;
+
+    async function readStream() {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer);
+                if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              } catch {}
+            }
+            if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
+            log('INFO', `Remediate complete: ${tokenCount} tokens`);
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              if (parsed.done) {
+                sendEvent({ done: true });
+                res.write('data: [DONE]\n\n');
+                res.end();
+                log('INFO', `Remediate complete: ${tokenCount} tokens`);
+                return;
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        if (!res.writableEnded) { sendEvent({ error: err.message }); res.write('data: [DONE]\n\n'); res.end(); }
+      }
+    }
+
+    readStream();
+    req.on('close', () => { reader.cancel().catch(() => {}); });
+
+  } catch (err) {
+    log('ERROR', 'Remediate failed', { error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Remediate failed: ${err.message}` });
+    }
+  }
+});
+
+// ── POST /api/pentest/folder/preview (list files that would be scanned) ──
+app.post('/api/pentest/folder/preview', async (req, res) => {
+  const { folder } = req.body;
+  if (!folder) return res.status(400).json({ error: 'Missing folder' });
+
+  try {
+    const { files, totalSize, skipped } = readFolderFiles(folder, {
+      maxFiles: 80,
+      maxTotalSize: 2 * 1024 * 1024,
+    });
+    res.json({
+      files: files.map(f => ({ path: f.path, size: f.size })),
+      totalSize,
+      skipped,
+      folder,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── POST /api/pentest/folder (scan a folder recursively) ──
+app.post('/api/pentest/folder', async (req, res) => {
+  const { model, folder } = req.body;
+
+  if (!model || !folder) {
+    return res.status(400).json({ error: 'Missing model or folder' });
+  }
+
+  const config = getConfig();
+
+  try {
+    const { files, totalSize, skipped } = readFolderFiles(folder, {
+      maxFiles: 80,
+      maxTotalSize: 2 * 1024 * 1024,
+    });
+
+    if (files.length === 0) {
+      return res.status(400).json({ error: 'No scannable text files found in folder' });
+    }
+
+    log('INFO', `Pentest folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ''}`);
+
+    const result = await pentestFolder(config.ollamaUrl, model, files, {});
+
+    if (result.type === 'security-report') {
+      log('INFO', `Pentest folder complete: overall grade ${result.data.overallGrade}`);
+      return res.json({ ...result, meta: { fileCount: files.length, totalSize, skipped, folder } });
+    }
+
+    // Chat fallback — stream via SSE
+    log('INFO', `Pentest folder fallback to chat mode: ${result.error}`);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    function sendEvent(data) {
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    sendEvent({ fallback: true, reason: result.error, meta: { fileCount: files.length, totalSize, skipped } });
+
+    const ollamaRes = result.stream;
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text();
+      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    const reader = ollamaRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let tokenCount = 0;
+
+    async function readStream() {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer);
+                if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+                if (parsed.done) sendEvent({ done: true });
+              } catch {}
+            }
+            if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
+            log('INFO', `Pentest folder fallback complete: ${tokenCount} tokens`);
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              if (parsed.done) {
+                sendEvent({ done: true });
+                res.write('data: [DONE]\n\n');
+                res.end();
+                return;
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        if (!res.writableEnded) { sendEvent({ error: err.message }); res.write('data: [DONE]\n\n'); res.end(); }
+      }
+    }
+
+    readStream();
+    req.on('close', () => { reader.cancel().catch(() => {}); });
+
+  } catch (err) {
+    log('ERROR', 'Pentest folder failed', { error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Pentest folder failed: ${err.message}` });
+    }
+  }
+});
+
+// ── POST /api/validate/scan (discover validation tools in a project) ──
+app.post('/api/validate/scan', async (req, res) => {
+  const { folder } = req.body;
+  if (!folder) return res.status(400).json({ error: 'Missing folder' });
+
+  try {
+    const result = scanProjectForValidation(folder);
+    log('INFO', `Validate scan: ${folder} — lang=${result.language} framework=${result.framework}`);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── POST /api/validate/generate (generate validate.md via AI) ──
+app.post('/api/validate/generate', async (req, res) => {
+  const { model, folder, scanResult } = req.body;
+  if (!model || !folder || !scanResult) {
+    return res.status(400).json({ error: 'Missing model, folder, or scanResult' });
+  }
+
+  const config = getConfig();
+  log('INFO', `Validate generate: model=${model} folder=${folder}`);
+
+  try {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    function sendEvent(data) {
+      if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    const ollamaRes = await generateValidateCommand(config.ollamaUrl, model, folder, scanResult);
+
+    if (!ollamaRes.ok) {
+      const errText = await ollamaRes.text();
+      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+
+    const reader = ollamaRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let tokenCount = 0;
+
+    async function readStream() {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (buffer.trim()) {
+              try {
+                const parsed = JSON.parse(buffer);
+                if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              } catch {}
+            }
+            if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
+            log('INFO', `Validate generate complete: ${tokenCount} tokens`);
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              if (parsed.done) {
+                sendEvent({ done: true });
+                res.write('data: [DONE]\n\n');
+                res.end();
+                log('INFO', `Validate generate complete: ${tokenCount} tokens`);
+                return;
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        if (!res.writableEnded) { sendEvent({ error: err.message }); res.write('data: [DONE]\n\n'); res.end(); }
+      }
+    }
+
+    readStream();
+    req.on('close', () => { reader.cancel().catch(() => {}); });
+
+  } catch (err) {
+    log('ERROR', 'Validate generate failed', { error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: `Validate generate failed: ${err.message}` });
+    }
+  }
+});
+
+// ── POST /api/validate/install (write validate.md to IDE command path) ──
+app.post('/api/validate/install', (req, res) => {
+  const { projectFolder, content, targets } = req.body;
+  // targets is an array of relative paths like ['.claude/commands/validate.md', ...]
+
+  if (!projectFolder || !content || !targets?.length) {
+    return res.status(400).json({ error: 'Missing projectFolder, content, or targets' });
+  }
+
+  const absFolder = path.resolve(projectFolder);
+  if (!fs.existsSync(absFolder)) {
+    return res.status(400).json({ error: 'Project folder not found' });
+  }
+
+  const results = [];
+  for (const target of targets) {
+    const targetPath = path.join(absFolder, target);
+    // Security: ensure it's within the project folder
+    if (!targetPath.startsWith(absFolder + path.sep) && targetPath !== absFolder) {
+      results.push({ target, success: false, error: 'Path traversal blocked' });
+      continue;
+    }
+    try {
+      const dir = path.dirname(targetPath);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(targetPath, content, 'utf8');
+      results.push({ target, success: true });
+      log('INFO', `Validate installed: ${targetPath}`);
+    } catch (err) {
+      results.push({ target, success: false, error: err.message });
+    }
+  }
+
+  res.json({ results, installed: results.filter(r => r.success).length });
+});
+
 // ── POST /api/score (builder mode scoring) ────────────
 
 app.post('/api/score', async (req, res) => {
@@ -1311,13 +1685,21 @@ app.get('/api/files/tree', (req, res) => {
   }
 });
 
-// GET /api/files/read — read file contents
+// GET /api/files/read — read file contents (folder from config, or optional query param for validation/testing)
 app.get('/api/files/read', (req, res) => {
   const config = getConfig();
   const filePath = req.query.path;
-  const folder = config.projectFolder;
+  let folder = req.query.folder ? path.resolve(req.query.folder) : config.projectFolder;
 
   if (!filePath || !folder) return res.status(400).json({ error: 'Missing path or project folder' });
+
+  // When folder override is used, restrict to project folder or app root (for validation/same-machine use)
+  if (req.query.folder) {
+    const allowedRoots = [config.projectFolder, __dirname].filter(Boolean);
+    const absFolder = path.resolve(folder);
+    const allowed = allowedRoots.some(root => absFolder === path.resolve(root) || absFolder.startsWith(path.resolve(root) + path.sep));
+    if (!allowed) return res.status(403).json({ error: 'Access denied' });
+  }
 
   try {
     const result = readProjectFile(folder, filePath);
@@ -1413,6 +1795,53 @@ app.post('/api/build-project', (req, res) => {
   } catch (err) {
     log('ERROR', 'build-project failed', { error: err.message });
     return res.status(500).json({ success: false, error: err.message, code: 'SERVER_ERROR' });
+  }
+});
+
+// ── POST /api/tutorial-suggestions (contextual suggestions from project info) ─
+app.post('/api/tutorial-suggestions', async (req, res) => {
+  const { name, description, role, mode, model } = req.body || {};
+  const validModes = ['create', 'build'];
+  if (!mode || !validModes.includes(mode)) {
+    return res.status(400).json({ error: 'mode is required and must be "create" or "build"' });
+  }
+  if (!name && !description) {
+    return res.status(400).json({ error: 'At least one of name or description is required' });
+  }
+  const config = getConfig();
+  const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
+  const selectedModel = model || config.defaultModel || 'llama3.2';
+
+  const prompt = `You are helping fill out a project wizard. The user has already entered:
+
+Project name: ${(name || '').trim() || '(none)'}
+Description: ${(description || '').trim() || '(none)'}
+${mode === 'create' && role ? `AI role: ${role.trim()}` : ''}
+
+Respond with ONLY a single JSON object, no markdown or explanation, with these exact keys:
+- "audience": one short sentence describing who will use or benefit from this project (e.g. "Home cooks and people tracking nutrition")
+- "tone": exactly one of: Friendly, Professional, Technical, Warm
+- "outputRoot": a suggested parent folder path, e.g. "~/AI_Dev/"
+
+Example: {"audience":"Developers and technical writers","tone":"Professional","outputRoot":"~/AI_Dev/"}`;
+
+  try {
+    const text = await chatComplete(ollamaUrl, selectedModel, [
+      { role: 'user', content: prompt }
+    ], 15000);
+    const raw = text.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+    const parsed = JSON.parse(raw || '{}');
+    const audience = typeof parsed.audience === 'string' ? parsed.audience.trim() : null;
+    const tone = typeof parsed.tone === 'string' ? parsed.tone.trim() : null;
+    const outputRoot = typeof parsed.outputRoot === 'string' ? parsed.outputRoot.trim() : null;
+    res.json({
+      audience: audience || undefined,
+      tone: tone || undefined,
+      outputRoot: outputRoot || undefined
+    });
+  } catch (err) {
+    log('WARN', 'tutorial-suggestions failed', { error: err.message });
+    res.status(500).json({ error: err.message || 'Failed to generate suggestions' });
   }
 });
 

@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** All 17 phases complete. Self-contained portable app with auto-update. Pre-release v1.0.0-beta.1 on GitHub.
+**Current focus:** All 18 phases complete. Self-contained portable app with auto-update. Pre-release v1.0.0-beta.1 on GitHub.
 
 ## Current Position
 
-All 17 phases complete. All tests passing (27 UI, 4 E2E, 27 unit, 1 rate-limit).
-Last activity: 2026-03-15 — Auto-update UI, portable mode, premium installer branding, MIT license, pre-release v1.0.0-beta.1
+All 18 phases complete. All tests passing (Playwright UI/E2E, node:test unit and security).
+Last activity: 2026-03-17 — Deploy script, remote access, optional HTTPS (cert/), installers (mac/win/linux), PAT excluded from package
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

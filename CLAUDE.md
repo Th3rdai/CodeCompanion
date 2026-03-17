@@ -16,18 +16,18 @@ You are a full-stack developer building **Code Companion**, a web application th
 |------|---------|
 | server.js | Express app, API routes, MCP HTTP endpoint |
 | mcp-server.js | MCP stdio entry point |
-| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, mcp-client-manager, tool-call-handler) |
+| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, mcp-client-manager, mcp-api-routes, tool-call-handler) |
 | mcp/ | MCP tool registrations and Zod schemas |
-| src/App.jsx | Main React app with 12 modes |
+| src/App.jsx | Main React app with 14 modes |
 | src/components/ | 25+ React components (ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar with multi-select, MermaidBlock, etc.) |
 | src/components/builders/ | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel) |
 | src/components/3d/ | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.) |
 | .planning/ | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md) |
-| test/ | Unit tests and Playwright E2E tests |
+| tests/ | Unit tests (node:test in tests/unit/, tests/*.test.js) and Playwright tests (tests/ui/, tests/e2e/) |
 | dist/ | Production build output |
 
-## Twelve Modes
-Chat, Explain This, Safety Check, Clean Up, Code -> Plain English, Idea -> Code Spec, Diagram, Review, Create, Prompting, Skillz, Agentic
+## Fourteen Modes
+Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Review, Create, Prompting, Skillz, Agentic, Build
 
 ### Diagram Mode
 Renders Mermaid.js diagrams inline in AI responses. Any mode can produce `\`\`\`mermaid` code blocks that render as interactive SVG diagrams. Mermaid.js is lazy-loaded on first use (separate Vite chunk). During streaming, mermaid blocks show as raw code; after completion, they render as diagrams. Export buttons (Source/SVG/PNG) appear on each diagram. The `MarkdownContent` component uses a custom `marked` renderer to intercept mermaid blocks and a split-and-render pattern to mix HTML segments with React `MermaidBlock` components.

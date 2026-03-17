@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShieldAlert, Database, Code, KeyRound, Settings, Globe, ChevronDown, ChevronRight, Copy, Check, Download, RotateCcw, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Database, Code, KeyRound, Settings, Globe, ChevronDown, ChevronRight, Copy, Check, Download, RotateCcw, ShieldCheck, AlertTriangle, FileText, FolderOpen, Wrench } from 'lucide-react';
 
 // ── Grade color mapping ─────────────────────────────
 const GRADE_COLORS = {
@@ -207,20 +207,209 @@ function CategorySection({ categoryKey, category, onDeepDive, onToast }) {
 }
 
 // ── Export helpers ──────────────────────────────────
-function handleExportJSON(data, filename) {
-  const exportData = { ...data, filename, exportedAt: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+function baseName(filename) {
+  return filename ? filename.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_') : 'security-scan';
+}
+
+function downloadBlob(blob, downloadName) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const name = filename ? filename.replace(/\.[^.]+$/, '') : 'security-scan';
-  a.download = `${name}-security-report.json`;
+  a.download = downloadName;
   a.click();
   URL.revokeObjectURL(url);
 }
 
+function reportToMarkdown(data, filename) {
+  const lines = [];
+  lines.push(`# Security Scan Report`);
+  if (filename) lines.push(`**File:** ${filename}`);
+  lines.push(`**Overall Grade:** ${data.overallGrade}`);
+  lines.push(`**Date:** ${new Date().toISOString().slice(0, 10)}`);
+  lines.push('');
+  if (data.riskSummary) { lines.push(`## Risk Summary`, '', data.riskSummary, ''); }
+  if (data.topRisk && !data.cleanBillOfHealth) {
+    lines.push(`## Top Risk`, '', `**${data.topRisk.title}** (${data.topRisk.category})`, '', data.topRisk.explanation, '');
+  }
+  if (data.cleanBillOfHealth) lines.push('> No vulnerabilities detected.', '');
+
+  const catMeta = {
+    accessControl: 'Access Control', dataProtection: 'Data Protection', injection: 'Injection & Input',
+    authAndSession: 'Auth & Sessions', configuration: 'Configuration', apiSecurity: 'API Security',
+  };
+
+  lines.push('## Category Grades', '');
+  lines.push('| Category | Grade | Findings |', '|---|---|---|');
+  for (const [key, cat] of Object.entries(data.categories || {})) {
+    lines.push(`| ${catMeta[key] || key} | ${cat.grade} | ${cat.vulnerabilities?.length || 0} |`);
+  }
+  lines.push('');
+
+  for (const [key, cat] of Object.entries(data.categories || {})) {
+    const vulns = cat.vulnerabilities || [];
+    lines.push(`## ${catMeta[key] || key} — Grade ${cat.grade}`, '');
+    if (cat.summary) lines.push(cat.summary, '');
+    if (vulns.length === 0) { lines.push('No vulnerabilities found.', ''); continue; }
+    for (const v of vulns) {
+      lines.push(`### ${v.title}`, '');
+      lines.push(`- **Severity:** ${v.severity}`);
+      if (v.owaspCategory) lines.push(`- **OWASP:** ${v.owaspCategory}`);
+      if (v.cvssEstimate) lines.push(`- **CVSS:** ${v.cvssEstimate}`);
+      lines.push(`- **Description:** ${v.description}`);
+      if (v.impact) lines.push(`- **Impact:** ${v.impact}`);
+      if (v.remediation) lines.push(`- **Remediation:** ${v.remediation}`);
+      lines.push('');
+    }
+  }
+
+  if (data.testCaseSuggestions?.length) {
+    lines.push('## Suggested Test Cases', '');
+    for (const s of data.testCaseSuggestions) lines.push(`- ${s}`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function reportToCSV(data) {
+  const rows = [['Category', 'Grade', 'Title', 'Severity', 'OWASP', 'CVSS', 'Description', 'Impact', 'Remediation']];
+  const catMeta = {
+    accessControl: 'Access Control', dataProtection: 'Data Protection', injection: 'Injection & Input',
+    authAndSession: 'Auth & Sessions', configuration: 'Configuration', apiSecurity: 'API Security',
+  };
+  for (const [key, cat] of Object.entries(data.categories || {})) {
+    const vulns = cat.vulnerabilities || [];
+    if (vulns.length === 0) {
+      rows.push([catMeta[key] || key, cat.grade, '', '', '', '', cat.summary || '', '', '']);
+    }
+    for (const v of vulns) {
+      rows.push([
+        catMeta[key] || key, cat.grade, v.title || '', v.severity || '', v.owaspCategory || '',
+        v.cvssEstimate || '', v.description || '', v.impact || '', v.remediation || '',
+      ]);
+    }
+  }
+  return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+}
+
+function reportToHTML(data, filename) {
+  const md = reportToMarkdown(data, filename);
+  // Simple markdown-to-HTML for the report
+  const body = md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/\|(.+)\|/g, (match) => {
+      if (match.includes('---|')) return '';
+      const cells = match.split('|').filter(Boolean).map(c => c.trim());
+      return '<tr>' + cells.map(c => `<td style="padding:4px 12px;border:1px solid #444">${c}</td>`).join('') + '</tr>';
+    })
+    .replace(/\n\n+/g, '<br/><br/>')
+    .replace(/\n/g, '\n');
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Security Report${filename ? ' — ' + filename : ''}</title>
+<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;background:#0c0f1a;color:#e2e8f0}
+h1{color:#f97316}h2{color:#fb923c;border-bottom:1px solid #334155;padding-bottom:4px}h3{color:#fbbf24}
+table{border-collapse:collapse;width:100%}td{padding:4px 12px;border:1px solid #475569}
+blockquote{border-left:3px solid #10b981;padding-left:1rem;color:#6ee7b7}
+li{margin:2px 0}strong{color:#f1f5f9}</style></head>
+<body>${body}</body></html>`;
+}
+
+function handleExportJSON(data, filename) {
+  const exportData = { ...data, filename, exportedAt: new Date().toISOString() };
+  downloadBlob(new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }), `${baseName(filename)}-security-report.json`);
+}
+
+// ── Export Dropdown ─────────────────────────────────
+function ExportDropdown({ data, filename, onToast }) {
+  const [open, setOpen] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(reportToMarkdown(data, filename));
+    onToast?.('Report copied to clipboard');
+    setOpen(false);
+  }
+
+  function handleMD() {
+    downloadBlob(new Blob([reportToMarkdown(data, filename)], { type: 'text/markdown' }), `${baseName(filename)}-security-report.md`);
+    setOpen(false);
+  }
+
+  function handleCSV() {
+    downloadBlob(new Blob([reportToCSV(data)], { type: 'text/csv' }), `${baseName(filename)}-security-report.csv`);
+    setOpen(false);
+  }
+
+  function handleHTML() {
+    downloadBlob(new Blob([reportToHTML(data, filename)], { type: 'text/html' }), `${baseName(filename)}-security-report.html`);
+    setOpen(false);
+  }
+
+  function handlePDF() {
+    // Open the HTML report in a new tab for the user to print as PDF
+    const html = reportToHTML(data, filename);
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      win.onload = () => { setTimeout(() => win.print(), 500); };
+    }
+    onToast?.('Print dialog opened — save as PDF');
+    setOpen(false);
+  }
+
+  function handleJSON() {
+    handleExportJSON(data, filename);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200 transition-colors cursor-pointer"
+        aria-label="Export report"
+      >
+        <Download className="w-3.5 h-3.5" />
+        Export
+        <ChevronDown className="w-3 h-3" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-50 glass-heavy rounded-xl border border-slate-600/50 shadow-xl py-1 min-w-[160px] fade-in">
+            <button onClick={handleCopy} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+              <Copy className="w-3.5 h-3.5" /> Copy to Clipboard
+            </button>
+            <button onClick={handleMD} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+              <Download className="w-3.5 h-3.5" /> Download .md
+            </button>
+            <button onClick={handleCSV} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+              <Download className="w-3.5 h-3.5" /> Download .csv
+            </button>
+            <button onClick={handleHTML} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+              <Download className="w-3.5 h-3.5" /> Download .html
+            </button>
+            <button onClick={handlePDF} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+              <Download className="w-3.5 h-3.5" /> Save as PDF
+            </button>
+            <div className="border-t border-slate-700/30 my-1" />
+            <button onClick={handleJSON} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+              <Download className="w-3.5 h-3.5" /> Download .json
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main Security Report ────────────────────────────
-export default function SecurityReport({ data, filename, onDeepDive, onNewScan, onToast }) {
+export default function SecurityReport({ data, filename, onDeepDive, onNewScan, onToast, onRemediate, remediating, remediationProgress }) {
   if (!data) return null;
 
   const { overallGrade, riskSummary, topRisk, categories, cleanBillOfHealth, testCaseSuggestions } = data;
@@ -236,7 +425,13 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
               Security Scan Report
             </h2>
             {filename && (
-              <p className="text-sm text-slate-400 mt-0.5 font-mono truncate">{filename}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                {filename.toLowerCase().includes('folder') || filename.includes('files')
+                  ? <FolderOpen className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                  : <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                }
+                <p className="text-sm text-slate-400 font-mono break-all">{filename}</p>
+              </div>
             )}
             <div className="flex items-center gap-3 mt-2">
               {cleanBillOfHealth ? (
@@ -251,14 +446,18 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
             </div>
           </div>
           <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-            <button
-              onClick={() => handleExportJSON(data, filename)}
-              className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200 transition-colors cursor-pointer"
-              aria-label="Export report as JSON"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export Report
-            </button>
+            <ExportDropdown data={data} filename={filename} onToast={onToast} />
+            {onRemediate && (
+              <button
+                onClick={onRemediate}
+                disabled={remediating}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 hover:text-emerald-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Generate remediation package"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                {remediating ? (remediationProgress || 'Remediating...') : 'Remediate'}
+              </button>
+            )}
             <button
               onClick={onNewScan}
               className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors cursor-pointer"

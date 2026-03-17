@@ -24,6 +24,7 @@
     "test": "npx playwright test",
     "test:ui": "npx playwright test tests/ui --project=chromium",
     "test:e2e": "npx playwright test tests/e2e --project=chromium",
+    "test:unit": "node --test tests/unit/*.test.js tests/rate-limit.test.js tests/mcp-security.test.js tests/tone-validation.test.js tests/ui-labels.test.js",
     "mcp": "node mcp-server.js",
     "mcp:inspect": "npx @modelcontextprotocol/inspector node mcp-server.js"
   },
@@ -45,6 +46,7 @@
     "extract-zip": "^2.0.1",
     "helmet": "^8.1.0",
     "highlight.js": "^11.11.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
     "marked": "^17.0.4",
     "mermaid": "^11.13.0",

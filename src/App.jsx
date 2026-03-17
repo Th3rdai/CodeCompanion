@@ -14,8 +14,11 @@ import EmptyStateScene from './components/3d/EmptyStateScene';
 import CreateWizard from './components/CreateWizard';
 import BuildWizard from './components/BuildWizard';
 import BuildPanel from './components/BuildPanel';
+import TutorialPanel from './components/TutorialPanel';
+import { BUILD_TUTORIAL_STEPS, CREATE_TUTORIAL_STEPS } from './data/tutorialSteps';
 import ReviewPanel from './components/ReviewPanel';
 import SecurityPanel from './components/SecurityPanel';
+import ValidatePanel from './components/ValidatePanel';
 import PromptingPanel from './components/builders/PromptingPanel';
 import SkillzPanel from './components/builders/SkillzPanel';
 import AgenticPanel from './components/builders/AgenticPanel';
@@ -31,7 +34,7 @@ import OrbitingBadge from './components/3d/OrbitingBadge';
 import OllamaSetup from './components/OllamaSetup';
 import ConnectionDot from './components/ConnectionDot';
 import MemoryPanel from './components/MemoryPanel';
-import { ChevronLeft, ChevronRight, PanelLeft, Brain } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
 import { use3DEffects } from './contexts/Effects3DContext';
 
 const MODES = [
@@ -43,6 +46,7 @@ const MODES = [
   { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
   { id: 'diagram',        label: 'Diagram',                 icon: '📊', desc: 'Visualize systems and processes',  placeholder: "Describe a system, process, or relationship and I'll create a diagram..." },
   { id: 'pentest',        label: 'Security',                icon: '🛡️', desc: 'OWASP security assessment',        placeholder: '' },
+  { id: 'validate',       label: 'Validate',                icon: '✅', desc: 'Generate project validation',      placeholder: '' },
   { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
   { id: 'prompting',      label: 'Prompting',               icon: '🎯', desc: 'Craft and score AI prompts',       placeholder: '' },
   { id: 'skillz',         label: 'Skillz',                  icon: '⚡', desc: 'Build Claude Code skills',         placeholder: '' },
@@ -163,6 +167,9 @@ export default function App() {
   const [buildProjects, setBuildProjects] = useState(null); // null=loading, []=empty
   const [activeBuildProject, setActiveBuildProject] = useState(null);
   const [showBuildWizard, setShowBuildWizard] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(1);
+  const [wizardPrefill, setWizardPrefill] = useState(null);
 
   // Auto-update state
   const [updateBanner, setUpdateBanner] = useState(null); // null | { type: 'available' | 'ready', version: string }
@@ -861,6 +868,13 @@ export default function App() {
                 onSetSelectedModel={setSelectedModel}
                 onUpdatePentestDeepDive={handleUpdatePentestDeepDive}
               />
+            ) : mode === 'validate' ? (
+              <ValidatePanel
+                selectedModel={selectedModel}
+                connected={connected}
+                onToast={showToast}
+                models={models}
+              />
             ) : BUILDER_MODES.includes(mode) ? (
               mode === 'prompting' ? (
                 <PromptingPanel
@@ -899,19 +913,81 @@ export default function App() {
             ) : (
             <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
               {mode === 'create' ? (
-                <CreateWizard
-                  defaultOutputRoot={projectFolder || '~/AI_Dev/'}
-                  onSuccess={handleCreateSuccess}
-                  onToast={showToast}
-                />
+                <>
+                  <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-500">Create project</span>
+                      <button
+                        type="button"
+                        onClick={() => { setShowTutorial(!showTutorial); if (!showTutorial) setTutorialStep(1); setWizardPrefill(null); }}
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? 'bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900' : 'bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse'}`}
+                        aria-label={showTutorial ? 'Hide tutorial' : 'Show step-by-step tutorial'}
+                      >
+                        <BookOpen className="w-5 h-5 shrink-0" aria-hidden />
+                        {showTutorial ? 'Tutorial on' : 'Start tutorial'}
+                      </button>
+                    </div>
+                  </div>
+                  {showTutorial && (
+                    <TutorialPanel
+                      mode="create"
+                      currentStep={tutorialStep}
+                      onStepChange={(s) => { setTutorialStep(s); setWizardPrefill(null); }}
+                      onPrefillStep={(stepNum, data) => setWizardPrefill({ step: stepNum, data })}
+                      onClose={() => setShowTutorial(false)}
+                      totalSteps={5}
+                    />
+                  )}
+                  <CreateWizard
+                    defaultOutputRoot={projectFolder || '~/AI_Dev/'}
+                    onSuccess={handleCreateSuccess}
+                    onToast={showToast}
+                    step={showTutorial ? tutorialStep : undefined}
+                    onStepChange={showTutorial ? setTutorialStep : undefined}
+                    prefill={wizardPrefill}
+                    tutorialActive={showTutorial}
+                    tutorialSuggestions={showTutorial ? CREATE_TUTORIAL_STEPS[tutorialStep - 1]?.prefill ?? null : null}
+                  />
+                </>
               ) : mode === 'build' ? (
                 showBuildWizard ? (
+                <>
+                  <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-500">New build project</span>
+                      <button
+                        type="button"
+                        onClick={() => { setShowTutorial(!showTutorial); if (!showTutorial) setTutorialStep(1); setWizardPrefill(null); }}
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? 'bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900' : 'bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse'}`}
+                        aria-label={showTutorial ? 'Hide tutorial' : 'Show step-by-step tutorial'}
+                      >
+                        <BookOpen className="w-5 h-5 shrink-0" aria-hidden />
+                        {showTutorial ? 'Tutorial on' : 'Start tutorial'}
+                      </button>
+                    </div>
+                  </div>
+                  {showTutorial && (
+                    <TutorialPanel
+                      mode="build"
+                      currentStep={tutorialStep}
+                      onStepChange={(s) => { setTutorialStep(s); setWizardPrefill(null); }}
+                      onPrefillStep={(stepNum, data) => setWizardPrefill({ step: stepNum, data })}
+                      onClose={() => setShowTutorial(false)}
+                      totalSteps={4}
+                    />
+                  )}
                   <BuildWizard
                     defaultOutputRoot={projectFolder || '~/AI_Dev/'}
                     onSuccess={handleBuildProjectCreated}
                     onToast={showToast}
-                    onCancel={() => setShowBuildWizard(false)}
+                    onCancel={() => { setShowBuildWizard(false); setShowTutorial(false); }}
+                    step={showTutorial ? tutorialStep : undefined}
+                    onStepChange={showTutorial ? setTutorialStep : undefined}
+                    prefill={wizardPrefill}
+                    tutorialActive={showTutorial}
+                    tutorialSuggestions={showTutorial ? BUILD_TUTORIAL_STEPS[tutorialStep - 1]?.prefill ?? null : null}
                   />
+                </>
                 ) : (
                   <BuildPanel
                     projects={buildProjects}

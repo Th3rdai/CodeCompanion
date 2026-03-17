@@ -20,11 +20,12 @@ npm run electron:build
 ## Platform-Specific Builds
 
 ```bash
-# macOS (DMG + ZIP)
+# macOS (DMG + ZIP; Apple Silicon arm64 when building on M1/M2/M3/M4)
 npm run electron:build:mac
 
-# Windows (NSIS installer + ZIP; requires resources/icon.ico for NSIS)
+# Windows (NSIS installer + ZIP; default arch depends on host; requires resources/icon.ico for NSIS)
 npm run electron:build:win
+# Windows x64 explicitly: npx electron-builder --win --x64 --config electron-builder.config.js --publish never
 
 # Linux (AppImage + ZIP)
 npm run electron:build:linux
@@ -42,13 +43,13 @@ The built app (DMG, EXE, AppImage, and portable ZIPs) includes:
 
 ## Output
 
-Built artifacts go to `release/`:
+Built artifacts go to `release/`. All scripts use `--publish never` (local build only).
 
 | Platform | Files |
 |----------|-------|
-| macOS | `Code Companion-{version}-arm64.dmg`, `Code Companion-{version}-arm64-mac.zip` |
-| Windows | `Code Companion Setup {version}.exe`, `Code Companion-{version}-win.zip` |
-| Linux | `Code-Companion-{version}.AppImage`, `Code-Companion-{version}.zip` |
+| macOS | `Code Companion-{version}-arm64.dmg`, `Code Companion-{version}-arm64-mac.zip` (Apple Silicon) |
+| Windows | `Code Companion Setup {version}.exe` (NSIS), `Code Companion-{version}-win.zip` (x64). For ARM64: `electron-builder --win --arm64 ...` |
+| Linux | `Code Companion-{version}-arm64.AppImage`, `code-companion-{version}-arm64.zip` (arch depends on build host) |
 
 ## Testing the Build
 
@@ -68,8 +69,8 @@ Built artifacts go to `release/`:
 ### Linux
 
 ```bash
-chmod +x Code-Companion-*.AppImage
-./Code-Companion-*.AppImage
+chmod +x "Code Companion-"*.AppImage
+./"Code Companion-"*.AppImage
 ```
 
 ## Architecture

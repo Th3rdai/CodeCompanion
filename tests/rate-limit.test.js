@@ -28,6 +28,7 @@ test('rate limiting blocks burst traffic on create-project endpoint', async () =
       ...process.env,
       PORT: String(port),
       DEBUG: '0',
+      FORCE_HTTP: '1',
       RATE_LIMIT_WINDOW_MS: '60000',
       RATE_LIMIT_MAX_CREATE: '2',
     },
