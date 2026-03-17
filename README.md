@@ -14,13 +14,15 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 ## Features
 
-- **Fourteen specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Review, Create, Prompting, Skillz, Agentic, Build
+- **Fifteen specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Review, Create, Prompting, Skillz, Agentic, Build
+- **Security mode** — OWASP security assessment with multi-file/folder scanning, drag-and-drop folders, export (Copy/MD/CSV/HTML/PDF/JSON), follow-up conversations, and **Remediate** button that generates a zip with fixed files
+- **Validate mode** — scan a local folder or GitHub repo, AI generates a project-specific `validate.md` command, one-click install to Claude Code, Cursor, VS Code, and OpenCode
 - **Code Review with Report Card** — color-coded letter grades (A-F) for bugs, security, readability, and completeness with conversational deep-dives
 - **Prompt Builder** — craft, score, revise, and download AI prompts with quality grades for clarity, specificity, structure, and effectiveness
 - **Skill Builder** — create, score, and export SKILL.md files for Claude Code with grades for completeness, format, instructions, and reusability
 - **Agent Designer** — design, score, and download AI agent definitions with grades for purpose, tool design, workflow logic, and safety guardrails
 - **Friendly-teacher tone** — analogies, zero jargon, patience across all modes
-- **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support. Set **Create template path** in Settings to copy your **Commands** and **ICM-fw** folders into each new project (e.g. `.cursor/commands` and framework files at project root).
+- **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support, then **Open in Build** to continue in Build mode. Set **Create template path** in Settings to copy your **Commands** and **ICM-fw** folders into each new project.
 - **Build mode** — GSD+ICM project scaffolding and dashboard: start a new project with planning and stages, then manage phases and progress from the Build panel
 - **Tutorial for Build & Create** — Step-by-step walkthrough: click **Tutorial** for explanations; focus or click an empty field to get a suggestion (step 2+ uses AI-generated suggestions from your project info). Double-click a field to get a different suggestion; right-click to accept. **Fill with example** prefills the current step.
 - **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
