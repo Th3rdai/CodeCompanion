@@ -13,9 +13,9 @@ function setTreeState(path, isOpen) {
   try { localStorage.setItem(TREE_STATE_KEY, JSON.stringify(state)); } catch {}
 }
 
-function FileTreeNode({ node, depth, onFileClick }) {
+function FileTreeNode({ node, depth, onFileClick, onQuickAttach }) {
   const savedState = getTreeState();
-  const defaultOpen = depth === 0; // only root level open by default
+  const defaultOpen = depth === 0;
   const [open, setOpen] = useState(node.path ? (savedState[node.path] ?? defaultOpen) : defaultOpen);
   const indent = depth * 16;
 
@@ -37,7 +37,7 @@ function FileTreeNode({ node, depth, onFileClick }) {
           <span className="truncate">{node.name}</span>
         </button>
         {open && <div role="group">{node.children?.map((child, i) => (
-          <FileTreeNode key={child.path || i} node={child} depth={depth + 1} onFileClick={onFileClick} />
+          <FileTreeNode key={child.path || i} node={child} depth={depth + 1} onFileClick={onFileClick} onQuickAttach={onQuickAttach} />
         ))}</div>}
       </div>
     );
@@ -49,15 +49,41 @@ function FileTreeNode({ node, depth, onFileClick }) {
   const extColor = extColors[node.ext] || 'text-slate-400';
 
   return (
-    <button role="treeitem" className="w-full flex items-center gap-1.5 py-1.5 px-2 hover:bg-indigo-500/10 rounded cursor-pointer text-sm group focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-colors"
-      style={{ paddingLeft: indent }}
-      onClick={() => onFileClick(node)}
-      aria-label={`File: ${node.name}`}>
-      <span className={`text-xs ${extColor}`} aria-hidden="true">📄</span>
-      <span className="truncate text-slate-300 group-hover:text-white">{node.name}</span>
-      {node.size > 0 && <span className="text-[10px] text-slate-500 ml-auto">{(node.size / 1024).toFixed(0)}k</span>}
-    </button>
+    <div role="treeitem" className="group flex items-center hover:bg-indigo-500/10 rounded transition-colors"
+      style={{ paddingLeft: indent }}>
+      <button className="flex-1 flex items-center gap-1.5 py-1.5 px-2 cursor-pointer text-sm focus:outline-none"
+        onClick={() => onFileClick(node)}
+        aria-label={`File: ${node.name}`}>
+        <span className={`text-xs ${extColor}`} aria-hidden="true">📄</span>
+        <span className="truncate text-slate-300 group-hover:text-white">{node.name}</span>
+        {node.size > 0 && <span className="text-[10px] text-slate-500 ml-auto pr-1">{(node.size / 1024).toFixed(0)}k</span>}
+      </button>
+      {onQuickAttach && (
+        <button
+          onClick={e => { e.stopPropagation(); onQuickAttach(node); }}
+          className="opacity-0 group-hover:opacity-100 shrink-0 px-1.5 py-1 mr-1 text-[10px] text-indigo-300 hover:text-white hover:bg-indigo-500/30 rounded transition-all"
+          title="Attach to chat"
+          aria-label={`Attach ${node.name} to chat`}>
+          +AI
+        </button>
+      )}
+    </div>
   );
+}
+
+// Build a readable text tree for "Share with AI"
+function buildTreeText(nodes, prefix = '') {
+  let out = '';
+  nodes?.forEach((node, i) => {
+    const isLast = i === nodes.length - 1;
+    const connector = isLast ? '└── ' : '├── ';
+    const childPrefix = isLast ? '    ' : '│   ';
+    out += prefix + connector + node.name + (node.type === 'dir' ? '/' : '') + '\n';
+    if (node.type === 'dir' && node.children?.length) {
+      out += buildTreeText(node.children, prefix + childPrefix);
+    }
+  });
+  return out;
 }
 
 export default function FileBrowser({ projectFolder, onAttachFile, onClose, onClearFolder, onSetFolder, attachLabel }) {
@@ -149,6 +175,22 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
       onAttachFile({ name: preview.name, path: preview.path, content: preview.content, lines: preview.lines });
       setPreview(null);
     }
+  }
+
+  async function handleQuickAttach(node) {
+    try {
+      const res = await fetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
+      const data = await res.json();
+      if (data.content !== undefined) {
+        onAttachFile({ name: data.name, path: data.path, content: data.content, lines: data.lines });
+      }
+    } catch {}
+  }
+
+  function handleShareStructure() {
+    if (!tree) return;
+    const text = `Project: ${tree.root}\n\n${buildTreeText(tree.tree)}`;
+    onAttachFile({ name: 'Project Structure', path: tree.root, content: text, lines: text.split('\n').length });
   }
 
   function handleDragEnter(e) { e.preventDefault(); e.stopPropagation(); dragCounter.current++; setDragging(true); }
@@ -249,6 +291,13 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
 
       <div className="p-3 border-b border-slate-700/30 flex items-center gap-2">
         <span className="text-sm font-medium text-slate-200 flex-1">📂 File Browser</span>
+        {tree && onAttachFile && (
+          <button onClick={handleShareStructure}
+            className="text-[10px] px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors whitespace-nowrap"
+            title="Attach folder structure to chat so the AI knows what files exist">
+            Share with AI
+          </button>
+        )}
         <button onClick={() => loadTree()} className="text-slate-400 hover:text-indigo-300 text-sm transition-colors" title="Refresh" aria-label="Refresh file tree">&#x27F3;</button>
         <button onClick={onClose} className="text-slate-400 hover:text-white text-sm transition-colors" title="Close" aria-label="Close file browser">✕</button>
       </div>
@@ -302,7 +351,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
               value={folderInput}
               onChange={e => setFolderInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
-              placeholder="~/AI_Dev/my-project"
+              placeholder="Paste the path to your project folder"
               className="w-full input-glow text-slate-200 text-xs rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
             />
             <button
@@ -319,7 +368,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
 
       {folderError && (
         <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-200 text-xs flex items-start gap-2">
-          <span className="flex-1">{folderError}. Use a full path like <span className="font-mono text-red-300">/Users/james/AI_Dev/my-project</span></span>
+          <span className="flex-1">{folderError}. Use a full path like <span className="font-mono text-red-300">/home/yourname/my-project</span></span>
           <button onClick={() => setFolderError(null)} className="text-red-300 hover:text-white shrink-0">✕</button>
         </div>
       )}
@@ -346,7 +395,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
           </div>
           <div role="tree" aria-label="Project files">
             {tree.tree?.map((node, i) => (
-              <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} />
+              <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} onQuickAttach={onAttachFile ? handleQuickAttach : null} />
             ))}
           </div>
           {tree.tree?.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Hmm, no text files here. Try pointing to a different folder!</p>}

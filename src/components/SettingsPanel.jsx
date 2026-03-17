@@ -357,7 +357,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
             <div>
               <label className="block text-sm text-slate-300 mb-2 font-medium">Project Folder</label>
               <div className="flex gap-2">
-                <input type="text" value={folder} onChange={e => setFolder(e.target.value)} placeholder="/Users/you/projects/my-app"
+                <input type="text" value={folder} onChange={e => setFolder(e.target.value)} placeholder="Paste the path to your project folder"
                   className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
                 <button onClick={handleTestFolder}
                   className="btn-neon text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
@@ -657,7 +657,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, onSave, onClos
               <ul className="mt-1.5 space-y-1">
                 <li>Ollama on this machine: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code></li>
                 <li>Ollama on your network: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
-                <li>Project folder example: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">~/projects/my-app</code></li>
+                <li>Project folder: paste the full path to your code, e.g. <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">/home/yourname/my-project</code></li>
               </ul>
             </div>
           </div>
