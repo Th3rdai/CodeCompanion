@@ -15,8 +15,12 @@ function renderMarkdown(text, enableJargon, streaming) {
     const renderer = new Renderer();
     const originalCode = renderer.code.bind(renderer);
 
+    // Detect mermaid diagrams by language tag or content pattern
+    const MERMAID_PATTERNS = /^(sequenceDiagram|graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR)|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline|journey|quadrantChart|sankey|xychart|block-beta|packet-beta|architecture-beta|kanban)/;
+
     renderer.code = function({ text: codeText, lang, escaped }) {
-      if (lang === 'mermaid' && !streaming) {
+      const isMermaid = lang === 'mermaid' || (!lang && MERMAID_PATTERNS.test(codeText.trim()));
+      if (isMermaid && !streaming) {
         const encoded = btoa(unescape(encodeURIComponent(codeText)));
         return `<div data-mermaid-source="${encoded}" class="mermaid-placeholder"></div>`;
       }

@@ -109,18 +109,19 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
     const text = `${displayTokens} tokens`;
     ctx.fillText(text, width / 2, height / 2 - 8);
 
-    if (duration) {
+    const dur = Number(duration);
+    if (dur && Number.isFinite(dur)) {
       ctx.font = '12px monospace';
       ctx.fillStyle = theme.secondary;
       ctx.globalAlpha = opacity * 0.6;
-      ctx.fillText(`${duration.toFixed(2)}s`, width / 2, height / 2 + 12);
+      ctx.fillText(`${dur.toFixed(2)}s`, width / 2, height / 2 + 12);
     }
   }, [displayTokens, opacity, duration, theme]);
 
   if (!enabled) {
     return (
       <span className="text-xs text-slate-400">
-        {tokens} tokens{duration ? ` · ${duration}s` : ''}
+        {tokens} tokens{duration && Number.isFinite(Number(duration)) ? ` · ${Number(duration).toFixed(1)}s` : ''}
       </span>
     );
   }
