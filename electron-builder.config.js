@@ -41,7 +41,7 @@ module.exports = {
   ],
   mac: {
     target: ['dmg', 'zip'],
-    icon: 'resources/icon.png',
+    icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
     // Skip code signing entirely until Apple Developer account is configured
     // Users must right-click → Open on first launch to bypass Gatekeeper
@@ -63,7 +63,7 @@ module.exports = {
   },
   win: {
     target: ['nsis', 'zip'],
-    icon: 'resources/icon.png',
+    icon: 'resources/icon.ico',
   },
   nsis: {
     oneClick: false,
