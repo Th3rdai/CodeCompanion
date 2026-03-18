@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MessageCircle, Lightbulb, ArrowRightLeft, Bug, Sparkles, FileCheck, WrenchIcon, Hammer } from 'lucide-react';
+import { MessageCircle, Lightbulb, ArrowRightLeft, Bug, Sparkles, FileCheck, WrenchIcon, Hammer, ImageIcon } from 'lucide-react';
 
 const STORAGE_KEY = 'th3rdai_onboarding_complete';
 
@@ -85,6 +85,38 @@ const STEPS = [
       </>
     ),
     icon: '🎯',
+  },
+  {
+    id: 'images',
+    title: 'Upload Images',
+    subtitle: 'Analyze screenshots, diagrams, and more',
+    content: (
+      <>
+        <p className="text-slate-300 mb-3">
+          Code Companion supports <strong className="text-indigo-300">image uploads</strong> with vision-capable AI models.
+          Upload screenshots, error messages, architecture diagrams, or UI mockups for analysis.
+        </p>
+        <div className="glass rounded-lg p-3 text-xs text-slate-400 space-y-2">
+          <p><strong className="text-slate-300">Three ways to upload:</strong></p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li><strong>Drag & drop</strong> images directly into the chat area</li>
+            <li><strong>Paste screenshots</strong> with Cmd/Ctrl+V after taking them</li>
+            <li><strong>Click the paperclip</strong> to browse and select images</li>
+          </ul>
+        </div>
+        <div className="glass rounded-lg p-3 text-xs text-slate-400 space-y-1.5 mt-3">
+          <p><strong className="text-slate-300">Vision models required:</strong></p>
+          <p>Install a vision model to use image features (recommended: llava)</p>
+          <code className="block bg-slate-700/50 px-2 py-1.5 rounded text-indigo-300 mt-1.5">
+            ollama pull llava
+          </code>
+          <p className="text-xs text-slate-500 mt-2">
+            Supported formats: PNG, JPEG, GIF • Max size: 25MB (configurable in Settings)
+          </p>
+        </div>
+      </>
+    ),
+    icon: '📸',
   },
   {
     id: 'privacy',

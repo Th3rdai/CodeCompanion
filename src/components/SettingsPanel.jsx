@@ -23,6 +23,15 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [brandAssets, setBrandAssets] = useState([]);
   const [brandLoaded, setBrandLoaded] = useState(false);
 
+  // Image support state
+  const [imageSupport, setImageSupport] = useState({
+    enabled: true,
+    maxSizeMB: 25,
+    maxImagesPerMessage: 10,
+    compressionQuality: 0.9,
+  });
+  const [models, setModels] = useState([]);
+
   // GitHub token state
   const [ghToken, setGhToken] = useState('');
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
@@ -53,22 +62,45 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateError, setUpdateError] = useState(null);
 
-  // Load brand assets, timeout, and port from config
+  // Load brand assets, timeout, port, and image support from config
   useEffect(() => {
     if (!brandLoaded) {
       fetch('/api/config').then(r => r.json()).then(data => {
         if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
         if (data.reviewTimeoutSec != null) setReviewTimeoutSec(data.reviewTimeoutSec);
         if (data.preferredPort != null) setPreferredPort(data.preferredPort);
+        if (data.imageSupport) {
+          setImageSupport({
+            enabled: data.imageSupport.enabled ?? true,
+            maxSizeMB: data.imageSupport.maxSizeMB ?? 25,
+            maxImagesPerMessage: data.imageSupport.maxImagesPerMessage ?? 10,
+            compressionQuality: data.imageSupport.compressionQuality ?? 0.9,
+          });
+        }
         setBrandLoaded(true);
       }).catch(() => setBrandLoaded(true));
     }
   }, [brandLoaded]);
 
+  // Load available models for vision detection
+  useEffect(() => {
+    fetch('/api/models').then(r => r.json()).then(data => {
+      if (data.models) setModels(data.models);
+    }).catch(() => {});
+  }, []);
+
   async function saveBrandAssets(assets) {
     setBrandAssets(assets);
     try {
       await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandAssets: assets }) });
+    } catch {}
+  }
+
+  async function saveImageSupport(updates) {
+    const updatedSupport = { ...imageSupport, ...updates };
+    setImageSupport(updatedSupport);
+    try {
+      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageSupport: updatedSupport }) });
     } catch {}
   }
 
@@ -478,6 +510,129 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 <span>10 min</span>
               </div>
               <p className="text-xs text-slate-400 mt-1.5">How long to wait for AI code reviews before timing out. Larger models need more time.</p>
+            </div>
+
+            {/* Image Support (Beta) */}
+            <div className="glass rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Image Support (Beta)</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Upload images for analysis with vision models</p>
+                </div>
+                <button
+                  onClick={() => saveImageSupport({ enabled: !imageSupport.enabled })}
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+                    imageSupport.enabled ? 'bg-indigo-600' : 'bg-slate-600'
+                  }`}
+                  role="switch"
+                  aria-checked={imageSupport.enabled}
+                  aria-label="Toggle image support">
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                    imageSupport.enabled ? 'translate-x-6' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+              {imageSupport.enabled && (
+                <div className="space-y-4">
+                  {/* Max Image Size */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Max Image Size <span className="text-slate-300 font-medium">({imageSupport.maxSizeMB} MB)</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      step="1"
+                      value={imageSupport.maxSizeMB}
+                      onChange={e => {
+                        const val = parseInt(e.target.value, 10);
+                        setImageSupport(prev => ({ ...prev, maxSizeMB: val }));
+                      }}
+                      onMouseUp={() => saveImageSupport({ maxSizeMB: imageSupport.maxSizeMB })}
+                      onTouchEnd={() => saveImageSupport({ maxSizeMB: imageSupport.maxSizeMB })}
+                      className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                      aria-label="Max image size in MB"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                      <span>1 MB</span>
+                      <span>25 MB</span>
+                      <span>50 MB</span>
+                    </div>
+                  </div>
+
+                  {/* Max Images Per Message */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">Max Images Per Message</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={imageSupport.maxImagesPerMessage}
+                      onChange={e => {
+                        const val = parseInt(e.target.value, 10);
+                        if (val >= 1 && val <= 20) {
+                          saveImageSupport({ maxImagesPerMessage: val });
+                        }
+                      }}
+                      className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-sm"
+                    />
+                  </div>
+
+                  {/* Image Quality */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Image Quality <span className="text-slate-300 font-medium">({Math.round(imageSupport.compressionQuality * 100)}%)</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="1.0"
+                      step="0.1"
+                      value={imageSupport.compressionQuality}
+                      onChange={e => {
+                        const val = parseFloat(e.target.value);
+                        setImageSupport(prev => ({ ...prev, compressionQuality: val }));
+                      }}
+                      onMouseUp={() => saveImageSupport({ compressionQuality: imageSupport.compressionQuality })}
+                      onTouchEnd={() => saveImageSupport({ compressionQuality: imageSupport.compressionQuality })}
+                      className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                      aria-label="Image compression quality"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                      <span>50%</span>
+                      <span>75%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+
+                  {/* Available Vision Models */}
+                  <div className="mt-4 pt-4 border-t border-slate-600/30">
+                    <p className="text-xs font-medium text-slate-300 mb-2">Available Vision Models</p>
+                    {models.filter(m => m.supportsVision).length === 0 ? (
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                        <p className="text-xs text-amber-400/90 mb-2">
+                          No vision models installed. Install one to use image features:
+                        </p>
+                        <code className="block bg-slate-800/50 px-3 py-2 rounded text-xs text-indigo-300 font-mono">
+                          ollama pull llava
+                        </code>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {models.filter(m => m.supportsVision).map(m => (
+                          <div key={m.name} className="flex items-center gap-2 text-xs bg-slate-700/30 rounded px-3 py-2">
+                            <span className="text-lg">👁️</span>
+                            <span className="text-slate-200 font-medium">{m.name}</span>
+                            <span className="text-slate-500 text-[10px]">({m.size} GB)</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Port Configuration */}

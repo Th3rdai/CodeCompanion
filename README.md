@@ -15,9 +15,10 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 ## Features
 
 - **Fifteen specialized modes** — Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Review, Create, Prompting, Skillz, Agentic, Build
-- **Security mode** — OWASP security assessment with multi-file/folder scanning, drag-and-drop folders, export (Copy/MD/CSV/HTML/PDF/JSON), follow-up conversations, and **Remediate** button that generates a zip with fixed files
+- **Image & vision model support** — upload screenshots, diagrams, and error messages via drag-and-drop, file picker, or clipboard paste. Automatic security hardening (EXIF stripping, script destruction), smart duplicate detection, thumbnail gallery with lightbox viewer. Works in Chat, Code Review, and Security modes with any Ollama vision model (llava, bakllava, minicpm-v)
+- **Security mode** — OWASP security assessment with multi-file/folder scanning, drag-and-drop folders, export (Copy/MD/CSV/HTML/PDF/JSON), follow-up conversations, and **Remediate** button that generates a zip with fixed files. Attach error screenshots for visual context
 - **Validate mode** — scan a local folder or GitHub repo, AI generates a project-specific `validate.md` command, one-click install to Claude Code, Cursor, VS Code, and OpenCode
-- **Code Review with Report Card** — color-coded letter grades (A-F) for bugs, security, readability, and completeness with conversational deep-dives
+- **Code Review with Report Card** — color-coded letter grades (A-F) for bugs, security, readability, and completeness with conversational deep-dives. Attach bug screenshots to provide visual evidence
 - **Prompt Builder** — craft, score, revise, and download AI prompts with quality grades for clarity, specificity, structure, and effectiveness
 - **Skill Builder** — create, score, and export SKILL.md files for Claude Code with grades for completeness, format, instructions, and reusability
 - **Agent Designer** — design, score, and download AI agent definitions with grades for purpose, tool design, workflow logic, and safety guardrails
@@ -47,6 +48,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 
 - [Node.js](https://nodejs.org) 18+
 - [Ollama](https://ollama.com) running locally with at least one model pulled
+- **Optional**: Vision model for image support (e.g., `ollama pull llava`)
 
 ### Install & Run
 
@@ -125,6 +127,36 @@ npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-
 ### Tutorial (Build & Create)
 
 In **Create** or **Build** mode, click **Tutorial** above the wizard to open the step-by-step guide. For each step you get a short explanation and a **Fill with example** button that prefills the current step. With the tutorial on, **focus or click** an empty field to get a suggestion (Tab or right-click to accept). **Double-click** a field to get a different suggestion (step 1 cycles static examples; step 2+ requests new AI suggestions from your project info). Use **Previous** / **Next** in the tutorial to move through steps; the wizard stays in sync so you can edit and continue.
+
+### Using Image Support
+
+Code Companion supports image uploads in **Chat**, **Review**, and **Security** modes when using an Ollama vision model (llava, bakllava, minicpm-v, etc.).
+
+**Getting Started:**
+1. Install a vision model: `ollama pull llava`
+2. Select the vision model from the dropdown in Code Companion
+3. Upload images via drag-and-drop, file picker (📎), or clipboard paste (Cmd+V / Ctrl+V)
+
+**Features:**
+- **Automatic security hardening** — EXIF metadata (GPS, timestamps) stripped, embedded scripts destroyed
+- **Smart processing** — Images auto-resize to 2048px, compress, generate thumbnails
+- **Duplicate detection** — SHA-256 hashing prevents accidental duplicate uploads
+- **Gallery viewer** — Click thumbnails to open full-size lightbox with zoom and navigation
+- **Privacy warning** — First-time upload shows privacy notice (don't upload sensitive info)
+
+**Use Cases:**
+- **Chat mode**: Share screenshots of bugs, design mockups, error messages, or code snippets for AI analysis
+- **Review mode**: Attach screenshots showing visual bugs alongside your code for comprehensive reviews
+- **Security mode**: Include error logs, configuration screenshots, or vulnerability proof-of-concept images
+
+**Settings:**
+Configure image support in Settings → Image Support:
+- Enable/disable image uploads
+- Max file size (1-50 MB, default 25MB)
+- Max images per message (1-20, default 10)
+- Compression quality (50%-100%, default 90%)
+
+**Supported formats:** PNG, JPEG, GIF (first frame only for animated GIFs)
 
 ### File Browser and "Load into Form"
 

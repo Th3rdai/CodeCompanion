@@ -279,6 +279,15 @@ app.post('/api/config', (req, res) => {
     }
   }
 
+  // Image support configuration
+  if (req.body.imageSupport !== undefined) {
+    config.imageSupport = {
+      ...config.imageSupport,
+      ...req.body.imageSupport
+    };
+    log('INFO', `Image support updated:`, config.imageSupport);
+  }
+
   if (projectFolder !== undefined) {
     if (projectFolder) {
       log('INFO', `Config projectFolder received: "${projectFolder}"`);
@@ -339,11 +348,21 @@ app.get('/api/models', async (req, res) => {
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
 app.post('/api/chat', async (req, res) => {
-  const { model, messages, mode } = req.body;
+  const { model, messages, mode, images } = req.body;
 
   if (!model || !messages || !mode) {
     log('ERROR', 'Chat request missing fields', { model: !!model, messages: !!messages, mode: !!mode });
     return res.status(400).json({ error: 'Missing model, messages, or mode' });
+  }
+
+  // Validate images array if present
+  if (images && !Array.isArray(images)) {
+    log('ERROR', 'Images must be an array');
+    return res.status(400).json({ error: 'Images must be an array' });
+  }
+  if (images && images.length > 10) {
+    log('ERROR', `Too many images: ${images.length}`, { limit: 10 });
+    return res.status(400).json({ error: 'Maximum 10 images per message' });
   }
 
   const systemPrompt = SYSTEM_PROMPTS[mode];
@@ -352,7 +371,9 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: `Unknown mode: ${mode}` });
   }
 
-  log('INFO', `Chat request: model=${model} mode=${mode} messages=${messages.length}`);
+  log('INFO', `Chat request: model=${model} mode=${mode} messages=${messages.length}`, {
+    imageCount: images?.length || 0
+  });
 
   const config = getConfig();
 
@@ -400,7 +421,12 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const enrichedSystemPrompt = systemPrompt + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt;
+  // Inject vision-specific prompt when images are present
+  const visionPrompt = (images && images.length > 0)
+    ? `\n\n---\nIMAGES: The user has attached ${images.length} image(s). Analyze them carefully and reference them in your response when relevant.`
+    : '';
+
+  const enrichedSystemPrompt = systemPrompt + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt + visionPrompt;
 
   if (hasExternalTools) {
     debug('External tools injected into system prompt', { toolsLength: toolsPrompt.length });
@@ -447,10 +473,20 @@ app.post('/api/chat', async (req, res) => {
 
         let responseText;
         try {
-          responseText = await chatComplete(config.ollamaUrl, model, loopMessages);
+          responseText = await chatComplete(config.ollamaUrl, model, loopMessages, 120000, images || []);
         } catch (err) {
           log('ERROR', `Ollama chatComplete failed (round ${round + 1})`, { error: err.message });
-          sendEvent({ error: `Ollama error: ${err.message}` });
+          // Phase 6: Vision-specific error messages
+          const msg = err.message.toLowerCase();
+          if (msg.includes('timeout') || msg.includes('timed out')) {
+            sendEvent({ error: images?.length > 0
+              ? 'Request timed out. Vision models can take longer - try fewer images.'
+              : `Request timed out: ${err.message}` });
+          } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
+            sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
+          } else {
+            sendEvent({ error: `Ollama error: ${err.message}` });
+          }
           res.write('data: [DONE]\n\n');
           return res.end();
         }
@@ -513,7 +549,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // ── Standard streaming path (no external tools) ──
-    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages);
+    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || []);
 
     debug('Ollama chat response', { status: ollamaRes.status, ok: ollamaRes.ok });
 
@@ -589,7 +625,17 @@ app.post('/api/chat', async (req, res) => {
       } catch (err) {
         log('ERROR', 'Stream read error', { error: err.message });
         if (!res.writableEnded) {
-          sendEvent({ error: err.message });
+          // Phase 6: Vision-specific error messages
+          const msg = err.message.toLowerCase();
+          if (msg.includes('timeout') || msg.includes('timed out')) {
+            sendEvent({ error: images?.length > 0
+              ? 'Request timed out. Vision models can take longer - try fewer images.'
+              : `Request timed out: ${err.message}` });
+          } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
+            sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
+          } else {
+            sendEvent({ error: err.message });
+          }
           res.write('data: [DONE]\n\n');
           res.end();
         }
@@ -605,7 +651,19 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (err) {
     log('ERROR', `Chat connection failed`, { error: err.message, cause: err.cause?.message });
-    sendEvent({ error: `Connection failed: ${err.message}` });
+    // Phase 6: Vision-specific error messages
+    const msg = err.message.toLowerCase();
+    if (msg.includes('timeout') || msg.includes('timed out')) {
+      sendEvent({ error: images?.length > 0
+        ? 'Request timed out. Vision models can take longer - try fewer images.'
+        : `Request timed out: ${err.message}` });
+    } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
+      sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
+    } else if (msg.includes('econnrefused') || msg.includes('enotfound')) {
+      sendEvent({ error: 'Cannot connect to Ollama. Please check that Ollama is running.' });
+    } else {
+      sendEvent({ error: `Connection failed: ${err.message}` });
+    }
     res.write('data: [DONE]\n\n');
     res.end();
   }
@@ -614,19 +672,35 @@ app.post('/api/chat', async (req, res) => {
 // ── POST /api/review (structured report card) ────────
 
 app.post('/api/review', async (req, res) => {
-  const { model, code, filename } = req.body;
+  const { model, code, filename, images } = req.body;
 
   if (!model || !code) {
     log('ERROR', 'Review request missing fields', { model: !!model, code: !!code });
     return res.status(400).json({ error: 'Missing model or code' });
   }
 
-  log('INFO', `Review request: model=${model} code=${code.length} chars`);
+  // Validate images array if present
+  if (images && !Array.isArray(images)) {
+    log('ERROR', 'Images must be an array');
+    return res.status(400).json({ error: 'Images must be an array' });
+  }
+  if (images && images.length > 10) {
+    log('ERROR', `Too many images: ${images.length}`, { limit: 10 });
+    return res.status(400).json({ error: 'Maximum 10 images per message' });
+  }
+
+  log('INFO', `Review request: model=${model} code=${code.length} chars`, {
+    imageCount: images?.length || 0
+  });
 
   const config = getConfig();
 
   try {
-    const result = await reviewCode(config.ollamaUrl, model, code, { filename, timeoutSec: config.reviewTimeoutSec });
+    const result = await reviewCode(config.ollamaUrl, model, code, {
+      filename,
+      timeoutSec: config.reviewTimeoutSec,
+      images: images || []
+    });
 
     if (result.type === 'report-card') {
       // Structured output succeeded — return JSON
@@ -736,19 +810,34 @@ app.post('/api/review', async (req, res) => {
 
 // ── POST /api/pentest (OWASP security analysis) ────────
 app.post('/api/pentest', async (req, res) => {
-  const { model, code, filename } = req.body;
+  const { model, code, filename, images } = req.body;
 
   if (!model || !code) {
     log('ERROR', 'Pentest request missing fields', { model: !!model, code: !!code });
     return res.status(400).json({ error: 'Missing model or code' });
   }
 
-  log('INFO', `Pentest request: model=${model} code=${code.length} chars`);
+  // Validate images array if present
+  if (images && !Array.isArray(images)) {
+    log('ERROR', 'Images must be an array');
+    return res.status(400).json({ error: 'Images must be an array' });
+  }
+  if (images && images.length > 10) {
+    log('ERROR', `Too many images: ${images.length}`, { limit: 10 });
+    return res.status(400).json({ error: 'Maximum 10 images per message' });
+  }
+
+  log('INFO', `Pentest request: model=${model} code=${code.length} chars`, {
+    imageCount: images?.length || 0
+  });
 
   const config = getConfig();
 
   try {
-    const result = await pentestCode(config.ollamaUrl, model, code, { filename });
+    const result = await pentestCode(config.ollamaUrl, model, code, {
+      filename,
+      images: images || []
+    });
 
     if (result.type === 'security-report') {
       // Structured output succeeded — return JSON

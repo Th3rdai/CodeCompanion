@@ -34,6 +34,10 @@ import OrbitingBadge from './components/3d/OrbitingBadge';
 import OllamaSetup from './components/OllamaSetup';
 import ConnectionDot from './components/ConnectionDot';
 import MemoryPanel from './components/MemoryPanel';
+import ImageThumbnail from './components/ImageThumbnail';
+import ImageLightbox from './components/ImageLightbox';
+import ImagePrivacyWarning from './components/ImagePrivacyWarning';
+import { validateImage, processImage, hashImage } from './lib/image-processor';
 import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
 import { use3DEffects } from './contexts/Effects3DContext';
 
@@ -67,17 +71,30 @@ function TypingIndicator() {
   );
 }
 
-function AttachedFiles({ files, onRemove }) {
+function AttachedFiles({ files, onRemove, onImageClick }) {
   if (files.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1.5 mb-2">
+    <div className="flex flex-wrap gap-2 mb-2">
       {files.map((f, i) => (
-        <div key={i} className="flex items-center gap-1.5 bg-indigo-600/15 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-xs">
-          <span className="text-indigo-400">📄</span>
-          <span className="text-slate-300 max-w-[120px] truncate">{f.name}</span>
-          <span className="text-slate-600">{f.lines ? `${f.lines}L` : ''}</span>
-          <button onClick={() => onRemove(i)} className="text-slate-500 hover:text-red-400 ml-0.5" aria-label={`Remove ${f.name}`}>✕</button>
-        </div>
+        f.isImage || f.type === 'image' ? (
+          <ImageThumbnail
+            key={i}
+            src={f.thumbnail}
+            filename={f.name}
+            size={f.size}
+            format={f.format}
+            dimensions={f.dimensions}
+            onRemove={() => onRemove(i)}
+            onClick={() => onImageClick && onImageClick(i)}
+          />
+        ) : (
+          <div key={i} className="flex items-center gap-1.5 bg-indigo-600/15 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-xs">
+            <span className="text-indigo-400">📄</span>
+            <span className="text-slate-300 max-w-[120px] truncate">{f.name}</span>
+            <span className="text-slate-600">{f.lines ? `${f.lines}L` : ''}</span>
+            <button onClick={() => onRemove(i)} className="text-slate-500 hover:text-red-400 ml-0.5" aria-label={`Remove ${f.name}`}>✕</button>
+          </div>
+        )
       ))}
     </div>
   );
@@ -155,6 +172,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete());
   const [showGlossary, setShowGlossary] = useState(false);
   const [showOllamaSetup, setShowOllamaSetup] = useState(false);
+  const [showImagePrivacyWarning, setShowImagePrivacyWarning] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -172,6 +190,15 @@ export default function App() {
   const [tutorialStep, setTutorialStep] = useState(1);
   const [wizardPrefill, setWizardPrefill] = useState(null);
 
+  // Image support state (Phase 2)
+  const [processingImages, setProcessingImages] = useState(0); // Count of images currently being processed
+  const processingQueue = useRef([]); // Phase 7: Queue of pending image processing tasks
+  const activeProcessing = useRef(new Set()); // Phase 7: Set of currently processing file names
+  const MAX_CONCURRENT_PROCESSING = 3; // Phase 7: Max concurrent image processing operations
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null); // { src, filename }
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   // Auto-update state
   const [updateBanner, setUpdateBanner] = useState(null); // null | { type: 'available' | 'ready', version: string }
 
@@ -179,6 +206,12 @@ export default function App() {
   const [activeMemories, setActiveMemories] = useState(null);
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
   const [memoryDropdownOpen, setMemoryDropdownOpen] = useState(false);
+
+  // Vision model detection (Phase 4: Image Support)
+  const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
+  const selectedModelInfo = models.find(m => m.name === selectedModel);
+  const isVisionModel = selectedModelInfo?.supportsVision || false;
+  const showVisionWarning = hasImages && !isVisionModel;
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
@@ -489,20 +522,33 @@ export default function App() {
     } catch {}
   }
 
-  // Build message with attached files
+  // Build message with attached files (text only, images handled separately)
   function buildUserContent(text, files) {
-    if (files.length === 0) return text;
+    // Filter out images - they're sent separately
+    const textFiles = files.filter(f => f.type !== 'image' && !f.isImage);
+    if (textFiles.length === 0) return text;
+
     let content = text.trim() ? text + '\n\n' : '';
-    files.forEach(f => {
-      content += `--- File: ${f.name}${f.path ? ' (' + f.path + ')' : ''} ---\n\`\`\`\n${f.content}\n\`\`\`\n\n`;
+    content += '---\nATTACHED FILES:\n';
+    textFiles.forEach(f => {
+      content += `\n### ${f.name}${f.path ? ' (' + f.path + ')' : ''}\n\`\`\`\n${f.content}\n\`\`\`\n\n`;
     });
     return content;
   }
 
   async function handleSend() {
-    if ((!input.trim() && attachedFiles.length === 0) || streaming || !selectedModel) return;
+    if ((!input.trim() && attachedFiles.length === 0) || streaming || !selectedModel || showVisionWarning) return;
+
+    // Separate text files and image files
+    const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
+    const images = imageFiles.map(img => img.content); // Array of base64 strings (NO prefix)
+
     const content = buildUserContent(input.trim(), attachedFiles);
-    const userMsg = { role: 'user', content };
+    const userMsg = {
+      role: 'user',
+      content,
+      ...(images.length > 0 && { images }) // Add images field if present
+    };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null);
     setSendBurst(true); setTimeout(() => setSendBurst(false), 100);
@@ -512,7 +558,16 @@ export default function App() {
 
     try {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: selectedModel, mode, messages: newMessages.map(m => ({ role: m.role, content: m.content })) }) });
+        body: JSON.stringify({
+          model: selectedModel,
+          mode,
+          messages: newMessages.map(m => ({
+            role: m.role,
+            content: m.content,
+            ...(m.images && { images: m.images }) // Preserve images in message history
+          })),
+          ...(images.length > 0 && { images }) // Send current images to API
+        }) });
       const reader = res.body.getReader(); const decoder = new TextDecoder();
       let assistantContent = ''; let buffer = '';
       let lastSaveTime = Date.now();
@@ -560,7 +615,15 @@ export default function App() {
       const finalMessages = [...newMessages, { role: 'assistant', content: assistantContent }];
       setMessages(finalMessages); saveConversation(finalMessages, mode);
     } catch (err) {
-      setMessages([...newMessages, { role: 'assistant', content: `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!\n\nTechnical detail: ${err.message}` }]);
+      // Phase 6: Vision-specific error messages
+      const hasImages = images && images.length > 0;
+      let errorMsg = `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!`;
+
+      if (hasImages) {
+        errorMsg = `Vision inference failed. ${selectedModel} may not support images, or Ollama may not be running.`;
+      }
+
+      setMessages([...newMessages, { role: 'assistant', content: `${errorMsg}\n\nTechnical detail: ${err.message}` }]);
     } finally { setStreaming(false); }
   }
 
@@ -588,13 +651,181 @@ export default function App() {
   }
   function removeAttachedFile(index) { setAttachedFiles(prev => prev.filter((_, i) => i !== index)); }
 
-  function handleFileUpload(e) {
-    const files = Array.from(e.target.files);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => { attachFile({ name: file.name, content: ev.target.result, lines: ev.target.result.split('\n').length }); };
-      reader.readAsText(file);
+  // Vision model helpers (Phase 4: Image Support)
+  function switchToVisionModel() {
+    const visionModel = models.find(m => m.supportsVision);
+    if (visionModel) {
+      setSelectedModel(visionModel.name);
+      showToast(`Switched to vision model: ${visionModel.name}`);
+    } else {
+      showToast('No vision models available. Install one with: ollama pull llava');
+    }
+  }
+
+  function removeAllImages() {
+    setAttachedFiles(prev => prev.filter(f => f.type !== 'image' && !f.isImage));
+    showToast('Removed all images');
+  }
+
+  // Phase 8: Privacy warning helper
+  function checkAndShowImagePrivacyWarning() {
+    const hasSeenWarning = localStorage.getItem('cc-image-privacy-accepted') === 'true';
+    if (!hasSeenWarning) {
+      setShowImagePrivacyWarning(true);
+      return true; // Showed warning, upload should wait
+    }
+    return false; // No warning needed, proceed with upload
+  }
+
+  // Phase 7: Image processing queue
+  async function queueImageProcessing(file, config) {
+    return new Promise((resolve, reject) => {
+      processingQueue.current.push({ file, config, resolve, reject });
+      processNextInQueue();
     });
+  }
+
+  async function processNextInQueue() {
+    // Check if we can process more
+    if (activeProcessing.current.size >= MAX_CONCURRENT_PROCESSING) return;
+    if (processingQueue.current.length === 0) return;
+
+    const { file, config, resolve, reject } = processingQueue.current.shift();
+    activeProcessing.current.add(file.name);
+
+    // Update processing count
+    setProcessingImages(prev => prev + 1);
+
+    try {
+      const result = await processImage(file, config);
+      resolve(result);
+    } catch (err) {
+      reject(err);
+    } finally {
+      activeProcessing.current.delete(file.name);
+      setProcessingImages(prev => prev - 1);
+      // Process next in queue
+      processNextInQueue();
+    }
+  }
+
+  // Lightbox handlers
+  function openLightbox(imageIndex) {
+    const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
+    if (imageIndex >= 0 && imageIndex < imageFiles.length) {
+      const img = imageFiles[imageIndex];
+      setLightboxImage({
+        src: img.thumbnail, // Use thumbnail which has data URI prefix
+        filename: img.name
+      });
+      setLightboxIndex(imageIndex);
+      setLightboxOpen(true);
+    }
+  }
+
+  function openLightboxFromMessage(imageBase64, filename, allImages, index) {
+    // Reconstruct data URI for display (images in messages are stored as raw base64)
+    const src = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+    setLightboxImage({ src, filename });
+    setLightboxIndex(index || 0);
+    setLightboxOpen(true);
+  }
+
+  function closeLightbox() {
+    setLightboxOpen(false);
+    setLightboxImage(null);
+  }
+
+  function navigateLightbox(newIndex) {
+    const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
+    if (newIndex >= 0 && newIndex < imageFiles.length) {
+      const img = imageFiles[newIndex];
+      setLightboxImage({
+        src: img.thumbnail,
+        filename: img.name
+      });
+      setLightboxIndex(newIndex);
+    }
+  }
+
+  async function handleFileUpload(e) {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      const isImage = file.type.startsWith('image/');
+
+      if (isImage) {
+        // Phase 8: Check for privacy warning on first image upload
+        const shouldWait = checkAndShowImagePrivacyWarning();
+        if (shouldWait) {
+          continue; // User will re-upload after accepting warning
+        }
+
+        // Handle image file
+        try {
+          // Get config for validation
+          const configRes = await fetch('/api/config');
+          const config = await configRes.json();
+
+          // Validate image
+          const validation = await validateImage(file, config.imageSupport || {});
+          if (!validation.valid) {
+            showToast(`❌ ${file.name}: ${validation.error}`);
+            continue;
+          }
+
+          // Phase 7: Process image via queue (max 3 concurrent)
+          const processed = await queueImageProcessing(file, config.imageSupport || {});
+
+          // Check for duplicates
+          const hash = await hashImage(processed.base64);
+          const isDuplicate = attachedFiles.some(f => f.hash === hash);
+          if (isDuplicate) {
+            const proceed = confirm(`${file.name} appears to be a duplicate. Attach anyway?`);
+            if (!proceed) continue;
+          }
+
+          // Attach image
+          attachFile({
+            name: file.name,
+            content: processed.base64, // NO data URI prefix (for API)
+            type: 'image',
+            isImage: true,
+            thumbnail: processed.thumbnail, // WITH data URI prefix (for display)
+            size: processed.size,
+            dimensions: processed.dimensions,
+            format: processed.format,
+            hash
+          });
+        } catch (err) {
+          // Phase 6: Categorize processing errors for better user feedback
+          const msg = err.message.toLowerCase();
+          if (msg.includes('dimension')) {
+            showToast(`❌ ${file.name}: Image too large to process`);
+          } else if (msg.includes('canvas') || msg.includes('context')) {
+            showToast(`❌ ${file.name}: Failed to process image (browser error)`);
+          } else if (msg.includes('memory') || msg.includes('out of')) {
+            showToast(`❌ Out of memory. Try smaller images or fewer at once.`);
+          } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+            showToast(`❌ ${file.name}: Corrupted or invalid image file`);
+          } else {
+            showToast(`❌ ${file.name}: ${err.message}`);
+          }
+        }
+        // Phase 7: Processing count now handled by queue
+      } else {
+        // Handle text file
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          attachFile({
+            name: file.name,
+            content: ev.target.result,
+            lines: ev.target.result.split('\n').length,
+            type: 'text'
+          });
+        };
+        reader.readAsText(file);
+      }
+    }
     e.target.value = '';
   }
 
@@ -602,21 +833,170 @@ export default function App() {
   function handleDragEnter(e) { e.preventDefault(); dragCounter.current++; setDragging(true); }
   function handleDragLeave(e) { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setDragging(false); }
   function handleDragOver(e) { e.preventDefault(); }
-  function handleDrop(e) {
+  async function handleDrop(e) {
     e.preventDefault(); dragCounter.current = 0; setDragging(false);
-    Array.from(e.dataTransfer.files).forEach(file => {
+    const files = Array.from(e.dataTransfer.files);
+
+    for (const file of files) {
       // Skip directories — they have no size and can't be read as text
-      if (file.size === 0 && file.type === '') return;
-      const reader = new FileReader();
-      reader.onload = (ev) => { attachFile({ name: file.name, content: ev.target.result, lines: ev.target.result.split('\n').length }); };
-      reader.readAsText(file);
-    });
+      if (file.size === 0 && file.type === '') continue;
+
+      const isImage = file.type.startsWith('image/');
+
+      if (isImage) {
+        // Phase 8: Check for privacy warning on first image upload
+        const shouldWait = checkAndShowImagePrivacyWarning();
+        if (shouldWait) {
+          continue; // User will re-upload after accepting warning
+        }
+
+        // Handle image file
+        try {
+          // Get config for validation
+          const configRes = await fetch('/api/config');
+          const config = await configRes.json();
+
+          // Validate image
+          const validation = await validateImage(file, config.imageSupport || {});
+          if (!validation.valid) {
+            showToast(`❌ ${file.name}: ${validation.error}`);
+            continue;
+          }
+
+          // Phase 7: Process image via queue (max 3 concurrent)
+          const processed = await queueImageProcessing(file, config.imageSupport || {});
+
+          // Check for duplicates
+          const hash = await hashImage(processed.base64);
+          const isDuplicate = attachedFiles.some(f => f.hash === hash);
+          if (isDuplicate) {
+            const proceed = confirm(`${file.name} appears to be a duplicate. Attach anyway?`);
+            if (!proceed) continue;
+          }
+
+          // Attach image
+          attachFile({
+            name: file.name,
+            content: processed.base64, // NO data URI prefix (for API)
+            type: 'image',
+            isImage: true,
+            thumbnail: processed.thumbnail, // WITH data URI prefix (for display)
+            size: processed.size,
+            dimensions: processed.dimensions,
+            format: processed.format,
+            hash
+          });
+        } catch (err) {
+          // Phase 6: Categorize processing errors for better user feedback
+          const msg = err.message.toLowerCase();
+          if (msg.includes('dimension')) {
+            showToast(`❌ ${file.name}: Image too large to process`);
+          } else if (msg.includes('canvas') || msg.includes('context')) {
+            showToast(`❌ ${file.name}: Failed to process image (browser error)`);
+          } else if (msg.includes('memory') || msg.includes('out of')) {
+            showToast(`❌ Out of memory. Try smaller images or fewer at once.`);
+          } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+            showToast(`❌ ${file.name}: Corrupted or invalid image file`);
+          } else {
+            showToast(`❌ ${file.name}: ${err.message}`);
+          }
+        }
+        // Phase 7: Processing count now handled by queue
+      } else {
+        // Handle text file
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          attachFile({
+            name: file.name,
+            content: ev.target.result,
+            lines: ev.target.result.split('\n').length,
+            type: 'text'
+          });
+        };
+        reader.readAsText(file);
+      }
+    }
   }
 
   // Toolbar actions
   async function handlePaste() {
     try { const text = await navigator.clipboard.readText(); setInput(prev => prev + text); textareaRef.current?.focus(); showToast('Pasted from clipboard'); }
     catch { showToast('Clipboard access denied'); }
+  }
+
+  // Clipboard paste support for images
+  async function handlePasteImage(e) {
+    const items = Array.from(e.clipboardData?.items || []);
+
+    for (const item of items) {
+      // Handle direct image data (screenshots, copied images)
+      if (item.type.startsWith('image/')) {
+        e.preventDefault(); // Don't paste as text
+
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        // Phase 8: Check for privacy warning on first image upload
+        const shouldWait = checkAndShowImagePrivacyWarning();
+        if (shouldWait) {
+          continue; // User will re-paste after accepting warning
+        }
+
+        try {
+          // Get config for validation
+          const configRes = await fetch('/api/config');
+          const config = await configRes.json();
+
+          // Validate image
+          const validation = await validateImage(file, config.imageSupport || {});
+          if (!validation.valid) {
+            showToast(`❌ Pasted image: ${validation.error}`);
+            continue;
+          }
+
+          // Phase 7: Process image via queue (max 3 concurrent)
+          const processed = await queueImageProcessing(file, config.imageSupport || {});
+
+          // Check for duplicates
+          const hash = await hashImage(processed.base64);
+          const isDuplicate = attachedFiles.some(f => f.hash === hash);
+          if (isDuplicate) {
+            const proceed = confirm('This image appears to be a duplicate. Attach anyway?');
+            if (!proceed) continue;
+          }
+
+          // Attach image
+          attachFile({
+            name: file.name || `pasted-image-${Date.now()}.png`,
+            content: processed.base64, // NO data URI prefix (for API)
+            type: 'image',
+            isImage: true,
+            thumbnail: processed.thumbnail, // WITH data URI prefix (for display)
+            size: processed.size,
+            dimensions: processed.dimensions,
+            format: processed.format,
+            hash
+          });
+
+          showToast('✓ Image pasted from clipboard');
+        } catch (err) {
+          // Phase 6: Categorize processing errors for better user feedback
+          const msg = err.message.toLowerCase();
+          if (msg.includes('dimension')) {
+            showToast(`❌ Pasted image too large to process`);
+          } else if (msg.includes('canvas') || msg.includes('context')) {
+            showToast(`❌ Failed to process pasted image (browser error)`);
+          } else if (msg.includes('memory') || msg.includes('out of')) {
+            showToast(`❌ Out of memory. Try a smaller image.`);
+          } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+            showToast(`❌ Corrupted or invalid pasted image`);
+          } else {
+            showToast(`❌ Failed to process pasted image: ${err.message}`);
+          }
+        }
+        // Phase 7: Processing count now handled by queue
+      }
+    }
   }
   function handleCopyLastResponse() {
     const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
@@ -878,7 +1258,20 @@ export default function App() {
             <select id="model-select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}
               className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[200px]">
               {models.length === 0 && <option value="">No models found</option>}
-              {models.map(m => <option key={m.name} value={m.name}>{m.name} ({m.paramSize || m.size + 'GB'})</option>)}
+              {[...models]
+                .sort((a, b) => {
+                  // Sort vision models to top when images attached (Phase 4: Image Support)
+                  if (hasImages) {
+                    return (b.supportsVision ? 1 : 0) - (a.supportsVision ? 1 : 0);
+                  }
+                  return 0;
+                })
+                .map(m => (
+                  <option key={m.name} value={m.name}>
+                    {m.supportsVision ? '👁️ ' : ''}{m.name} ({m.paramSize || m.size + 'GB'})
+                  </option>
+                ))
+              }
             </select>
           </div>
         </header>
@@ -1102,7 +1495,13 @@ export default function App() {
                   ) : null}
                   {messages.map((msg, i) => (
                     <div key={i} className="relative group">
-                      <MessageBubble role={msg.role} content={msg.content} streaming={streaming && i === messages.length - 1 && msg.role === 'assistant'} />
+                      <MessageBubble
+                        role={msg.role}
+                        content={msg.content}
+                        streaming={streaming && i === messages.length - 1 && msg.role === 'assistant'}
+                        images={msg.images}
+                        onImageClick={openLightboxFromMessage}
+                      />
                       {msg.role === 'assistant' && !streaming && (
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
                       )}
@@ -1126,16 +1525,41 @@ export default function App() {
             {/* Input — hidden in Create and Review modes */}
             {mode !== 'create' && mode !== 'build' && mode !== 'review' && mode !== 'pentest' && !BUILDER_MODES.includes(mode) && (
             <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
-              <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} />
+              <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} onImageClick={openLightbox} />
+
+              {/* Vision Model Warning (Phase 4: Image Support) */}
+              {showVisionWarning && (
+                <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 mb-3 rounded">
+                  <p className="text-sm text-yellow-200 flex items-center gap-2 flex-wrap">
+                    <span className="shrink-0">⚠️ Current model doesn't support images.</span>
+                    <button
+                      onClick={switchToVisionModel}
+                      className="underline hover:text-yellow-100 transition-colors"
+                      type="button"
+                    >
+                      Switch to vision model
+                    </button>
+                    <span className="text-yellow-300/60">or</span>
+                    <button
+                      onClick={removeAllImages}
+                      className="underline hover:text-yellow-100 transition-colors"
+                      type="button"
+                    >
+                      remove images
+                    </button>
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <div className="flex-1 flex flex-col gap-1.5">
                   <label htmlFor="chat-input" className="sr-only">Type your message</label>
-                  <textarea id="chat-input" ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                  <textarea id="chat-input" ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePasteImage}
                     placeholder={connected ? (attachedFiles.length > 0 ? 'Add a note about these files, or just hit Send — I\'ll take a look!' : currentMode?.placeholder) : 'Let\'s get connected first — click Settings up top to set up Ollama...'}
                     rows={4} disabled={streaming || !connected}
                     className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
                   <div className="flex items-center gap-1.5 pl-1">
-                    <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue" className="hidden" onChange={handleFileUpload} />
+                    <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif" className="hidden" onChange={handleFileUpload} />
                     <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📎 Upload
@@ -1166,7 +1590,7 @@ export default function App() {
                 </div>
                 <div className="flex flex-col gap-2 relative">
                   <ParticleBurst trigger={sendBurst} color={theme.primary} />
-                  <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel}
+                  <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel || showVisionWarning}
                     className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
                     {streaming ? '...' : 'Send'}
                   </button>
@@ -1228,6 +1652,42 @@ export default function App() {
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       {showOllamaSetup && <OllamaSetup onComplete={() => { setShowOllamaSetup(false); fetchModels(); }} />}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+
+      {/* Image Lightbox (Phase 2: Image Support) */}
+      {lightboxOpen && lightboxImage && (
+        <ImageLightbox
+          isOpen={lightboxOpen}
+          onClose={closeLightbox}
+          src={lightboxImage.src}
+          filename={lightboxImage.filename}
+          images={attachedFiles.filter(f => f.type === 'image' || f.isImage).map(f => f.thumbnail)}
+          currentIndex={lightboxIndex}
+          onNavigate={navigateLightbox}
+        />
+      )}
+
+      {/* Processing Images Indicator */}
+      {processingImages > 0 && (
+        <div className="fixed bottom-4 right-4 z-50 glass-heavy border border-indigo-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+            <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+            <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+          </div>
+          <span className="text-sm text-slate-300">Processing {processingImages} image{processingImages > 1 ? 's' : ''}...</span>
+        </div>
+      )}
+
+      {/* Image Privacy Warning (Phase 8: Security) */}
+      {showImagePrivacyWarning && (
+        <ImagePrivacyWarning
+          onClose={() => setShowImagePrivacyWarning(false)}
+          onAccept={() => {
+            setShowImagePrivacyWarning(false);
+            showToast('✓ You can now upload images');
+          }}
+        />
+      )}
     </div>
   );
 }

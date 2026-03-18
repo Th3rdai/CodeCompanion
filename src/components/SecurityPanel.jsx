@@ -1,11 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Tab } from '@headlessui/react';
-import { FileText, Upload as UploadIcon, FolderOpen, FolderSearch, AlertTriangle, History, Copy, Download, Check, ChevronDown, Wrench } from 'lucide-react';
+import { FileText, Upload as UploadIcon, FolderOpen, FolderSearch, AlertTriangle, History, Copy, Download, Check, ChevronDown, Wrench, X } from 'lucide-react';
 import JSZip from 'jszip';
 import SecurityReport from './SecurityReport';
 import MessageBubble from './MessageBubble';
 import MarkdownContent from './MarkdownContent';
 import LoadingAnimation from './LoadingAnimation';
+import ImageThumbnail from './ImageThumbnail';
+import ImageLightbox from './ImageLightbox';
+import { validateImage, processImage, hashImage } from '../lib/image-processor';
 
 // ── Model tier system (same as ReviewPanel) ──────────
 const MODEL_TIERS = {
@@ -112,6 +115,13 @@ export default function SecurityPanel({
   const [remediating, setRemediating] = useState(false);
   const [remediationProgress, setRemediationProgress] = useState('');
 
+  // Phase 9.2: Image support
+  const [attachedImages, setAttachedImages] = useState([]);
+  const [processingImages, setProcessingImages] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   const modelTier = getModelTier(selectedModel);
   const suggestedModel = suggestBetterModel(selectedModel, models || []);
   const showModelWarning = modelTier === 'weak' || modelTier === 'adequate';
@@ -154,6 +164,9 @@ export default function SecurityPanel({
     setFallbackContent('');
 
     try {
+      // Phase 9.2: Include images in security scan request
+      const images = attachedImages.map(img => img.content); // Array of base64 (NO prefix)
+
       const res = await fetch('/api/pentest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,6 +174,7 @@ export default function SecurityPanel({
           model: selectedModel,
           code: code.trim(),
           filename: filename || undefined,
+          ...(images.length > 0 && { images }),
         }),
       });
 
@@ -362,12 +376,76 @@ export default function SecurityPanel({
   }
 
   // ── File handling (single or multiple) ───────────
-  function handleFileUpload(e) {
+  async function handleFileUpload(e) {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    if (files.length === 1) {
-      const file = files[0];
+    // Phase 9.2: Separate images from text files
+    const imageFiles = [];
+    const textFiles = [];
+
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        imageFiles.push(file);
+      } else {
+        textFiles.push(file);
+      }
+    }
+
+    // Process images
+    for (const file of imageFiles) {
+      setProcessingImages(prev => prev + 1);
+      try {
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+
+        const validation = await validateImage(file, config.imageSupport || {});
+        if (!validation.valid) {
+          onToast?.(`❌ ${file.name}: ${validation.error}`);
+          continue;
+        }
+
+        const processed = await processImage(file, config.imageSupport || {});
+        const hash = await hashImage(processed.base64);
+        const isDuplicate = attachedImages.some(img => img.hash === hash);
+
+        if (isDuplicate) {
+          const proceed = confirm(`${file.name} appears to be a duplicate. Attach anyway?`);
+          if (!proceed) continue;
+        }
+
+        setAttachedImages(prev => [...prev, {
+          name: file.name,
+          content: processed.base64,
+          thumbnail: processed.thumbnail,
+          size: processed.size,
+          dimensions: processed.dimensions,
+          format: processed.format,
+          hash
+        }]);
+
+        onToast?.(`✓ Image processed: ${file.name}`);
+      } catch (err) {
+        const msg = err.message.toLowerCase();
+        if (msg.includes('dimension')) {
+          onToast?.(`❌ ${file.name}: Image too large to process`);
+        } else if (msg.includes('canvas') || msg.includes('context')) {
+          onToast?.(`❌ ${file.name}: Failed to process image (browser error)`);
+        } else if (msg.includes('memory') || msg.includes('out of')) {
+          onToast?.(`❌ Out of memory. Try smaller images or fewer at once.`);
+        } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+          onToast?.(`❌ ${file.name}: Corrupted or invalid image file`);
+        } else {
+          onToast?.(`❌ ${file.name}: ${err.message}`);
+        }
+      } finally {
+        setProcessingImages(prev => prev - 1);
+      }
+    }
+
+    // Process text files (existing logic)
+    if (textFiles.length === 1) {
+      const file = textFiles[0];
       const reader = new FileReader();
       reader.onload = (ev) => {
         setCode(ev.target.result);
@@ -375,20 +453,20 @@ export default function SecurityPanel({
         onToast?.(`Loaded: ${file.name}`);
       };
       reader.readAsText(file);
-    } else {
-      // Multiple files selected
+    } else if (textFiles.length > 1) {
+      // Multiple text files selected
       const results = [];
       let loaded = 0;
-      for (const file of files) {
+      for (const file of textFiles) {
         const reader = new FileReader();
         reader.onload = (ev) => {
           results.push({ name: file.name, content: ev.target.result });
           loaded++;
-          if (loaded === files.length) {
+          if (loaded === textFiles.length) {
             const combined = results.map(r => `── File: ${r.name} ──\n${r.content}`).join('\n\n');
             setCode(combined);
-            setFilename(`${files.length} files`);
-            onToast?.(`Loaded ${files.length} files`);
+            setFilename(`${textFiles.length} files`);
+            onToast?.(`Loaded ${textFiles.length} text files`);
           }
         };
         reader.readAsText(file);
@@ -494,13 +572,67 @@ export default function SecurityPanel({
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
         const file = files[0];
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          setCode(ev.target.result);
-          setFilename(file.name);
-          onToast?.(`Loaded: ${file.name}`);
-        };
-        reader.readAsText(file);
+        const isImage = file.type.startsWith('image/');
+
+        if (isImage) {
+          // Phase 9.2: Process dropped image
+          setProcessingImages(prev => prev + 1);
+          try {
+            const configRes = await fetch('/api/config');
+            const config = await configRes.json();
+
+            const validation = await validateImage(file, config.imageSupport || {});
+            if (!validation.valid) {
+              onToast?.(`❌ ${file.name}: ${validation.error}`);
+              return;
+            }
+
+            const processed = await processImage(file, config.imageSupport || {});
+            const hash = await hashImage(processed.base64);
+            const isDuplicate = attachedImages.some(img => img.hash === hash);
+
+            if (isDuplicate) {
+              const proceed = confirm(`${file.name} appears to be a duplicate. Attach anyway?`);
+              if (!proceed) return;
+            }
+
+            setAttachedImages(prev => [...prev, {
+              name: file.name,
+              content: processed.base64,
+              thumbnail: processed.thumbnail,
+              size: processed.size,
+              dimensions: processed.dimensions,
+              format: processed.format,
+              hash
+            }]);
+
+            onToast?.(`✓ Image dropped: ${file.name}`);
+          } catch (err) {
+            const msg = err.message.toLowerCase();
+            if (msg.includes('dimension')) {
+              onToast?.(`❌ ${file.name}: Image too large to process`);
+            } else if (msg.includes('canvas') || msg.includes('context')) {
+              onToast?.(`❌ ${file.name}: Failed to process image (browser error)`);
+            } else if (msg.includes('memory') || msg.includes('out of')) {
+              onToast?.(`❌ Out of memory. Try smaller images or fewer at once.`);
+            } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+              onToast?.(`❌ ${file.name}: Corrupted or invalid image file`);
+            } else {
+              onToast?.(`❌ ${file.name}: ${err.message}`);
+            }
+          } finally {
+            setProcessingImages(prev => prev - 1);
+          }
+        } else {
+          // Existing text file logic
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            setCode(ev.target.result);
+            setFilename(file.name);
+            onToast?.(`Loaded: ${file.name}`);
+          };
+          reader.readAsText(file);
+        }
       }
     }
   }
@@ -519,6 +651,8 @@ export default function SecurityPanel({
     setFolderMeta(null);
     setFallbackMessages([]);
     setFallbackInput('');
+    // Phase 9.2: Clear attached images
+    setAttachedImages([]);
   }
 
   // ── Back to report from deep-dive ─────────────────
@@ -528,9 +662,41 @@ export default function SecurityPanel({
     setDeepDiveInput('');
   }
 
+  // ── Phase 9.2: Image management ───────────────────
+  function removeImage(index) {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index));
+  }
+
+  function openLightbox(index) {
+    const img = attachedImages[index];
+    if (!img) return;
+    setLightboxImage({ src: img.thumbnail, filename: img.name });
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  }
+
+  function closeLightbox() {
+    setLightboxOpen(false);
+    setLightboxImage(null);
+  }
+
+  function navigateLightbox(newIndex) {
+    if (newIndex < 0 || newIndex >= attachedImages.length) return;
+    const img = attachedImages[newIndex];
+    setLightboxImage({ src: img.thumbnail, filename: img.name });
+    setLightboxIndex(newIndex);
+  }
+
   // ── Receive file from File Browser ────────────────
   const handleFileFromBrowser = useCallback((fileData) => {
-    if (fileData?.content) {
+    if (!fileData?.content) return;
+
+    // Phase 9.2: Handle image files
+    if (fileData.type === 'image' || fileData.isImage) {
+      setAttachedImages(prev => [...prev, fileData]);
+      onToast?.(`Attached image: ${fileData.name}`);
+    } else {
+      // Handle text files (code)
       setCode(fileData.content);
       setFilename(fileData.name || fileData.path || '');
       onToast?.(`Loaded from file browser: ${fileData.name}`);
@@ -1318,7 +1484,7 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1"
+                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1,image/*,.png,.jpg,.jpeg,.gif"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -1432,6 +1598,49 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
           </Tab.Group>
         </div>
 
+        {/* Phase 9.2: Attached Images Display */}
+        {attachedImages.length > 0 && (
+          <div className="glass rounded-xl border border-slate-700/30 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-slate-400">
+                Attached Images ({attachedImages.length})
+              </p>
+              <button
+                onClick={() => setAttachedImages([])}
+                className="text-xs text-red-400 hover:text-red-300 hover:underline"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {attachedImages.map((img, i) => (
+                <ImageThumbnail
+                  key={i}
+                  src={img.thumbnail}
+                  filename={img.name}
+                  size={img.size}
+                  dimensions={img.dimensions}
+                  format={img.format}
+                  onClick={() => openLightbox(i)}
+                  onRemove={() => removeImage(i)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Phase 9.2: Processing Indicator */}
+        {processingImages > 0 && (
+          <div className="fixed bottom-4 right-4 z-50 glass-heavy rounded-xl border border-indigo-500/30 px-4 py-3 flex items-center gap-3 shadow-xl">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-sm text-slate-200">Processing {processingImages} image{processingImages > 1 ? 's' : ''}...</span>
+          </div>
+        )}
+
         {/* Model capability warning */}
         {showModelWarning && connected && selectedModel && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-3">
@@ -1497,6 +1706,19 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
           </ul>
         </div>
       </div>
+
+      {/* Phase 9.2: Image Lightbox */}
+      {lightboxOpen && lightboxImage && (
+        <ImageLightbox
+          isOpen={lightboxOpen}
+          onClose={closeLightbox}
+          src={lightboxImage.src}
+          filename={lightboxImage.filename}
+          images={attachedImages.map(img => img.thumbnail)}
+          currentIndex={lightboxIndex}
+          onNavigate={navigateLightbox}
+        />
+      )}
     </section>
   );
 }
