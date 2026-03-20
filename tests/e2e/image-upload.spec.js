@@ -1,10 +1,5 @@
-import { test, expect } from '@playwright/test';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { test, expect } = require('@playwright/test');
+const path = require('path');
 
 // Mock chat response with vision model
 const mockChatResponseWithImage = {
@@ -52,7 +47,7 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     await page.waitForTimeout(1000);
     const modelDropdown = page.locator('select').first();
     if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: /llava/i });
+      await modelDropdown.selectOption({ label: 'llava:latest' });
     }
   });
 
@@ -100,7 +95,7 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     // Switch to non-vision model
     const modelDropdown = page.locator('select').first();
     if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: /llama3/i });
+      await modelDropdown.selectOption({ label: 'llama3:latest' });
     }
 
     // Upload image
@@ -363,7 +358,7 @@ test.describe('Image Upload E2E - Review Mode', () => {
     // Switch to vision model
     const modelDropdown = page.locator('select').first();
     if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: /llava/i });
+      await modelDropdown.selectOption({ label: 'llava:latest' });
     }
   });
 
@@ -446,7 +441,7 @@ test.describe('Image Upload E2E - Security Mode', () => {
     // Switch to vision model
     const modelDropdown = page.locator('select').first();
     if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: /llava/i });
+      await modelDropdown.selectOption({ label: 'llava:latest' });
     }
   });
 

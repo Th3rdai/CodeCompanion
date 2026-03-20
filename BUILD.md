@@ -20,6 +20,18 @@ npm run electron:build
 ./scripts/build-installers.sh
 ```
 
+## Validation (7-phase / CI-style)
+
+From repo root (HTTP on port 4173 avoids HTTPS vs Playwright mismatch when `cert/` exists):
+
+```bash
+npm run build
+FORCE_HTTP=1 npm run test:unit
+FORCE_HTTP=1 BASE_URL=http://127.0.0.1:4173 npx playwright test tests/ui tests/e2e
+```
+
+`playwright.config.js` uses `testMatch: '**/*.spec.js'` (Node unit tests live alongside as `*.test.js`). The dev server is started with `FORCE_HTTP=1` so `BASE_URL=http://127.0.0.1:4173` matches.
+
 ## Platform-Specific Builds
 
 ```bash

@@ -7,7 +7,7 @@ test.describe('OnboardingWizard component', () => {
     await page.reload();
   });
 
-  test('UX-01: displays 4 steps with correct vibe-coder content', async ({ page }) => {
+  test('UX-01: displays 5 steps with correct vibe-coder content', async ({ page }) => {
     // Step 1: Welcome
     await expect(page.getByText('Welcome to Code Companion')).toBeVisible();
     await expect(page.getByText(/AI coding tool/i)).toBeVisible();
@@ -24,7 +24,11 @@ test.describe('OnboardingWizard component', () => {
     const modeGrid = page.locator('.grid');
     await expect(modeGrid.locator('svg')).toHaveCount(8);
 
-    // Navigate to Step 4: Privacy
+    // Navigate to Step 4: Images
+    await page.getByRole('button', { name: /Next/i }).click();
+    await expect(page.getByText('Upload Images')).toBeVisible();
+
+    // Navigate to Step 5: Privacy
     await page.getByRole('button', { name: /Next/i }).click();
     await expect(page.getByText('Your Data Stays Here')).toBeVisible();
   });

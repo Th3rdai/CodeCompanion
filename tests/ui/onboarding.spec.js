@@ -20,9 +20,10 @@ test.describe('Onboarding first launch', () => {
 
   test('UX-01: wizard persists completion to localStorage', async ({ page }) => {
     // Complete wizard
-    await page.getByRole('button', { name: /Next/i }).click(); // Step 2
-    await page.getByRole('button', { name: /Next/i }).click(); // Step 3
-    await page.getByRole('button', { name: /Next/i }).click(); // Step 4
+    await page.getByRole('button', { name: /Next/i }).click(); // Step 2 — Ollama
+    await page.getByRole('button', { name: /Next/i }).click(); // Step 3 — Modes
+    await page.getByRole('button', { name: /Next/i }).click(); // Step 4 — Images
+    await page.getByRole('button', { name: /Next/i }).click(); // Step 5 — Privacy
     await page.getByRole('button', { name: /Let's Go!/i }).click(); // Finish
 
     // Verify wizard closed

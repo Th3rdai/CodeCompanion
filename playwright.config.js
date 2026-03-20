@@ -6,6 +6,7 @@ const useHTTPS = baseURL.startsWith('https://');
 
 module.exports = defineConfig({
   testDir: './tests',
+  testMatch: '**/*.spec.js',
   timeout: 45_000,
   expect: {
     timeout: 10_000
@@ -16,7 +17,8 @@ module.exports = defineConfig({
     ignoreHTTPSErrors: useHTTPS
   },
   webServer: {
-    command: 'PORT=4173 node server.js',
+    // Match BASE_URL=http://127.0.0.1:4173 in CI/validate (cert present would otherwise serve HTTPS)
+    command: 'FORCE_HTTP=1 PORT=4173 node server.js',
     port: 4173,
     reuseExistingServer: true,
     timeout: 120_000

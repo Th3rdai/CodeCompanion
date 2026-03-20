@@ -46,7 +46,21 @@ describe('Image Processor - Vision Model Detection', () => {
 
   describe('VISION_FAMILIES constant', () => {
     it('exports correct vision families', () => {
-      assert.deepEqual(VISION_FAMILIES, ['llava', 'bakllava', 'minicpm-v']);
+      assert.deepEqual(VISION_FAMILIES, [
+        'llava',
+        'bakllava',
+        'minicpm-v',
+        'moondream',
+        'minimax',
+        'cogvlm',
+        'fuyu',
+        'idefics',
+        'qwen-vl',
+        'internvl',
+        'yi-vl',
+        'deepseek-vl',
+        'glm-4v',
+      ]);
     });
   });
 });
