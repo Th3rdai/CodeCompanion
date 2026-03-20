@@ -14,7 +14,7 @@ const { initHistory, listConversations, getConversation, saveConversation, delet
 const { initMemory, addMemory, getMemories, getMemory, updateMemory, deleteMemory, searchMemories, getStats: getMemoryStats, extractAndStore, buildMemoryContext } = require('./lib/memory');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete, embed } = require('./lib/ollama-client');
-const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles } = require('./lib/file-browser');
+const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles, isConvertibleDocument } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
 const GsdBridge = require('./lib/gsd-bridge');
@@ -30,6 +30,7 @@ const { reviewCode } = require('./lib/review');
 const { pentestCode, pentestFolder } = require('./lib/pentest');
 const { scanProjectForValidation, generateValidateCommand } = require('./lib/validate');
 const { scoreContent } = require('./lib/builder-score');
+const { checkConnection: checkDocling, convertDocument: convertDoc } = require('./lib/docling-client');
 
 const app = express();
 const HOST = process.env.HOST || '0.0.0.0'; // use 0.0.0.0 to allow remote access
@@ -73,6 +74,11 @@ function sanitizeConfigForClient(config) {
       clonedServers[name] = cloned;
     }
     safe.mcpServers = clonedServers;
+  }
+
+  // Mask docling API key
+  if (safe.docling) {
+    safe.docling = { ...safe.docling, apiKey: safe.docling.apiKey ? '••••••••' : '' };
   }
 
   return safe;
@@ -288,6 +294,14 @@ app.post('/api/config', (req, res) => {
     log('INFO', `Image support updated:`, config.imageSupport);
   }
 
+  // Docling (document conversion) configuration
+  if (req.body.docling !== undefined) {
+    const prev = config.docling || {};
+    config.docling = { ...prev, ...req.body.docling };
+    if (config.docling.url) config.docling.url = config.docling.url.replace(/\/+$/, '');
+    log('INFO', `Docling config updated: ${config.docling.url}`);
+  }
+
   if (projectFolder !== undefined) {
     if (projectFolder) {
       log('INFO', `Config projectFolder received: "${projectFolder}"`);
@@ -344,6 +358,107 @@ app.get('/api/models', async (req, res) => {
     });
   }
 });
+
+// ── Docling health check ─────────────────────────────
+app.get('/api/docling/health', async (req, res) => {
+  const config = getConfig();
+  const url = config.docling?.url || 'http://localhost:5002';
+  const apiKey = config.docling?.apiKey || '';
+
+  try {
+    const result = await checkDocling(url, apiKey);
+    if (result.connected) {
+      res.json({ connected: true, version: result.version, doclingUrl: url });
+    } else {
+      res.status(503).json({ connected: false, detail: result.error, doclingUrl: url });
+    }
+  } catch (err) {
+    res.status(503).json({ connected: false, detail: err.message, doclingUrl: url });
+  }
+});
+
+// ── Document conversion via docling-serve ─────────────
+app.post('/api/convert-document',
+  express.json({ limit: '50mb' }),
+  createRateLimiter({ name: 'convert', max: 10, windowMs: 60000, methods: ['POST'] }),
+  async (req, res) => {
+    const config = getConfig();
+    if (!config.docling?.enabled) {
+      return res.status(503).json({ error: 'Document conversion is disabled. Enable it in Settings.' });
+    }
+
+    const { content, filename } = req.body;
+    if (!content || !filename) {
+      return res.status(400).json({ error: 'Missing content or filename' });
+    }
+
+    // Validate file extension
+    const ext = path.extname(filename).toLowerCase();
+    const ALLOWED = new Set(['.pdf','.pptx','.docx','.xlsx','.xls','.doc','.ppt','.odt','.ods','.odp','.rtf','.latex','.tex','.epub']);
+    if (!ALLOWED.has(ext)) {
+      return res.status(400).json({ error: `Unsupported file type: ${ext}` });
+    }
+
+    // Decode base64 to Buffer
+    let buffer;
+    try {
+      buffer = Buffer.from(content, 'base64');
+    } catch {
+      return res.status(400).json({ error: 'Invalid base64 content' });
+    }
+
+    // Check size limit
+    const maxBytes = (config.docling.maxFileSizeMB || 50) * 1024 * 1024;
+    if (buffer.length > maxBytes) {
+      return res.status(413).json({ error: `File too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB (max ${config.docling.maxFileSizeMB || 50}MB)` });
+    }
+
+    log('INFO', `Converting document: ${filename} (${(buffer.length / 1024).toFixed(1)}KB)`);
+
+    try {
+      const result = await convertDoc(
+        config.docling.url,
+        config.docling.apiKey,
+        buffer,
+        filename,
+        {
+          outputFormat: config.docling.outputFormat || 'md',
+          ocr: config.docling.ocr !== false,
+          ocrEngine: config.docling.ocrEngine || 'easyocr',
+          timeoutSec: config.docling.timeoutSec || 120,
+        }
+      );
+
+      // Truncate if output is too large for AI context
+      const MAX_OUTPUT = 100 * 1024; // 100KB markdown
+      const truncated = result.markdown.length > MAX_OUTPUT;
+      const markdown = truncated
+        ? result.markdown.slice(0, MAX_OUTPUT) + '\n\n... (document truncated — too large for AI context)'
+        : result.markdown;
+
+      res.json({
+        markdown,
+        filename,
+        originalSize: buffer.length,
+        markdownSize: markdown.length,
+        truncated,
+        status: result.status,
+        processingTime: result.processingTime,
+        errors: result.errors,
+      });
+    } catch (err) {
+      log('ERROR', `Document conversion failed: ${filename}`, { error: err.message });
+      if (err.message?.includes('ECONNREFUSED') || err.message?.includes('fetch failed')) {
+        return res.status(503).json({
+          error: 'Cannot reach Docling server',
+          detail: `Ensure docling-serve is running at ${config.docling.url}`,
+          setupHint: 'pip install "docling-serve[ui]" && docling-serve run --port 5002',
+        });
+      }
+      res.status(500).json({ error: 'Conversion failed', detail: err.message });
+    }
+  }
+);
 
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
@@ -1842,6 +1957,36 @@ app.get('/api/files/read', (req, res) => {
     log('ERROR', 'Failed to read file', { path: filePath, error: err.message, status });
     res.status(status).json({ error: `Cannot read file: ${err.message}` });
   }
+});
+
+// ── Raw file read (for document conversion from File Browser) ──
+app.get('/api/files/read-raw', (req, res) => {
+  const config = getConfig();
+  const folder = config.projectFolder;
+  const relativePath = req.query.path;
+
+  if (!folder || !relativePath) {
+    return res.status(400).json({ error: 'Missing folder or path' });
+  }
+
+  const absPath = path.resolve(folder, relativePath);
+  if (!absPath.startsWith(path.resolve(folder))) {
+    return res.status(403).json({ error: 'Path traversal blocked' });
+  }
+
+  if (!fs.existsSync(absPath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+
+  const stat = fs.statSync(absPath);
+  const maxBytes = (config.docling?.maxFileSizeMB || 50) * 1024 * 1024;
+  if (stat.size > maxBytes) {
+    return res.status(413).json({ error: `File too large: ${(stat.size / 1024 / 1024).toFixed(1)}MB` });
+  }
+
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${path.basename(absPath)}"`);
+  fs.createReadStream(absPath).pipe(res);
 });
 
 // POST /api/files/save — save content back to file with .bak backup

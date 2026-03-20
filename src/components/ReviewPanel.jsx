@@ -9,6 +9,7 @@ import LoadingAnimation from './LoadingAnimation';
 import ImageThumbnail from './ImageThumbnail';
 import ImageLightbox from './ImageLightbox';
 import { validateImage, processImage, hashImage } from '../lib/image-processor';
+import { isConvertibleDocument, convertDocument, validateDocument, getDocumentAcceptString } from '../lib/document-processor';
 
 // ── Model tier system ─────────────────────────────────
 // Empirical tier list for code review quality
@@ -103,6 +104,9 @@ export default function ReviewPanel({
   const [deepDiveStreaming, setDeepDiveStreaming] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [dragging, setDragging] = useState(false);
+
+  // Document conversion state
+  const [convertingDoc, setConvertingDoc] = useState(null);
 
   // Phase 9.1: Image support
   const [attachedImages, setAttachedImages] = useState([]);
@@ -375,6 +379,29 @@ export default function ReviewPanel({
     if (files.length === 0) return;
 
     for (const file of files) {
+      // Handle convertible documents (PDF, PPTX, DOCX, etc.)
+      if (isConvertibleDocument(file)) {
+        const validation = validateDocument(file);
+        if (!validation.valid) {
+          alert(validation.error);
+          return;
+        }
+        setConvertingDoc(file.name);
+        try {
+          const result = await convertDocument(file);
+          setCode(result.markdown);
+          setFilename(file.name);
+          if (result.truncated) {
+            alert(`"${file.name}" was truncated — document too large for review.`);
+          }
+        } catch (err) {
+          alert(`Failed to convert "${file.name}": ${err.message}`);
+        } finally {
+          setConvertingDoc(null);
+        }
+        return;
+      }
+
       const isImage = file.type.startsWith('image/');
 
       if (isImage) {
@@ -452,6 +479,23 @@ export default function ReviewPanel({
     const files = Array.from(e.dataTransfer.files);
 
     for (const file of files) {
+      // Handle convertible documents
+      if (isConvertibleDocument(file)) {
+        const validation = validateDocument(file);
+        if (!validation.valid) continue;
+        setConvertingDoc(file.name);
+        try {
+          const result = await convertDocument(file);
+          setCode(result.markdown);
+          setFilename(file.name);
+        } catch (err) {
+          console.error('Document conversion failed:', err);
+        } finally {
+          setConvertingDoc(null);
+        }
+        continue;
+      }
+
       const isImage = file.type.startsWith('image/');
 
       if (isImage) {
@@ -888,7 +932,7 @@ export default function ReviewPanel({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1,image/*,.png,.jpg,.jpeg,.gif"
+                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -958,6 +1002,14 @@ export default function ReviewPanel({
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Document conversion indicator */}
+        {convertingDoc && (
+          <div className="glass rounded-xl border border-indigo-500/30 p-3 flex items-center gap-2 text-xs text-indigo-300">
+            <span className="inline-block animate-spin">&#x27F3;</span>
+            <span>Converting {convertingDoc}...</span>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { isConvertibleFilename, convertDocument } from '../lib/document-processor';
 
 // Persist folder expand/collapse state in localStorage (survives refresh)
 const TREE_STATE_KEY = 'cc_file_tree_state';
@@ -13,7 +14,7 @@ function setTreeState(path, isOpen) {
   try { localStorage.setItem(TREE_STATE_KEY, JSON.stringify(state)); } catch {}
 }
 
-function FileTreeNode({ node, depth, onFileClick, onQuickAttach }) {
+function FileTreeNode({ node, depth, onFileClick, onQuickAttach, converting }) {
   const savedState = getTreeState();
   const defaultOpen = depth === 0;
   const [open, setOpen] = useState(node.path ? (savedState[node.path] ?? defaultOpen) : defaultOpen);
@@ -37,7 +38,7 @@ function FileTreeNode({ node, depth, onFileClick, onQuickAttach }) {
           <span className="truncate">{node.name}</span>
         </button>
         {open && <div role="group">{node.children?.map((child, i) => (
-          <FileTreeNode key={child.path || i} node={child} depth={depth + 1} onFileClick={onFileClick} onQuickAttach={onQuickAttach} />
+          <FileTreeNode key={child.path || i} node={child} depth={depth + 1} onFileClick={onFileClick} onQuickAttach={onQuickAttach} converting={converting} />
         ))}</div>}
       </div>
     );
@@ -54,8 +55,11 @@ function FileTreeNode({ node, depth, onFileClick, onQuickAttach }) {
       <button className="flex-1 flex items-center gap-1.5 py-1.5 px-2 cursor-pointer text-sm focus:outline-none"
         onClick={() => onFileClick(node)}
         aria-label={`File: ${node.name}`}>
-        <span className={`text-xs ${extColor}`} aria-hidden="true">📄</span>
+        <span className={`text-xs ${node.convertible ? 'text-amber-400' : extColor}`} aria-hidden="true">{node.convertible ? '📑' : '📄'}</span>
         <span className="truncate text-slate-300 group-hover:text-white">{node.name}</span>
+        {converting === node.path && (
+          <span className="text-[10px] text-indigo-300 animate-spin ml-1" aria-label="Converting">&#x27F3;</span>
+        )}
         {node.size > 0 && <span className="text-[10px] text-slate-500 ml-auto pr-1">{(node.size / 1024).toFixed(0)}k</span>}
       </button>
       {onQuickAttach && (
@@ -100,6 +104,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   const [folderError, setFolderError] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [dropping, setDropping] = useState(null); // { total, done }
+  const [converting, setConverting] = useState(null); // path being converted
   const dragCounter = useRef(0);
 
   const folderPath = tree?.root || projectFolder;
@@ -161,6 +166,40 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   }
 
   async function handleFileClick(node) {
+    // Handle convertible documents (PDF, PPTX, etc.)
+    if (node.convertible) {
+      setConverting(node.path);
+      try {
+        const rawRes = await fetch(`/api/files/read-raw?path=${encodeURIComponent(node.path)}`);
+        if (!rawRes.ok) throw new Error('Failed to read file');
+        const blob = await rawRes.blob();
+        const file = new File([blob], node.name);
+        const result = await convertDocument(file);
+        setPreview({
+          path: node.path,
+          name: node.name,
+          content: result.markdown,
+          lines: result.markdown.split('\n').length,
+          size: result.markdownSize,
+          converted: true,
+          truncated: result.truncated,
+        });
+      } catch (err) {
+        console.error('Document conversion failed:', err);
+        setPreview({
+          path: node.path,
+          name: node.name,
+          content: `Error converting ${node.name}: ${err.message}\n\nEnsure docling-serve is running. See Settings → General.`,
+          lines: 3,
+          size: 0,
+          error: true,
+        });
+      } finally {
+        setConverting(null);
+      }
+      return;
+    }
+
     setLoadingFile(true);
     try {
       const res = await fetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
@@ -178,6 +217,31 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   }
 
   async function handleQuickAttach(node) {
+    // Handle convertible documents (PDF, PPTX, etc.)
+    if (node.convertible) {
+      setConverting(node.path);
+      try {
+        const rawRes = await fetch(`/api/files/read-raw?path=${encodeURIComponent(node.path)}`);
+        if (!rawRes.ok) throw new Error('Failed to read file');
+        const blob = await rawRes.blob();
+        const file = new File([blob], node.name);
+        const result = await convertDocument(file);
+        onAttachFile({
+          name: `${node.name} (converted)`,
+          content: result.markdown,
+          lines: result.markdown.split('\n').length,
+          size: result.markdownSize,
+          convertedFrom: node.name,
+          truncated: result.truncated,
+        });
+      } catch (err) {
+        console.error('Quick attach conversion failed:', err);
+      } finally {
+        setConverting(null);
+      }
+      return;
+    }
+
     try {
       const res = await fetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
       const data = await res.json();
@@ -395,7 +459,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
           </div>
           <div role="tree" aria-label="Project files">
             {tree.tree?.map((node, i) => (
-              <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} onQuickAttach={onAttachFile ? handleQuickAttach : null} />
+              <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} onQuickAttach={onAttachFile ? handleQuickAttach : null} converting={converting} />
             ))}
           </div>
           {tree.tree?.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Hmm, no text files here. Try pointing to a different folder!</p>}

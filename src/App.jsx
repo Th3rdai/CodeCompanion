@@ -38,6 +38,7 @@ import ImageThumbnail from './components/ImageThumbnail';
 import ImageLightbox from './components/ImageLightbox';
 import ImagePrivacyWarning from './components/ImagePrivacyWarning';
 import { validateImage, processImage, hashImage } from './lib/image-processor';
+import { isConvertibleDocument, convertDocument, validateDocument, formatAsAttachment, getDocumentAcceptString } from './lib/document-processor';
 import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
 import { use3DEffects } from './contexts/Effects3DContext';
 
@@ -192,6 +193,7 @@ export default function App() {
 
   // Image support state (Phase 2)
   const [processingImages, setProcessingImages] = useState(0); // Count of images currently being processed
+  const [convertingDoc, setConvertingDoc] = useState(null); // filename being converted
   const processingQueue = useRef([]); // Phase 7: Queue of pending image processing tasks
   const activeProcessing = useRef(new Set()); // Phase 7: Set of currently processing file names
   const MAX_CONCURRENT_PROCESSING = 3; // Phase 7: Max concurrent image processing operations
@@ -751,6 +753,29 @@ export default function App() {
   async function handleFileUpload(e) {
     const files = Array.from(e.target.files);
     for (const file of files) {
+      // Check for convertible documents (PDF, PPTX, DOCX, etc.)
+      if (isConvertibleDocument(file)) {
+        const validation = validateDocument(file);
+        if (!validation.valid) {
+          alert(validation.error);
+          continue;
+        }
+        setConvertingDoc(file.name);
+        try {
+          const result = await convertDocument(file);
+          const attachment = formatAsAttachment(result, file);
+          setAttachedFiles(prev => [...prev, attachment]);
+          if (result.truncated) {
+            alert(`"${file.name}" was truncated — the document is too large for AI context.`);
+          }
+        } catch (err) {
+          alert(`Failed to convert "${file.name}": ${err.message}`);
+        } finally {
+          setConvertingDoc(null);
+        }
+        continue;
+      }
+
       const isImage = file.type.startsWith('image/');
 
       if (isImage) {
@@ -840,6 +865,23 @@ export default function App() {
     for (const file of files) {
       // Skip directories — they have no size and can't be read as text
       if (file.size === 0 && file.type === '') continue;
+
+      // Check for convertible documents
+      if (isConvertibleDocument(file)) {
+        const validation = validateDocument(file);
+        if (!validation.valid) continue;
+        setConvertingDoc(file.name);
+        try {
+          const result = await convertDocument(file);
+          const attachment = formatAsAttachment(result, file);
+          setAttachedFiles(prev => [...prev, attachment]);
+        } catch (err) {
+          console.error('Document conversion failed:', err);
+        } finally {
+          setConvertingDoc(null);
+        }
+        continue;
+      }
 
       const isImage = file.type.startsWith('image/');
 
@@ -1559,7 +1601,7 @@ export default function App() {
                     rows={4} disabled={streaming || !connected}
                     className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
                   <div className="flex items-center gap-1.5 pl-1">
-                    <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif" className="hidden" onChange={handleFileUpload} />
+                    <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub" className="hidden" onChange={handleFileUpload} />
                     <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📎 Upload
@@ -1675,6 +1717,14 @@ export default function App() {
             <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
           </div>
           <span className="text-sm text-slate-300">Processing {processingImages} image{processingImages > 1 ? 's' : ''}...</span>
+        </div>
+      )}
+
+      {/* Document Conversion Indicator */}
+      {convertingDoc && (
+        <div className="fixed bottom-4 right-4 z-50 glass-heavy border border-indigo-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
+          <span className="inline-block animate-spin text-indigo-400">&#x27F3;</span>
+          <span className="text-sm text-slate-300">Converting {convertingDoc}...</span>
         </div>
       )}
 

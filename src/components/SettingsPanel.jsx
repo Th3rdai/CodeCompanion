@@ -32,6 +32,14 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   });
   const [models, setModels] = useState([]);
 
+  // Docling (document conversion) state
+  const [doclingUrl, setDoclingUrl] = useState('http://localhost:5002');
+  const [doclingApiKey, setDoclingApiKey] = useState('');
+  const [doclingEnabled, setDoclingEnabled] = useState(true);
+  const [doclingOcr, setDoclingOcr] = useState(true);
+  const [doclingTesting, setDoclingTesting] = useState(false);
+  const [doclingTestResult, setDoclingTestResult] = useState(null);
+
   // GitHub token state
   const [ghToken, setGhToken] = useState('');
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
@@ -76,6 +84,12 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             maxImagesPerMessage: data.imageSupport.maxImagesPerMessage ?? 10,
             compressionQuality: data.imageSupport.compressionQuality ?? 0.9,
           });
+        }
+        if (data.docling) {
+          setDoclingUrl(data.docling.url || 'http://localhost:5002');
+          setDoclingApiKey(data.docling.apiKey || '');
+          setDoclingEnabled(data.docling.enabled ?? true);
+          setDoclingOcr(data.docling.ocr ?? true);
         }
         setBrandLoaded(true);
       }).catch(() => setBrandLoaded(true));
@@ -344,6 +358,27 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setTesting(false);
   }
 
+  async function handleDoclingTest() {
+    setDoclingTesting(true);
+    setDoclingTestResult(null);
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docling: { url: doclingUrl, apiKey: doclingApiKey } }),
+      });
+      const res = await fetch('/api/docling/health');
+      const data = await res.json();
+      setDoclingTestResult(data.connected
+        ? { ok: true, message: data.version ? `Connected (v${data.version})` : 'Connected to docling-serve' }
+        : { ok: false, error: data.detail || 'Cannot connect' }
+      );
+    } catch (err) {
+      setDoclingTestResult({ ok: false, error: err.message });
+    }
+    setDoclingTesting(false);
+  }
+
   async function handleTestFolder() {
     setFolderResult(null);
     if (!folder.trim()) { setFolderResult({ ok: false, error: 'Enter a folder path' }); return; }
@@ -404,6 +439,83 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 <div className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
                   {testResult.ok ? `Connected! Found ${testResult.count} model${testResult.count !== 1 ? 's' : ''}.` : `Failed: ${testResult.error}`}
                 </div>
+              )}
+            </div>
+
+            {/* Document Conversion (Docling) */}
+            <div className="border-t border-slate-700/40 pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-slate-300 font-medium">Document Conversion (Docling)</label>
+                <button
+                  onClick={() => {
+                    const next = !doclingEnabled;
+                    setDoclingEnabled(next);
+                    fetch('/api/config', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ docling: { enabled: next } }),
+                    });
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${doclingEnabled ? 'bg-indigo-500' : 'bg-slate-600'}`}
+                  aria-label="Toggle document conversion"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${doclingEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                Read PDF, PPTX, DOCX, XLSX and more via{' '}
+                <a href="https://github.com/docling-project/docling-serve" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">docling-serve</a>.
+                Install: <code className="text-[11px] bg-slate-800 px-1 rounded">pip install "docling-serve[ui]"</code> then <code className="text-[11px] bg-slate-800 px-1 rounded">docling-serve run --port 5002</code>
+              </p>
+              {doclingEnabled && (
+                <>
+                  <label className="block text-sm text-slate-300 mb-2 font-medium">Docling Server URL</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={doclingUrl}
+                      onChange={e => setDoclingUrl(e.target.value)}
+                      placeholder="http://localhost:5002"
+                      className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                    />
+                    <button
+                      onClick={handleDoclingTest}
+                      disabled={doclingTesting}
+                      className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+                    >
+                      {doclingTesting ? <span className="inline-block spin">&#x27F3;</span> : 'Test Connection'}
+                    </button>
+                  </div>
+                  {doclingTestResult && (
+                    <div className={`mt-2 p-2.5 rounded-lg text-xs ${doclingTestResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                      {doclingTestResult.ok ? doclingTestResult.message : `Failed: ${doclingTestResult.error}`}
+                    </div>
+                  )}
+
+                  <label className="block text-sm text-slate-300 mb-2 mt-3 font-medium">
+                    API Key <span className="text-slate-500 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={doclingApiKey}
+                    onChange={e => setDoclingApiKey(e.target.value)}
+                    placeholder="Leave blank if not required"
+                    className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                  />
+
+                  <div className="flex items-center gap-2 mt-3">
+                    <input
+                      type="checkbox"
+                      checked={doclingOcr}
+                      onChange={e => setDoclingOcr(e.target.checked)}
+                      id="docling-ocr"
+                      className="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
+                    />
+                    <label htmlFor="docling-ocr" className="text-sm text-slate-300 cursor-pointer">
+                      Enable OCR for scanned documents
+                    </label>
+                  </div>
+                </>
               )}
             </div>
 
@@ -1097,7 +1209,24 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         {/* Buttons always visible */}
         <div className="flex gap-2 justify-end mt-6">
           <button onClick={onClose} className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors">Cancel</button>
-          <button onClick={async () => { await onSave(url, folder, icmTemplate); onClose(); }}
+          <button onClick={async () => {
+              await onSave(url, folder, icmTemplate);
+              try {
+                await fetch('/api/config', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    docling: {
+                      url: doclingUrl,
+                      apiKey: doclingApiKey,
+                      enabled: doclingEnabled,
+                      ocr: doclingOcr,
+                    },
+                  }),
+                });
+              } catch {}
+              onClose();
+            }}
             className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium">
             Save &amp; Close
           </button>

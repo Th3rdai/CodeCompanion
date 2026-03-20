@@ -9,6 +9,7 @@ import LoadingAnimation from './LoadingAnimation';
 import ImageThumbnail from './ImageThumbnail';
 import ImageLightbox from './ImageLightbox';
 import { validateImage, processImage, hashImage } from '../lib/image-processor';
+import { isConvertibleDocument, convertDocument, validateDocument, getDocumentAcceptString } from '../lib/document-processor';
 
 // ── Model tier system (same as ReviewPanel) ──────────
 const MODEL_TIERS = {
@@ -114,6 +115,9 @@ export default function SecurityPanel({
   // Remediation state
   const [remediating, setRemediating] = useState(false);
   const [remediationProgress, setRemediationProgress] = useState('');
+
+  // Document conversion state
+  const [convertingDoc, setConvertingDoc] = useState(null);
 
   // Phase 9.2: Image support
   const [attachedImages, setAttachedImages] = useState([]);
@@ -380,15 +384,41 @@ export default function SecurityPanel({
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    // Phase 9.2: Separate images from text files
+    // Separate documents, images, and text files
     const imageFiles = [];
     const textFiles = [];
+    const docFiles = [];
 
     for (const file of files) {
-      if (file.type.startsWith('image/')) {
+      if (isConvertibleDocument(file)) {
+        docFiles.push(file);
+      } else if (file.type.startsWith('image/')) {
         imageFiles.push(file);
       } else {
         textFiles.push(file);
+      }
+    }
+
+    // Process convertible documents (PDF, PPTX, DOCX, etc.)
+    for (const file of docFiles) {
+      const validation = validateDocument(file);
+      if (!validation.valid) {
+        onToast?.(`${file.name}: ${validation.error}`);
+        continue;
+      }
+      setConvertingDoc(file.name);
+      try {
+        const result = await convertDocument(file);
+        setCode(result.markdown);
+        setFilename(file.name);
+        if (result.truncated) {
+          onToast?.(`"${file.name}" was truncated — document too large for scan.`);
+        }
+      } catch (err) {
+        console.error('Document conversion failed:', err);
+        onToast?.(`Failed to convert "${file.name}": ${err.message}`);
+      } finally {
+        setConvertingDoc(null);
       }
     }
 
@@ -572,6 +602,31 @@ export default function SecurityPanel({
       const files = Array.from(e.dataTransfer.files);
       if (files.length > 0) {
         const file = files[0];
+
+        // Handle convertible documents
+        if (isConvertibleDocument(file)) {
+          const validation = validateDocument(file);
+          if (!validation.valid) {
+            onToast?.(`${file.name}: ${validation.error}`);
+            return;
+          }
+          setConvertingDoc(file.name);
+          try {
+            const result = await convertDocument(file);
+            setCode(result.markdown);
+            setFilename(file.name);
+            if (result.truncated) {
+              onToast?.(`"${file.name}" was truncated — document too large for scan.`);
+            }
+          } catch (err) {
+            console.error('Document conversion failed:', err);
+            onToast?.(`Failed to convert "${file.name}": ${err.message}`);
+          } finally {
+            setConvertingDoc(null);
+          }
+          return;
+        }
+
         const isImage = file.type.startsWith('image/');
 
         if (isImage) {
@@ -1484,7 +1539,7 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
                     ref={fileInputRef}
                     type="file"
                     multiple
-                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1,image/*,.png,.jpg,.jpeg,.gif"
+                    accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,.rb,.php,.swift,.kt,.dart,.zig,.ex,.exs,.erl,.hs,.ml,.clj,.scala,.r,.lua,.pl,.ps1,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -1626,6 +1681,14 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Document conversion indicator */}
+        {convertingDoc && (
+          <div className="glass rounded-xl border border-orange-500/30 p-3 flex items-center gap-2 text-xs text-orange-300">
+            <span className="inline-block animate-spin">&#x27F3;</span>
+            <span>Converting {convertingDoc}...</span>
           </div>
         )}
 
