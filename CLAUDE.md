@@ -28,6 +28,8 @@ You are a full-stack developer building **Code Companion**, a web application th
 | CLIPLAN.md | **Agent terminal** — living spec for builtin `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`); implementation in `lib/builtin-agent-tools.js` + Settings |
 | src/lib/clipboard.js | Copy/paste helpers — `navigator.clipboard` + **execCommand** fallback for self-signed HTTPS |
 | docs/CLIPLAN-plan-review.md | **Plan-reviewer** skill output — validated review of CLIPLAN (issues, risks, execution order) |
+| docs/VOICE-DICTATION-PLAN.md | Rollout plan: **`DictateButton`** + Web Speech API on all text fields (`BaseBuilderPanel`, chat, wizards, mode panels) |
+| docs/VOICE-DICTATION-plan-review.md | **Plan-reviewer** output for voice dictation plan |
 | .cursor/skills/plan-reviewer/ | Cursor **plan-reviewer** skill — validate implementation plans before coding (also in `~/.cursor/skills/plan-reviewer/`) |
 | design-system/README.md | Index of design docs (canonical **`.md`**; PDFs are optional exports) |
 | design-system/DESIGN-STANDARDS.md | UI layout, colors, glass system, content width rails (shell = full viewport; inner `max-w-*` for readability) |
@@ -101,7 +103,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AIApp-CodeCompanion** (1037 symbols, 2328 relationships, 76 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AIApp-CodeCompanion** (1045 symbols, 2343 relationships, 76 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
