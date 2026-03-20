@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { parseApiJson } from '../utils/parseApiJson';
 
 /**
  * GitHub integration panel — clone repos, browse your GitHub account,
@@ -78,7 +79,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
   async function checkToken() {
     try {
       const res = await fetch('/api/github/token/status');
-      const data = await res.json();
+      const data = await parseApiJson(res);
       setTokenStatus(data);
     } catch {}
   }
@@ -87,7 +88,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setLoadingCloned(true);
     try {
       const res = await fetch('/api/github/repos');
-      const data = await res.json();
+      const data = await parseApiJson(res);
       setClonedRepos(data.repos || []);
     } catch {}
     setLoadingCloned(false);
@@ -105,7 +106,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: repoUrl }),
       });
-      const data = await res.json();
+      const data = await parseApiJson(res);
       setCloneResult(data);
 
       if (data.success) {
@@ -125,7 +126,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dirName }),
       });
-      const data = await res.json();
+      const data = await parseApiJson(res);
       if (data.success && onRepoOpened) {
         onRepoOpened(data.projectFolder);
       }
@@ -144,7 +145,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setBrowseError('');
     try {
       const res = await fetch('/api/github/browse');
-      const data = await res.json();
+      const data = await parseApiJson(res);
       if (data.error) {
         setBrowseError(data.error);
       } else {
@@ -161,7 +162,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setGitError('');
     try {
       const res = await fetch('/api/git/status');
-      const data = await res.json();
+      const data = await parseApiJson(res);
       if (!res.ok || data.error) {
         setGitError(data.error || 'Failed to load git status');
         setGitStatus(null);
@@ -195,7 +196,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: branchName.trim(), checkout: true })
       });
-      const data = await res.json();
+      const data = await parseApiJson(res);
       if (!res.ok || data.error) {
         setGitError(data.error || 'Failed to create branch');
       } else {
@@ -213,7 +214,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     try {
       const query = filePath ? `?file=${encodeURIComponent(filePath)}` : '';
       const res = await fetch(`/api/git/diff${query}`);
-      const data = await res.json();
+      const data = await parseApiJson(res);
       setDiffContent(data.diff || '');
     } catch {
       setDiffContent('Unable to load diff.');
@@ -231,7 +232,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceBranch: mergeSourceBranch, targetRef: 'HEAD' })
       });
-      const data = await res.json();
+      const data = await parseApiJson(res);
       setMergePreview(data);
     } catch (err) {
       setMergePreview({ hasConflicts: false, preview: `Preview failed: ${err.message}` });
@@ -264,7 +265,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, filePath: selectedDiffFile || '' })
       });
-      const data = await res.json();
+      const data = await parseApiJson(res);
       setReviewResult(data.review || data.error || 'No review output.');
     } catch (err) {
       setReviewResult(`Review failed: ${err.message}`);
@@ -314,7 +315,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      const data = await parseApiJson(res);
       if (!res.ok || data.error) {
         setPmError(data.error || 'Failed to fetch items');
       } else {
@@ -339,7 +340,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: pubRepoName.trim(), description: pubDescription.trim(), isPrivate: pubPrivate }),
       });
-      const createData = await createRes.json();
+      const createData = await parseApiJson(createRes);
       if (!createRes.ok || !createData.success) {
         setPubResult({ ok: false, message: createData.error || 'Failed to create repository' });
         setPublishing(false);
@@ -358,7 +359,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
           branch: 'main',
         }),
       });
-      const pushData = await pushRes.json();
+      const pushData = await parseApiJson(pushRes);
       if (pushData.success) {
         setPubResult({ ok: true, message: `Published to GitHub!`, url: createData.url, fullName: createData.fullName });
       } else {

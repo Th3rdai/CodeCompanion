@@ -62,6 +62,9 @@ After project creation in Create mode, an **Open in Build** button registers the
 ### IDE Command Files (Create & Build)
 Both scaffolders automatically copy IDE command files from `IDE_COMMANDS/` (app root) into every new project across all 5 IDE paths: `.claude/commands/`, `.cursor/commands/`, `.cursor/prompts/`, `.github/prompts/`, `.opencode/commands/`. Falls back to the configured template path's `Commands/` folder if `IDE_COMMANDS/` doesn't exist. Optional **Create template path** in Settings (`icmTemplatePath` in config) also copies `ICM-fw` contents into the project root.
 
+### GitHub panel — local VCS
+- **GET /api/git/status**, **POST /api/git/branch**, **GET /api/git/diff**, **POST /api/git/merge-preview**, **POST /api/git/resolve**, **POST /api/git/review** — use `config.projectFolder` as the repo; must be registered **before** the SPA `app.get('*')` fallback in `server.js`. `GitHubPanel` uses `parseApiJson()` so HTML error pages surface as readable errors.
+
 ### Tutorial (Create & Build wizards)
 - **Tutorial** button toggles step-by-step guidance. Step 1: user fills project info (no prefill). Step 2+: contextual suggestions from **POST /api/tutorial-suggestions** (Ollama) using project name/description/role. **Focus or click** a field to get a suggestion; **double-click** for a new suggestion (step 1 cycles static alternatives; step 2+ re-calls API). Tab or right-click to accept; user can always type manually.
 

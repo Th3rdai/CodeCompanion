@@ -107,6 +107,12 @@ Set environment variables: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEA
 
 For Windows, obtain an EV code signing certificate and configure `win.signingHashAlgorithms`.
 
+## Reverse proxy (optional)
+
+If you put nginx, Caddy, or another proxy in front of Code Companion, **forward `/api/*` and `/mcp`** to the same Node process that serves the app. If `/api/...` is not proxied and the proxy returns `index.html` for unknown paths, the UI may show errors like “Unexpected token '&lt;'” or “Server returned a web page instead of API data” when opening GitHub/VCS or other panels.
+
+Example (conceptual): proxy `location /api/` and `location /mcp` to `http://127.0.0.1:3000` (or your server port), and proxy `/` to the same origin so the SPA and API share one host.
+
 ## Hosting
 
 Upload built artifacts to `https://th3rdai.com/downloads/`. The landing page at `landing/index.html` links to these URLs.
