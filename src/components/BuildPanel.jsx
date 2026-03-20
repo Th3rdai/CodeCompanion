@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { copyText } from '../lib/clipboard';
 import MarkdownContent from './MarkdownContent';
 import BuildHeader from './BuildHeader';
 import BuildSimpleView from './BuildSimpleView';
@@ -83,8 +84,8 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
     } catch {}
   }
 
-  function copyCommand(cmd) {
-    navigator.clipboard.writeText(cmd);
+  async function copyCommand(cmd) {
+    await copyText(cmd);
     onToast?.('Command copied to clipboard');
   }
 

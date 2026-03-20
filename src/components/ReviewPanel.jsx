@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Tab } from '@headlessui/react';
 import { FileText, Upload as UploadIcon, FolderOpen, AlertTriangle, History, X } from 'lucide-react';
+import { readText } from '../lib/clipboard';
 import ReportCard from './ReportCard';
 import MessageBubble from './MessageBubble';
 import DictateButton from './DictateButton';
@@ -559,13 +560,14 @@ export default function ReviewPanel({
 
   // ── Paste from clipboard ──────────────────────────
   async function handlePasteFromClipboard() {
-    try {
-      const text = await navigator.clipboard.readText();
+    const text = await readText();
+    if (text) {
       setCode(prev => prev + text);
       textareaRef.current?.focus();
       onToast?.('Pasted from clipboard');
-    } catch {
-      onToast?.('Clipboard access denied');
+    } else {
+      textareaRef.current?.focus();
+      onToast?.('Press Ctrl+V (or ⌘V) to paste');
     }
   }
 

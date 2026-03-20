@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { copyText } from '../lib/clipboard';
 import MarkdownContent from './MarkdownContent';
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+    <button onClick={async () => { const ok = await copyText(text); if (ok) { setCopied(true); setTimeout(() => setCopied(false), 2000); } }}
       className="text-xs px-2.5 py-1.5 rounded-lg glass text-slate-400 hover:text-white transition-all hover:neon-glow-sm"
       aria-label="Copy response">
       {copied ? '✓ Copied' : '📋 Copy'}

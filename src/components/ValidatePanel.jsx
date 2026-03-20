@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { FolderSearch, Download, Copy, Check, AlertTriangle, CheckCircle, XCircle, FileText, Github, PackageCheck } from 'lucide-react';
+import { copyText } from '../lib/clipboard';
 import MarkdownContent from './MarkdownContent';
 
 const IDE_TARGETS = [
@@ -135,8 +136,8 @@ export default function ValidatePanel({
   }, [scanResult, selectedModel, folderPath]);
 
   // ── Export helpers ────────────────────────────────
-  function handleCopy() {
-    navigator.clipboard.writeText(generatedContent);
+  async function handleCopy() {
+    await copyText(generatedContent);
     setCopied(true);
     onToast?.('validate.md copied to clipboard');
     setTimeout(() => setCopied(false), 3000);

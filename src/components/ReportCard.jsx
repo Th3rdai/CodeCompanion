@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp, Bug, Lock, BookOpen, CheckCircle, Clipboard, ClipboardCopy } from 'lucide-react';
+import { copyText } from '../lib/clipboard';
 
 // ── Grade color mapping ─────────────────────────────
 
@@ -58,7 +59,7 @@ function CopyFixButton({ text, toastMessage }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 3000); }}
+      onClick={async () => { await copyText(text); setCopied(true); setTimeout(() => setCopied(false), 3000); }}
       className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
         copied
           ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10'
@@ -368,7 +369,7 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview }) 
             {bulkPrompts && (
               <button
                 onClick={async () => {
-                  await navigator.clipboard.writeText(bulkPrompts);
+                  await copyText(bulkPrompts);
                   setCopiedAll(true);
                   setTimeout(() => setCopiedAll(false), 3000);
                 }}

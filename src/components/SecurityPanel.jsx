@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Tab } from '@headlessui/react';
 import { FileText, Upload as UploadIcon, FolderOpen, FolderSearch, AlertTriangle, History, Copy, Download, Check, ChevronDown, Wrench, X } from 'lucide-react';
 import JSZip from 'jszip';
+import { copyText } from '../lib/clipboard';
 import SecurityReport from './SecurityReport';
 import MessageBubble from './MessageBubble';
 import MarkdownContent from './MarkdownContent';
@@ -977,8 +978,8 @@ export default function SecurityPanel({
   }
 
   // ── Fallback export helpers ──────────────────────────
-  function handleFallbackCopy() {
-    navigator.clipboard.writeText(fallbackContent);
+  async function handleFallbackCopy() {
+    await copyText(fallbackContent);
     onToast?.('Report copied to clipboard');
   }
 

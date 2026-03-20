@@ -101,7 +101,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **AIApp-CodeCompanion** (1035 symbols, 2288 relationships, 76 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **AIApp-CodeCompanion** (1038 symbols, 2328 relationships, 76 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

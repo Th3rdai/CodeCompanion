@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Terminal, Copy, Check, FolderOpen, Rocket, FileText, Search, CheckCircle } from 'lucide-react';
+import { copyText } from '../lib/clipboard';
 
 /**
  * ClaudeCodeHandoff — Copy-pasteable GSD slash commands for Claude Code / Cursor / Windsurf.
@@ -31,14 +32,15 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
       ? (phases[phases.length - 1].number || phases[phases.length - 1].phase || phases.length)
       : 1;
 
-  function handleCopy(text, idx) {
-    navigator.clipboard.writeText(text).then(() => {
+  async function handleCopy(text, idx) {
+    const ok = await copyText(text);
+    if (ok) {
       setCopiedIdx(idx);
       onToast?.('Copied!');
       setTimeout(() => setCopiedIdx(null), 2000);
-    }).catch(() => {
+    } else {
       onToast?.('Copy failed — try selecting the text manually');
-    });
+    }
   }
 
   // Build contextual commands

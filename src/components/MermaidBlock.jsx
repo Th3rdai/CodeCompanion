@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Copy, Check, Download, Image, Code2, AlertTriangle, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { copyText } from '../lib/clipboard';
 
 // ── Lazy loader (singleton) ──────────────────────────
 let mermaidPromise = null;
@@ -215,11 +216,12 @@ export default function MermaidBlock({ code }) {
     };
   }, [cleanCode]);
 
-  const handleCopySource = useCallback(() => {
-    navigator.clipboard.writeText(code).then(() => {
+  const handleCopySource = useCallback(async () => {
+    const ok = await copyText(code);
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    }).catch(() => {});
+    }
   }, [code]);
 
   const handleZoomIn = useCallback(() => setZoom(z => Math.min(z + 0.25, 3)), []);

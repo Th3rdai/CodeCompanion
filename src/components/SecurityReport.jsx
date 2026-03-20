@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ShieldAlert, Database, Code, KeyRound, Settings, Globe, ChevronDown, ChevronRight, Copy, Check, Download, RotateCcw, ShieldCheck, AlertTriangle, FileText, FolderOpen, Wrench } from 'lucide-react';
+import { copyText } from '../lib/clipboard';
 
 // ── Grade color mapping ─────────────────────────────
 const GRADE_COLORS = {
@@ -58,8 +59,8 @@ function CopyFixButton({ text, onToast }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => {
-        navigator.clipboard.writeText(text);
+      onClick={async () => {
+        await copyText(text);
         setCopied(true);
         onToast?.('Fix prompt copied to clipboard');
         setTimeout(() => setCopied(false), 3000);
@@ -328,8 +329,8 @@ function handleExportJSON(data, filename) {
 function ExportDropdown({ data, filename, onToast }) {
   const [open, setOpen] = useState(false);
 
-  function handleCopy() {
-    navigator.clipboard.writeText(reportToMarkdown(data, filename));
+  async function handleCopy() {
+    await copyText(reportToMarkdown(data, filename));
     onToast?.('Report copied to clipboard');
     setOpen(false);
   }

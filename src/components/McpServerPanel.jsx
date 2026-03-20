@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { copyText } from '../lib/clipboard';
 
 // Actual Code Companion MCP tool names (must match mcp/tools.js)
 const ALL_TOOLS = [
@@ -19,7 +20,7 @@ function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      onClick={async () => { const ok = await copyText(text); if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } }}
       className="text-xs text-slate-400 hover:text-indigo-300 px-2 py-1 rounded-lg transition-colors"
       aria-label="Copy to clipboard">
       {copied ? '✓' : '📋'}
