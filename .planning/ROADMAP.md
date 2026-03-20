@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–16 add Build mode and Build Dashboard.
+This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–18 add Build, Dashboard, Installer, Security; Phases 19–24 cover deployment hardening and new features.
 
 ## Phases
 
@@ -30,6 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell, Simple View, AI Research/Planning, Advanced View, Handoff+Polish (completed 2026-03-15)
 - [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
 - [x] **Phase 18: Security Pen Test Mode** - OWASP-based web app and API penetration testing agent with Elite Agent skill, added as a mode next to Build (planned) (completed 2026-03-16)
+- [x] **Phase 19: Security Enhancements** - Multi-file/folder scanning, drag & drop, export (Copy/MD/CSV/HTML/PDF/JSON), remediation zip download, follow-up chat, Deep Dive conversations (completed 2026-03-19)
+- [x] **Phase 20: Validate Mode** - New Validate tab: analyze local folder or GitHub repo, generate project-specific validate.md with phased validation (Lint/Type/Style/Test/E2E), one-click IDE install for Claude Code/Cursor/VS Code/OpenCode, Install All button (completed 2026-03-19)
+- [x] **Phase 21: Deployment Hardening** - HTTPS support with self-signed cert auto-generation in deploy.sh, startup.sh protocol-aware health checks, HSTS redirect removal from index.html, configurable server port (default 8900), blank default project folder (completed 2026-03-19)
+- [x] **Phase 22: Stability Fixes** - TokenCounter crash fix (blank page prevention), SSE streaming flash fix (debounced updates), increased backend model timeout to 300s, Mermaid diagram rendering without language tag (completed 2026-03-19)
+- [x] **Phase 23: Save Chat** - Download entire conversation as markdown file with auto-generated 1-2 word topic filename, available in all modes via toolbar button (completed 2026-03-19)
+- [x] **Phase 24: IDE Command Distribution** - Create and Build scaffolders auto-copy IDE command files from IDE_COMMANDS/ into every new project across all 5 IDE paths (.claude/commands/, .cursor/commands/, .cursor/prompts/, .github/prompts/, .opencode/commands/) (completed 2026-03-19)
 
 ## Phase Details
 
@@ -230,9 +236,78 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Backend: Zod schema, pentestCode() orchestration, system prompts, test scaffolds
-- [ ] 18-02-PLAN.md — Elite Agent skill file (OWASP-pentest-agent.md) with OWASP methodology
-- [ ] 18-03-PLAN.md — Frontend: SecurityPanel, SecurityReport, mode registration, server endpoint, human verification
+- [x] 18-01-PLAN.md — Backend: Zod schema, pentestCode() orchestration, system prompts, test scaffolds
+- [x] 18-02-PLAN.md — Elite Agent skill file (OWASP-pentest-agent.md) with OWASP methodology
+- [x] 18-03-PLAN.md — Frontend: SecurityPanel, SecurityReport, mode registration, server endpoint, human verification
+
+### Phase 19: Security Enhancements
+**Goal**: Upgrade Security mode with multi-file/folder scanning, drag & drop input, comprehensive export options, AI-powered remediation with zip download, and follow-up conversation support
+**Depends on**: Phase 18
+**Completed**: 2026-03-19
+**What was built**:
+  - Multi-file upload and folder drag & drop for security scanning
+  - Recursive folder scanning via `/api/pentest/folder` endpoint
+  - Export dropdown: Copy, .md, .csv, .html, PDF, .json (both structured and fallback views)
+  - Remediate button: sends findings + code to AI, generates fixed files, downloads zip with REMEDIATION-REPORT.md, original/, and remediated/ folders
+  - Follow-up chat input on fallback (streaming markdown) view
+  - JSZip for client-side zip generation
+
+### Phase 20: Validate Mode
+**Goal**: New Validate tab that analyzes a local project folder or GitHub repo and generates a project-specific validate.md command file with phased validation
+**Depends on**: Phase 18 (mode tab pattern)
+**Completed**: 2026-03-19
+**What was built**:
+  - ValidatePanel.jsx: two input tabs (Local Folder / GitHub Repo)
+  - Backend `/api/validate/scan` endpoint using lib/validate.js to discover project tooling
+  - AI generates phased validation: Lint → Type Check → Style → Unit Tests → E2E
+  - Structured result display with phase cards and IDE install paths
+  - One-click install to Claude Code, Cursor, VS Code, OpenCode
+  - "Install All" button writes to all 4 IDE paths at once
+  - GitHub repo cloning via `/api/validate/github` endpoint
+  - Download validate.md, Copy, and New Scan buttons
+
+### Phase 21: Deployment Hardening
+**Goal**: Make Code Companion deployable on remote hosts without manual HTTPS/port/folder configuration issues
+**Depends on**: Phase 6
+**Completed**: 2026-03-19
+**What was built**:
+  - server.js: HTTPS support with auto-detection of cert/server.crt and cert/server.key, fallback to HTTP
+  - deploy.sh: auto-generates self-signed cert on first deploy via openssl
+  - startup.sh: protocol-aware health checks (detects HTTPS vs HTTP)
+  - Removed HTTPS→HTTP redirect script from index.html
+  - Configurable server port (default 8900, stored in .cc-config.json)
+  - Blank default project folder (no more hardcoded /Users/you/... path)
+  - createModeAllowedRoots defaults to user home directory
+
+### Phase 22: Stability Fixes
+**Goal**: Eliminate crash-causing bugs and improve reliability of streaming responses
+**Depends on**: All prior phases
+**Completed**: 2026-03-19
+**What was built**:
+  - TokenCounter.jsx: coerces duration to Number, checks isFinite before .toFixed() — prevents blank page crash
+  - SSE streaming: debounced state updates to prevent screen flashing
+  - Backend model timeout increased to 300,000ms (5 min) in lib/review.js getTimeoutForModel()
+  - Mermaid diagram detection: renders diagrams even without `mermaid` language tag if content matches known patterns
+
+### Phase 23: Save Chat
+**Goal**: Allow users to download any conversation as a markdown file
+**Depends on**: Phase 5 (chat UI)
+**Completed**: 2026-03-19
+**What was built**:
+  - "Save Chat" button in chat toolbar (all modes)
+  - Generates markdown with conversation metadata (mode, model, date)
+  - Auto-generated 1-2 word topic filename from first user message
+  - Downloads as .md file via browser
+
+### Phase 24: IDE Command Distribution
+**Goal**: Automatically copy IDE command files into every new project created by Create or Build scaffolders
+**Depends on**: Phase 15
+**Completed**: 2026-03-19
+**What was built**:
+  - lib/icm-scaffolder.js and lib/build-scaffolder.js: copy files from IDE_COMMANDS/ (app root) into new projects
+  - Copies to all 5 IDE paths: .claude/commands/, .cursor/commands/, .cursor/prompts/, .github/prompts/, .opencode/commands/
+  - Falls back to configured template path's Commands/ folder if IDE_COMMANDS/ doesn't exist
+  - Create wizard result screen: "Open in Build" button for Create→Build handoff
 
 ## Progress
 
@@ -260,6 +335,12 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 16. Build Dashboard | 5/5 | Complete    | 2026-03-16 |
 | 17. Auto-Update & Installer | ad-hoc | Complete    | 2026-03-16 |
 | 18. Security Pen Test Mode | 3/3 | Complete   | 2026-03-16 |
+| 19. Security Enhancements | ad-hoc | Complete | 2026-03-19 |
+| 20. Validate Mode | ad-hoc | Complete | 2026-03-19 |
+| 21. Deployment Hardening | ad-hoc | Complete | 2026-03-19 |
+| 22. Stability Fixes | ad-hoc | Complete | 2026-03-19 |
+| 23. Save Chat | ad-hoc | Complete | 2026-03-19 |
+| 24. IDE Command Distribution | ad-hoc | Complete | 2026-03-19 |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 

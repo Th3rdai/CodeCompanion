@@ -18,7 +18,7 @@ You are a full-stack developer building **Code Companion**, a web application th
 | mcp-server.js | MCP stdio entry point |
 | lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, tool-call-handler) |
 | mcp/ | MCP tool registrations and Zod schemas |
-| src/App.jsx | Main React app with 15 modes |
+| src/App.jsx | Main React app with 16 modes |
 | src/components/ | 30+ React components (ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, MermaidBlock, etc.) |
 | src/components/builders/ | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel) |
 | src/components/3d/ | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.) |
@@ -26,8 +26,16 @@ You are a full-stack developer building **Code Companion**, a web application th
 | tests/ | Unit tests (node:test in tests/unit/, tests/*.test.js) and Playwright tests (tests/ui/, tests/e2e/) |
 | dist/ | Production build output |
 
-## Fifteen Modes
+## Sixteen Modes
 Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Review, Create, Prompting, Skillz, Agentic, Build
+
+### Save Chat
+Download entire conversation as a markdown file with auto-generated 1-2 word topic filename. Available via toolbar button in all modes.
+
+### Deployment
+- **HTTPS**: Auto-generated self-signed cert via `deploy.sh`, fallback to HTTP if no cert
+- **Port**: Configurable (default 8900), stored in `.cc-config.json`
+- **Health checks**: Protocol-aware in `startup.sh`
 
 ### Diagram Mode
 Renders Mermaid.js diagrams inline in AI responses. Any mode can produce `\`\`\`mermaid` code blocks that render as interactive SVG diagrams. Mermaid.js is lazy-loaded on first use (separate Vite chunk). During streaming, mermaid blocks show as raw code; after completion, they render as diagrams. Export buttons (Source/SVG/PNG) appear on each diagram. The `MarkdownContent` component uses a custom `marked` renderer to intercept mermaid blocks and a split-and-render pattern to mix HTML segments with React `MermaidBlock` components.
