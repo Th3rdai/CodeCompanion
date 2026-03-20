@@ -554,6 +554,9 @@ app.post('/api/chat', async (req, res) => {
     } catch {}
   }
 
+  // Set client key for intra-request terminal rate limiting
+  toolCallHandler.clientKey = req.ip || req.connection?.remoteAddress || 'unknown';
+
   // Append agent tool descriptions (MCP clients + builtin tools)
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
   const hasAgentTools = toolsPrompt.length > 0;
