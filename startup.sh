@@ -28,7 +28,7 @@ echo "  ────────────────────────
 # ── Step 1: Stop any running instances ──────
 
 echo ""
-echo "  [1/5] Stopping existing instances..."
+echo "  [1/6] Stopping existing instances..."
 
 PIDS=$(lsof -ti:$PORT 2>/dev/null)
 if [ -n "$PIDS" ]; then
@@ -40,9 +40,17 @@ if [ -n "$PIDS" ]; then
     echo "$PIDS" | xargs kill -9 2>/dev/null
     sleep 1
   fi
-  echo "        ✓ Stopped previous processes"
+  echo "        ✓ Stopped previous server processes"
 else
-  echo "        ✓ No existing instances found"
+  echo "        ✓ No existing server instances found"
+fi
+
+# Stop any existing docling-serve instances
+DOCLING_PIDS=$(pgrep -f "docling-serve" 2>/dev/null)
+if [ -n "$DOCLING_PIDS" ]; then
+  echo "$DOCLING_PIDS" | xargs kill 2>/dev/null
+  sleep 1
+  echo "        ✓ Stopped previous docling-serve processes"
 fi
 
 # ── Step 2: Clean old logs ──────────────────
@@ -65,7 +73,44 @@ echo "        ✓ Log directory ready: $LOG_DIR"
 # ── Step 3: Install dependencies if needed ──
 
 echo ""
-echo "  [3/6] Checking dependencies..."
+echo "  [3/7] Starting docling-serve..."
+
+# Check if docling-serve is installed
+DOCLING_BIN=""
+if command -v docling-serve &> /dev/null; then
+  DOCLING_BIN=$(command -v docling-serve)
+elif [ -f "$HOME/.local/bin/docling-serve" ]; then
+  DOCLING_BIN="$HOME/.local/bin/docling-serve"
+fi
+
+if [ -n "$DOCLING_BIN" ]; then
+  echo "        Found docling-serve at: $DOCLING_BIN"
+
+  # Start docling-serve in background
+  nohup "$DOCLING_BIN" run --host 127.0.0.1 --port 5002 > /tmp/docling-serve.log 2>&1 &
+  DOCLING_PID=$!
+
+  # Wait up to 5 seconds for docling to start
+  DOCLING_READY=false
+  for i in {1..5}; do
+    sleep 1
+    if curl -s --max-time 2 http://127.0.0.1:5002/health > /dev/null 2>&1; then
+      DOCLING_READY=true
+      echo "        ✓ Docling-serve started (PID: $DOCLING_PID)"
+      break
+    fi
+  done
+
+  if [ "$DOCLING_READY" = false ]; then
+    echo "        ⚠ Docling-serve starting (may take up to 30s for model loading)"
+  fi
+else
+  echo "        ⚠ docling-serve not found — document conversion disabled"
+  echo "        Install: uv tool install \"docling-serve[ui]\""
+fi
+
+echo ""
+echo "  [4/7] Checking dependencies..."
 
 cd "$APP_DIR"
 if [ ! -d "node_modules" ]; then
@@ -79,7 +124,7 @@ fi
 # ── Step 4: Build frontend (Vite) ──────────
 
 echo ""
-echo "  [4/6] Building frontend..."
+echo "  [5/7] Building frontend..."
 
 if [ -f "vite.config.js" ]; then
   npx vite build 2>&1 | tail -5
@@ -92,10 +137,10 @@ else
   echo "        ✓ Using legacy frontend (public/)"
 fi
 
-# ── Step 5: Start the server ────────────────
+# ── Step 6: Start the server ────────────────
 
 echo ""
-echo "  [5/6] Starting server..."
+echo "  [6/7] Starting server..."
 
 node server.js &
 SERVER_PID=$!
@@ -136,10 +181,10 @@ fi
 
 echo "        ✓ Server running (PID: $SERVER_PID)"
 
-# ── Step 6: Health check ────────────────────
+# ── Step 7: Health check ────────────────────
 
 echo ""
-echo "  [6/6] Running health checks..."
+echo "  [7/7] Running health checks..."
 
 # Check Express server
 EXPRESS_OK=false
@@ -165,6 +210,13 @@ if echo "$MCP_RESPONSE" | grep -q '"result"'; then
   MCP_OK=true
 fi
 
+# Check Docling server
+DOCLING_OK=false
+DOCLING_RESPONSE=$(curl -s --max-time 3 http://127.0.0.1:5002/health 2>/dev/null)
+if echo "$DOCLING_RESPONSE" | grep -q '"status"'; then
+  DOCLING_OK=true
+fi
+
 # ── Status Report ───────────────────────────
 
 echo ""
@@ -179,6 +231,7 @@ echo "  Ollama URL:      ${OLLAMA_URL:-unknown}"
 echo "  Ollama Status:   $([ "$OLLAMA_OK" = true ] && echo "✅ Connected ($MODEL_COUNT models)" || echo '❌ Not connected')"
 echo "  MCP Server:      $([ "$MCP_OK" = true ] && echo '✅ Active at /mcp' || echo '⚠️  Not responding')"
 echo "  MCP Stdio:       node mcp-server.js"
+echo "  Docling Server:  $([ "$DOCLING_OK" = true ] && echo '✅ Running at http://127.0.0.1:5002' || echo '⚠️  Not responding')"
 echo ""
 echo "  Logs:"
 echo "    App log:       $APP_LOG"

@@ -453,12 +453,16 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
 
       {projectFolder && tree && !preview && (
         <div className="flex-1 overflow-y-auto scrollbar-thin p-1">
-          <div className="px-2 py-1 flex items-center gap-1">
-            <span className="text-[10px] text-slate-500 truncate flex-1">{tree.root}</span>
+          <div className="px-3 py-2.5 mb-2 flex items-center gap-2 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 rounded-lg border-2 border-indigo-500/40 shadow-lg">
+            <span className="text-sm text-indigo-300 shrink-0 font-bold">📁</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[9px] text-indigo-300/60 font-medium mb-0.5">PROJECT FOLDER</div>
+              <div className="text-sm text-white truncate font-mono font-semibold">{tree.root}</div>
+            </div>
             {onClearFolder && (
               <button
                 onClick={() => { onClearFolder(); setTree(null); }}
-                className="text-[10px] text-slate-500 hover:text-red-300 shrink-0 transition-colors"
+                className="text-sm text-indigo-300 hover:text-red-300 shrink-0 transition-colors px-2 py-1 hover:bg-red-500/10 rounded"
                 title="Clear folder"
               >
                 ✕

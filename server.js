@@ -44,6 +44,7 @@ const { pentestCode, pentestFolder } = require('./lib/pentest');
 const { scanProjectForValidation, generateValidateCommand } = require('./lib/validate');
 const { scoreContent } = require('./lib/builder-score');
 const { checkConnection: checkDocling, convertDocument: convertDoc } = require('./lib/docling-client');
+const { startDocling, stopDocling } = require('./lib/docling-starter');
 
 const app = express();
 const HOST = process.env.HOST || '0.0.0.0'; // use 0.0.0.0 to allow remote access
@@ -2960,6 +2961,14 @@ app.all('/mcp', async (req, res) => {
 process.on('SIGINT', async () => {
   log('INFO', 'Shutting down — disconnecting MCP clients...');
   await mcpClientManager.disconnectAll();
+  stopDocling(log);
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  log('INFO', 'Shutting down (SIGTERM) — cleaning up...');
+  await mcpClientManager.disconnectAll();
+  stopDocling(log);
   process.exit(0);
 });
 
@@ -2987,6 +2996,21 @@ function getLocalNetworkUrl() {
 
 const proto = useHttps ? 'https' : 'http';
 const http = require('http');
+
+// ── Start docling-serve if enabled ───────────────────
+(async () => {
+  const config = getConfig();
+  const doclingResult = await startDocling(config, log);
+  if (doclingResult.managed) {
+    log('INFO', `Docling server managed by Code Companion at ${doclingResult.url}`);
+  } else if (doclingResult.reason === 'already-running') {
+    log('INFO', `Docling server already running at ${doclingResult.url}`);
+  } else if (doclingResult.reason === 'not-installed') {
+    // Already logged by startDocling
+  } else if (doclingResult.reason === 'disabled') {
+    // User disabled it — silent
+  }
+})();
 
 let serverInstance;
 

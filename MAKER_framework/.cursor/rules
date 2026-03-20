@@ -1,0 +1,181 @@
+# Cursor Rules for MAKER Framework Implementation
+
+## Project Context
+This is a MAKER framework implementation for executing million-step LLM tasks with zero errors through Massively Decomposed Agentic Processes (MDAPs). The system is based on research showing that smaller, properly orchestrated models achieve better reliability than large reasoning models.
+
+## Core Principles
+1. **Maximum Decomposition**: Break tasks into the smallest possible subtasks
+2. **Multi-Agent Voting**: Use 3-5-7 agents for consensus on each subtask  
+3. **Red-Flagging**: Proactively detect and prevent error propagation
+4. **Zero-Error Requirement**: System must achieve 100% accuracy on long chains
+
+## Architectural Standards
+
+### Agent Implementation Rules
+- All agents MUST inherit from MicroAgent base class
+- MUST implement async execute() method returning TaskResult
+- MUST include input validation and comprehensive error handling
+- MUST have timeout protection (default 30s)
+- Success rate requirement: >95% for production deployment
+- Confidence threshold: >0.8 for reliable operations
+
+### Code Patterns to Follow
+
+#### MicroAgent Template
+```python
+class {AgentName}Agent(MicroAgent):
+    async def execute(self, input_data: Dict[str, Any]) -> TaskResult:
+        start_time = asyncio.get_event_loop().time()
+        try:
+            if not self.validate_input(input_data):
+                raise ValueError("Invalid input")
+            
+            result = await self._process_data(input_data)
+            
+            return TaskResult(
+                success=True,
+                output=result,
+                confidence=self._calculate_confidence(result),
+                execution_time=(asyncio.get_event_loop().time() - start_time) * 1000
+            )
+        except Exception as e:
+            return TaskResult(
+                success=False,
+                output=None,
+                confidence=0.0,
+                execution_time=(asyncio.get_event_loop().time() - start_time) * 1000,
+                error_message=str(e)
+            )
+```
+
+#### Voting System Requirements
+- Use VotingSystem class for all multi-agent decisions
+- Minimum 3 agents per vote (odd numbers only)
+- Confidence threshold: 0.7 minimum
+- Handle consensus failures with retry mechanisms
+- Weight votes by agent confidence scores
+
+#### Red Flag Implementation
+- Implement RedFlaggingSystem for error detection
+- Include critical rules: error keywords, infinite values, empty results
+- Block execution on high/critical severity flags
+- Log all flag triggers for analysis and tuning
+
+### File Organization Requirements
+- Agents in /agents/{category}/ directories (math, llm, validation, etc.)
+- Tests in /tests/ with >90% coverage requirement
+- Configs in /config/ with environment-specific settings
+- Monitoring in /monitoring/ with Prometheus metrics
+- Documentation must be comprehensive and up-to-date
+
+### Performance Requirements
+- Mathematical agents: <10ms execution time
+- LLM agents: <2000ms execution time
+- System uptime: >99.5% in production
+- Zero-error rate: 100% target for production chains
+- Cost optimization: prefer gpt-4o-mini over larger models
+
+### Testing Standards
+- Unit tests for every agent with success/failure scenarios
+- Integration tests for multi-agent voting
+- End-to-end tests for complete task chains
+- Performance tests for execution time requirements
+- Chaos testing for failure scenarios
+
+### Error Handling Rules
+- Never ignore exceptions - always handle or propagate appropriately
+- Include detailed error messages for debugging
+- Implement exponential backoff for retries
+- Log all errors with appropriate severity levels
+- Design for graceful degradation under load
+
+### Database and State Management
+- Use PostgreSQL for persistent state storage
+- Redis for caching and temporary data
+- Implement proper transaction management
+- Design for horizontal scaling
+- Include backup and recovery procedures
+
+### API Design Standards
+- FastAPI for all HTTP endpoints
+- Pydantic models for request/response validation
+- Include OpenAPI documentation
+- Implement proper authentication and authorization
+- Rate limiting and request validation
+
+### Monitoring Requirements
+- Prometheus metrics for all operations
+- Grafana dashboards for system health
+- Alert on critical thresholds (uptime, error rates, confidence drops)
+- Log aggregation with structured logging
+- Performance profiling for optimization
+
+## Code Quality Rules
+- Use type hints for all functions and methods
+- Follow PEP 8 style guidelines
+- Maximum line length: 100 characters
+- Use descriptive variable and function names
+- Include docstrings for all public methods
+- Prefer composition over inheritance
+- Write defensive code with proper validation
+
+## Deployment Standards
+- Docker containerization for all services
+- docker-compose for local development
+- Kubernetes manifests for production deployment
+- Environment-based configuration management
+- Automated CI/CD pipelines
+- Blue-green deployment strategies
+
+## Security Requirements
+- Never commit secrets or API keys
+- Use environment variables for sensitive configuration
+- Implement proper input sanitization
+- Include rate limiting and DDoS protection
+- Regular security audits and dependency updates
+- Principle of least privilege for all services
+
+## Documentation Requirements
+- README with setup and usage instructions
+- API documentation with examples
+- Architecture diagrams and decision records
+- Troubleshooting guides and runbooks
+- Performance tuning and scaling guides
+
+## Integration Points
+- Spreadsheet tracking system using 8 CSV files
+- Automated metrics updates from system to tracking sheets
+- Integration with external APIs (OpenAI, etc.)
+- Message queue integration for async processing
+- Database migrations and schema management
+
+## Common Anti-Patterns to Avoid
+- Single-agent decision making (always use voting)
+- Insufficient task decomposition (tasks must be atomic)
+- Missing timeout protection on async operations
+- Ignoring red flag warnings or low confidence scores
+- Inadequate error handling or logging
+- Hard-coding configuration values
+- Blocking operations in async contexts
+
+## Development Workflow
+- Feature branches for all changes
+- Pull request reviews required
+- Automated testing before merge
+- Gradual rollout for production changes
+- Rollback procedures for failed deployments
+- Regular performance and security reviews
+
+## Key Files Reference
+- MAKER_DEVELOPMENT_FRAMEWORK.md - Complete implementation guide
+- MAKER_SPREADSHEET_PROCESS.md - Tracking and monitoring system
+- SUMMARY.md - Research paper summary and framework overview
+- CLAUDE.md - Claude Code specific guidance
+- 01_Project_Dashboard.csv through 08_Development_Timeline.csv - Operational tracking
+
+## Success Metrics
+- Zero-error execution on million-step tasks
+- Sub-second response times for simple operations
+- >95% system uptime and availability
+- Cost-effective operation with smaller models
+- Comprehensive monitoring and alerting coverage
