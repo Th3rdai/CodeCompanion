@@ -771,22 +771,24 @@ Format your response as:
               </label>
 
               {field.type === 'textarea' && (
-                <>
+                <div className="relative">
                   <textarea
                     id={`builder-${field.name}`}
                     value={formData[field.name] || ''}
                     onChange={e => updateField(field.name, e.target.value)}
                     placeholder={field.placeholder}
                     rows={field.large ? 10 : 4}
-                    className={`w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500 ${
+                    className={`w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 pr-12 resize-y placeholder-slate-500 ${
                       field.large ? 'min-h-[200px]' : ''
                     }`}
                   />
-                  <DictateButton
-                    onResult={text => updateField(field.name, (formData[field.name] || '') + (formData[field.name] ? ' ' : '') + text)}
-                    disabled={phase !== 'input'}
-                  />
-                </>
+                  <div className="absolute top-2 right-2">
+                    <DictateButton
+                      onResult={text => updateField(field.name, (formData[field.name] || '') + (formData[field.name] ? ' ' : '') + text)}
+                      disabled={phase !== 'input'}
+                    />
+                  </div>
+                </div>
               )}
 
               {field.type === 'text' && (
