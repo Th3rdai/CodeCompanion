@@ -100,6 +100,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
   const [launchingCursor, setLaunchingCursor] = useState(false);
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
   const [launchingOpenCode, setLaunchingOpenCode] = useState(false);
+  const [launchingVSCode, setLaunchingVSCode] = useState(false);
   const [launchError, setLaunchError] = useState(null);
   const [folderError, setFolderError] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -395,6 +396,13 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
             className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50"
           >
             {launchingOpenCode ? 'Opening...' : '💻 OpenCode'}
+          </button>
+          <button
+            onClick={() => launchIDE('/api/launch-vscode', 'VS Code', setLaunchingVSCode)}
+            disabled={launchingVSCode || !folderPath}
+            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30 transition-colors disabled:opacity-50"
+          >
+            {launchingVSCode ? 'Opening...' : '🔷 VS Code'}
           </button>
         </div>
       )}

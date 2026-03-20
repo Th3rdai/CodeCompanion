@@ -1714,6 +1714,49 @@ app.post('/api/launch-windsurf', async (req, res) => {
   }
 });
 
+// ── Launch VS Code in project folder ──────────────────
+
+app.post('/api/launch-vscode', async (req, res) => {
+  const { projectPath } = req.body;
+  const folder = projectPath || getConfig().projectFolder;
+  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
+  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
+
+  try {
+    if (ideLauncher) {
+      await ideLauncher.launchIDE('vscode', folder);
+      log('INFO', `Launched VS Code in: ${folder}`);
+      res.json({ success: true, folder });
+    } else {
+      const { execFile } = require('child_process');
+      const platform = process.platform;
+
+      if (platform === 'darwin') {
+        // macOS: try CLI first, then open -a
+        const vscodeCli = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+        if (fs.existsSync(vscodeCli)) {
+          execFile(vscodeCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+        } else {
+          const { execSync } = require('child_process');
+          execSync(`open -a "Visual Studio Code" "${folder}"`);
+        }
+      } else if (platform === 'win32') {
+        // Windows: 'code' should be in PATH after VS Code install
+        execFile('code', [folder], { detached: true, stdio: 'ignore', shell: true }).unref();
+      } else {
+        // Linux: 'code' should be in PATH
+        execFile('code', [folder], { detached: true, stdio: 'ignore' }).unref();
+      }
+
+      log('INFO', `Launched VS Code in: ${folder} (${platform})`);
+      res.json({ success: true, folder });
+    }
+  } catch (err) {
+    log('ERROR', 'launch-vscode failed', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Launch OpenCode in project folder ─────────────────
 
 app.post('/api/launch-opencode', async (req, res) => {
