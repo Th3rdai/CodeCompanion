@@ -1518,7 +1518,7 @@ app.post('/api/score', async (req, res) => {
     return res.status(400).json({ error: 'model, mode, and content are required' });
   }
 
-  const validModes = ['prompting', 'skillz', 'agentic'];
+  const validModes = ['prompting', 'skillz', 'agentic', 'planner'];
   if (!validModes.includes(mode)) {
     return res.status(400).json({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
   }

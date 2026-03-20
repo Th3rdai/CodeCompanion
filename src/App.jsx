@@ -22,6 +22,7 @@ import ValidatePanel from './components/ValidatePanel';
 import PromptingPanel from './components/builders/PromptingPanel';
 import SkillzPanel from './components/builders/SkillzPanel';
 import AgenticPanel from './components/builders/AgenticPanel';
+import PlannerPanel from './components/builders/PlannerPanel';
 import OnboardingWizard, { isOnboardingComplete } from './components/OnboardingWizard';
 import { GlossaryPanel } from './components/JargonGlossary';
 import PrivacyBanner from './components/PrivacyBanner';
@@ -56,11 +57,12 @@ const MODES = [
   { id: 'prompting',      label: 'Prompting',               icon: '🎯', desc: 'Craft and score AI prompts',       placeholder: '' },
   { id: 'skillz',         label: 'Skillz',                  icon: '⚡', desc: 'Build Claude Code skills',         placeholder: '' },
   { id: 'agentic',        label: 'Agentic',                 icon: '🤖', desc: 'Design AI agents',                 placeholder: '' },
+  { id: 'planner',        label: 'Planner',                 icon: '📋', desc: 'Design and score plans',            placeholder: '' },
   { id: 'create',         label: 'Create',                  icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
   { id: 'build',          label: 'Build',                   icon: '🏗️', desc: 'Start a GSD+ICM project to build apps and tools', placeholder: 'Scaffold a project with planning and stages...' },
 ];
 
-const BUILDER_MODES = ['prompting', 'skillz', 'agentic'];
+const BUILDER_MODES = ['prompting', 'skillz', 'agentic', 'planner'];
 
 function TypingIndicator() {
   return (
@@ -1452,8 +1454,19 @@ export default function App() {
                   onLoadFile={builderAttachRef}
                   projectFolder={projectFolder}
                 />
-              ) : (
+              ) : mode === 'agentic' ? (
                 <AgenticPanel
+                  selectedModel={selectedModel}
+                  connected={connected}
+                  models={models}
+                  onToast={setToast}
+                  savedData={savedBuilderData}
+                  onSaveBuilder={handleSaveBuilder}
+                  onLoadFile={builderAttachRef}
+                  projectFolder={projectFolder}
+                />
+              ) : (
+                <PlannerPanel
                   selectedModel={selectedModel}
                   connected={connected}
                   models={models}
