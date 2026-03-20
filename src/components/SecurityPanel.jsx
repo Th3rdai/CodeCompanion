@@ -8,6 +8,7 @@ import MessageBubble from './MessageBubble';
 import MarkdownContent from './MarkdownContent';
 import LoadingAnimation from './LoadingAnimation';
 import ImageThumbnail from './ImageThumbnail';
+import DictateButton from './DictateButton';
 import ImageLightbox from './ImageLightbox';
 import { validateImage, processImage, hashImage } from '../lib/image-processor';
 import { isConvertibleDocument, convertDocument, validateDocument, getDocumentAcceptString } from '../lib/document-processor';
@@ -688,6 +689,10 @@ export default function SecurityPanel({
   }
 
   // ── Reset to input ────────────────────────────────
+  function handleDictation(text) {
+    setCode(prev => prev ? prev + ' ' + text : text);
+  }
+
   function handleNewScan() {
     setPhase('input');
     setCode('');
@@ -1514,6 +1519,11 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
                   >
                     Clear
                   </button>
+                  <DictateButton
+                    onResult={handleDictation}
+                    disabled={!connected}
+                    className="!w-auto !h-auto text-xs px-2.5 py-1.5 !rounded-lg border border-slate-700/30 hover:border-indigo-500/30"
+                  />
                 </div>
               </Tab.Panel>
 

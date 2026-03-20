@@ -60,14 +60,12 @@ export default function DictateButton({ onResult, disabled = false, className = 
     recognition.start();
   }, [listening, onResult]);
 
-  if (!supported) return null;
-
   return (
     <button
       type="button"
       onClick={toggle}
-      disabled={disabled}
-      title={listening ? 'Stop dictation' : 'Start dictation'}
+      disabled={disabled || !supported}
+      title={!supported ? 'Voice dictation requires Chrome or Edge' : listening ? 'Stop dictation' : 'Start dictation'}
       className={`flex items-center justify-center rounded-lg transition-all duration-200 ${
         listening
           ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'

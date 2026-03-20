@@ -39,6 +39,7 @@ import MemoryPanel from './components/MemoryPanel';
 import ImageThumbnail from './components/ImageThumbnail';
 import ImageLightbox from './components/ImageLightbox';
 import ImagePrivacyWarning from './components/ImagePrivacyWarning';
+import DictateButton from './components/DictateButton';
 import { validateImage, processImage, hashImage } from './lib/image-processor';
 import { isConvertibleDocument, convertDocument, validateDocument, formatAsAttachment, getDocumentAcceptString } from './lib/document-processor';
 import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
@@ -1131,6 +1132,11 @@ export default function App() {
   }
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
+  function handleDictation(text) {
+    setInput(prev => prev ? prev + ' ' + text : text);
+    textareaRef.current?.focus();
+  }
+
   async function handleCreateSuccess(projectPath) {
     // Verify the folder was actually created before saving to config
     try {
@@ -1699,6 +1705,7 @@ export default function App() {
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       🧹 Clear
                     </button>
+                    <DictateButton onResult={handleDictation} disabled={!connected || streaming} />
                     <span className="flex-1" />
                     <span className="text-[10px] text-slate-500">Enter to send · Shift+Enter for new line · Drag files to attach</span>
                   </div>

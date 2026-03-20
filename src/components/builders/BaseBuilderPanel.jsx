@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import LoadingAnimation from '../LoadingAnimation';
 import MarkdownContent from '../MarkdownContent';
 import BuilderScoreCard from './BuilderScoreCard';
+import DictateButton from '../DictateButton';
 
 // ── Tag Input Component ──────────────────────────────
 
@@ -770,16 +771,22 @@ Format your response as:
               </label>
 
               {field.type === 'textarea' && (
-                <textarea
-                  id={`builder-${field.name}`}
-                  value={formData[field.name] || ''}
-                  onChange={e => updateField(field.name, e.target.value)}
-                  placeholder={field.placeholder}
-                  rows={field.large ? 10 : 4}
-                  className={`w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500 ${
-                    field.large ? 'min-h-[200px]' : ''
-                  }`}
-                />
+                <>
+                  <textarea
+                    id={`builder-${field.name}`}
+                    value={formData[field.name] || ''}
+                    onChange={e => updateField(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    rows={field.large ? 10 : 4}
+                    className={`w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500 ${
+                      field.large ? 'min-h-[200px]' : ''
+                    }`}
+                  />
+                  <DictateButton
+                    onResult={text => updateField(field.name, (formData[field.name] || '') + (formData[field.name] ? ' ' : '') + text)}
+                    disabled={phase !== 'input'}
+                  />
+                </>
               )}
 
               {field.type === 'text' && (
