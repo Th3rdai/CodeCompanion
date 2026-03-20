@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Onboarding and Help** - First-time user flow, contextual jargon glossary, and privacy messaging (completed 2026-03-14)
 - [x] **Phase 6: Desktop App** - Electron packaging for self-contained macOS, Linux, and Windows desktop application (completed 2026-03-14)
 - [x] **Phase 7: License Gating** - Feature-based license model; gate Skillz and Agentic; wire license API and Settings UI (completed 2026-03-14)
-- [ ] ~~**Phase 8: Payment Integration**~~ - Stripe/Paddle checkout, purchase flow (DEFERRED — MIT license, no paid tier)
+- [ ] ~~**Phase 8: Payment Integration**~~ - Stripe/Paddle checkout, purchase flow (DEFERRED — align with Th3rdAI commercial licensing when needed)
 - [ ] ~~**Phase 9: License Batch Generation**~~ - Bulk key generation, lib/license-generator.js (DEFERRED)
 - [ ] ~~**Phase 10: License Payment Webhook**~~ - Auto-generate keys on purchase completion (DEFERRED)
 - [ ] ~~**Phase 11: License Server API**~~ - Online validation, revocation endpoint (DEFERRED)
@@ -344,4 +344,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 
-Project is MIT licensed. These phases are deferred until a paid tier is needed. Plans exist on disk in `.planning/phases/` for future reference.
+Project is Th3rdAI-licensed (personal/non-commercial; commercial by agreement). These phases are deferred until paid/commercial distribution is prioritized. Plans exist on disk in `.planning/phases/` for future reference.

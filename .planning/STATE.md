@@ -293,4 +293,4 @@ Recent decisions affecting current work:
 Last session: 2026-03-19
 Stopped at: Completed Phases 19-24 (retroactive documentation)
 Resume file: None
-Next: Phases 8-14 (license distribution) deferred — project is MIT licensed. All planned features complete. Ready for v5.0 milestone or new feature work.
+Next: Phases 8-14 (license distribution) deferred — project uses Th3rdAI personal/non-commercial LICENSE; commercial use requires agreement. All planned features complete. Ready for v5.0 milestone or new feature work.

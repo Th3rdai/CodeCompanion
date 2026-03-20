@@ -356,4 +356,8 @@ Settings are stored in `.cc-config.json`:
 
 ## License
 
-MIT
+**Th3rdAI — personal & non-commercial use only.**  
+You may use Code Companion for personal learning and non-commercial projects. **Commercial use** (business use, paid services, redistribution for profit, etc.) **requires a separate written agreement** from Th3rdAI.
+
+- Full terms: see [`LICENSE`](LICENSE) in this repository.  
+- Commercial licensing: **james@th3rdai.com** · **https://www.th3rdai.com**

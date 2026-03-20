@@ -60,4 +60,4 @@ Open an issue with:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing, you agree that your contributions may be used by Th3rdAI under the same [LICENSE](LICENSE) terms (including the contribution grant in section 4), unless you and Th3rdAI sign a different contributor agreement.
