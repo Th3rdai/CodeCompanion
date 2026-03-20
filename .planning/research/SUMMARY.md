@@ -136,7 +136,7 @@ Based on combined research, the build order is architecturally constrained botto
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 5 (Integration / Model Guidance):** Model capability detection via `details.parameter_size` from Ollama `/api/tags` needs verification against the version deployed at `http://192.168.50.7:11424`. Structured output behavior on models under 7B is LOW confidence — requires hands-on testing with models users actually run (llama3.2:3b, phi3, gemma2).
+- **Phase 5 (Integration / Model Guidance):** Model capability detection via `details.parameter_size` from Ollama `/api/tags` needs verification against the version deployed at `http://HOST_IP:11424`. Structured output behavior on models under 7B is LOW confidence — requires hands-on testing with models users actually run (llama3.2:3b, phi3, gemma2).
 - **Phase 6 (History):** Current `saveConversation` format needs inspection to confirm the correct extension pattern for structured review data. Read the existing history schema before designing the new `type` field.
 
 Phases with standard patterns (skip research-phase):
@@ -159,7 +159,7 @@ Phases with standard patterns (skip research-phase):
 
 - **zod-to-json-schema + Zod v4 compatibility:** Project uses Zod ^4.3.6. Verify at `npm install zod-to-json-schema` time. If incompatible: hand-write the JSON Schema directly (it is a single static object — not an ongoing maintenance burden).
 - **Small model structured output quality:** Must be tested empirically with models users actually run on local hardware. No desk research substitutes for hands-on testing. Establish pass/fail criteria before shipping model capability tiers.
-- **Ollama version on deployment host:** Structured output with full JSON Schema requires Ollama 0.5.0+. Verify the version at `http://192.168.50.7:11424` before relying on the `format: { schema }` path.
+- **Ollama version on deployment host:** Structured output with full JSON Schema requires Ollama 0.5.0+. Verify the version at `http://HOST_IP:11424` before relying on the `format: { schema }` path.
 - **recharts + React 19 compatibility:** MEDIUM confidence from training data. Deferred from MVP entirely to eliminate the risk.
 
 ## Sources

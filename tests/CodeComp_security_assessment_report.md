@@ -1,11 +1,11 @@
 # Security Assessment Report
-## Target: Th3rdAI Code Companion — http://192.168.50.7:3000/
+## Target: Th3rdAI Code Companion — http://HOST_IP:3000/
 
 | Field | Value |
 |---|---|
 | **Date** | 2026-03-14 |
 | **Assessor** | Agent Zero — Automated Security Assessment |
-| **Scope** | http://192.168.50.7:3000/ and all services on 192.168.50.7 |
+| **Scope** | http://HOST_IP:3000/ and all services on HOST_IP |
 | **Authorization** | Authorized by asset owner |
 | **Overall Risk** | 🔴 CRITICAL |
 
@@ -86,7 +86,7 @@ The broader host compounds this by exposing multiple unauthenticated services in
 
 ### F-01 🔴 CRITICAL — GitHub Personal Access Tokens Exposed in Plaintext
 
-**Endpoint:** `GET http://192.168.50.7:3000/api/config`  
+**Endpoint:** `GET http://HOST_IP:3000/api/config`  
 **Authentication Required:** None  
 **OWASP:** A02 Cryptographic Failures, A05 Security Misconfiguration  
 
@@ -171,7 +171,7 @@ Endpoints that trigger IDE tools and code execution environments on the host OS 
 
 **Evidence:**
 ```bash
-$ curl -X POST http://192.168.50.7:3000/api/launch-claude-code \
+$ curl -X POST http://HOST_IP:3000/api/launch-claude-code \
   -H "Content-Type: application/json" -d "{}"
 {"success":true,"folder":"/Users/james/AI_Dev/tests/codecomp"}
 ```
@@ -192,7 +192,7 @@ $ curl -X POST http://192.168.50.7:3000/api/launch-claude-code \
 
 ### F-04 🟠 HIGH — Ollama AI API Fully Exposed Without Authentication
 
-**Endpoint:** `http://192.168.50.7:11434`  
+**Endpoint:** `http://HOST_IP:11434`  
 **Authentication Required:** None  
 **OWASP:** A01 Broken Access Control  
 
@@ -201,10 +201,10 @@ The Ollama AI inference server is bound to all network interfaces and accessible
 
 **Evidence:**
 ```bash
-$ curl http://192.168.50.7:11434/
+$ curl http://HOST_IP:11434/
 Ollama is running
 
-$ curl http://192.168.50.7:11434/api/tags  # 24 models returned:
+$ curl http://HOST_IP:11434/api/tags  # 24 models returned:
 glm-4.6:cloud, qwen3-8b-util, qwen3-32k, qwen3-coder:30b,
 devstral-small-2, bazobehram/qwen3-14b-claude-4.5-opus-high-reasoning,
 incept5/llama3.1-claude, glm-4.7-flash, nomic-embed-text ... (24 total)
@@ -231,7 +231,7 @@ All AI conversation history is accessible without authentication. Sessions conta
 **Evidence (session list sample):**
 ```json
 [
-  {"id": "ab3c6cbb", "title": "{mcpServers: archon, ip: 192.168.50.7:8051}", "mode": "refactor"},
+  {"id": "ab3c6cbb", "title": "{mcpServers: archon, ip: HOST_IP:8051}", "mode": "refactor"},
   {"id": "8f07293e", "title": "Is it possible to inspect and review binaries?", "mode": "chat"},
   {"id": "44a79176", "title": "GSD P3 Tests: buggy-discount.js", "mode": "refactor"}
 ]
@@ -282,8 +282,8 @@ The application runs on HTTP only. All data including GitHub tokens, AI conversa
 
 **Evidence:**
 ```bash
-$ curl -sk https://192.168.50.7:3000/  →  HTTP 000 (connection refused - no TLS)
-$ curl -sk https://192.168.50.7:443/   →  HTTP 000 (no TLS on any port)
+$ curl -sk https://HOST_IP:3000/  →  HTTP 000 (connection refused - no TLS)
+$ curl -sk https://HOST_IP:443/   →  HTTP 000 (no TLS on any port)
 ```
 
 **Recommendations:**
@@ -302,7 +302,7 @@ No CORS headers are returned on any API response. Any website a user visits coul
 
 **Evidence:**
 ```bash
-$ curl -I -H "Origin: https://evil.com" http://192.168.50.7:3000/api/config
+$ curl -I -H "Origin: https://evil.com" http://HOST_IP:3000/api/config
 # Response: NO Access-Control-Allow-Origin or any CORS headers returned
 ```
 
@@ -317,7 +317,7 @@ $ curl -I -H "Origin: https://evil.com" http://192.168.50.7:3000/api/config
 
 **Disclosed Information:**
 - Full filesystem paths: `/Users/james/AI_Dev/ICM_FW/ICM-Framework-Template`
-- Internal service URLs: `http://localhost:11434`, `http://192.168.50.7:8051`
+- Internal service URLs: `http://localhost:11434`, `http://HOST_IP:8051`
 - OS type and developer username: `james` (macOS)
 - MCP server configurations and client IDs
 - All installed AI model names and versions
@@ -347,7 +347,7 @@ Any network user can toggle MCP server connections on/off without authentication
 
 ### F-11 🟡 MEDIUM — Archon MCP Server Exposed on Network
 
-**Endpoint:** `http://192.168.50.7:8051`  
+**Endpoint:** `http://HOST_IP:8051`  
 **Authentication Required:** None  
 **OWASP:** A05 Security Misconfiguration  
 
@@ -356,9 +356,9 @@ The Archon MCP (Model Context Protocol) server is bound to all network interface
 
 **Evidence:**
 ```bash
-$ curl http://192.168.50.7:8051/
+$ curl http://HOST_IP:8051/
 HTTP 404
-$ curl http://192.168.50.7:8051/mcp
+$ curl http://HOST_IP:8051/mcp
 # SSE stream opens successfully - no auth required
 ```
 
@@ -438,8 +438,8 @@ Ports 5000 and 8000 are open and listening but did not respond to standard HTTP 
 ```
 nmap: 5000/tcp open  upnp?
 nmap: 8000/tcp open  http-alt?
-curl http://192.168.50.7:5000/  → no HTTP response
-curl http://192.168.50.7:8000/  → no HTTP response
+curl http://HOST_IP:5000/  → no HTTP response
+curl http://HOST_IP:8000/  → no HTTP response
 ```
 
 **Recommendations:**
@@ -460,7 +460,7 @@ No WAF is present at any layer (network, host, or application). The application 
 
 **Evidence:**
 ```bash
-$ wafw00f http://192.168.50.7:3000/
+$ wafw00f http://HOST_IP:3000/
 No WAF detected
 ```
 
@@ -612,4 +612,4 @@ The good news: the majority of these issues can be resolved with **less than a d
 
 ---
 
-*Report generated: 2026-03-14 | Assessor: Agent Zero Security | Target: http://192.168.50.7:3000/ | Scope: High-level black-box assessment*
+*Report generated: 2026-03-14 | Assessor: Agent Zero Security | Target: http://HOST_IP:3000/ | Scope: High-level black-box assessment*

@@ -269,7 +269,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- Ollama version at 192.168.50.7:11424 must be 0.5.0+ for JSON Schema `format` support — verify in Phase 1
+- Ollama version at HOST_IP:11424 must be 0.5.0+ for JSON Schema `format` support — verify in Phase 1
 - zod-to-json-schema Zod v4 compatibility unconfirmed — verify at install time
 - Small model (<7B) structured output quality is LOW confidence — needs empirical testing in Phase 4
 

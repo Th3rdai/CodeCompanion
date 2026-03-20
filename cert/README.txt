@@ -15,8 +15,8 @@ To run the app over HTTPS (e.g. to avoid browser HSTS/SSL issues on localhost):
 
 Optional: for a specific hostname or IP (e.g. for remote access), use:
 
-   openssl req -nodes -new -x509 -keyout server.key -out server.crt -days 365 -subj "/CN=192.168.50.7"
+   openssl req -nodes -new -x509 -keyout server.key -out server.crt -days 365 -subj "/CN=YOUR_HOST_OR_IP"
 
-Replace 192.168.50.7 with your machine's IP or hostname.
+Replace YOUR_HOST_OR_IP with your machine's IP or hostname.
 
 Do not commit server.key (or any private key) to version control.

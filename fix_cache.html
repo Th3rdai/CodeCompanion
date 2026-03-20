@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Code Companion Cache</title>
+</head>
+<body style="background: #1e293b; color: #e2e8f0; font-family: system-ui; padding: 40px;">
+    <h1>Code Companion Cache Fix</h1>
+    <button onclick="fixCache()" style="background: #6366f1; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer;">
+        Fix Cache & Reload
+    </button>
+    <pre id="output" style="background: #0f172a; padding: 20px; margin-top: 20px; border-radius: 8px;"></pre>
+
+    <script>
+        function getRedirectUrl() {
+            if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                return window.location.origin;
+            }
+            return 'https://localhost:8900';
+        }
+
+        function fixCache() {
+            const output = document.getElementById('output');
+            let log = '';
+
+            // Set privacy warning as accepted
+            localStorage.setItem('cc-image-privacy-accepted', 'true');
+            log += '✓ Set privacy warning as accepted\n';
+
+            // Clear any cached data
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                if (key.includes('model') || key.includes('cache')) {
+                    localStorage.removeItem(key);
+                    log += `✓ Removed: ${key}\n`;
+                }
+            });
+
+            sessionStorage.clear();
+            log += '✓ Cleared session storage\n';
+
+            const redirectUrl = getRedirectUrl();
+            output.textContent = log + `\n✓ Done! Reloading ${redirectUrl} in 2 seconds...`;
+
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

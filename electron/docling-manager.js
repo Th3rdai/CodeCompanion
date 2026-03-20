@@ -171,6 +171,15 @@ async function startDocling(dataDir, log = console.log) {
   log(`${LOG_PREFIX} Starting on ${host}:${port}...`);
 
   return new Promise((resolve) => {
+    let pollInterval = null;
+    let settled = false;
+    const resolveOnce = (result) => {
+      if (settled) return;
+      settled = true;
+      if (pollInterval) clearInterval(pollInterval);
+      resolve(result);
+    };
+
     const proc = spawn(binaryPath, ['run', '--host', host, '--port', String(port)], {
       stdio: ['pipe', 'pipe', 'pipe'],
       detached: false,
@@ -194,7 +203,7 @@ async function startDocling(dataDir, log = console.log) {
       log(`${LOG_PREFIX} Failed to start: ${err.message}`);
       doclingProcess = null;
       managedPort = null;
-      resolve({ managed: false, url: config.url, reason: 'spawn-error' });
+      resolveOnce({ managed: false, url: config.url, reason: 'spawn-error' });
     });
 
     proc.on('exit', (code, signal) => {
@@ -203,25 +212,23 @@ async function startDocling(dataDir, log = console.log) {
       }
       doclingProcess = null;
       managedPort = null;
+      resolveOnce({ managed: false, url: config.url, reason: 'process-died' });
     });
 
     // Poll for health — docling-serve takes a few seconds to start (model loading)
     let attempts = 0;
     const maxAttempts = 30; // 30 seconds
-    const pollInterval = setInterval(async () => {
+    pollInterval = setInterval(async () => {
       attempts++;
       if (await isDoclingHealthy(config.url)) {
-        clearInterval(pollInterval);
         log(`${LOG_PREFIX} Ready at ${config.url} (took ~${attempts}s)`);
-        resolve({ managed: true, url: config.url });
+        resolveOnce({ managed: true, url: config.url });
       } else if (attempts >= maxAttempts) {
-        clearInterval(pollInterval);
         log(`${LOG_PREFIX} Did not become healthy within ${maxAttempts}s — may still be loading models`);
         // Don't kill it — it might still come up (EasyOCR model download can be slow)
-        resolve({ managed: true, url: config.url, reason: 'slow-start' });
+        resolveOnce({ managed: true, url: config.url, reason: 'slow-start' });
       } else if (!doclingProcess || doclingProcess.killed) {
-        clearInterval(pollInterval);
-        resolve({ managed: false, url: config.url, reason: 'process-died' });
+        resolveOnce({ managed: false, url: config.url, reason: 'process-died' });
       }
     }, 1000);
   });

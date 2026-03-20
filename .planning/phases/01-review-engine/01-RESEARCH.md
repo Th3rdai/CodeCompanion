@@ -312,7 +312,7 @@ app.post('/api/review', async (req, res) => {
 
 ## Open Questions
 
-1. **Ollama version at 192.168.50.7:11424**
+1. **Ollama version at HOST_IP:11424**
    - What we know: Must be 0.5.0+ for JSON Schema `format` support
    - What's unclear: Actual installed version
    - Recommendation: Add version check to `/api/review` endpoint startup or first call; fail gracefully with clear error if < 0.5.0
