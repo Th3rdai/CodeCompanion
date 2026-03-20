@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import DictateButton from './DictateButton';
 import { CREATE_TUTORIAL_STEPS } from '../data/tutorialSteps';
+import { joinAppend } from '../lib/dictationAppend';
 
 const STEPS = [
   { id: 1, title: 'Project Info', fields: ['name', 'description', 'role'] },
@@ -322,7 +323,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 autoFocus
               />
-              <DictateButton onResult={text => setName(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setName(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'name' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -349,7 +350,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 rows={2}
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm resize-none"
               />
-              <DictateButton onResult={text => setDescription(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setDescription(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'description' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -375,7 +376,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 placeholder="e.g. content writing assistant, research analyst"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setRole(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setRole(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'role' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -408,7 +409,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 placeholder="Who will use the output?"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setAudience(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setAudience(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'audience' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -452,7 +453,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                   placeholder="Describe tone"
                   className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 />
-                <DictateButton onResult={text => setToneCustom(prev => prev ? prev + ' ' + text : text)} />
+                <DictateButton onResult={text => setToneCustom(prev => joinAppend(prev, text))} />
               </div>
             )}
           </div>
@@ -467,31 +468,41 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           <div className="space-y-2">
             {stages.map((s, i) => (
               <div key={i} className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/40">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-mono text-indigo-400 text-xs">{String(i + 1).padStart(2, '0')}</span>
-                  <input
-                    type="text"
-                    value={s.name}
-                    onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, name: e.target.value } : row))}
-                    className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-1.5 text-sm"
-                    placeholder="Stage name"
-                  />
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="font-mono text-indigo-400 text-xs shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="flex flex-1 min-w-0 gap-2 items-start">
+                    <input
+                      type="text"
+                      value={s.name}
+                      onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, name: e.target.value } : row))}
+                      className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-3 py-1.5 text-sm"
+                      placeholder="Stage name"
+                    />
+                    <DictateButton
+                      onResult={text => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, name: joinAppend(row.name, text) } : row))}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => setStages(prev => prev.filter((_, idx) => idx !== i))}
                     disabled={stages.length <= 1}
-                    className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-300 disabled:opacity-50"
+                    className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-300 disabled:opacity-50 shrink-0"
                   >
                     Remove
                   </button>
                 </div>
-                <input
-                  type="text"
-                  value={s.purpose}
-                  onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, purpose: e.target.value } : row))}
-                  className="w-full input-glow text-slate-300 rounded-lg px-3 py-1.5 text-xs"
-                  placeholder="Stage purpose"
-                />
+                <div className="flex gap-2 items-start">
+                  <input
+                    type="text"
+                    value={s.purpose}
+                    onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, purpose: e.target.value } : row))}
+                    className="flex-1 min-w-0 input-glow text-slate-300 rounded-lg px-3 py-1.5 text-xs"
+                    placeholder="Stage purpose"
+                  />
+                  <DictateButton
+                    onResult={text => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, purpose: joinAppend(row.purpose, text) } : row))}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -542,7 +553,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                 placeholder="~/AI_Dev/"
                 className="flex-1 min-w-0 input-glow text-slate-100 font-mono rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setOutputRoot(prev => prev ? prev + text : text)} />
+              <DictateButton onResult={text => setOutputRoot(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'outputRoot' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">

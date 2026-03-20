@@ -5,12 +5,23 @@ const fs = require('fs');
 const net = require('net');
 
 // Create emergency log file for debugging startup issues
-const emergencyLogPath = path.join(app.getPath('temp'), 'code-companion-startup.log');
+// Defer app.getPath() — not safe before app 'ready' in Electron 41+
+let emergencyLogPath;
+function getEmergencyLogPath() {
+  if (!emergencyLogPath) {
+    try {
+      emergencyLogPath = path.join(app.getPath('temp'), 'code-companion-startup.log');
+    } catch {
+      emergencyLogPath = path.join(require('os').tmpdir(), 'code-companion-startup.log');
+    }
+  }
+  return emergencyLogPath;
+}
 function emergencyLog(message) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] ${message}\n`;
   try {
-    fs.appendFileSync(emergencyLogPath, logMessage);
+    fs.appendFileSync(getEmergencyLogPath(), logMessage);
     console.log(message);
   } catch (err) {
     console.error('Failed to write emergency log:', err);
@@ -23,15 +34,15 @@ emergencyLog(`Platform: ${process.platform}`);
 emergencyLog(`Arch: ${process.arch}`);
 emergencyLog(`Node: ${process.version}`);
 emergencyLog(`Electron: ${process.versions.electron}`);
-emergencyLog(`App Path: ${app.getAppPath()}`);
-emergencyLog(`EXE Path: ${app.getPath('exe')}`);
+try { emergencyLog(`App Path: ${app.getAppPath()}`); } catch { emergencyLog('App Path: (not yet available)'); }
+try { emergencyLog(`EXE Path: ${app.getPath('exe')}`); } catch { emergencyLog('EXE Path: (not yet available)'); }
 emergencyLog(`Packaged: ${app.isPackaged}`);
 
 // Catch all uncaught exceptions
 process.on('uncaughtException', (error) => {
   emergencyLog(`UNCAUGHT EXCEPTION: ${error.message}`);
   emergencyLog(`Stack: ${error.stack}`);
-  dialog.showErrorBox('Startup Error', `${error.message}\n\nLog: ${emergencyLogPath}`);
+  dialog.showErrorBox('Startup Error', `${error.message}\n\nLog: ${getEmergencyLogPath()}`);
   app.quit();
 });
 
@@ -432,7 +443,7 @@ async function startApp() {
       emergencyLog(`SERVER START ERROR: ${err.message}`);
       emergencyLog(`Stack: ${err.stack}`);
       console.error('[Main] Failed to start server:', err);
-      dialog.showErrorBox('Server Error', `Failed to start server: ${err.message}\n\nLog: ${emergencyLogPath}`);
+      dialog.showErrorBox('Server Error', `Failed to start server: ${err.message}\n\nLog: ${getEmergencyLogPath()}`);
       app.quit();
       return;
     }

@@ -239,11 +239,14 @@ app.use('/api', mcpApiRouter);
 
 app.get('/api/config', (req, res) => {
   debug('Config requested');
-  const config = sanitizeConfigForClient(getConfig());
-  // Don't serve a stale projectFolder that no longer exists on disk
-  if (config.projectFolder && !fs.existsSync(config.projectFolder)) {
-    config.projectFolder = '';
+  const fullCfg = getConfig();
+  // Don't keep a stale projectFolder that no longer exists — fall back to user home
+  if (fullCfg.projectFolder && !fs.existsSync(fullCfg.projectFolder)) {
+    const home = os.homedir() || process.cwd();
+    fullCfg.projectFolder = home;
+    updateConfig({ projectFolder: home });
   }
+  const config = sanitizeConfigForClient(getConfig());
   res.json(config);
 });
 
@@ -365,7 +368,8 @@ app.post('/api/config', (req, res) => {
       }
       config.projectFolder = resolvedFolder;
     } else {
-      config.projectFolder = '';
+      // Empty / clear → reset to user home (default browse root until changed again)
+      config.projectFolder = os.homedir() || process.cwd();
     }
     log('INFO', `Project folder set to: ${config.projectFolder || '(none)'}`);
   }

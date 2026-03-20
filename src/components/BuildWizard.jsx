@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import DictateButton from './DictateButton';
+import { joinAppend } from '../lib/dictationAppend';
 import { BUILD_TUTORIAL_STEPS } from '../data/tutorialSteps';
 
 const STEPS = [
@@ -280,7 +281,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 autoFocus
               />
-              <DictateButton onResult={text => setName(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setName(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'name' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -307,7 +308,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 rows={3}
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm resize-none"
               />
-              <DictateButton onResult={text => setDescription(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setDescription(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'description' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -339,7 +340,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 placeholder="Who will use this?"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setAudience(prev => prev ? prev + ' ' + text : text)} />
+              <DictateButton onResult={text => setAudience(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'audience' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
@@ -383,7 +384,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                   placeholder="Describe tone"
                   className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 />
-                <DictateButton onResult={text => setToneCustom(prev => prev ? prev + ' ' + text : text)} />
+                <DictateButton onResult={text => setToneCustom(prev => joinAppend(prev, text))} />
               </div>
             )}
           </div>
@@ -408,7 +409,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
                 placeholder="~/AI_Dev/"
                 className="flex-1 min-w-0 input-glow text-slate-100 font-mono rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setOutputRoot(prev => prev ? prev + text : text)} />
+              <DictateButton onResult={text => setOutputRoot(prev => joinAppend(prev, text))} />
             </div>
             {hintField === 'outputRoot' && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">

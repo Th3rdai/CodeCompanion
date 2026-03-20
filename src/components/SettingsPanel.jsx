@@ -603,7 +603,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   Set Folder
                 </button>
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">Point me to your project folder and I'll open the file browser for you.</p>
+              <p className="text-xs text-slate-400 mt-1.5">Defaults to your user (home) folder until you set another path. Point me to your project and I&apos;ll open the file browser for you.</p>
               {folderResult && (
                 <div className={`mt-2 p-2.5 rounded-lg text-xs ${folderResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
                   {folderResult.ok ? `Found ${folderResult.count} items in folder.` : `Error: ${folderResult.error}`}

@@ -3,10 +3,12 @@ import LoadingAnimation from '../LoadingAnimation';
 import MarkdownContent from '../MarkdownContent';
 import BuilderScoreCard from './BuilderScoreCard';
 import DictateButton from '../DictateButton';
+import { joinAppend } from '../../lib/dictationAppend';
 
 // ── Tag Input Component ──────────────────────────────
+// v1: one trimmed tag per recognition result (no comma-splitting).
 
-function TagInput({ value = [], onChange, placeholder }) {
+function TagInput({ value = [], onChange, placeholder, dictateDisabled = false }) {
   const [inputValue, setInputValue] = useState('');
 
   const handleKeyDown = (e) => {
@@ -26,31 +28,40 @@ function TagInput({ value = [], onChange, placeholder }) {
     onChange(value.filter((_, i) => i !== idx));
   };
 
+  const appendTagFromSpeech = (text) => {
+    const tag = String(text ?? '').trim();
+    if (!tag || value.includes(tag)) return;
+    onChange([...value, tag]);
+  };
+
   return (
-    <div className="flex flex-wrap gap-1.5 input-glow rounded-xl px-3 py-2 min-h-[42px] items-center">
-      {value.map((tag, i) => (
-        <span
-          key={i}
-          className="inline-flex items-center gap-1 text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full px-2.5 py-0.5"
-        >
-          {tag}
-          <button
-            onClick={() => removeTag(i)}
-            className="text-indigo-400 hover:text-indigo-200 ml-0.5 cursor-pointer"
-            aria-label={`Remove ${tag}`}
+    <div className="flex gap-2 items-start">
+      <div className="flex flex-wrap gap-1.5 input-glow rounded-xl px-3 py-2 min-h-[42px] items-center flex-1 min-w-0">
+        {value.map((tag, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full px-2.5 py-0.5"
           >
-            &times;
-          </button>
-        </span>
-      ))}
-      <input
-        type="text"
-        value={inputValue}
-        onChange={e => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder={value.length === 0 ? placeholder : 'Add more...'}
-        className="flex-1 min-w-[120px] bg-transparent text-slate-100 text-sm placeholder-slate-500 outline-none"
-      />
+            {tag}
+            <button
+              onClick={() => removeTag(i)}
+              className="text-indigo-400 hover:text-indigo-200 ml-0.5 cursor-pointer"
+              aria-label={`Remove ${tag}`}
+            >
+              &times;
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={value.length === 0 ? placeholder : 'Add more...'}
+          className="flex-1 min-w-[120px] bg-transparent text-slate-100 text-sm placeholder-slate-500 outline-none"
+        />
+      </div>
+      <DictateButton onResult={appendTagFromSpeech} disabled={dictateDisabled} />
     </div>
   );
 }
@@ -155,6 +166,11 @@ export default function BaseBuilderPanel({
   // ── Field update helper ──────────────────────────────
   const updateField = useCallback((name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+  }, []);
+
+  /** Append speech chunk to a string field without stale closures */
+  const appendToField = useCallback((name, chunk) => {
+    setFormData(prev => ({ ...prev, [name]: joinAppend(prev[name], chunk) }));
   }, []);
 
   // ── Check if required fields are filled ──────────────
@@ -656,7 +672,7 @@ Format your response as:
         {/* Input area */}
         <div className="glass-heavy border-t border-slate-700/30 p-4">
           <div className="max-w-3xl mx-auto space-y-2">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 items-start">
               <label htmlFor="revise-input" className="sr-only">Revision instructions</label>
               <textarea
                 id="revise-input"
@@ -666,7 +682,11 @@ Format your response as:
                 placeholder={`How should we improve this ${config.title.toLowerCase()}?`}
                 rows={2}
                 disabled={reviseStreaming || !connected}
-                className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+                className="flex-1 min-w-0 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+              />
+              <DictateButton
+                onResult={chunk => setReviseInput(prev => joinAppend(prev, chunk))}
+                disabled={reviseStreaming || !connected}
               />
               <button
                 onClick={handleRevise}
@@ -771,35 +791,39 @@ Format your response as:
               </label>
 
               {field.type === 'textarea' && (
-                <div className="relative">
+                <div className="flex gap-2 items-start">
                   <textarea
                     id={`builder-${field.name}`}
                     value={formData[field.name] || ''}
                     onChange={e => updateField(field.name, e.target.value)}
                     placeholder={field.placeholder}
                     rows={field.large ? 10 : 4}
-                    className={`w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 pr-12 resize-y placeholder-slate-500 ${
+                    className={`flex-1 min-w-0 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500 ${
                       field.large ? 'min-h-[200px]' : ''
                     }`}
                   />
-                  <div className="absolute top-2 right-2">
-                    <DictateButton
-                      onResult={text => updateField(field.name, (formData[field.name] || '') + (formData[field.name] ? ' ' : '') + text)}
-                      disabled={phase !== 'input'}
-                    />
-                  </div>
+                  <DictateButton
+                    onResult={chunk => appendToField(field.name, chunk)}
+                    disabled={phase !== 'input'}
+                  />
                 </div>
               )}
 
               {field.type === 'text' && (
-                <input
-                  id={`builder-${field.name}`}
-                  type="text"
-                  value={formData[field.name] || ''}
-                  onChange={e => updateField(field.name, e.target.value)}
-                  placeholder={field.placeholder}
-                  className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500"
-                />
+                <div className="flex gap-2 items-start">
+                  <input
+                    id={`builder-${field.name}`}
+                    type="text"
+                    value={formData[field.name] || ''}
+                    onChange={e => updateField(field.name, e.target.value)}
+                    placeholder={field.placeholder}
+                    className="flex-1 min-w-0 input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500"
+                  />
+                  <DictateButton
+                    onResult={chunk => appendToField(field.name, chunk)}
+                    disabled={phase !== 'input'}
+                  />
+                </div>
               )}
 
               {field.type === 'tags' && (
@@ -807,6 +831,7 @@ Format your response as:
                   value={formData[field.name] || []}
                   onChange={val => updateField(field.name, val)}
                   placeholder={field.placeholder}
+                  dictateDisabled={phase !== 'input'}
                 />
               )}
 

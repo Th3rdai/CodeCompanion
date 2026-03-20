@@ -40,6 +40,7 @@ import ImageThumbnail from './components/ImageThumbnail';
 import ImageLightbox from './components/ImageLightbox';
 import ImagePrivacyWarning from './components/ImagePrivacyWarning';
 import DictateButton from './components/DictateButton';
+import { joinAppend } from './lib/dictationAppend';
 import { validateImage, processImage, hashImage } from './lib/image-processor';
 import { isConvertibleDocument, convertDocument, validateDocument, formatAsAttachment, getDocumentAcceptString } from './lib/document-processor';
 import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
@@ -315,13 +316,16 @@ export default function App() {
 
   async function handleSaveSettings(newUrl, newFolder, newIcmTemplatePath) {
     try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder, icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath }) });
+      const data = await res.json();
       setOllamaUrl(newUrl);
-      setProjectFolder(newFolder);
+      // Server normalizes empty folder to user home — keep client in sync
+      if (data.projectFolder !== undefined) setProjectFolder(data.projectFolder);
+      else if (newFolder !== undefined) setProjectFolder(newFolder);
       if (newIcmTemplatePath !== undefined) setIcmTemplatePath(newIcmTemplatePath);
       await fetchModels();
-      if (newFolder) setShowFileBrowser(true);
+      if (newFolder && String(newFolder).trim()) setShowFileBrowser(true);
     } catch {}
   }
 
@@ -1133,7 +1137,7 @@ export default function App() {
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
   function handleDictation(text) {
-    setInput(prev => prev ? prev + ' ' + text : text);
+    setInput(prev => joinAppend(prev, text));
     textareaRef.current?.focus();
   }
 
@@ -1745,8 +1749,17 @@ export default function App() {
                 attachLabel={BUILDER_MODES.includes(mode) ? 'Load into Form' : mode === 'review' || mode === 'pentest' ? 'Load for Review' : '+ Attach to Chat'}
                 onClose={() => setShowFileBrowser(false)}
                 onClearFolder={async () => {
-                  setProjectFolder('');
-                  try { await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectFolder: '' }) }); } catch {}
+                  try {
+                    const res = await fetch('/api/config', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ projectFolder: '' })
+                    });
+                    const data = await res.json();
+                    setProjectFolder(data.projectFolder || '');
+                  } catch {
+                    setProjectFolder('');
+                  }
                 }}
                 onSetFolder={async (folder) => {
                   setProjectFolder(folder);
