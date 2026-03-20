@@ -138,7 +138,7 @@ Expected: SSE stream with mermaid content (requires Ollama).
 Expected: 11 MCP tools listed.
 
 ### Workflow 6: Mode Prompt Validation
-!`node -e "const p=require('./lib/prompts');const modes=['chat','explain','bugs','refactor','translate-tech','translate-biz','diagram','review','create','prompting','skillz','agentic'];const missing=modes.filter(m=>!p.SYSTEM_PROMPTS[m]);console.log(missing.length===0?'All 12 mode prompts: OK':'MISSING: '+missing.join(', '));process.exit(missing.length)"`
+!`node -e 'var p=require("./lib/prompts");var modes=["chat","explain","bugs","refactor","translate-tech","translate-biz","diagram","review","create","prompting","skillz","agentic"];var missing=modes.filter(function(m){return p.SYSTEM_PROMPTS[m]===undefined});console.log(missing.length===0?"All 12 mode prompts: OK":"MISSING: "+missing.join(", "));process.exit(missing.length)'`
 
 Expected: All 12 mode prompts present in SYSTEM_PROMPTS.
 
