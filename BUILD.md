@@ -52,7 +52,18 @@ In **Settings → MCP Clients**, each server can use:
 - **http** — Streamable HTTP URL; if the server responds with **Method Not Allowed**, the client **retries the same URL with SSE**.
 - **sse** — SSE transport when you know the endpoint is SSE-only.
 
-The in-chat **tool loop** only runs when at least one MCP client is connected and exposes tools. Planned **builtin** tools (e.g. terminal) are described in **`CLIPLAN.md`** (not yet merged into the tool loop unless implemented).
+The in-chat **tool loop** runs when **either** (a) at least one MCP client is connected with tools, **or** (b) **builtin agent tools** are enabled — see **Agent terminal** below.
+
+## Agent terminal (builtin `run_terminal_cmd`)
+
+Optional **AI-driven shell commands** from chat, same `TOOL_CALL:` mechanism as MCP (`builtin.run_terminal_cmd`). **Off by default.**
+
+| Topic | Detail |
+|-------|--------|
+| **Enable** | Settings → **Agent terminal** (writes `agentTerminal` in `.cc-config.json`). Requires a **project folder** set. |
+| **Spec** | **`CLIPLAN.md`** (living reference); plan review notes in **`docs/CLIPLAN-plan-review.md`**. |
+| **Security** | Allowlist/blocklist, cwd locked to project, env whitelist, intra-request rate limit, optional **`CC_ALLOW_AGENT_TERMINAL=1`** when not running as a purely local server. |
+| **Clipboard** | Copy/paste in the app uses **`src/lib/clipboard.js`** so copy works under **self-signed HTTPS** (fallback when `navigator.clipboard` is denied). |
 
 ## Platform-Specific Builds
 

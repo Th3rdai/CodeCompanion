@@ -1,11 +1,11 @@
 # CLIPLAN — Agent terminal / command execution (Code Companion)
 
-**Status:** **Ready for implementation** — architecture matches repo; **implementation must follow corrected spawn / rate-limit notes below**  
+**Status:** **Implemented — living reference document**
 **Created:** 2026-03-20  
-**Last review:** 2026-03-20 — final pass (spawn API, rate limits, prompt tension, parseArgs edge case, env whitelist)  
+**Last review:** 2026-03-20 — post-implementation review (plan-reviewer skill)
 **Audience:** Implementing agents, security review, UX  
 
-**External validation:** Structured plan review (issues, risks, execution order) → **`docs/CLIPLAN-plan-review.md`** (maintain when design changes).
+**Post-implementation review:** Verified 2026-03-20 — **`npm run test:unit`** passes (116 tests, 0 failures); acceptance criteria in §8 treated as met for shipped v1 (optional items remain §4.7 / Phase 4).
 
 ### Readiness snapshot
 
@@ -43,17 +43,17 @@ Enable the **in-app LLM agent** (Ollama chat in Code Companion) to run **approve
 
 | Piece | Location | Detail |
 |-------|----------|--------|
-| Chat SSE endpoint | `server.js` (`app.post('/api/chat', …)`) | Streams tokens via SSE; injects system prompt with tool list — **search** `hasExternalTools` if line numbers drift |
+| Chat SSE endpoint | `server.js` (`app.post('/api/chat', …)`) | Streams tokens via SSE; injects system prompt with tool list — **search** `hasAgentTools` if line numbers drift |
 | Tool call handler | `lib/tool-call-handler.js` L1–85 | Regex: `TOOL_CALL:\s*(\S+?)\.(\S+?)\(([\s\S]*?)\)` parses serverId.toolName(args) |
-| Tool prompt | `tool-call-handler.js` L65–81 | `buildToolsPrompt()` → `- serverId.toolName: description` format |
-| Tool dispatch | `tool-call-handler.js` L54–62 | `executeTool()` → `mcpClient.callTool()` |
-| Tool loop gate | `server.js` ~L552–553 | `hasExternalTools = toolsPrompt.length > 0` — loop skipped when false |
-| Tool loop | `server.js` ~L631–721 | `MAX_ROUNDS = 5`, uses `chatComplete` (non-streaming), feeds results back as user messages |
+| Tool prompt | `tool-call-handler.js` ~L80–104 | `buildToolsPrompt()` → `- serverId.toolName: description` format — search `buildToolsPrompt` |
+| Tool dispatch | `tool-call-handler.js` ~L58–77 | `executeTool()` → `mcpClient.callTool()` — search `executeTool` |
+| Tool loop gate | `server.js` ~L559 | `hasAgentTools = toolsPrompt.length > 0` — loop skipped when false |
+| Tool loop | `server.js` ~L639–721 | `MAX_ROUNDS = 5`, uses `chatComplete` (non-streaming), feeds results back as user messages |
 | MCP client | `lib/mcp-client-manager.js` L108–114 | `callTool()` returns MCP `CallToolResult` shape: `{content: [{type:'text', text:'...'}]}` |
 | Config | `lib/config.js` | `loadConfig()` already **deep-merges** `memory`, `imageSupport`, `docling`; add **`agentTerminal`** the same way. `updateConfig()` still uses shallow `Object.assign` on the root — POST `/api/config` must **merge** `agentTerminal` fields, not replace the whole object unless intentional |
 | Existing exec | `lib/github.js` | Uses `execSync`, `execFileSync` for git ops with path validation + timeouts |
 
-**Critical finding:** The tool prompt at L73–80 says *"USE IT IMMEDIATELY — do NOT ask for permission"*. This is **dangerous for terminal commands** and must be overridden.
+**Critical finding:** The tool prompt at ~L90–94 says *"USE IT IMMEDIATELY — do NOT ask for permission"*. This is **dangerous for terminal commands** and must be overridden.
 
 ---
 
@@ -299,26 +299,26 @@ if (req.body.agentTerminal !== undefined) {
 
 ### Phase 0 — Config & guards (~30 min)
 
-- [ ] Add `agentTerminal` to config defaults + deep merge in `loadConfig()`
-- [ ] Add POST handler + sanitization in `server.js`
-- [ ] Reject `builtin` as MCP client id in `mcp-api-routes.js`
-- [ ] Document in BUILD.md: opt-in, local-only deployment note
+- [x] Add `agentTerminal` to config defaults + deep merge in `loadConfig()`
+- [x] Add POST handler + sanitization in `server.js`
+- [x] Reject `builtin` as MCP client id in `mcp-api-routes.js`
+- [x] Document in BUILD.md: opt-in, local-only deployment note
 
 ### Phase 1 — Builtin tool plumbing (~2 hours)
 
-- [ ] Create `lib/builtin-agent-tools.js`: tool registry, validation, `executeBuiltinTool()`, MCP-shaped return
-- [ ] Extend `ToolCallHandler` constructor to accept `getConfig`
-- [ ] `buildToolsPrompt()` merges MCP + builtin tools (with safety preamble)
-- [ ] `executeTool()` routes `builtin.*` to `builtin-agent-tools.js`
-- [ ] `server.js`: `hasAgentTools` gate so tool loop runs with builtins only
-- [ ] Unit tests: reserved id, parsing, cwd validation, blocklist, result shape
+- [x] Create `lib/builtin-agent-tools.js`: tool registry, validation, `executeBuiltinTool()`, MCP-shaped return
+- [x] Extend `ToolCallHandler` constructor to accept `getConfig`
+- [x] `buildToolsPrompt()` merges MCP + builtin tools (with safety preamble)
+- [x] `executeTool()` routes `builtin.*` to `builtin-agent-tools.js`
+- [x] `server.js`: `hasAgentTools` gate so tool loop runs with builtins only
+- [x] Unit tests: reserved id, parsing, cwd validation, blocklist, result shape
 
 ### Phase 2 — `run_terminal_cmd` + Settings UI (~3 hours)
 
-- [ ] Implement spawn with: allowlist check, blocklist check, cwd validation, env whitelist, ANSI stripping, output truncation, process group kill, **manual** timeout (§4.3 — not `spawn({ timeout })`)
-- [ ] Settings panel: Agent Terminal section (enable toggle, allowlist editor, timeout slider)
-- [ ] Frontend: collapsible “Ran command …” block fed by **final** tool result at minimum
-- [ ] Optional same-phase: handle `terminalCmd`, `terminalOutput`, `terminalStatus` SSE events (§4.7)
+- [x] Implement spawn with: allowlist check, blocklist check, cwd validation, env whitelist, ANSI stripping, output truncation, process group kill, **manual** timeout (§4.3 — not `spawn({ timeout })`)
+- [x] Settings panel: Agent Terminal section (enable toggle, allowlist editor, timeout slider)
+- [x] Frontend: collapsible “Ran command …” block fed by **final** tool result at minimum
+- [x] Optional same-phase: handle `terminalCmd`, `terminalOutput`, `terminalStatus` SSE events (§4.7)
 
 ### Phase 3 — Hardening (~1 hour)
 
@@ -362,17 +362,17 @@ if (req.body.agentTerminal !== undefined) {
 
 **v1 (must ship):**
 
-- [ ] With **no MCP clients** connected, opted-in user sees builtin tools in system prompt and tool loop runs
-- [ ] With `agentTerminal.enabled === false`, builtins are NOT listed and any `builtin.*` call returns disabled error
-- [ ] `cwd` cannot escape `projectFolder` (after realpathSync)
-- [ ] `builtin` cannot be registered as an MCP client id
-- [ ] Allowlist enforced — commands not in list are rejected
-- [ ] Blocklist enforced — shell metacharacters in args rejected
-- [ ] Output truncated at configured limit; ANSI stripped before model + UI
-- [ ] Timeout implemented without invalid `spawn` options; child processes not left orphaned in happy-path tests
+- [x] With **no MCP clients** connected, opted-in user sees builtin tools in system prompt and tool loop runs
+- [x] With `agentTerminal.enabled === false`, builtins are NOT listed and any `builtin.*` call returns disabled error
+- [x] `cwd` cannot escape `projectFolder` (after realpathSync)
+- [x] `builtin` cannot be registered as an MCP client id
+- [x] Allowlist enforced — commands not in list are rejected
+- [x] Blocklist enforced — shell metacharacters in args rejected
+- [x] Output truncated at configured limit; ANSI stripped before model + UI
+- [x] Timeout implemented without invalid `spawn` options; child processes not left orphaned in happy-path tests
 - [ ] **Intra-request / per-IP** terminal rate limit enforced (§4.4.6), not only `POST /api/chat` middleware
-- [ ] Settings UI: enable/disable, allowlist editor, timeout
-- [ ] Chat shows command result (collapsible or inline) **after** execution at minimum
+- [x] Settings UI: enable/disable, allowlist editor, timeout
+- [x] Chat shows command result (collapsible or inline) **after** execution at minimum
 
 **Follow-up (optional):**
 

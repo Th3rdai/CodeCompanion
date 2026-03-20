@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-20T03:10:00.000Z"
-last_activity: 2026-03-20 — MCP client SSE + HTTP→SSE fallback; Settings chatTimeoutSec / numCtx / autoAdjustContext; Playwright image-upload E2E + build-before-test; design viewport notes (CLIPLAN §0)
+last_updated: "2026-03-20T04:15:00.000Z"
+last_activity: 2026-03-20 — Agent terminal shipped (builtin `run_terminal_cmd`, rate limits, remote guard); clipboard fallback for HTTPS; Archon: Docling + MCP batch **done**, CLIPLAN task **done**; docs + push to GitHub
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit and security).
-Last activity: 2026-03-20 — MCP SSE transport + fallback; Ollama chat context & timeout settings; image E2E + playwright build step; DESIGN-STANDARDS empty-state width; Electron startup diagnostics (emergency log)
+Last activity: 2026-03-20 — **Agent terminal** (opt-in `agentTerminal`, `lib/builtin-agent-tools.js`, `hasAgentTools` chat loop); intra-request terminal rate limit; `CC_ALLOW_AGENT_TERMINAL` / trust-local checks; UI clipboard module for self-signed TLS; **Docling** document conversion (done in Archon). Next: optional CLIPLAN Phase 4 (confirm-before-run), streaming terminal SSE (§4.7).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

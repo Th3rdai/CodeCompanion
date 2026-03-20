@@ -16,7 +16,7 @@ You are a full-stack developer building **Code Companion**, a web application th
 |------|---------|
 | server.js | Express app, API routes, MCP HTTP endpoint |
 | mcp-server.js | MCP stdio entry point |
-| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, tool-call-handler) |
+| lib/ | Backend modules (config, ollama-client, prompts, review, builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, tool-call-handler, **builtin-agent-tools**, docling-client) |
 | mcp/ | MCP tool registrations and Zod schemas |
 | src/App.jsx | Main React app with 16 modes |
 | src/components/ | 30+ React components (ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, MermaidBlock, etc.) |
@@ -25,7 +25,8 @@ You are a full-stack developer building **Code Companion**, a web application th
 | .planning/ | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md) |
 | tests/ | Unit tests (node:test in tests/unit/, tests/*.test.js) and Playwright tests (tests/ui/, tests/e2e/) |
 | dist/ | Production build output |
-| CLIPLAN.md | Agent terminal / builtin tools — plan for LLM `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`; §0 = related shipped MCP/Ollama tuning) |
+| CLIPLAN.md | **Agent terminal** — living spec for builtin `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`); implementation in `lib/builtin-agent-tools.js` + Settings |
+| src/lib/clipboard.js | Copy/paste helpers — `navigator.clipboard` + **execCommand** fallback for self-signed HTTPS |
 | docs/CLIPLAN-plan-review.md | **Plan-reviewer** skill output — validated review of CLIPLAN (issues, risks, execution order) |
 | .cursor/skills/plan-reviewer/ | Cursor **plan-reviewer** skill — validate implementation plans before coding (also in `~/.cursor/skills/plan-reviewer/`) |
 | design-system/README.md | Index of design docs (canonical **`.md`**; PDFs are optional exports) |

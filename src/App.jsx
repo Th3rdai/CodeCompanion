@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { copyText, readText } from './lib/clipboard';
 import MarkdownContent from './components/MarkdownContent';
 import MessageBubble from './components/MessageBubble';
 import Toast from './components/Toast';
@@ -107,7 +108,7 @@ function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      onClick={async () => { const ok = await copyText(text); if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } }}
       className="glass text-xs text-slate-400 hover:text-indigo-300 px-2 py-1 rounded-lg transition-colors"
       aria-label="Copy to clipboard">
       {copied ? '✓ Copied' : '📋 Copy'}
@@ -996,8 +997,16 @@ export default function App() {
 
   // Toolbar actions
   async function handlePaste() {
-    try { const text = await navigator.clipboard.readText(); setInput(prev => prev + text); textareaRef.current?.focus(); showToast('Pasted from clipboard'); }
-    catch { showToast('Clipboard access denied'); }
+    const text = await readText();
+    if (text) {
+      setInput(prev => prev + text);
+      textareaRef.current?.focus();
+      showToast('Pasted from clipboard');
+    } else {
+      // Clipboard API denied — focus textarea so user can Ctrl/Cmd+V
+      textareaRef.current?.focus();
+      showToast('Press Ctrl+V (or ⌘V) to paste');
+    }
   }
 
   // Clipboard paste support for images
@@ -1074,9 +1083,9 @@ export default function App() {
       }
     }
   }
-  function handleCopyLastResponse() {
+  async function handleCopyLastResponse() {
     const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (lastAssistant) { navigator.clipboard.writeText(lastAssistant.content); showToast('Response copied'); }
+    if (lastAssistant) { const ok = await copyText(lastAssistant.content); showToast(ok ? 'Response copied' : 'Copy failed'); }
     else { showToast('No response to copy'); }
   }
   function handleDownloadMarkdown() {
