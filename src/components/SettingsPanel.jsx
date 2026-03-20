@@ -43,6 +43,11 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [doclingTesting, setDoclingTesting] = useState(false);
   const [doclingTestResult, setDoclingTestResult] = useState(null);
 
+  // Agent Terminal state
+  const [terminalEnabled, setTerminalEnabled] = useState(false);
+  const [terminalAllowlist, setTerminalAllowlist] = useState('');
+  const [terminalTimeout, setTerminalTimeout] = useState(60);
+
   // GitHub token state
   const [ghToken, setGhToken] = useState('');
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
@@ -96,6 +101,11 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
           setDoclingApiKey(data.docling.apiKey || '');
           setDoclingEnabled(data.docling.enabled ?? true);
           setDoclingOcr(data.docling.ocr ?? true);
+        }
+        if (data.agentTerminal) {
+          setTerminalEnabled(data.agentTerminal.enabled ?? false);
+          setTerminalAllowlist((data.agentTerminal.allowlist || []).join(', '));
+          setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
         }
         setBrandLoaded(true);
       }).catch(() => setBrandLoaded(true));
@@ -520,6 +530,63 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     <label htmlFor="docling-ocr" className="text-sm text-slate-300 cursor-pointer">
                       Enable OCR for scanned documents
                     </label>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Agent Terminal */}
+            <div className="border-t border-slate-700/40 pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-slate-300 font-medium">Agent Terminal</label>
+                <button
+                  onClick={() => {
+                    const next = !terminalEnabled;
+                    setTerminalEnabled(next);
+                    fetch('/api/config', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ agentTerminal: { enabled: next } }),
+                    });
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${terminalEnabled ? 'bg-indigo-500' : 'bg-slate-600'}`}
+                  aria-label="Toggle agent terminal"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${terminalEnabled ? 'translate-x-4' : ''}`} />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                Allow the AI agent to run terminal commands in your project folder. Commands are restricted to the allowlist below.
+              </p>
+              {terminalEnabled && (
+                <>
+                  <label className="block text-sm text-slate-300 mb-2 font-medium">Allowed Commands</label>
+                  <input
+                    type="text"
+                    value={terminalAllowlist}
+                    onChange={e => setTerminalAllowlist(e.target.value)}
+                    placeholder="npm, npx, node, git, python (comma-separated)"
+                    className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                  />
+                  <p className="text-xs text-slate-500 mt-1 mb-3">
+                    Comma-separated list of allowed command names. Leave empty to deny all commands.
+                  </p>
+
+                  <label className="block text-sm text-slate-300 mb-2 font-medium">
+                    Command Timeout: {terminalTimeout}s
+                  </label>
+                  <input
+                    type="range"
+                    min={10}
+                    max={300}
+                    step={10}
+                    value={terminalTimeout}
+                    onChange={e => setTerminalTimeout(Number(e.target.value))}
+                    className="w-full accent-indigo-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                    <span>10s</span>
+                    <span>300s</span>
                   </div>
                 </>
               )}
@@ -1320,6 +1387,11 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       apiKey: doclingApiKey,
                       enabled: doclingEnabled,
                       ocr: doclingOcr,
+                    },
+                    agentTerminal: {
+                      enabled: terminalEnabled,
+                      allowlist: terminalAllowlist.split(',').map(s => s.trim()).filter(Boolean),
+                      maxTimeoutSec: terminalTimeout,
                     },
                   }),
                 });

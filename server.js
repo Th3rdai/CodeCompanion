@@ -149,7 +149,7 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (config.preferr
 
 // ── Initialize MCP Client Manager ────────────────────
 const mcpClientManager = new McpClientManager({ log, debug });
-const toolCallHandler = new ToolCallHandler(mcpClientManager, { log, debug });
+const toolCallHandler = new ToolCallHandler(mcpClientManager, { log, debug, getConfig });
 
 // ── Mount MCP API routes ─────────────────────────────
 const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
@@ -337,6 +337,12 @@ app.post('/api/config', (req, res) => {
     config.docling = { ...prev, ...req.body.docling };
     if (config.docling.url) config.docling.url = config.docling.url.replace(/\/+$/, '');
     log('INFO', `Docling config updated: ${config.docling.url}`);
+  }
+
+  // Agent terminal configuration
+  if (req.body.agentTerminal !== undefined) {
+    config.agentTerminal = { ...config.agentTerminal, ...req.body.agentTerminal };
+    log('INFO', `Agent terminal config updated: enabled=${config.agentTerminal.enabled}`);
   }
 
   if (projectFolder !== undefined) {
@@ -548,9 +554,9 @@ app.post('/api/chat', async (req, res) => {
     } catch {}
   }
 
-  // Append external tool descriptions if any MCP clients are connected
+  // Append agent tool descriptions (MCP clients + builtin tools)
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
-  const hasExternalTools = toolsPrompt.length > 0;
+  const hasAgentTools = toolsPrompt.length > 0;
 
   // ── Memory injection (Phase 3) ──
   let memoryPrompt = '';
@@ -573,8 +579,8 @@ app.post('/api/chat', async (req, res) => {
 
   const enrichedSystemPrompt = systemPrompt + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt + visionPrompt;
 
-  if (hasExternalTools) {
-    debug('External tools injected into system prompt', { toolsLength: toolsPrompt.length });
+  if (hasAgentTools) {
+    debug('Agent tools injected into system prompt', { toolsLength: toolsPrompt.length });
   }
 
   const fullMessages = [
@@ -626,11 +632,11 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    debug('Calling Ollama chat', { url: config.ollamaUrl, model, hasExternalTools });
+    debug('Calling Ollama chat', { url: config.ollamaUrl, model, hasAgentTools });
 
-    // ── Tool-call loop (when external tools are connected) ──
+    // ── Tool-call loop (when agent tools are available) ──
     // Use chatComplete for rounds that may contain tool calls, then stream the final response.
-    if (hasExternalTools) {
+    if (hasAgentTools) {
       let loopMessages = [...fullMessages];
       const MAX_ROUNDS = 5;
       let finalText = '';
@@ -720,7 +726,7 @@ app.post('/api/chat', async (req, res) => {
       return;
     }
 
-    // ── Standard streaming path (no external tools) ──
+    // ── Standard streaming path (no agent tools) ──
     const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || [], ollamaOptions);
 
     debug('Ollama chat response', { status: ollamaRes.status, ok: ollamaRes.ok });

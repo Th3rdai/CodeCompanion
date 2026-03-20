@@ -209,6 +209,9 @@ export default function App() {
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
   const [memoryDropdownOpen, setMemoryDropdownOpen] = useState(false);
 
+  // Agent terminal output state
+  const [terminalOutput, setTerminalOutput] = useState(null); // {command, output, exitCode, status}
+
   // Vision model detection (Phase 4: Image Support)
   const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
   const selectedModelInfo = models.find(m => m.name === selectedModel);
@@ -573,7 +576,7 @@ export default function App() {
       ...(images.length > 0 && { images }) // Add images field if present
     };
     const newMessages = [...messages, userMsg];
-    setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null);
+    setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null); setTerminalOutput(null);
     setSendBurst(true); setTimeout(() => setSendBurst(false), 100);
 
     // Save user message immediately so it survives a reload
@@ -614,7 +617,7 @@ export default function App() {
                 return [...prev, { role: 'assistant', content: assistantContent }];
               });
             }
-            if (parsed.done) { const dur = Number(parsed.total_duration); setStats({ tokens: parsed.eval_count, duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null }); }
+            if (parsed.done) { const dur = Number(parsed.total_duration); setStats({ tokens: parsed.eval_count, duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null }); setTerminalOutput(null); }
             if (parsed.error) {
               assistantContent += `\n\nError: ${parsed.error}`;
               setMessages(prev => {
@@ -626,6 +629,17 @@ export default function App() {
                 }
                 return [...prev, { role: 'assistant', content: assistantContent }];
               });
+            }
+            if (parsed.toolCallRound !== undefined) {
+              // Show tool execution progress in terminal output indicator
+              const calls = parsed.toolCalls || [];
+              const terminalCalls = calls.filter(c => c.serverId === 'builtin');
+              if (terminalCalls.length > 0) {
+                setTerminalOutput({
+                  command: terminalCalls.map(c => `${c.toolName}(${JSON.stringify(c.args)})`).join('; '),
+                  status: 'running',
+                });
+              }
             }
           } catch {}
         }
@@ -1568,6 +1582,24 @@ export default function App() {
                     </div>
                   ))}
                   {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D mode={mode} />}
+                  {terminalOutput && (
+                    <div className="mx-4 my-2 glass rounded-xl border border-indigo-500/20 overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border-b border-indigo-500/20">
+                        <span className="text-xs font-mono text-indigo-300">
+                          {terminalOutput.status === 'running' ? (
+                            <><span className="inline-block animate-spin mr-1">&#x27F3;</span> Running command...</>
+                          ) : (
+                            <>&#x2713; Command completed</>
+                          )}
+                        </span>
+                      </div>
+                      {terminalOutput.command && (
+                        <pre className="px-3 py-2 text-xs text-slate-400 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-thin">
+                          {terminalOutput.command}
+                        </pre>
+                      )}
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </>
               )}
