@@ -1728,27 +1728,25 @@ app.post('/api/launch-vscode', async (req, res) => {
       log('INFO', `Launched VS Code in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      const { execFile } = require('child_process');
-      const platform = process.platform;
-
-      if (platform === 'darwin') {
-        // macOS: try CLI first, then open -a
-        const vscodeCli = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
-        if (fs.existsSync(vscodeCli)) {
-          execFile(vscodeCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+      const { execFile, execSync } = require('child_process');
+      // Try 'code' CLI first — works on all platforms when VS Code adds it to PATH
+      // (Install via: VS Code → Cmd Palette → "Shell Command: Install 'code' command in PATH")
+      try {
+        execFile('code', [folder], { detached: true, stdio: 'ignore', shell: process.platform === 'win32' }).unref();
+      } catch {
+        // Fallback: platform-specific app bundle paths
+        if (process.platform === 'darwin') {
+          const bundleCli = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+          if (fs.existsSync(bundleCli)) {
+            execFile(bundleCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+          } else {
+            execSync(`open -a "Visual Studio Code" "${folder}"`);
+          }
         } else {
-          const { execSync } = require('child_process');
-          execSync(`open -a "Visual Studio Code" "${folder}"`);
+          throw new Error('VS Code "code" command not found in PATH. Open VS Code → Command Palette → "Shell Command: Install \'code\' command in PATH"');
         }
-      } else if (platform === 'win32') {
-        // Windows: 'code' should be in PATH after VS Code install
-        execFile('code', [folder], { detached: true, stdio: 'ignore', shell: true }).unref();
-      } else {
-        // Linux: 'code' should be in PATH
-        execFile('code', [folder], { detached: true, stdio: 'ignore' }).unref();
       }
-
-      log('INFO', `Launched VS Code in: ${folder} (${platform})`);
+      log('INFO', `Launched VS Code in: ${folder} (${process.platform})`);
       res.json({ success: true, folder });
     }
   } catch (err) {
