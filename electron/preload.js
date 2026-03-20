@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getMicrophoneAccessStatus: () => ipcRenderer.invoke('get-microphone-access-status'),
   requestMicrophoneAccess: () => ipcRenderer.invoke('request-microphone-access'),
 
+  // Docling (managed document conversion service)
+  getDoclingStatus: () => ipcRenderer.invoke('get-docling-status'),
+
   // Ollama setup
   checkOllama: (ollamaUrl) => ipcRenderer.invoke('check-ollama', ollamaUrl),
   installOllama: () => ipcRenderer.invoke('install-ollama'),

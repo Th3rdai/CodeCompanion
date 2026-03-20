@@ -108,6 +108,16 @@ try {
   throw err;
 }
 
+let startDocling, stopDocling, getDoclingStatus;
+try {
+  emergencyLog('Loading docling-manager...');
+  ({ startDocling, stopDocling, getDoclingStatus } = require('./docling-manager'));
+  emergencyLog('✓ docling-manager loaded');
+} catch (err) {
+  emergencyLog(`✗ docling-manager failed: ${err.message}`);
+  throw err;
+}
+
 let mainWindow = null;
 let serverProcess = null;
 let actualPort = null;
@@ -435,6 +445,18 @@ async function startApp() {
       });
     }
 
+      // Start docling-serve in background (non-blocking — don't delay app startup)
+      emergencyLog('Starting docling-serve...');
+      startDocling(dataDir, emergencyLog).then((result) => {
+        if (result.managed) {
+          emergencyLog(`Docling managed by app at ${result.url}`);
+        } else {
+          emergencyLog(`Docling not managed: ${result.reason}`);
+        }
+      }).catch((err) => {
+        emergencyLog(`Docling start error (non-fatal): ${err.message}`);
+      });
+
       // Initialize auto-updater after window is ready
       emergencyLog('Initializing auto-updater...');
       initAutoUpdater(mainWindow, dataDir);
@@ -482,6 +504,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  // Shut down managed docling-serve
+  stopDocling(console.log);
+
   if (serverProcess && !serverProcess.killed) {
     console.log('[Main] Shutting down server...');
     serverProcess.kill('SIGTERM');
@@ -588,6 +613,9 @@ ipcMain.handle('request-microphone-access', async () => {
   }
   return 'granted';
 });
+
+// Docling status
+ipcMain.handle('get-docling-status', () => getDoclingStatus());
 
 ipcMain.handle('check-ollama', async (event, ollamaUrl) => {
   try {
