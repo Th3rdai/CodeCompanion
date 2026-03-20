@@ -53,6 +53,9 @@ module.exports = {
     // notarize: { teamId: 'TEAM_ID' },
     identity: null,
     gatekeeperAssess: false,
+    extendInfo: {
+      NSMicrophoneUsageDescription: 'Code Companion uses the microphone for voice dictation to transcribe speech into text fields.',
+    },
   },
   dmg: {
     background: 'resources/dmg-background.png',

@@ -36,7 +36,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [models, setModels] = useState([]);
 
   // Docling (document conversion) state
-  const [doclingUrl, setDoclingUrl] = useState('http://localhost:5002');
+  const [doclingUrl, setDoclingUrl] = useState('http://127.0.0.1:5002');
   const [doclingApiKey, setDoclingApiKey] = useState('');
   const [doclingEnabled, setDoclingEnabled] = useState(true);
   const [doclingOcr, setDoclingOcr] = useState(true);
@@ -97,7 +97,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
           });
         }
         if (data.docling) {
-          setDoclingUrl(data.docling.url || 'http://localhost:5002');
+          setDoclingUrl(data.docling.url || 'http://127.0.0.1:5002');
           setDoclingApiKey(data.docling.apiKey || '');
           setDoclingEnabled(data.docling.enabled ?? true);
           setDoclingOcr(data.docling.ocr ?? true);
@@ -481,7 +481,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               <p className="text-xs text-slate-500 mb-3">
                 Read PDF, PPTX, DOCX, XLSX and more via{' '}
                 <a href="https://github.com/docling-project/docling-serve" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">docling-serve</a>.
-                Install: <code className="text-[11px] bg-slate-800 px-1 rounded">pip install "docling-serve[ui]"</code> then <code className="text-[11px] bg-slate-800 px-1 rounded">docling-serve run --port 5002</code>
+                Install: <code className="text-[11px] bg-slate-800 px-1 rounded">pip install "docling-serve[ui]"</code> then <code className="text-[11px] bg-slate-800 px-1 rounded">docling-serve run --host 127.0.0.1 --port 5002</code>
               </p>
               {doclingEnabled && (
                 <>
@@ -491,7 +491,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       type="text"
                       value={doclingUrl}
                       onChange={e => setDoclingUrl(e.target.value)}
-                      placeholder="http://localhost:5002"
+                      placeholder="http://127.0.0.1:5002"
                       className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                     />
                     <button

@@ -45,6 +45,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // IDE launcher
   launchIDE: (ide, folder) => ipcRenderer.invoke('launch-ide', { ide, folder }),
 
+  // Microphone permissions (macOS)
+  getMicrophoneAccessStatus: () => ipcRenderer.invoke('get-microphone-access-status'),
+  requestMicrophoneAccess: () => ipcRenderer.invoke('request-microphone-access'),
+
   // Ollama setup
   checkOllama: (ollamaUrl) => ipcRenderer.invoke('check-ollama', ollamaUrl),
   installOllama: () => ipcRenderer.invoke('install-ollama'),

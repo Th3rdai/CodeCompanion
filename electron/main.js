@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, systemPreferences } = require('electron');
 const { fork } = require('child_process');
 const path = require('path');
 const fs = require('fs');
@@ -571,6 +571,22 @@ ipcMain.handle('launch-ide', async (event, { ide, folder }) => {
     console.error('[Main] IDE launch error:', error);
     return { success: false, error: error.message };
   }
+});
+
+// Microphone permission (macOS)
+ipcMain.handle('get-microphone-access-status', () => {
+  if (process.platform === 'darwin') {
+    return systemPreferences.getMediaAccessStatus('microphone');
+  }
+  return 'granted'; // Non-macOS platforms don't gate mic access this way
+});
+
+ipcMain.handle('request-microphone-access', async () => {
+  if (process.platform === 'darwin') {
+    const granted = await systemPreferences.askForMediaAccess('microphone');
+    return granted ? 'granted' : 'denied';
+  }
+  return 'granted';
 });
 
 ipcMain.handle('check-ollama', async (event, ollamaUrl) => {

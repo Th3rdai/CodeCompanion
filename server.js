@@ -409,7 +409,7 @@ app.get('/api/models', async (req, res) => {
 // ── Docling health check ─────────────────────────────
 app.get('/api/docling/health', async (req, res) => {
   const config = getConfig();
-  const url = config.docling?.url || 'http://localhost:5002';
+  const url = config.docling?.url || 'http://127.0.0.1:5002';
   const apiKey = config.docling?.apiKey || '';
 
   try {
@@ -492,7 +492,7 @@ app.post('/api/convert-document',
         return res.status(503).json({
           error: 'Cannot reach Docling server',
           detail: `Ensure docling-serve is running at ${config.docling.url}`,
-          setupHint: 'pip install "docling-serve[ui]" && docling-serve run --port 5002',
+          setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
         });
       }
       res.status(500).json({ error: 'Conversion failed', detail: err.message });
