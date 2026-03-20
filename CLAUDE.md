@@ -26,6 +26,8 @@ You are a full-stack developer building **Code Companion**, a web application th
 | tests/ | Unit tests (node:test in tests/unit/, tests/*.test.js) and Playwright tests (tests/ui/, tests/e2e/) |
 | dist/ | Production build output |
 | CLIPLAN.md | Agent terminal / builtin tools — plan for LLM `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`; §0 = related shipped MCP/Ollama tuning) |
+| docs/CLIPLAN-plan-review.md | **Plan-reviewer** skill output — validated review of CLIPLAN (issues, risks, execution order) |
+| .cursor/skills/plan-reviewer/ | Cursor **plan-reviewer** skill — validate implementation plans before coding (also in `~/.cursor/skills/plan-reviewer/`) |
 | design-system/README.md | Index of design docs (canonical **`.md`**; PDFs are optional exports) |
 | design-system/DESIGN-STANDARDS.md | UI layout, colors, glass system, content width rails (shell = full viewport; inner `max-w-*` for readability) |
 

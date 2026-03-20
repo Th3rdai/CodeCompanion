@@ -38,7 +38,12 @@ __pycache__/
 .codebuddy/
 .codex/
 .continue/
-.cursor/
+# Track shared agent skills; ignore rest of .cursor/
+.cursor/*
+!.cursor/skills/
+.cursor/skills/*
+!.cursor/skills/plan-reviewer/
+!.cursor/skills/plan-reviewer/**
 .gemini/
 .github/
 !.github/workflows/
@@ -69,4 +74,3 @@ cert/*.crt
 CodeCompanion-Data/
 github-repos/
 .gitnexus
-CLIPLAN.md
