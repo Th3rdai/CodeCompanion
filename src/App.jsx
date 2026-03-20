@@ -530,10 +530,31 @@ export default function App() {
     const textFiles = files.filter(f => f.type !== 'image' && !f.isImage);
     if (textFiles.length === 0) return text;
 
+    // Cap per-file content to ~60K chars (~15K tokens) to stay within model context windows.
+    // Most Ollama models support 4K-32K tokens; system prompt + history consume some of that.
+    const MAX_FILE_CHARS = 60000;
+    const MAX_TOTAL_CHARS = 100000;
+    let totalChars = 0;
+
     let content = text.trim() ? text + '\n\n' : '';
     content += '---\nATTACHED FILES:\n';
     textFiles.forEach(f => {
-      content += `\n### ${f.name}${f.path ? ' (' + f.path + ')' : ''}\n\`\`\`\n${f.content}\n\`\`\`\n\n`;
+      let fileContent = f.content || '';
+      let truncated = false;
+      if (fileContent.length > MAX_FILE_CHARS) {
+        fileContent = fileContent.slice(0, MAX_FILE_CHARS);
+        truncated = true;
+      }
+      if (totalChars + fileContent.length > MAX_TOTAL_CHARS) {
+        fileContent = fileContent.slice(0, Math.max(0, MAX_TOTAL_CHARS - totalChars));
+        truncated = true;
+      }
+      totalChars += fileContent.length;
+      content += `\n### ${f.name}${f.path ? ' (' + f.path + ')' : ''}\n\`\`\`\n${fileContent}\n\`\`\`\n`;
+      if (truncated) {
+        content += `\n*(Content truncated to fit model context window — original: ${(f.content.length / 1024).toFixed(0)} KB)*\n`;
+      }
+      content += '\n';
     });
     return content;
   }
@@ -1167,7 +1188,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex mesh-gradient">
+    <div className="fixed inset-0 flex mesh-gradient overflow-hidden">
       {/* Auto-update banner */}
       {updateBanner && (
         <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-3 px-4 py-2 text-sm"
@@ -1598,7 +1619,8 @@ export default function App() {
                     rows={4} disabled={streaming || !connected}
                     className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
                   <div className="flex items-center gap-1.5 pl-1">
-                    <input ref={fileInputRef} type="file" multiple accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub" className="hidden" onChange={handleFileUpload} />
+                    <input id="chat-file-input" ref={fileInputRef} type="file" multiple aria-label="Attach files to chat"
+                      accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub" className="hidden" onChange={handleFileUpload} />
                     <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📎 Upload
