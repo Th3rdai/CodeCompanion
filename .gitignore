@@ -69,3 +69,4 @@ cert/*.crt
 CodeCompanion-Data/
 github-repos/
 .gitnexus
+CLIPLAN.md
