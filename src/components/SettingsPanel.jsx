@@ -18,6 +18,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   // Backend timeout state
   const [reviewTimeoutSec, setReviewTimeoutSec] = useState(300);
+  const [chatTimeoutSec, setChatTimeoutSec] = useState(120);
+  const [numCtx, setNumCtx] = useState(0);
+  const [autoAdjustContext, setAutoAdjustContext] = useState(true);
 
   // Brand assets state
   const [brandAssets, setBrandAssets] = useState([]);
@@ -76,6 +79,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       fetch('/api/config').then(r => r.json()).then(data => {
         if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
         if (data.reviewTimeoutSec != null) setReviewTimeoutSec(data.reviewTimeoutSec);
+        if (data.chatTimeoutSec != null) setChatTimeoutSec(data.chatTimeoutSec);
+        if (data.numCtx != null) setNumCtx(data.numCtx);
+        if (data.autoAdjustContext != null) setAutoAdjustContext(data.autoAdjustContext);
         if (data.preferredPort != null) setPreferredPort(data.preferredPort);
         if (data.imageSupport) {
           setImageSupport({
@@ -622,6 +628,99 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 <span>10 min</span>
               </div>
               <p className="text-xs text-slate-400 mt-1.5">How long to wait for AI code reviews before timing out. Larger models need more time.</p>
+            </div>
+
+            {/* Chat Timeout */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Chat Timeout <span className="text-slate-500 font-normal">({chatTimeoutSec}s)</span>
+              </label>
+              <input
+                type="range"
+                min="30"
+                max="600"
+                step="30"
+                value={chatTimeoutSec}
+                onChange={e => setChatTimeoutSec(parseInt(e.target.value, 10))}
+                onMouseUp={() => {
+                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
+                }}
+                onTouchEnd={() => {
+                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
+                }}
+                className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                aria-label="Chat timeout seconds"
+              />
+              <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                <span>30s</span>
+                <span>5 min</span>
+                <span>10 min</span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">How long to wait for chat responses. Increase for large documents or slow models.</p>
+            </div>
+
+            {/* Context Window & Auto-Adjust */}
+            <div className="glass rounded-lg p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Context Window (num_ctx)</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Controls how much text the model can process at once</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* num_ctx input */}
+                <div>
+                  <label className="block text-xs text-slate-400 mb-2">
+                    Context Size <span className="text-slate-300 font-medium">({numCtx === 0 ? 'Model Default' : numCtx.toLocaleString() + ' tokens'})</span>
+                  </label>
+                  <select
+                    value={numCtx}
+                    onChange={e => {
+                      const val = parseInt(e.target.value, 10);
+                      setNumCtx(val);
+                      fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numCtx: val }) }).catch(() => {});
+                    }}
+                    className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                  >
+                    <option value={0}>Model Default</option>
+                    <option value={4096}>4K (small models)</option>
+                    <option value={8192}>8K</option>
+                    <option value={16384}>16K</option>
+                    <option value={32768}>32K</option>
+                    <option value={65536}>64K</option>
+                    <option value={131072}>128K (large docs)</option>
+                    <option value={262144}>256K (very large docs)</option>
+                    <option value={524288}>512K (maximum)</option>
+                  </select>
+                  <p className="text-xs text-slate-400 mt-1.5">Higher values use more VRAM/RAM. Set to 128K+ for large PDFs.</p>
+                </div>
+
+                {/* Auto-adjust toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-300 font-medium">Auto-Adjust Context</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Automatically increase num_ctx and timeout when large files are attached</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const next = !autoAdjustContext;
+                      setAutoAdjustContext(next);
+                      fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ autoAdjustContext: next }) }).catch(() => {});
+                    }}
+                    className={`relative w-9 h-5 rounded-full transition-colors ${
+                      autoAdjustContext ? 'bg-indigo-500' : 'bg-slate-600'
+                    }`}
+                    role="switch"
+                    aria-checked={autoAdjustContext}
+                    aria-label="Toggle auto-adjust context"
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                      autoAdjustContext ? 'translate-x-4' : ''
+                    }`} />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Image Support (Beta) */}

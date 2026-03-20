@@ -32,6 +32,28 @@ FORCE_HTTP=1 BASE_URL=http://127.0.0.1:4173 npx playwright test tests/ui tests/e
 
 `playwright.config.js` uses `testMatch: '**/*.spec.js'` (Node unit tests live alongside as `*.test.js`). The dev server is started with `FORCE_HTTP=1` so `BASE_URL=http://127.0.0.1:4173` matches.
 
+## Ollama chat tuning (Settings → persisted config)
+
+These keys live in `.cc-config.json` (via **Settings** UI):
+
+| Key | Purpose |
+|-----|---------|
+| `chatTimeoutSec` | Max wait for **chat** completion (30–600 seconds; default 120). |
+| `numCtx` | Ollama **`num_ctx`** (0 = model default; higher for large pasted docs / PDF text). |
+| `autoAdjustContext` | When true, server **raises** effective `num_ctx` and can **extend** timeout for large payloads (chat path; review uses the same flags for sizing). |
+
+**Review** still uses `reviewTimeoutSec` separately. If Ollama returns **500** on huge content, the UI surfaces a hint to shorten input or use a larger-context model.
+
+## External MCP clients (transports)
+
+In **Settings → MCP Clients**, each server can use:
+
+- **stdio** — local command + args (validated; no shell).
+- **http** — Streamable HTTP URL; if the server responds with **Method Not Allowed**, the client **retries the same URL with SSE**.
+- **sse** — SSE transport when you know the endpoint is SSE-only.
+
+The in-chat **tool loop** only runs when at least one MCP client is connected and exposes tools. Planned **builtin** tools (e.g. terminal) are described in **`CLIPLAN.md`** (not yet merged into the tool loop unless implemented).
+
 ## Platform-Specific Builds
 
 ```bash

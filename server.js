@@ -289,6 +289,30 @@ app.post('/api/config', (req, res) => {
     }
   }
 
+  // Chat timeout
+  if (req.body.chatTimeoutSec !== undefined) {
+    const timeout = parseInt(req.body.chatTimeoutSec, 10);
+    if (timeout >= 30 && timeout <= 600) {
+      config.chatTimeoutSec = timeout;
+      log('INFO', `Chat timeout set to: ${config.chatTimeoutSec}s`);
+    }
+  }
+
+  // Ollama num_ctx (context window size)
+  if (req.body.numCtx !== undefined) {
+    const ctx = parseInt(req.body.numCtx, 10);
+    if (ctx >= 0 && ctx <= 1048576) {
+      config.numCtx = ctx;
+      log('INFO', `num_ctx set to: ${config.numCtx}${ctx === 0 ? ' (model default)' : ''}`);
+    }
+  }
+
+  // Auto-adjust context for large payloads
+  if (req.body.autoAdjustContext !== undefined) {
+    config.autoAdjustContext = !!req.body.autoAdjustContext;
+    log('INFO', `Auto-adjust context: ${config.autoAdjustContext}`);
+  }
+
   // Preferred port (takes effect on next server restart)
   if (req.body.preferredPort !== undefined) {
     const port = parseInt(req.body.preferredPort, 10);
@@ -558,6 +582,28 @@ app.post('/api/chat', async (req, res) => {
     ...messages
   ];
 
+  // ── Compute Ollama options (num_ctx, timeout) with auto-adjustment ──
+  const totalChars = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
+  const estimatedTokens = Math.ceil(totalChars / 3.5); // rough chars-to-tokens ratio
+  let effectiveNumCtx = config.numCtx || 0;
+  let effectiveTimeoutMs = (config.chatTimeoutSec || 120) * 1000;
+
+  if (config.autoAdjustContext && estimatedTokens > 4096) {
+    // Auto-boost num_ctx to fit content with headroom for response (~2K tokens)
+    const needed = estimatedTokens + 2048;
+    if (needed > effectiveNumCtx) {
+      effectiveNumCtx = Math.min(needed, 524288); // cap at 512K
+      log('INFO', `Auto-adjusted num_ctx to ${effectiveNumCtx} (content ~${estimatedTokens} tokens)`);
+    }
+    // Auto-boost timeout for large contexts: +60s per 32K tokens beyond 8K
+    if (estimatedTokens > 8192) {
+      const extraSec = Math.ceil((estimatedTokens - 8192) / 32768) * 60;
+      effectiveTimeoutMs = Math.max(effectiveTimeoutMs, (120 + extraSec) * 1000);
+      effectiveTimeoutMs = Math.min(effectiveTimeoutMs, 600000); // cap at 10 min
+    }
+  }
+  const ollamaOptions = effectiveNumCtx > 0 ? { num_ctx: effectiveNumCtx } : {};
+
   // Set up SSE
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -594,7 +640,7 @@ app.post('/api/chat', async (req, res) => {
 
         let responseText;
         try {
-          responseText = await chatComplete(config.ollamaUrl, model, loopMessages, 120000, images || []);
+          responseText = await chatComplete(config.ollamaUrl, model, loopMessages, effectiveTimeoutMs, images || [], ollamaOptions);
         } catch (err) {
           log('ERROR', `Ollama chatComplete failed (round ${round + 1})`, { error: err.message });
           // Phase 6: Vision-specific error messages
@@ -605,6 +651,11 @@ app.post('/api/chat', async (req, res) => {
               : `Request timed out: ${err.message}` });
           } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
             sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
+          } else if (msg.includes('500')) {
+            const totalLen = loopMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
+            sendEvent({ error: totalLen > 30000
+              ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document or a model with a larger context window.`
+              : `Ollama error: ${err.message}` });
           } else {
             sendEvent({ error: `Ollama error: ${err.message}` });
           }
@@ -670,14 +721,24 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // ── Standard streaming path (no external tools) ──
-    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || []);
+    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || [], ollamaOptions);
 
     debug('Ollama chat response', { status: ollamaRes.status, ok: ollamaRes.ok });
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
       log('ERROR', `Ollama chat error: ${ollamaRes.status}`, { body: errText });
-      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      // Provide helpful context for common Ollama errors
+      let userError;
+      if (ollamaRes.status === 500) {
+        const totalLen = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
+        userError = totalLen > 30000
+          ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document, reduce conversation history, or use a model with a larger context window.`
+          : `Ollama error: ${ollamaRes.status} — ${errText || 'internal server error'}`;
+      } else {
+        userError = `Ollama error: ${ollamaRes.status} ${errText}`;
+      }
+      sendEvent({ error: userError });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
@@ -820,7 +881,9 @@ app.post('/api/review', async (req, res) => {
     const result = await reviewCode(config.ollamaUrl, model, code, {
       filename,
       timeoutSec: config.reviewTimeoutSec,
-      images: images || []
+      images: images || [],
+      numCtx: config.numCtx || 0,
+      autoAdjustContext: config.autoAdjustContext
     });
 
     if (result.type === 'report-card') {

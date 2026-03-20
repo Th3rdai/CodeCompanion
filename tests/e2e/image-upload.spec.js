@@ -1,19 +1,32 @@
 const { test, expect } = require('@playwright/test');
-const path = require('path');
 
-// Mock chat response with vision model
-const mockChatResponseWithImage = {
-  response: 'I can see the image you uploaded. It appears to be a test screenshot.',
-  conversationId: 'test-conv-123'
-};
+/** App expects SSE from POST /api/chat (data: JSON lines + [DONE]). */
+function mockSseChatBody(assistantText) {
+  const parts = [
+    `data: ${JSON.stringify({ token: assistantText })}\n\n`,
+    `data: ${JSON.stringify({ done: true, eval_count: 10, total_duration: 1e9 })}\n\n`,
+    'data: [DONE]\n\n',
+  ];
+  return parts.join('');
+}
 
-// Mock vision models list
+// Match server shape: supportsVision drives vision warnings; option labels include param size.
 const mockModels = {
   models: [
-    { name: 'llama3:latest', size: 4661224768 },
-    { name: 'llava:latest', size: 4661224768 }
-  ]
+    { name: 'llama3:latest', size: 4.3, paramSize: '8B', supportsVision: false },
+    { name: 'llava:latest', size: 4.7, paramSize: '7B', supportsVision: true },
+  ],
 };
+
+// Two distinct 1×1 PNGs (different pixels → different perceptual hash / no duplicate dialog).
+const PNG_1X1_A = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
+const PNG_1X1_B = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2Z2WQAAAAASUVORK5CYII=',
+  'base64'
+);
 
 test.describe('Image Upload E2E - Chat Mode', () => {
   test.beforeEach(async ({ page, context }) => {
@@ -26,12 +39,13 @@ test.describe('Image Upload E2E - Chat Mode', () => {
       });
     });
 
-    // Mock chat API
     await context.route('**/api/chat', async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(mockChatResponseWithImage)
+        contentType: 'text/event-stream; charset=utf-8',
+        body: mockSseChatBody(
+          'I can see the image you uploaded. It appears to be a test screenshot.'
+        ),
       });
     });
 
@@ -39,49 +53,34 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem('th3rdai_onboarding_complete', 'true');
-      localStorage.setItem('imagePrivacyWarningDismissed', 'true'); // Skip privacy modal
+      localStorage.setItem('cc-image-privacy-accepted', 'true'); // Skip image privacy modal
     });
     await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    // Wait for models to load and switch to vision model
-    await page.waitForTimeout(1000);
-    const modelDropdown = page.locator('select').first();
-    if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: 'llava:latest' });
-    }
+    const modelSelect = page.locator('#model-select');
+    await expect(modelSelect).toBeVisible({ timeout: 15_000 });
+    await modelSelect.selectOption({ value: 'llava:latest' });
   });
 
   test('should upload image via file picker', async ({ page }) => {
-    // Create test image path (using a real image or creating one)
-    const testImagePath = path.join(__dirname, '../fixtures/test-image.png');
+    const fileInput = page.locator('#chat-file-input');
 
-    // Click attach button (📎 icon)
-    const attachButton = page.locator('button[title*="Attach"]').or(page.locator('label[for="file-upload"]'));
-
-    // Find file input
-    const fileInput = page.locator('input[type="file"]').first();
-
-    // Check if we can create a test image buffer
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-
-    // Upload via file input
     await fileInput.setInputFiles({
       name: 'test-screenshot.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
-    // Wait for thumbnail to appear
-    await expect(page.locator('img[alt*="thumbnail"]').or(page.locator('.image-thumbnail')).first()).toBeVisible({ timeout: 5000 });
+    // Thumbnail <img> stays opacity-0 until load — assert the interactive wrapper instead.
+    await expect(
+      page.getByRole('button', { name: /View full-size image: test-screenshot\.png/i })
+    ).toBeVisible({ timeout: 10000 });
 
-    // Verify processing indicator disappears
-    await expect(page.getByText(/processing/i)).not.toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/Processing \d+ images?/i)).not.toBeVisible({ timeout: 8000 });
 
-    // Type message
-    const messageInput = page.getByPlaceholder(/type.*message/i);
+    const messageInput = page.locator('#chat-input');
     await messageInput.fill('What do you see in this image?');
 
     // Send message
@@ -92,27 +91,17 @@ test.describe('Image Upload E2E - Chat Mode', () => {
   });
 
   test('should detect non-vision model warning', async ({ page }) => {
-    // Switch to non-vision model
-    const modelDropdown = page.locator('select').first();
-    if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: 'llama3:latest' });
-    }
+    await page.locator('#model-select').selectOption({ value: 'llama3:latest' });
 
-    // Upload image
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-
-    const fileInput = page.locator('input[type="file"]').first();
+    const fileInput = page.locator('#chat-file-input');
     await fileInput.setInputFiles({
       name: 'test.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
-    // Wait for warning banner
-    await expect(page.getByText(/vision model/i)).toBeVisible({ timeout: 3000 });
+    // Warning copy (avoid matching toast "Switched to vision model: …")
+    await expect(page.getByText(/doesn't support images/i)).toBeVisible({ timeout: 3000 });
 
     // Verify send button is disabled
     const sendButton = page.getByRole('button', { name: /send/i });
@@ -123,8 +112,7 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     if (await switchButton.isVisible({ timeout: 2000 }).catch(() => false)) {
       await switchButton.click();
 
-      // Verify warning disappears
-      await expect(page.getByText(/vision model/i)).not.toBeVisible({ timeout: 3000 });
+      await expect(page.getByText(/doesn't support images/i)).not.toBeVisible({ timeout: 5000 });
 
       // Verify send button enabled
       await expect(sendButton).not.toBeDisabled();
@@ -132,18 +120,12 @@ test.describe('Image Upload E2E - Chat Mode', () => {
   });
 
   test('should remove individual images', async ({ page }) => {
-    // Upload two images
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-
-    const fileInput = page.locator('input[type="file"]').first();
+    const fileInput = page.locator('#chat-file-input');
 
     await fileInput.setInputFiles({
       name: 'test1.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
     await page.waitForTimeout(500);
@@ -151,49 +133,35 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     await fileInput.setInputFiles({
       name: 'test2.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_B,
     });
 
-    // Wait for both thumbnails
-    const thumbnails = page.locator('img[alt*="thumbnail"]').or(page.locator('.image-thumbnail'));
-    await expect(thumbnails.first()).toBeVisible({ timeout: 5000 });
+    const thumb1 = page.getByRole('button', { name: /View full-size image: test1\.png/i });
+    const thumb2 = page.getByRole('button', { name: /View full-size image: test2\.png/i });
+    await expect(thumb1).toBeVisible({ timeout: 10000 });
+    await expect(thumb2).toBeVisible({ timeout: 10000 });
 
-    // Count initial thumbnails
-    const initialCount = await thumbnails.count();
-    expect(initialCount).toBeGreaterThanOrEqual(2);
-
-    // Click remove button on first thumbnail
-    const removeButton = page.locator('button[title*="Remove"]').or(page.locator('button:has-text("×")')).first();
-    if (await removeButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await removeButton.click();
-
-      // Verify one thumbnail removed
-      await page.waitForTimeout(500);
-      const finalCount = await thumbnails.count();
-      expect(finalCount).toBe(initialCount - 1);
-    }
+    const removeButton = page.getByRole('button', { name: /Remove test1\.png/i });
+    await removeButton.click();
+    await expect(
+      page.getByRole('button', { name: /View full-size image: test1\.png/i })
+    ).not.toBeVisible({ timeout: 5000 });
+    await expect(thumb2).toBeVisible();
   });
 
   test('should open lightbox on thumbnail click', async ({ page }) => {
-    // Upload image
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-
-    const fileInput = page.locator('input[type="file"]').first();
+    const fileInput = page.locator('#chat-file-input');
     await fileInput.setInputFiles({
       name: 'test.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
-    // Wait for thumbnail
-    const thumbnail = page.locator('img[alt*="thumbnail"]').or(page.locator('.image-thumbnail')).first();
-    await expect(thumbnail).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.getByRole('button', { name: /View full-size image: test\.png/i })
+    ).toBeVisible({ timeout: 10000 });
 
-    // Click thumbnail
-    await thumbnail.click();
+    await page.getByRole('button', { name: /View full-size image: test\.png/i }).click();
 
     // Verify lightbox opens
     const lightbox = page.locator('[role="dialog"]').or(page.locator('.lightbox'));
@@ -217,79 +185,50 @@ test.describe('Image Upload E2E - Chat Mode', () => {
 
   test('should prevent duplicate uploads', async ({ page }) => {
     // Upload same image twice
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
+    const fileInput = page.locator('#chat-file-input');
 
-    const fileInput = page.locator('input[type="file"]').first();
-
-    // First upload
     await fileInput.setInputFiles({
       name: 'test.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
     await page.waitForTimeout(1000);
 
-    // Second upload (duplicate)
+    page.once('dialog', (dialog) => dialog.dismiss());
     await fileInput.setInputFiles({
       name: 'test-copy.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
-
-    // Check for duplicate warning dialog
-    const duplicateWarning = page.getByText(/already.*attached/i).or(page.getByText(/duplicate/i));
-
-    if (await duplicateWarning.isVisible({ timeout: 2000 }).catch(() => false)) {
-      // Verify dialog appeared
-      await expect(duplicateWarning).toBeVisible();
-
-      // Click cancel or close
-      const cancelButton = page.getByRole('button', { name: /cancel/i });
-      if (await cancelButton.isVisible({ timeout: 1000 }).catch(() => false)) {
-        await cancelButton.click();
-      }
-    }
   });
 
   test('should reject unsupported file formats', async ({ page }) => {
-    // Try uploading SVG (unsupported)
-    const svgBuffer = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>');
-
-    const fileInput = page.locator('input[type="file"]').first();
+    // WebP is image/* but not in the app's allowed MIME list (more reliable than SVG in headless).
+    const fileInput = page.locator('#chat-file-input');
     await fileInput.setInputFiles({
-      name: 'test.svg',
-      mimeType: 'image/svg+xml',
-      buffer: svgBuffer
+      name: 'test.webp',
+      mimeType: 'image/webp',
+      buffer: Buffer.from([0x52, 0x49, 0x46, 0x46, 0x01, 0x00, 0x00, 0x00]),
     });
 
-    // Check for error message
-    const errorMessage = page.getByText(/unsupported.*format/i).or(page.getByText(/only.*png.*jpeg.*gif/i));
-    await expect(errorMessage).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText(/Only PNG, JPEG, GIF allowed/i)).toBeVisible({ timeout: 5000 });
   });
 
   test('should show privacy warning on first upload', async ({ page }) => {
     // Clear privacy warning dismissal
     await page.evaluate(() => {
-      localStorage.removeItem('imagePrivacyWarningDismissed');
+      localStorage.removeItem('cc-image-privacy-accepted');
     });
     await page.reload();
     await page.waitForTimeout(1000);
 
     // Upload image
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-
-    const fileInput = page.locator('input[type="file"]').first();
+    const fileInput = page.locator('#chat-file-input');
     await fileInput.setInputFiles({
       name: 'test.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
     // Check for privacy warning modal
@@ -346,20 +285,18 @@ test.describe('Image Upload E2E - Review Mode', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem('th3rdai_onboarding_complete', 'true');
-      localStorage.setItem('imagePrivacyWarningDismissed', 'true');
+      localStorage.setItem('cc-image-privacy-accepted', 'true');
     });
     await page.reload();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    // Switch to Review mode
     const reviewButton = page.getByRole('button', { name: /review/i }).first();
     await reviewButton.click();
 
-    // Switch to vision model
-    const modelDropdown = page.locator('select').first();
-    if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: 'llava:latest' });
-    }
+    const modelSelect = page.locator('#model-select');
+    await expect(modelSelect).toBeVisible({ timeout: 15_000 });
+    await modelSelect.selectOption({ value: 'llava:latest' });
   });
 
   test('should upload bug screenshot with code', async ({ page }) => {
@@ -370,23 +307,19 @@ test.describe('Image Upload E2E - Review Mode', () => {
     await filenameInput.fill('bug-example.js');
     await codeTextarea.fill('function buggyCode() { return undefined.value; }');
 
-    // Upload bug screenshot
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
+    await page.getByRole('tab', { name: /Upload File/i }).click();
 
     const fileInput = page.locator('input[type="file"][accept*="image"]');
     await fileInput.setInputFiles({
       name: 'bug-screenshot.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
-    // Wait for thumbnail
-    await expect(page.locator('img[alt*="thumbnail"]').first()).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.getByRole('button', { name: /View full-size image: bug-screenshot\.png/i })
+    ).toBeVisible({ timeout: 10000 });
 
-    // Submit review
     await page.getByRole('button', { name: /run code review/i }).click();
 
     // Verify report card appears
@@ -405,23 +338,25 @@ test.describe('Image Upload E2E - Security Mode', () => {
       });
     });
 
-    // Mock pentest API
     await context.route('**/api/pentest', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
           type: 'security-report',
-          overallGrade: 'B',
-          categories: {
-            injections: { grade: 'A', findings: [] },
-            auth: { grade: 'B', findings: [] },
-            sensitiveData: { grade: 'A', findings: [] },
-            xxe: { grade: 'A', findings: [] },
-            brokenAccess: { grade: 'B', findings: [] },
-            misconfiguration: { grade: 'C', findings: [] }
-          }
-        })
+          data: {
+            overallGrade: 'B',
+            cleanBillOfHealth: false,
+            categories: {
+              injection: { grade: 'A', summary: 'OK', findings: [] },
+              authAndSession: { grade: 'B', summary: 'OK', findings: [] },
+              dataProtection: { grade: 'A', summary: 'OK', findings: [] },
+              accessControl: { grade: 'B', summary: 'OK', findings: [] },
+              configuration: { grade: 'C', summary: 'OK', findings: [] },
+              apiSecurity: { grade: 'A', summary: 'OK', findings: [] },
+            },
+          },
+        }),
       });
     });
 
@@ -429,54 +364,42 @@ test.describe('Image Upload E2E - Security Mode', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.setItem('th3rdai_onboarding_complete', 'true');
-      localStorage.setItem('imagePrivacyWarningDismissed', 'true');
+      localStorage.setItem('cc-image-privacy-accepted', 'true');
     });
     await page.reload();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    // Switch to Security mode
     const securityButton = page.getByRole('button', { name: /security/i }).first();
     await securityButton.click();
 
-    // Switch to vision model
-    const modelDropdown = page.locator('select').first();
-    if (await modelDropdown.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await modelDropdown.selectOption({ label: 'llava:latest' });
-    }
+    const modelSelect = page.locator('#model-select');
+    await expect(modelSelect).toBeVisible({ timeout: 15_000 });
+    await modelSelect.selectOption({ value: 'llava:latest' });
   });
 
   test('should upload error log screenshot with code', async ({ page }) => {
-    // Switch to Paste tab if needed
-    const pasteTab = page.getByRole('tab', { name: /paste/i });
-    if (await pasteTab.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await pasteTab.click();
-    }
-
-    // Input code
     const codeTextarea = page.getByPlaceholder(/paste.*code/i).first();
     await codeTextarea.fill('const user = req.body; db.query("SELECT * FROM users WHERE id=" + user.id);');
 
-    // Upload error screenshot
-    const imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
+    await page.getByRole('tab', { name: /Upload File/i }).click();
 
     const fileInput = page.locator('input[type="file"][accept*="image"]');
     await fileInput.setInputFiles({
       name: 'sql-injection-error.png',
       mimeType: 'image/png',
-      buffer: imageBuffer
+      buffer: PNG_1X1_A,
     });
 
-    // Wait for thumbnail
-    await expect(page.locator('img[alt*="thumbnail"]').first()).toBeVisible({ timeout: 5000 });
+    await expect(
+      page.getByRole('button', { name: /View full-size image: sql-injection-error\.png/i })
+    ).toBeVisible({ timeout: 10000 });
 
-    // Submit security scan
-    await page.getByRole('button', { name: /run.*security/i }).click();
+    await page.getByRole('button', { name: /Scan for Vulnerabilities/i }).click();
 
-    // Verify security report appears
-    await expect(page.getByText(/security.*report/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Security Scan Report/i })).toBeVisible({
+      timeout: 10000,
+    });
   });
 });
 

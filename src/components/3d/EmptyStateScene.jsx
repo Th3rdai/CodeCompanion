@@ -8,6 +8,8 @@ import Spline3DError from './Spline3DError';
  * Layout:
  * - WITH scene URL:  Left side = 3D scene, Right side = text content
  * - WITHOUT scene URL: Centered text with gradient background (original layout)
+ *
+ * Width: outer wrapper uses max-w-6xl (content rail) — see design-system/DESIGN-STANDARDS.md §6.2.
  * - Mobile: Stacks vertically (scene on top, text below)
  *
  * Preserves all original functionality: mode icon, description,
@@ -56,7 +58,7 @@ export default function EmptyStateScene({
   return (
     <div className="h-full flex items-center justify-center">
       <div
-        className={`flex items-center gap-6 w-full max-w-4xl px-6 ${
+        className={`flex items-center gap-6 w-full max-w-6xl px-6 ${
           hasScene
             ? 'flex-col md:flex-row'
             : 'flex-col'

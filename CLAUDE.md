@@ -9,7 +9,7 @@ You are a full-stack developer building **Code Companion**, a web application th
 - **AI**: Ollama REST API (configurable URL, default `http://localhost:11434`)
 - **Storage**: JSON files for conversation history and config
 - **Streaming**: Server-Sent Events for real-time AI responses
-- **MCP**: Model Context Protocol server (HTTP + stdio) and client support
+- **MCP**: Model Context Protocol — built-in server (HTTP + stdio) and **external client** support (**stdio**, **http** / streamable, **sse**; http may auto-fallback to sse)
 
 ## Project Structure
 | Path | Purpose |
@@ -25,6 +25,9 @@ You are a full-stack developer building **Code Companion**, a web application th
 | .planning/ | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md) |
 | tests/ | Unit tests (node:test in tests/unit/, tests/*.test.js) and Playwright tests (tests/ui/, tests/e2e/) |
 | dist/ | Production build output |
+| CLIPLAN.md | Agent terminal / builtin tools — plan for LLM `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`; §0 = related shipped MCP/Ollama tuning) |
+| design-system/README.md | Index of design docs (canonical **`.md`**; PDFs are optional exports) |
+| design-system/DESIGN-STANDARDS.md | UI layout, colors, glass system, content width rails (shell = full viewport; inner `max-w-*` for readability) |
 
 ## Sixteen Modes
 Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Review, Create, Prompting, Skillz, Agentic, Build

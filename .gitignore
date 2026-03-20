@@ -68,3 +68,4 @@ cert/*.crt
 # User data (configs with secrets, cloned repos)
 CodeCompanion-Data/
 github-repos/
+.gitnexus

@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-17T02:45:00.000Z"
-last_activity: 2026-03-19 — Phases 19-24: Security enhancements, Validate mode, deployment hardening, stability fixes, Save Chat, IDE command distribution
+last_updated: "2026-03-20T03:10:00.000Z"
+last_activity: 2026-03-20 — MCP client SSE + HTTP→SSE fallback; Settings chatTimeoutSec / numCtx / autoAdjustContext; Playwright image-upload E2E + build-before-test; design viewport notes (CLIPLAN §0)
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit and security).
-Last activity: 2026-03-19 — Phases 19-24: Security enhancements (folder scan, export, remediate zip), Validate mode, HTTPS/port hardening, stability fixes, Save Chat, IDE command distribution
+Last activity: 2026-03-20 — MCP SSE transport + fallback; Ollama chat context & timeout settings; image E2E + playwright build step; DESIGN-STANDARDS empty-state width; Electron startup diagnostics (emergency log)
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

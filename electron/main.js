@@ -4,12 +4,98 @@ const path = require('path');
 const fs = require('fs');
 const net = require('net');
 
-const { resolveDataDirectory, migrateDevData, exportData, importData } = require('./data-manager');
-const { loadWindowState, saveWindowState } = require('./window-state');
-const { createMenu } = require('./menu');
-const { initAutoUpdater } = require('./updater');
-const { launchIDE } = require('./ide-launcher');
-const { checkOllamaRunning, installOllama, pullModel } = require('./ollama-setup');
+// Create emergency log file for debugging startup issues
+const emergencyLogPath = path.join(app.getPath('temp'), 'code-companion-startup.log');
+function emergencyLog(message) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  try {
+    fs.appendFileSync(emergencyLogPath, logMessage);
+    console.log(message);
+  } catch (err) {
+    console.error('Failed to write emergency log:', err);
+  }
+}
+
+// Log startup
+emergencyLog('=== Code Companion Starting ===');
+emergencyLog(`Platform: ${process.platform}`);
+emergencyLog(`Arch: ${process.arch}`);
+emergencyLog(`Node: ${process.version}`);
+emergencyLog(`Electron: ${process.versions.electron}`);
+emergencyLog(`App Path: ${app.getAppPath()}`);
+emergencyLog(`EXE Path: ${app.getPath('exe')}`);
+emergencyLog(`Packaged: ${app.isPackaged}`);
+
+// Catch all uncaught exceptions
+process.on('uncaughtException', (error) => {
+  emergencyLog(`UNCAUGHT EXCEPTION: ${error.message}`);
+  emergencyLog(`Stack: ${error.stack}`);
+  dialog.showErrorBox('Startup Error', `${error.message}\n\nLog: ${emergencyLogPath}`);
+  app.quit();
+});
+
+// Wrap all requires in try-catch
+let resolveDataDirectory, migrateDevData, exportData, importData;
+let loadWindowState, saveWindowState;
+let createMenu;
+let initAutoUpdater;
+let launchIDE;
+let checkOllamaRunning, installOllama, pullModel;
+
+try {
+  emergencyLog('Loading data-manager...');
+  ({ resolveDataDirectory, migrateDevData, exportData, importData } = require('./data-manager'));
+  emergencyLog('✓ data-manager loaded');
+} catch (err) {
+  emergencyLog(`✗ data-manager failed: ${err.message}`);
+  throw err;
+}
+
+try {
+  emergencyLog('Loading window-state...');
+  ({ loadWindowState, saveWindowState } = require('./window-state'));
+  emergencyLog('✓ window-state loaded');
+} catch (err) {
+  emergencyLog(`✗ window-state failed: ${err.message}`);
+  throw err;
+}
+
+try {
+  emergencyLog('Loading menu...');
+  ({ createMenu } = require('./menu'));
+  emergencyLog('✓ menu loaded');
+} catch (err) {
+  emergencyLog(`✗ menu failed: ${err.message}`);
+  throw err;
+}
+
+try {
+  emergencyLog('Loading updater...');
+  ({ initAutoUpdater } = require('./updater'));
+  emergencyLog('✓ updater loaded');
+} catch (err) {
+  emergencyLog(`✗ updater failed: ${err.message}`);
+  throw err;
+}
+
+try {
+  emergencyLog('Loading ide-launcher...');
+  ({ launchIDE } = require('./ide-launcher'));
+  emergencyLog('✓ ide-launcher loaded');
+} catch (err) {
+  emergencyLog(`✗ ide-launcher failed: ${err.message}`);
+  throw err;
+}
+
+try {
+  emergencyLog('Loading ollama-setup...');
+  ({ checkOllamaRunning, installOllama, pullModel } = require('./ollama-setup'));
+  emergencyLog('✓ ollama-setup loaded');
+} catch (err) {
+  emergencyLog(`✗ ollama-setup failed: ${err.message}`);
+  throw err;
+}
 
 let mainWindow = null;
 let serverProcess = null;
@@ -122,14 +208,26 @@ function saveLastMode(mode) {
  */
 function spawnServer(port) {
   return new Promise((resolve, reject) => {
-    console.log(`[Main] Spawning server on port ${port}...`);
+    emergencyLog(`[spawnServer] Starting on port ${port}...`);
 
     // In packaged mode, asarUnpack puts server.js in app.asar.unpacked/
     let serverPath = path.join(__dirname, '..', 'server.js');
+    emergencyLog(`[spawnServer] Initial path: ${serverPath}`);
     if (app.isPackaged) {
       serverPath = serverPath.replace('app.asar', 'app.asar.unpacked');
+      emergencyLog(`[spawnServer] Adjusted for asar: ${serverPath}`);
     }
-    console.log(`[Main] Server path: ${serverPath}`);
+
+    // Check if server.js exists
+    if (!fs.existsSync(serverPath)) {
+      const error = new Error(`server.js not found at: ${serverPath}`);
+      emergencyLog(`[spawnServer] ERROR: ${error.message}`);
+      reject(error);
+      return;
+    }
+    emergencyLog(`[spawnServer] ✓ server.js found at: ${serverPath}`);
+
+    emergencyLog(`[spawnServer] Forking process...`);
     const proc = fork(serverPath, [], {
       env: {
         ...process.env,
@@ -228,30 +326,47 @@ async function respawnServer() {
  * Main application startup
  */
 async function startApp() {
-  // Resolve data directory and migrate legacy data
-  dataDir = resolveDataDirectory();
-  const appRoot = path.join(__dirname, '..');
-  const migration = migrateDevData(dataDir, appRoot);
-  if (migration.migrated) {
-    console.log('[Main] Migration results:', migration.log);
-  }
+  try {
+    emergencyLog('startApp() called');
 
-  // Set log directory (used for crash dialog)
-  logDir = path.join(dataDir, 'logs');
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
-  }
+    // Resolve data directory and migrate legacy data
+    emergencyLog('Resolving data directory...');
+    dataDir = resolveDataDirectory();
+    emergencyLog(`Data directory: ${dataDir}`);
 
-  // Get preferred port and find free port
-  const preferredPort = getPreferredPort();
-  const { port, wasFallback } = await findFreePort(preferredPort);
-  actualPort = port;
+    const appRoot = path.join(__dirname, '..');
+    emergencyLog(`App root: ${appRoot}`);
 
-  console.log(`[Main] Using port ${actualPort} (preferred: ${preferredPort}, fallback: ${wasFallback})`);
+    emergencyLog('Migrating dev data...');
+    const migration = migrateDevData(dataDir, appRoot);
+    if (migration.migrated) {
+      emergencyLog(`[Main] Migration results: ${JSON.stringify(migration.log)}`);
+    }
 
-  // Create splash window
-  const windowState = loadWindowState(dataDir);
-  mainWindow = new BrowserWindow({
+    // Set log directory (used for crash dialog)
+    logDir = path.join(dataDir, 'logs');
+    emergencyLog(`Log directory: ${logDir}`);
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
+    }
+
+    // Get preferred port and find free port
+    emergencyLog('Getting preferred port...');
+    const preferredPort = getPreferredPort();
+    emergencyLog(`Preferred port: ${preferredPort}`);
+
+    emergencyLog('Finding free port...');
+    const { port, wasFallback } = await findFreePort(preferredPort);
+    actualPort = port;
+    emergencyLog(`Using port ${actualPort} (preferred: ${preferredPort}, fallback: ${wasFallback})`);
+
+    // Create splash window
+    emergencyLog('Loading window state...');
+    const windowState = loadWindowState(dataDir);
+    emergencyLog(`Window state: ${JSON.stringify(windowState)}`);
+
+    emergencyLog('Creating BrowserWindow...');
+    mainWindow = new BrowserWindow({
     title: 'Code Companion — Vibe Coder Edition',
     width: windowState.width,
     height: windowState.height,
@@ -268,23 +383,33 @@ async function startApp() {
     },
   });
 
-  // Load splash screen first
-  await mainWindow.loadFile(path.join(__dirname, 'splash.html'));
+    emergencyLog('BrowserWindow created successfully');
 
-  // Show window when ready
-  mainWindow.once('ready-to-show', () => {
-    if (windowState.isMaximized) {
-      mainWindow.maximize();
-    }
-    mainWindow.show();
-  });
+    // Load splash screen first
+    const splashPath = path.join(__dirname, 'splash.html');
+    emergencyLog(`Loading splash screen from: ${splashPath}`);
+    await mainWindow.loadFile(splashPath);
+    emergencyLog('Splash screen loaded');
 
-  // Set application menu
-  Menu.setApplicationMenu(createMenu());
+    // Show window when ready
+    mainWindow.once('ready-to-show', () => {
+      emergencyLog('Window ready-to-show');
+      if (windowState.isMaximized) {
+        mainWindow.maximize();
+      }
+      mainWindow.show();
+    });
 
-  // Spawn server as child process
-  try {
-    serverProcess = await spawnServer(actualPort);
+    // Set application menu
+    emergencyLog('Creating application menu...');
+    Menu.setApplicationMenu(createMenu());
+    emergencyLog('Menu set');
+
+    // Spawn server as child process
+    emergencyLog('Spawning server...');
+    try {
+      serverProcess = await spawnServer(actualPort);
+      emergencyLog('Server spawned successfully');
 
     // Navigate to the app once server is ready
     mainWindow.loadURL(`http://localhost:${actualPort}`);
@@ -299,29 +424,47 @@ async function startApp() {
       });
     }
 
-    // Initialize auto-updater after window is ready
-    initAutoUpdater(mainWindow, dataDir);
-  } catch (err) {
-    console.error('[Main] Failed to start server:', err);
-    dialog.showErrorBox('Server Error', `Failed to start server: ${err.message}`);
+      // Initialize auto-updater after window is ready
+      emergencyLog('Initializing auto-updater...');
+      initAutoUpdater(mainWindow, dataDir);
+      emergencyLog('Auto-updater initialized');
+    } catch (err) {
+      emergencyLog(`SERVER START ERROR: ${err.message}`);
+      emergencyLog(`Stack: ${err.stack}`);
+      console.error('[Main] Failed to start server:', err);
+      dialog.showErrorBox('Server Error', `Failed to start server: ${err.message}\n\nLog: ${emergencyLogPath}`);
+      app.quit();
+      return;
+    }
+
+    // Save window state on close
+    mainWindow.on('close', () => {
+      saveWindowState(mainWindow, dataDir);
+    });
+
+    // Open external links in browser
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    });
+
+    emergencyLog('=== Startup complete ===');
+  } catch (error) {
+    emergencyLog(`STARTUP ERROR: ${error.message}`);
+    emergencyLog(`Stack: ${error.stack}`);
+    dialog.showErrorBox('Startup Failed', `Failed to start Code Companion:\n\n${error.message}\n\nLog file: ${emergencyLogPath}`);
     app.quit();
-    return;
   }
-
-  // Save window state on close
-  mainWindow.on('close', () => {
-    saveWindowState(mainWindow, dataDir);
-  });
-
-  // Open external links in browser
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: 'deny' };
-  });
 }
 
 // App lifecycle
-app.whenReady().then(startApp);
+app.whenReady().then(() => {
+  emergencyLog('App ready event fired');
+  startApp().catch(err => {
+    emergencyLog(`startApp() rejected: ${err.message}`);
+    emergencyLog(`Stack: ${err.stack}`);
+  });
+});
 
 app.on('window-all-closed', () => {
   app.quit();

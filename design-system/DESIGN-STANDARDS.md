@@ -1,9 +1,11 @@
 # Code Companion — Design Standards & Guidelines
 
-**Version:** 1.0
-**Last Updated:** 2026-03-14
+**Version:** 1.1
+**Last Updated:** 2026-03-20
 **Aesthetic:** Cyberpunk Neon Glass Morphism
 **Theme:** Dark-only
+
+> **Canonical format:** This repository uses **Markdown (`.md`)** as the source of truth for design standards. Any `.pdf` in this folder is an optional export for printing/sharing — edit **`DESIGN-STANDARDS.md`** and regenerate the PDF only if you still need a static copy.
 
 ---
 
@@ -301,18 +303,49 @@ Full:   text-xs font-bold text-indigo-400 bg-indigo-500/20 px-2 py-1 rounded-ful
 
 ## 6. Layout & Spacing
 
-### 6.1 Page Structure
+### 6.1 Viewport shell (full width)
+
+The **application chrome** is **full viewport width**. There is **no** `max-width` on `body`, `#root`, or the root `App` wrapper — wide monitors should use the full main column next to the sidebar.
+
+| Layer | Implementation | Notes |
+|-------|----------------|-------|
+| `html`, `body`, `#root` | `width: 100%`, `height: 100dvh`, `overflow: hidden` | `src/index.css` |
+| App root | `h-dvh w-screen flex mesh-gradient overflow-hidden` | `src/App.jsx` |
+| Main column | `main` → `flex-1 flex flex-col min-w-0` | Grows to fill space beside sidebar |
+
+**Do not** constrain the whole app with a centered `max-w-*` container. If the UI ever looks like a narrow “card” floating in the browser, check **browser window width**, **responsive/device emulation**, or **user/extension CSS** — not the default layout.
+
+### 6.2 Content width rails (intentional `max-w-*`)
+
+Inside the main column, **individual views** center long-form content with **`max-w-*` + `mx-auto`** for readability. That creates **horizontal padding visually** in the content area only; it is **not** the same as a fixed-width app.
+
+| Area | Typical pattern | Tailwind | Rationale |
+|------|-----------------|----------|-----------|
+| **Empty state hero** (Chat / Explain / …) | Outer wrapper centered in scroll region | `w-full max-w-6xl px-6` | Uses horizontal space on large screens; inner copy stays `max-w-md` when there is no Spline split (`EmptyStateScene.jsx`) |
+| **Review / Security / Validate** — report bodies | Centered column | `max-w-3xl mx-auto` | Comfortable line length for markdown & grades |
+| **Report cards** | Same rail | `max-w-3xl mx-auto` | Aligns with review/security panels |
+| **Create / Build wizards** | Narrower form rail | `max-w-2xl mx-auto` | Form focus |
+| **Modals** | Dialog width cap | `max-w-sm` … `max-w-lg` | Standard modal sizing |
+
+**Changing empty-state width:** Prefer adjusting **`max-w-6xl`** on the **outer** empty-state flex wrapper before removing rails entirely — keeps typography blocks readable while using more horizontal space on ultrawide monitors.
+
+**Exported HTML** (e.g. security report download) may use `max-width: 900px` on `body` **inside that standalone file only** — it must **not** be injected into the main app document.
+
+### 6.3 Page structure (component tree)
 
 ```
 Body: bg-base text-slate-50 font-sans
-Root: h-screen flex flex-col overflow-hidden
-Header: glass-heavy, fixed height
-Main: flex-1 flex overflow-hidden
-Sidebar: glass-heavy, w-72 (desktop), full overlay (mobile)
-Content: flex-1 flex flex-col min-w-0
+#root: width 100%, height 100dvh (no max-width)
+App root: h-dvh w-screen flex mesh-gradient overflow-hidden
+  Sidebar: glass-heavy, w-72 expanded / w-14 collapsed (lg), overlay (mobile)
+  main: flex-1 flex flex-col min-w-0
+    Header: glass-heavy (full width of main column)
+    Mode tabs: glass border-b (full width of main column)
+    Content: flex-1 flex flex-col min-w-0 (messages / panels; inner rails per 6.2)
+    Composer (chat modes): glass-heavy border-t (full width of main column)
 ```
 
-### 6.2 Spacing Scale
+### 6.4 Spacing Scale
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -325,7 +358,7 @@ Content: flex-1 flex flex-col min-w-0
 | `mb-4` | 16px | Between form fields |
 | `mb-6` | 24px | Between sections |
 
-### 6.3 Border Radius Scale
+### 6.5 Border Radius Scale
 
 | Class | Value | Usage |
 |-------|-------|-------|
@@ -334,7 +367,7 @@ Content: flex-1 flex flex-col min-w-0
 | `rounded-2xl` | 16px | Large accent elements, splash buttons |
 | `rounded-full` | 9999px | Pills, badges, status dots |
 
-### 6.4 Z-Index Scale
+### 6.6 Z-Index Scale
 
 | Layer | Value | Usage |
 |-------|-------|-------|
@@ -344,7 +377,7 @@ Content: flex-1 flex flex-col min-w-0
 | `z-40` | 40 | Tooltips, dropdowns |
 | `z-50` | 50 | Modals, overlays, toasts |
 
-### 6.5 Responsive Breakpoints
+### 6.7 Responsive Breakpoints
 
 | Prefix | Min Width | Usage |
 |--------|-----------|-------|
@@ -534,6 +567,7 @@ Tailwind v4 with `@import "tailwindcss"` and `@theme` block for custom propertie
 
 ### Do
 
+- Keep the **viewport shell full width** (`w-screen`, no `max-width` on `#root`); use **`max-w-*` only inside** the main column for content rails (see §6.1–6.2)
 - Use `.glass` / `.glass-heavy` / `.glass-neon` for all surfaces
 - Use `.btn-neon` for primary CTAs
 - Use `.input-glow` for all form inputs
@@ -547,6 +581,7 @@ Tailwind v4 with `@import "tailwindcss"` and `@theme` block for custom propertie
 
 ### Don't
 
+- Don't add `max-width` / centered containers around the **entire** app (`#root` or `App` root) — only use content rails **inside** the main column (§6.2)
 - Don't use flat backgrounds without glass blur
 - Don't use colors outside the established palette
 - Don't mix icon libraries (stick to Lucide)

@@ -530,10 +530,10 @@ export default function App() {
     const textFiles = files.filter(f => f.type !== 'image' && !f.isImage);
     if (textFiles.length === 0) return text;
 
-    // Cap per-file content to ~60K chars (~15K tokens) to stay within model context windows.
-    // Most Ollama models support 4K-32K tokens; system prompt + history consume some of that.
-    const MAX_FILE_CHARS = 60000;
-    const MAX_TOTAL_CHARS = 100000;
+    // Safety cap per-file to prevent browser/network issues with extremely large payloads.
+    // Actual context window management is handled server-side via num_ctx auto-adjustment.
+    const MAX_FILE_CHARS = 500000;
+    const MAX_TOTAL_CHARS = 800000;
     let totalChars = 0;
 
     let content = text.trim() ? text + '\n\n' : '';

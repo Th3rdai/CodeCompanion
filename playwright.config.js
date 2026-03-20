@@ -17,8 +17,8 @@ module.exports = defineConfig({
     ignoreHTTPSErrors: useHTTPS
   },
   webServer: {
-    // Match BASE_URL=http://127.0.0.1:4173 in CI/validate (cert present would otherwise serve HTTPS)
-    command: 'FORCE_HTTP=1 PORT=4173 node server.js',
+    // Build so E2E matches current src (server serves dist/).
+    command: 'npm run build && FORCE_HTTP=1 PORT=4173 node server.js',
     port: 4173,
     reuseExistingServer: true,
     timeout: 120_000

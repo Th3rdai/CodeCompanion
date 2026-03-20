@@ -19,10 +19,11 @@ function AddServerModal({ onAdd, onClose }) {
   const [testResult, setTestResult] = useState(null);
 
   function buildPayload() {
+    const isRemote = transport === 'http' || transport === 'sse';
     return {
       transport,
       command: transport === 'stdio' ? command : undefined,
-      url: transport === 'http' ? command : undefined,
+      url: isRemote ? command : undefined,
       args: args ? args.split('\n').filter(a => a.trim()) : [],
       env: envVars ? Object.fromEntries(envVars.split('\n').filter(l => l.includes('=')).map(l => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1)]; })) : {},
     };
@@ -89,7 +90,8 @@ function AddServerModal({ onAdd, onClose }) {
             <select value={transport} onChange={e => setTransport(e.target.value)}
               className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none text-sm">
               <option value="stdio">Stdio (Local Command)</option>
-              <option value="http">HTTP</option>
+              <option value="http">HTTP (Streamable HTTP)</option>
+              <option value="sse">SSE (Server-Sent Events)</option>
             </select>
           </div>
 
@@ -98,7 +100,7 @@ function AddServerModal({ onAdd, onClose }) {
               {transport === 'stdio' ? 'Command' : 'URL'}
             </label>
             <input type="text" value={command} onChange={e => setCommand(e.target.value)}
-              placeholder={transport === 'stdio' ? 'node server.js' : 'http://localhost:3001/mcp'}
+              placeholder={transport === 'stdio' ? 'node server.js' : transport === 'sse' ? 'http://localhost:8054/sse' : 'http://localhost:3001/mcp'}
               className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none font-mono text-sm" />
           </div>
 
