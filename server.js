@@ -442,19 +442,12 @@ app.post('/api/convert-document',
         }
       );
 
-      // Truncate if output is too large for AI context
-      const MAX_OUTPUT = 100 * 1024; // 100KB markdown
-      const truncated = result.markdown.length > MAX_OUTPUT;
-      const markdown = truncated
-        ? result.markdown.slice(0, MAX_OUTPUT) + '\n\n... (document truncated — too large for AI context)'
-        : result.markdown;
-
       res.json({
-        markdown,
+        markdown: result.markdown,
         filename,
         originalSize: buffer.length,
-        markdownSize: markdown.length,
-        truncated,
+        markdownSize: result.markdown.length,
+        truncated: false,
         status: result.status,
         processingTime: result.processingTime,
         errors: result.errors,

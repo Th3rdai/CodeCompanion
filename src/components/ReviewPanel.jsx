@@ -391,9 +391,6 @@ export default function ReviewPanel({
           const result = await convertDocument(file);
           setCode(result.markdown);
           setFilename(file.name);
-          if (result.truncated) {
-            alert(`"${file.name}" was truncated — document too large for review.`);
-          }
         } catch (err) {
           alert(`Failed to convert "${file.name}": ${err.message}`);
         } finally {

@@ -411,9 +411,6 @@ export default function SecurityPanel({
         const result = await convertDocument(file);
         setCode(result.markdown);
         setFilename(file.name);
-        if (result.truncated) {
-          onToast?.(`"${file.name}" was truncated — document too large for scan.`);
-        }
       } catch (err) {
         console.error('Document conversion failed:', err);
         onToast?.(`Failed to convert "${file.name}": ${err.message}`);
@@ -615,9 +612,6 @@ export default function SecurityPanel({
             const result = await convertDocument(file);
             setCode(result.markdown);
             setFilename(file.name);
-            if (result.truncated) {
-              onToast?.(`"${file.name}" was truncated — document too large for scan.`);
-            }
           } catch (err) {
             console.error('Document conversion failed:', err);
             onToast?.(`Failed to convert "${file.name}": ${err.message}`);

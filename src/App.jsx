@@ -765,9 +765,6 @@ export default function App() {
           const result = await convertDocument(file);
           const attachment = formatAsAttachment(result, file);
           setAttachedFiles(prev => [...prev, attachment]);
-          if (result.truncated) {
-            alert(`"${file.name}" was truncated — the document is too large for AI context.`);
-          }
         } catch (err) {
           alert(`Failed to convert "${file.name}": ${err.message}`);
         } finally {
