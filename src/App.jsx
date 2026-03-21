@@ -1756,6 +1756,10 @@ export default function App() {
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📄 Word
                     </button>
+                    <button onClick={() => handleExportOffice('.xlsx')} title="Export conversation as Excel spreadsheet"
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                      📈 Excel
+                    </button>
                     <button onClick={() => handleExportOffice('.pptx')} title="Export conversation as PowerPoint"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📊 PPTX

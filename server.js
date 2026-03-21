@@ -543,18 +543,20 @@ app.post('/api/generate-office',
     }
     const ext = path.extname(filename).toLowerCase();
     if (!OFFICE_FORMATS.has(ext)) {
-      return res.status(400).json({ error: `Unsupported format: ${ext}. Use .docx, .xlsx, or .pptx` });
+      return res.status(400).json({ error: `Unsupported format: ${ext}. Use .docx, .xlsx, .pptx, or .csv` });
     }
     try {
       log('INFO', `Generating ${ext} file: ${filename} (${content.length} chars input)`);
       const result = await generateOfficeFile(content, filename);
       log('INFO', `Generated ${filename}: ${(result.size / 1024).toFixed(1)}KB in ${result.processingTime}s`);
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', ext === '.docx'
-        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        : ext === '.xlsx'
-          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          : 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      const mimeTypes = {
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        '.csv': 'text/csv',
+      };
+      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
       res.send(result.buffer);
     } catch (err) {
       log('ERROR', `Office generation failed: ${filename}`, { error: err.message });
