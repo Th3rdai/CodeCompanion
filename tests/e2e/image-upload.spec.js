@@ -291,8 +291,7 @@ test.describe('Image Upload E2E - Review Mode', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    const reviewButton = page.getByRole('button', { name: /review/i }).first();
-    await reviewButton.click();
+    await page.getByRole('button', { name: 'Review', exact: true }).click();
 
     const modelSelect = page.locator('#model-select');
     await expect(modelSelect).toBeVisible({ timeout: 15_000 });
@@ -301,7 +300,7 @@ test.describe('Image Upload E2E - Review Mode', () => {
 
   test('should upload bug screenshot with code', async ({ page }) => {
     // Input code
-    const codeTextarea = page.getByPlaceholder(/paste your code here/i);
+    const codeTextarea = page.getByPlaceholder('Paste your code here...');
     const filenameInput = page.getByPlaceholder(/server\.js/i);
 
     await filenameInput.fill('bug-example.js');
@@ -370,8 +369,7 @@ test.describe('Image Upload E2E - Security Mode', () => {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    const securityButton = page.getByRole('button', { name: /security/i }).first();
-    await securityButton.click();
+    await page.getByRole('button', { name: 'Security', exact: true }).click();
 
     const modelSelect = page.locator('#model-select');
     await expect(modelSelect).toBeVisible({ timeout: 15_000 });
@@ -379,7 +377,7 @@ test.describe('Image Upload E2E - Security Mode', () => {
   });
 
   test('should upload error log screenshot with code', async ({ page }) => {
-    const codeTextarea = page.getByPlaceholder(/paste.*code/i).first();
+    const codeTextarea = page.getByPlaceholder(/paste your code here for owasp/i);
     await codeTextarea.fill('const user = req.body; db.query("SELECT * FROM users WHERE id=" + user.id);');
 
     await page.getByRole('tab', { name: /Upload File/i }).click();

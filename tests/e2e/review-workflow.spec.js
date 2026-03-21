@@ -59,13 +59,13 @@ test.describe('Review Workflow E2E', () => {
     await page.evaluate(() => localStorage.setItem('th3rdai_onboarding_complete', 'true'));
     await page.reload();
 
-    // Switch to Review mode
-    await page.getByRole('button', { name: /review/i }).first().click();
+    // Mode tab is named exactly "Review" (sidebar chats may include "Code Review" — do not use /review/i.first())
+    await page.getByRole('button', { name: 'Review', exact: true }).click();
   });
 
   test('should complete full paste workflow', async ({ page }) => {
     // Input code via paste (filename placeholder is "e.g. server.js, utils/auth.py")
-    const codeTextarea = page.getByPlaceholder(/paste your code here/i);
+    const codeTextarea = page.getByPlaceholder('Paste your code here...');
     const filenameInput = page.getByPlaceholder(/server\.js/i);
 
     await filenameInput.fill('test.js');
@@ -134,7 +134,7 @@ test.describe('Review Workflow E2E', () => {
 
     // Test paste method
     await page.getByPlaceholder(/server\.js/i).fill(filename);
-    await page.getByPlaceholder(/paste your code here/i).fill(testCode);
+    await page.getByPlaceholder('Paste your code here...').fill(testCode);
     await page.getByRole('button', { name: /run code review/i }).click();
     await expect(page.getByText(/report card/i).first()).toBeVisible({ timeout: 10000 });
     await page.getByRole('button', { name: /review another/i }).click();
@@ -156,7 +156,7 @@ test.describe('Review Workflow E2E', () => {
 
   test('should enter deep-dive mode when a category is clicked', async ({ page }) => {
     // Complete paste workflow first
-    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return "hello"; }');
+    await page.getByPlaceholder('Paste your code here...').fill('function test() { return "hello"; }');
     await page.getByRole('button', { name: /run code review/i }).click();
     await expect(page.getByText(/report card/i).first()).toBeVisible({ timeout: 10000 });
 

@@ -77,8 +77,8 @@ test.describe('ReportCard Progressive Disclosure', () => {
     await page.waitForResponse('**/api/models');
 
     // Navigate to Review mode and submit code
-    await page.click('button:has-text("Review")');
-    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByRole('button', { name: 'Review', exact: true }).click();
+    await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();
 
     // Wait for report card to appear

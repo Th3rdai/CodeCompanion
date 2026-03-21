@@ -50,11 +50,11 @@ test.describe('LoadingAnimation Component', () => {
     await page.reload();
     // Wait for model fetch to complete and button to become enabled
     await page.waitForResponse('**/api/models');
-    await page.click('button:has-text("Review")');
+    await page.getByRole('button', { name: 'Review', exact: true }).click();
   });
 
   test('displays bouncing dots animation', async ({ page }) => {
-    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();
 
     // Check for bouncing dots (3 animated elements)
@@ -64,7 +64,7 @@ test.describe('LoadingAnimation Component', () => {
   });
 
   test('displays rotating encouraging messages', async ({ page }) => {
-    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();
 
     // Wait for loading state
@@ -87,7 +87,7 @@ test.describe('LoadingAnimation Component', () => {
   });
 
   test('has aria-live region for screen reader accessibility', async ({ page }) => {
-    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();
 
     // Check for aria-live region
@@ -97,7 +97,7 @@ test.describe('LoadingAnimation Component', () => {
 
   test('displays filename when provided', async ({ page }) => {
     await page.getByPlaceholder(/server\.js/i).fill('test.js');
-    await page.getByPlaceholder(/paste your code here/i).fill('function test() { return true; }');
+    await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();
 
     // Check that filename is displayed during loading

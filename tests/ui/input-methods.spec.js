@@ -6,7 +6,7 @@ test.describe('ReviewPanel Input Methods', () => {
     await page.evaluate(() => localStorage.setItem('th3rdai_onboarding_complete', 'true'));
     await page.reload();
     // Navigate to Review mode
-    await page.click('button:has-text("Review")');
+    await page.getByRole('button', { name: 'Review', exact: true }).click();
   });
 
   test('should render three input method tabs', async ({ page }) => {
@@ -17,7 +17,7 @@ test.describe('ReviewPanel Input Methods', () => {
 
   test('should display code textarea in Paste tab', async ({ page }) => {
     // Paste tab should be selected by default
-    await expect(page.getByPlaceholder(/paste your code here/i)).toBeVisible();
+    await expect(page.getByPlaceholder('Paste your code here...')).toBeVisible();
     await expect(page.getByPlaceholder(/server\.js/i)).toBeVisible();
   });
 

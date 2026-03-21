@@ -23,8 +23,8 @@ test.describe('JargonGlossary component', () => {
   });
 
   test('UX-03: category filtering works', async ({ page }) => {
-    // Click Security category (exact: true to avoid the mode tab "🛡️ Security")
-    await page.getByRole('button', { name: 'Security', exact: true }).click();
+    // Scope to glossary dialog — mode tabs also include a Security button
+    await page.getByRole('dialog', { name: 'Jargon Glossary' }).getByRole('button', { name: 'Security', exact: true }).click();
 
     // Verify Security terms visible
     await expect(page.getByText('SQL Injection')).toBeVisible();
