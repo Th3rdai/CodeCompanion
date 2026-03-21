@@ -187,6 +187,8 @@ export default function App() {
   const reviewAttachRef = useRef(null);
   const pentestAttachRef = useRef(null);
   const builderAttachRef = useRef(null);
+  /** AbortController for POST /api/chat — Stop button */
+  const chatAbortRef = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
   const [savedPentest, setSavedPentest] = useState(null);
   const [savedBuilderData, setSavedBuilderData] = useState(null);
@@ -591,8 +593,16 @@ export default function App() {
     // Save user message immediately so it survives a reload
     saveConversation(newMessages, mode);
 
+    chatAbortRef.current?.abort();
+    const ac = new AbortController();
+    chatAbortRef.current = ac;
+
+    let assistantContent = '';
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ac.signal,
         body: JSON.stringify({
           model: selectedModel,
           mode,
@@ -602,9 +612,10 @@ export default function App() {
             ...(m.images && { images: m.images }) // Preserve images in message history
           })),
           ...(images.length > 0 && { images }) // Send current images to API
-        }) });
+        }),
+      });
       const reader = res.body.getReader(); const decoder = new TextDecoder();
-      let assistantContent = ''; let buffer = '';
+      let buffer = '';
       let lastSaveTime = Date.now();
       while (true) {
         const { done, value } = await reader.read(); if (done) break;
@@ -661,6 +672,15 @@ export default function App() {
       const finalMessages = [...newMessages, { role: 'assistant', content: assistantContent }];
       setMessages(finalMessages); saveConversation(finalMessages, mode);
     } catch (err) {
+      if (err.name === 'AbortError') {
+        setTerminalOutput(null);
+        if (assistantContent.trim()) {
+          const stoppedMessages = [...newMessages, { role: 'assistant', content: assistantContent.trimEnd() }];
+          setMessages(stoppedMessages);
+          saveConversation(stoppedMessages, mode);
+        }
+        return;
+      }
       // Phase 6: Vision-specific error messages
       const hasImages = images && images.length > 0;
       let errorMsg = `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!`;
@@ -670,7 +690,15 @@ export default function App() {
       }
 
       setMessages([...newMessages, { role: 'assistant', content: `${errorMsg}\n\nTechnical detail: ${err.message}` }]);
-    } finally { setStreaming(false); }
+    } finally {
+      chatAbortRef.current = null;
+      setStreaming(false);
+    }
+  }
+
+  function handleStopChat() {
+    chatAbortRef.current?.abort();
+    setTerminalOutput(null);
   }
 
   function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }
@@ -1765,10 +1793,21 @@ export default function App() {
                 </div>
                 <div className="flex flex-col gap-2 relative">
                   <ParticleBurst trigger={sendBurst} color={theme.primary} />
-                  <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel || showVisionWarning}
-                    className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
-                    {streaming ? '...' : 'Send'}
-                  </button>
+                  {streaming ? (
+                    <button
+                      type="button"
+                      onClick={handleStopChat}
+                      className="flex-1 rounded-xl px-4 py-2 font-medium min-w-[60px] bg-red-600/90 hover:bg-red-500 text-white border border-red-500/50 shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                      aria-label="Stop generation"
+                    >
+                      Stop
+                    </button>
+                  ) : (
+                    <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || !connected || !selectedModel || showVisionWarning}
+                      className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
+                      Send
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

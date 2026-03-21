@@ -117,7 +117,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 
 ## Rules
 
-- Stream AI responses in real-time (Server-Sent Events)
+- Stream AI responses in real-time (Server-Sent Events); **Stop** in chat aborts `fetch('/api/chat')` (`AbortController` in `App.jsx`) so the server drops the SSE connection and aborts Ollama + agent tool rounds (`chatAbortController` in `server.js`, `abortSignal` in `lib/ollama-client.js`)
 - Auto-detect available Ollama models on startup
 - Handle Ollama being offline gracefully
 - Use friendly-teacher tone — analogies, no jargon, patience

@@ -697,6 +697,11 @@ app.post('/api/chat', async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
+  const chatAbortController = new AbortController();
+  req.on('close', () => {
+    chatAbortController.abort();
+  });
+
   // Helper: send SSE event
   function sendEvent(data) {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -725,10 +730,30 @@ app.post('/api/chat', async (req, res) => {
       for (let round = 0; round < MAX_ROUNDS; round++) {
         debug(`Tool-call round ${round + 1}/${MAX_ROUNDS}`);
 
+        if (chatAbortController.signal.aborted || res.writableEnded) {
+          log('INFO', 'Chat aborted (client disconnected) during tool loop');
+          if (!res.writableEnded) {
+            res.write('data: [DONE]\n\n');
+            res.end();
+          }
+          return;
+        }
+
         let responseText;
         try {
-          responseText = await chatComplete(config.ollamaUrl, model, loopMessages, effectiveTimeoutMs, images || [], ollamaOptions);
+          responseText = await chatComplete(config.ollamaUrl, model, loopMessages, effectiveTimeoutMs, images || [], {
+            ...ollamaOptions,
+            abortSignal: chatAbortController.signal,
+          });
         } catch (err) {
+          if (err.name === 'AbortError' || chatAbortController.signal.aborted) {
+            log('INFO', `Chat aborted during chatComplete (round ${round + 1})`);
+            if (!res.writableEnded) {
+              res.write('data: [DONE]\n\n');
+              res.end();
+            }
+            return;
+          }
           log('ERROR', `Ollama chatComplete failed (round ${round + 1})`, { error: err.message });
           // Phase 6: Vision-specific error messages
           const msg = err.message.toLowerCase();
@@ -767,6 +792,14 @@ app.post('/api/chat', async (req, res) => {
 
         let toolResults = '';
         for (const call of toolCalls) {
+          if (chatAbortController.signal.aborted || res.writableEnded) {
+            log('INFO', 'Chat aborted before tool execution');
+            if (!res.writableEnded) {
+              res.write('data: [DONE]\n\n');
+              res.end();
+            }
+            return;
+          }
           debug('Executing tool call', { server: call.serverId, tool: call.toolName });
           const result = await toolCallHandler.executeTool(call.serverId, call.toolName, call.args);
           if (result.success) {
@@ -797,18 +830,27 @@ app.post('/api/chat', async (req, res) => {
       if (finalText) {
         const words = finalText.split(/(\s+)/);
         for (const word of words) {
+          if (chatAbortController.signal.aborted || res.writableEnded) break;
           sendEvent({ token: word });
         }
-        sendEvent({ done: true });
+        if (!chatAbortController.signal.aborted && !res.writableEnded) {
+          sendEvent({ done: true });
+        }
       }
-      res.write('data: [DONE]\n\n');
-      res.end();
+      if (!res.writableEnded) {
+        res.write('data: [DONE]\n\n');
+        res.end();
+      }
       log('INFO', `Chat complete (tool-call mode): ${finalText.length} chars`);
       return;
     }
 
     // ── Standard streaming path (no agent tools) ──
-    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || [], ollamaOptions);
+    let reader = null;
+    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || [], {
+      ...ollamaOptions,
+      abortSignal: chatAbortController.signal,
+    });
 
     debug('Ollama chat response', { status: ollamaRes.status, ok: ollamaRes.ok });
 
@@ -830,7 +872,7 @@ app.post('/api/chat', async (req, res) => {
       return res.end();
     }
 
-    const reader = ollamaRes.body.getReader();
+    reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
     let tokenCount = 0;
@@ -892,6 +934,14 @@ app.post('/api/chat', async (req, res) => {
           }
         }
       } catch (err) {
+        if (err.name === 'AbortError' || chatAbortController.signal.aborted) {
+          debug('Stream read aborted (client stopped)');
+          if (!res.writableEnded) {
+            res.write('data: [DONE]\n\n');
+            res.end();
+          }
+          return;
+        }
         log('ERROR', 'Stream read error', { error: err.message });
         if (!res.writableEnded) {
           // Phase 6: Vision-specific error messages
@@ -915,10 +965,19 @@ app.post('/api/chat', async (req, res) => {
 
     req.on('close', () => {
       debug('Client disconnected during stream');
-      reader.cancel().catch(() => {});
+      chatAbortController.abort();
+      reader?.cancel?.().catch(() => {});
     });
 
   } catch (err) {
+    if (err.name === 'AbortError' || chatAbortController.signal.aborted) {
+      log('INFO', 'Chat connection aborted');
+      if (!res.writableEnded) {
+        res.write('data: [DONE]\n\n');
+        res.end();
+      }
+      return;
+    }
     log('ERROR', `Chat connection failed`, { error: err.message, cause: err.cause?.message });
     // Phase 6: Vision-specific error messages
     const msg = err.message.toLowerCase();
