@@ -6,7 +6,7 @@
 
 // Supported document extensions for conversion via docling-serve
 export const DOCUMENT_EXTENSIONS = new Set([
-  '.pdf', '.pptx', '.docx', '.xlsx', '.xls',
+  '.pdf', '.pptx', '.docx', '.xlsx', '.xls', '.csv',
   '.doc', '.ppt', '.odt', '.ods', '.odp',
   '.rtf', '.latex', '.tex', '.epub',
 ]);
@@ -24,6 +24,7 @@ export const DOCUMENT_MIMES = new Set([
   'application/vnd.oasis.opendocument.spreadsheet',
   'application/vnd.oasis.opendocument.presentation',
   'application/rtf',
+  'text/csv',
   'application/epub+zip',
   'application/x-latex',
 ]);

@@ -446,7 +446,7 @@ app.post('/api/convert-document',
     }
 
     const ext = path.extname(filename).toLowerCase();
-    const ALLOWED = new Set(['.pdf','.pptx','.docx','.xlsx','.xls','.doc','.ppt','.odt','.ods','.odp','.rtf','.latex','.tex','.epub']);
+    const ALLOWED = new Set(['.pdf','.pptx','.docx','.xlsx','.xls','.csv','.doc','.ppt','.odt','.ods','.odp','.rtf','.latex','.tex','.epub']);
     if (!ALLOWED.has(ext)) {
       return res.status(400).json({ error: `Unsupported file type: ${ext}` });
     }
