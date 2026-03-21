@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App metadata
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getIsPackaged: () => ipcRenderer.invoke('get-is-packaged'),
   getDataDir: () => ipcRenderer.invoke('get-data-dir'),
 
   // Data management

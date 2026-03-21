@@ -77,6 +77,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [updateInfo, setUpdateInfo] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateError, setUpdateError] = useState(null);
+  /** false = unpackaged dev Electron; upgrades apply to installed app only */
+  const [isPackaged, setIsPackaged] = useState(true);
 
   // Load brand assets, timeout, port, and image support from config
   useEffect(() => {
@@ -222,6 +224,13 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       setDataDir(dir);
       setPreferredPort(port);
       setActualPort(actual);
+      if (typeof window.electronAPI.getIsPackaged === 'function') {
+        try {
+          setIsPackaged(await window.electronAPI.getIsPackaged());
+        } catch {
+          setIsPackaged(true);
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch Electron data:', err);
     }
@@ -1078,21 +1087,32 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   </div>
                 </div>
 
-                {/* Software Updates */}
-                <div className="glass rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Software Updates</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {updateStatus === 'up-to-date' && 'You\'re running the latest version'}
-                        {updateStatus === 'available' && `Version ${updateInfo?.version} is available`}
-                        {updateStatus === 'downloading' && `Downloading update... ${downloadProgress}%`}
-                        {updateStatus === 'ready' && `Version ${updateInfo?.version} ready to install`}
-                        {updateStatus === 'checking' && 'Checking for updates...'}
-                        {updateStatus === 'error' && (updateError || 'Update check failed')}
-                        {!updateStatus && 'Check for the latest version'}
-                      </p>
-                    </div>
+                {/* Software Updates — releases from GitHub (electron-updater); not local git */}
+                <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-slate-200">Software Updates</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Install the latest published release from GitHub. The app restarts to apply an update.
+                    </p>
+                  </div>
+
+                  <div
+                    className={`text-xs mt-1 mb-3 min-h-[1.25rem] ${
+                      updateStatus === 'up-to-date'
+                        ? 'text-emerald-400/90'
+                        : updateStatus === 'error'
+                          ? 'text-red-400'
+                          : 'text-slate-400'
+                    }`}
+                    aria-live="polite"
+                  >
+                    {updateStatus === 'up-to-date' && "You're on the latest release."}
+                    {updateStatus === 'available' && `Version ${updateInfo?.version} is available.`}
+                    {updateStatus === 'downloading' && `Downloading… ${downloadProgress}%`}
+                    {updateStatus === 'ready' && `Version ${updateInfo?.version} is ready. Restart to finish.`}
+                    {updateStatus === 'checking' && 'Checking for a newer release…'}
+                    {updateStatus === 'error' && (updateError || 'Update check failed.')}
+                    {!updateStatus && 'Tap Upgrade to check for a newer release.'}
                   </div>
 
                   {/* Download progress bar */}
@@ -1107,32 +1127,42 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  {!isPackaged && (
+                    <p className="text-xs text-amber-400/90 mb-3">
+                      Installed app only: run a packaged build to upgrade from here. For dev, pull and rebuild from the repo.
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
                     {updateStatus === 'ready' ? (
                       <button
+                        type="button"
                         onClick={handleRestartForUpdate}
-                        className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium"
+                        className="btn-neon cursor-pointer text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#141829]"
                       >
-                        Restart &amp; Update
+                        Restart to upgrade
                       </button>
                     ) : (
                       <button
+                        type="button"
                         onClick={handleCheckForUpdates}
-                        disabled={updateStatus === 'checking' || updateStatus === 'downloading'}
-                        className="glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-50 rounded-lg px-4 py-2 text-sm font-medium transition-colors border border-slate-600"
+                        disabled={
+                          !isPackaged ||
+                          updateStatus === 'checking' ||
+                          updateStatus === 'downloading'
+                        }
+                        className="glass cursor-pointer text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#141829] disabled:focus-visible:ring-0"
                       >
                         {updateStatus === 'checking' ? (
-                          <span className="inline-block spin">&#x27F3;</span>
+                          <span className="inline-block spin" aria-hidden>
+                            &#x27F3;
+                          </span>
                         ) : (
-                          'Check for Updates'
+                          'Upgrade'
                         )}
                       </button>
                     )}
                   </div>
-
-                  {updateStatus === 'error' && (
-                    <p className="text-xs text-red-400 mt-2">{updateError}</p>
-                  )}
                 </div>
 
                 {/* App Version */}

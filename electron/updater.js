@@ -23,7 +23,7 @@ function initAutoUpdater(win, dataDir) {
   autoUpdater.logger.transports.file.level = 'info';
   log.info('[Auto-Updater] Initializing...');
 
-  // Check for updates on startup (does not download automatically)
+  // Check for updates on startup (download behavior follows electron-updater defaults, e.g. autoDownload)
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
     log.error('[Auto-Updater] Initial check failed:', err.message);
   });

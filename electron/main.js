@@ -544,6 +544,7 @@ app.on('before-quit', () => {
 
 // IPC Handlers
 ipcMain.handle('get-app-version', () => app.getVersion());
+ipcMain.handle('get-is-packaged', () => app.isPackaged);
 ipcMain.handle('get-data-dir', () => dataDir);
 
 ipcMain.handle('export-data', async () => {
