@@ -44,6 +44,7 @@ const { pentestCode, pentestFolder } = require('./lib/pentest');
 const { scanProjectForValidation, generateValidateCommand } = require('./lib/validate');
 const { scoreContent } = require('./lib/builder-score');
 const { checkConnection: checkDocling, convertDocument: convertDoc } = require('./lib/docling-client');
+const { canConvertBuiltin, convertBuiltin } = require('./lib/builtin-doc-converter');
 const { startDocling, stopDocling } = require('./lib/docling-starter');
 
 const app = express();
@@ -432,29 +433,24 @@ app.get('/api/docling/health', async (req, res) => {
   }
 });
 
-// ── Document conversion via docling-serve ─────────────
+// ── Document conversion (Docling → built-in fallback) ─
 app.post('/api/convert-document',
   express.json({ limit: '50mb' }),
   createRateLimiter({ name: 'convert', max: 10, windowMs: 60000, methods: ['POST'] }),
   async (req, res) => {
     const config = getConfig();
-    if (!config.docling?.enabled) {
-      return res.status(503).json({ error: 'Document conversion is disabled. Enable it in Settings.' });
-    }
-
     const { content, filename } = req.body;
+
     if (!content || !filename) {
       return res.status(400).json({ error: 'Missing content or filename' });
     }
 
-    // Validate file extension
     const ext = path.extname(filename).toLowerCase();
     const ALLOWED = new Set(['.pdf','.pptx','.docx','.xlsx','.xls','.doc','.ppt','.odt','.ods','.odp','.rtf','.latex','.tex','.epub']);
     if (!ALLOWED.has(ext)) {
       return res.status(400).json({ error: `Unsupported file type: ${ext}` });
     }
 
-    // Decode base64 to Buffer
     let buffer;
     try {
       buffer = Buffer.from(content, 'base64');
@@ -462,49 +458,75 @@ app.post('/api/convert-document',
       return res.status(400).json({ error: 'Invalid base64 content' });
     }
 
-    // Check size limit
-    const maxBytes = (config.docling.maxFileSizeMB || 50) * 1024 * 1024;
+    const maxBytes = (config.docling?.maxFileSizeMB || 50) * 1024 * 1024;
     if (buffer.length > maxBytes) {
-      return res.status(413).json({ error: `File too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB (max ${config.docling.maxFileSizeMB || 50}MB)` });
+      return res.status(413).json({ error: `File too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB (max ${config.docling?.maxFileSizeMB || 50}MB)` });
     }
 
     log('INFO', `Converting document: ${filename} (${(buffer.length / 1024).toFixed(1)}KB)`);
 
-    try {
-      const result = await convertDoc(
-        config.docling.url,
-        config.docling.apiKey,
-        buffer,
-        filename,
-        {
-          outputFormat: config.docling.outputFormat || 'md',
-          ocr: config.docling.ocr !== false,
-          ocrEngine: config.docling.ocrEngine || 'easyocr',
-          timeoutSec: config.docling.timeoutSec || 120,
-        }
-      );
+    const mkResponse = (result, converter) => ({
+      markdown: result.markdown, filename,
+      originalSize: buffer.length,
+      markdownSize: result.markdown.length,
+      truncated: result.truncated || false,
+      status: result.status,
+      processingTime: result.processingTime,
+      errors: result.errors,
+      converter,
+    });
 
-      res.json({
-        markdown: result.markdown,
-        filename,
-        originalSize: buffer.length,
-        markdownSize: result.markdown.length,
-        truncated: false,
-        status: result.status,
-        processingTime: result.processingTime,
-        errors: result.errors,
-      });
-    } catch (err) {
-      log('ERROR', `Document conversion failed: ${filename}`, { error: err.message });
-      if (err.message?.includes('ECONNREFUSED') || err.message?.includes('fetch failed')) {
-        return res.status(503).json({
-          error: 'Cannot reach Docling server',
-          detail: `Ensure docling-serve is running at ${config.docling.url}`,
-          setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
-        });
+    // ── Try Docling first if enabled ──
+    if (config.docling?.enabled) {
+      try {
+        const result = await convertDoc(
+          config.docling.url, config.docling.apiKey, buffer, filename,
+          {
+            outputFormat: config.docling.outputFormat || 'md',
+            ocr: config.docling.ocr !== false,
+            ocrEngine: config.docling.ocrEngine || 'easyocr',
+            timeoutSec: config.docling.timeoutSec || 120,
+          }
+        );
+        return res.json(mkResponse(result, 'docling'));
+      } catch (err) {
+        const isConn = err.message?.includes('ECONNREFUSED') || err.message?.includes('fetch failed');
+        log('WARN', `Docling ${isConn ? 'unreachable' : 'error'} for ${filename}: ${err.message}`);
+        // Fall through to built-in for supported formats
+        if (!canConvertBuiltin(filename)) {
+          if (isConn) {
+            return res.status(503).json({
+              error: `${ext.slice(1).toUpperCase()} files require Docling for conversion`,
+              detail: `Cannot reach Docling at ${config.docling.url}. Built-in conversion supports PDF, DOCX, and XLSX only.`,
+              setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
+            });
+          }
+          return res.status(500).json({ error: 'Conversion failed', detail: err.message });
+        }
+        log('INFO', `Falling back to built-in converter for ${filename}`);
       }
-      res.status(500).json({ error: 'Conversion failed', detail: err.message });
     }
+
+    // ── Built-in fallback ──
+    if (canConvertBuiltin(filename)) {
+      try {
+        const result = await convertBuiltin(buffer, filename);
+        return res.json(mkResponse(result, 'builtin'));
+      } catch (err) {
+        log('ERROR', `Built-in conversion failed: ${filename}`, { error: err.message });
+        return res.status(500).json({ error: 'Conversion failed', detail: err.message });
+      }
+    }
+
+    // ── Unsupported format without Docling ──
+    const reason = !config.docling?.enabled
+      ? 'Document conversion (Docling) is disabled in Settings'
+      : 'Cannot reach the Docling server';
+    return res.status(503).json({
+      error: `${ext.slice(1).toUpperCase()} files require Docling for conversion`,
+      detail: `${reason}. Built-in conversion supports PDF, DOCX, and XLSX only.`,
+      setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
+    });
   }
 );
 
