@@ -8,25 +8,24 @@ const extractZip = require('extract-zip');
  * Resolves the portable app root — the directory containing the app itself.
  * Data lives as a sibling folder so deleting the parent = full uninstall.
  *
- * Layout:
+ * Layout (Windows/Linux):
  *   SomeFolder/
- *   ├── Code Companion.app | CodeCompanion.exe | CodeCompanion-linux
+ *   ├── CodeCompanion.exe | CodeCompanion-linux
  *   └── CodeCompanion-Data/
+ *
+ * macOS: Uses standard user data directory (~/Library/Application Support)
+ * because apps in /Applications can't create sibling folders.
  *
  * In dev mode, data goes next to the project root.
  */
 function getPortableRoot() {
   if (app.isPackaged) {
-    // macOS: appPath is /path/to/Code Companion.app/Contents/Resources/app
-    // Windows/Linux: appPath is /path/to/resources/app
-    const appPath = app.getAppPath();
-
+    // macOS: Use standard user data directory
+    // Apps in /Applications can't create sibling folders on read-only volumes
     if (process.platform === 'darwin') {
-      // Walk up from .app/Contents/Resources/app → directory containing .app
-      const dotApp = appPath.replace(/\/Contents\/Resources\/app\/?$/, '');
-      return path.dirname(dotApp);
+      return app.getPath('userData');
     }
-    // Windows/Linux: exe is in the app root folder
+    // Windows/Linux: exe is in the app root folder, use portable approach
     return path.dirname(app.getPath('exe'));
   }
   // Dev mode: project root
@@ -35,33 +34,31 @@ function getPortableRoot() {
 
 /**
  * Resolves the data directory for Code Companion.
- * Self-contained: data lives next to the app so uninstall = delete the folder.
- * Automatically migrates from the legacy OS user-data location on first run.
+ * macOS: ~/Library/Application Support/Code Companion
+ * Windows/Linux: Self-contained next to the app (portable)
+ * Dev mode: Project root
  */
 function resolveDataDirectory() {
   const portableRoot = getPortableRoot();
-  const dataDir = path.join(portableRoot, 'CodeCompanion-Data');
+
+  // macOS packaged: userData already points to app-specific folder
+  // Windows/Linux packaged: portableRoot is the exe directory
+  // Dev mode: portableRoot is project root
+  const dataDir = (app.isPackaged && process.platform === 'darwin')
+    ? portableRoot // Already app.getPath('userData'), no need for subfolder
+    : path.join(portableRoot, 'CodeCompanion-Data');
 
   // Create directory if it doesn't exist
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 
-    // Copy README to data directory
-    const readmePath = path.join(__dirname, '..', 'resources', 'data-readme.txt');
-    const destReadme = path.join(dataDir, 'README.txt');
-    if (fs.existsSync(readmePath)) {
-      fs.copyFileSync(readmePath, destReadme);
-    }
-  }
-
-  // Migrate from legacy OS user-data location if it exists and portable dir is empty
-  const legacyDir = path.join(app.getPath('userData'), 'CodeCompanion-Data');
-  if (legacyDir !== dataDir && fs.existsSync(legacyDir)) {
-    const portableFiles = fs.readdirSync(dataDir).filter(f => f !== 'README.txt');
-    if (portableFiles.length === 0) {
-      console.log('[Data Manager] Migrating from legacy OS location to portable...');
-      copyDirectoryRecursive(legacyDir, dataDir);
-      console.log('[Data Manager] Migration complete. Legacy data preserved at:', legacyDir);
+    // Copy README to data directory (skip for macOS userData)
+    if (!(app.isPackaged && process.platform === 'darwin')) {
+      const readmePath = path.join(__dirname, '..', 'resources', 'data-readme.txt');
+      const destReadme = path.join(dataDir, 'README.txt');
+      if (fs.existsSync(readmePath)) {
+        fs.copyFileSync(readmePath, destReadme);
+      }
     }
   }
 
