@@ -1134,6 +1134,49 @@ export default function App() {
     URL.revokeObjectURL(url);
     showToast('Chat saved');
   }
+
+  async function handleExportOffice(ext) {
+    if (!messages.length) { showToast('No conversation to export'); return; }
+    const modeLabel = MODES.find(m => m.id === mode)?.label || mode;
+    const date = new Date().toISOString().slice(0, 10);
+    const firstUser = messages.find(m => m.role === 'user');
+    const snippet = firstUser
+      ? firstUser.content.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 2).join('-').toLowerCase() || 'chat'
+      : 'chat';
+
+    // Build markdown content from conversation
+    const lines = [`# ${modeLabel} — ${date}\n`];
+    for (const msg of messages) {
+      if (msg.role === 'user') lines.push(`## You\n\n${msg.content}\n`);
+      else if (msg.role === 'assistant') lines.push(`## Assistant\n\n${msg.content}\n`);
+    }
+    const content = lines.join('\n');
+    const filename = `${snippet}-${date}${ext}`;
+
+    try {
+      showToast(`Generating ${ext.slice(1).toUpperCase()}...`);
+      const res = await fetch('/api/generate-office', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, filename }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`${ext.slice(1).toUpperCase()} saved`);
+    } catch (err) {
+      showToast(`Export failed: ${err.message}`);
+    }
+  }
+
   function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
 
   function handleDictation(text) {
@@ -1708,6 +1751,14 @@ export default function App() {
                     <button onClick={handleSaveChat} title="Save entire conversation as Markdown file"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       💾 Save Chat
+                    </button>
+                    <button onClick={() => handleExportOffice('.docx')} title="Export conversation as Word document"
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                      📄 Word
+                    </button>
+                    <button onClick={() => handleExportOffice('.pptx')} title="Export conversation as PowerPoint"
+                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+                      📊 PPTX
                     </button>
                     <button onClick={handleClearInput} title="Clear input text and attached files"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">

@@ -530,6 +530,39 @@ app.post('/api/convert-document',
   }
 );
 
+// ── Office file generation (DOCX / XLSX / PPTX) ──────
+const { generateOfficeFile, SUPPORTED_FORMATS: OFFICE_FORMATS } = require('./lib/office-generator');
+
+app.post('/api/generate-office',
+  express.json({ limit: '10mb' }),
+  createRateLimiter({ name: 'office-gen', max: 20, windowMs: 60000, methods: ['POST'] }),
+  async (req, res) => {
+    const { content, filename } = req.body;
+    if (!content || !filename) {
+      return res.status(400).json({ error: 'Missing content or filename' });
+    }
+    const ext = path.extname(filename).toLowerCase();
+    if (!OFFICE_FORMATS.has(ext)) {
+      return res.status(400).json({ error: `Unsupported format: ${ext}. Use .docx, .xlsx, or .pptx` });
+    }
+    try {
+      log('INFO', `Generating ${ext} file: ${filename} (${content.length} chars input)`);
+      const result = await generateOfficeFile(content, filename);
+      log('INFO', `Generated ${filename}: ${(result.size / 1024).toFixed(1)}KB in ${result.processingTime}s`);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', ext === '.docx'
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : ext === '.xlsx'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      res.send(result.buffer);
+    } catch (err) {
+      log('ERROR', `Office generation failed: ${filename}`, { error: err.message });
+      res.status(500).json({ error: 'File generation failed', detail: err.message });
+    }
+  }
+);
+
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
 app.post('/api/chat', async (req, res) => {
