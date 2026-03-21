@@ -2,7 +2,7 @@
 
 ## Overview
 
-Code Companion now automatically starts `docling-serve` when the web server starts, providing seamless document conversion capabilities without manual setup.
+Code Companion now automatically starts `docling-serve` when the web server starts, providing high-quality document conversion with OCR. However, **Docling is optional** — 12 common formats (PDF, DOCX, DOC, XLSX, XLS, CSV, PPTX, PPT, ODT, ODS, ODP, RTF) work out of the box via built-in converters in `lib/builtin-doc-converter.js`. Docling adds OCR for scanned PDFs and support for EPUB, LaTeX, and TEX.
 
 ## How It Works
 
