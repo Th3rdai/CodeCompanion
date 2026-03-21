@@ -40,6 +40,7 @@ import ImageThumbnail from './components/ImageThumbnail';
 import ImageLightbox from './components/ImageLightbox';
 import ImagePrivacyWarning from './components/ImagePrivacyWarning';
 import DictateButton from './components/DictateButton';
+import ExportPanel from './components/ExportPanel';
 import { joinAppend } from './lib/dictationAppend';
 import { validateImage, processImage, hashImage } from './lib/image-processor';
 import { isConvertibleDocument, convertDocument, validateDocument, formatAsAttachment, getDocumentAcceptString } from './lib/document-processor';
@@ -1748,22 +1749,11 @@ export default function App() {
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       📝 Markdown
                     </button>
-                    <button onClick={handleSaveChat} title="Save entire conversation as Markdown file"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      💾 Save Chat
-                    </button>
-                    <button onClick={() => handleExportOffice('.docx')} title="Export conversation as Word document"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📄 Word
-                    </button>
-                    <button onClick={() => handleExportOffice('.xlsx')} title="Export conversation as Excel spreadsheet"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📈 Excel
-                    </button>
-                    <button onClick={() => handleExportOffice('.pptx')} title="Export conversation as PowerPoint"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📊 PPTX
-                    </button>
+                    <ExportPanel
+                      messages={messages}
+                      mode={MODES.find(m => m.id === mode)?.label || mode}
+                      showToast={showToast}
+                    />
                     <button onClick={handleClearInput} title="Clear input text and attached files"
                       className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
                       🧹 Clear
