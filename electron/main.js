@@ -36,7 +36,7 @@ emergencyLog(`Node: ${process.version}`);
 emergencyLog(`Electron: ${process.versions.electron}`);
 try { emergencyLog(`App Path: ${app.getAppPath()}`); } catch { emergencyLog('App Path: (not yet available)'); }
 try { emergencyLog(`EXE Path: ${app.getPath('exe')}`); } catch { emergencyLog('EXE Path: (not yet available)'); }
-emergencyLog(`Packaged: ${app.isPackaged}`);
+try { emergencyLog(`Packaged: ${app.isPackaged}`); } catch { emergencyLog('Packaged: (not yet available)'); }
 
 // Catch all uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -132,19 +132,22 @@ function findFreePort(preferredPort) {
   return new Promise((resolve) => {
     const server = net.createServer();
 
-    // Try preferred port first
-    server.listen(preferredPort, () => {
+    // Bind to the same host the Express server will use (0.0.0.0)
+    // to avoid false-positive "free" results from IPv4/IPv6 mismatches
+    server.listen(preferredPort, '0.0.0.0', () => {
       const port = server.address().port;
       server.close(() => {
         resolve({ port, wasFallback: false, preferredPort });
       });
     });
 
-    server.on('error', () => {
+    server.on('error', (err) => {
+      emergencyLog(`[findFreePort] Port ${preferredPort} unavailable: ${err.code || err.message}`);
       // Preferred port is busy, get a random free port
       const fallbackServer = net.createServer();
-      fallbackServer.listen(0, () => {
+      fallbackServer.listen(0, '0.0.0.0', () => {
         const port = fallbackServer.address().port;
+        emergencyLog(`[findFreePort] Using fallback port ${port}`);
         fallbackServer.close(() => {
           resolve({ port, wasFallback: true, preferredPort });
         });
@@ -229,6 +232,9 @@ function saveLastMode(mode) {
  */
 function spawnServer(port) {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    let startupTimeout;
+
     emergencyLog(`[spawnServer] Starting on port ${port}...`);
 
     // In packaged mode, asarUnpack puts server.js in app.asar.unpacked/
@@ -249,6 +255,7 @@ function spawnServer(port) {
     emergencyLog(`[spawnServer] ✓ server.js found at: ${serverPath}`);
 
     emergencyLog(`[spawnServer] Forking process...`);
+    emergencyLog(`[spawnServer] CC_DATA_DIR=${dataDir}`);
     const proc = fork(serverPath, [], {
       env: {
         ...process.env,
@@ -258,18 +265,28 @@ function spawnServer(port) {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     });
 
+    function settle(type, value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(startupTimeout);
+      if (type === 'resolve') resolve(value);
+      else reject(value);
+    }
+
     // Listen for IPC ready message
     proc.on('message', (msg) => {
       if (msg.type === 'server-ready') {
-        console.log(`[Main] Server ready on port ${msg.port}`);
-        resolve(proc);
+        emergencyLog(`[spawnServer] Server ready on port ${msg.port}`);
+        settle('resolve', proc);
       }
     });
 
-    // Handle server crash
+    // Handle server crash — log to emergency log and reject immediately
     proc.on('exit', (code, signal) => {
+      emergencyLog(`[spawnServer] Server exited: code=${code}, signal=${signal}`);
       if (code !== 0 && signal !== 'SIGTERM') {
-        console.error(`[Main] Server crashed with code ${code}, signal ${signal}`);
+        // During startup, reject the promise so the error surfaces immediately
+        settle('reject', new Error(`Server crashed on startup (code=${code}, signal=${signal}). Check ${getEmergencyLogPath()} for [Server] output above.`));
         if (mainWindow && !mainWindow.isDestroyed()) {
           dialog.showMessageBox(mainWindow, {
             type: 'error',
@@ -279,34 +296,38 @@ function spawnServer(port) {
             defaultId: 1,
           }).then(({ response }) => {
             if (response === 0) {
-              // View Logs
-              shell.openPath(logDir);
+              shell.openPath(logDir || getEmergencyLogPath());
             } else if (response === 1) {
-              // Restart Server
               respawnServer();
             } else {
-              // Quit
               app.quit();
             }
           });
         }
+      } else {
+        // Even a clean exit during startup is unexpected
+        settle('reject', new Error(`Server exited unexpectedly during startup (code=${code}, signal=${signal})`));
       }
     });
 
     proc.on('error', (err) => {
-      console.error('[Main] Server process error:', err);
-      reject(err);
+      emergencyLog(`[spawnServer] Fork error: ${err.message}`);
+      settle('reject', err);
     });
 
-    // Pipe server stdout/stderr to console
-    proc.stdout?.on('data', (data) => console.log('[Server]', data.toString().trim()));
-    proc.stderr?.on('data', (data) => console.error('[Server Error]', data.toString().trim()));
+    // Pipe server stdout/stderr to emergency log so they're visible in packaged builds
+    proc.stdout?.on('data', (data) => {
+      const msg = data.toString().trim();
+      if (msg) emergencyLog(`[Server] ${msg}`);
+    });
+    proc.stderr?.on('data', (data) => {
+      const msg = data.toString().trim();
+      if (msg) emergencyLog(`[Server Error] ${msg}`);
+    });
 
     // Timeout after 30 seconds
-    setTimeout(() => {
-      if (proc && !proc.killed) {
-        reject(new Error('Server failed to start within 30 seconds'));
-      }
+    startupTimeout = setTimeout(() => {
+      settle('reject', new Error('Server failed to start within 30 seconds'));
     }, 30000);
   });
 }

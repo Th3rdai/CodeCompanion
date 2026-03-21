@@ -43,15 +43,14 @@ module.exports = {
     target: ['dmg', 'zip'],
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
-    // Skip code signing entirely until Apple Developer account is configured
-    // Users must right-click → Open on first launch to bypass Gatekeeper
-    // When ready, uncomment and configure:
+    // Ad-hoc signing for local/unsigned builds (required on Apple Silicon)
+    // For distribution, replace with Developer ID identity and enable notarize:
     // hardenedRuntime: true,
     // entitlements: 'resources/entitlements.mac.plist',
     // entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
     // identity: 'Developer ID Application: Th3rdAI (TEAM_ID)',
     // notarize: { teamId: 'TEAM_ID' },
-    identity: null,
+    identity: '-',
     gatekeeperAssess: false,
     extendInfo: {
       NSMicrophoneUsageDescription: 'Code Companion uses the microphone for voice dictation to transcribe speech into text fields.',
