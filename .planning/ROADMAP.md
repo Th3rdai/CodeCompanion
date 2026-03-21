@@ -37,6 +37,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 23: Save Chat** - Download entire conversation as markdown file with auto-generated 1-2 word topic filename, available in all modes via toolbar button (completed 2026-03-19)
 - [x] **Phase 24: IDE Command Distribution** - Create and Build scaffolders auto-copy IDE command files from IDE_COMMANDS/ into every new project across all 5 IDE paths (.claude/commands/, .cursor/commands/, .cursor/prompts/, .github/prompts/, .opencode/commands/) (completed 2026-03-19)
 
+## Post–roadmap enhancements (tracked in repo history)
+
+- [x] **Unified chat export (2026-03-21)** — Toolbar **Export** (`src/components/ExportPanel.jsx`): 11 formats (text, web, documents, spreadsheets, presentations), source = full conversation or last assistant reply, multi-download or ZIP; server `lib/office-generator.js`, `POST /api/generate-office`, `GET /api/export/formats`; builtin agent tool `generate_office_file`; Excel/CSV and cleaned professional Office output (commits through `a6e9e3f` area).
+- [x] **Electron GitHub updater fix (2026-03-21)** — `patches/electron-updater+6.8.3.patch` + `electron/updater.js` `allowPrerelease` for GitHub API/Atom behavior (`d475a6f`).
+
 ## Phase Details
 
 ### Phase 1: Review Engine

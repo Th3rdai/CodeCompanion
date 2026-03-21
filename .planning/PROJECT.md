@@ -25,6 +25,7 @@ A vibe coder can paste, upload, or point to their AI-generated code and get a cl
 - ✓ Create mode with ICM project scaffolding — existing
 - ✓ 3D visual effects and splash screen — existing
 - ✓ Markdown rendering with syntax highlighting — existing
+- ✓ **Toolbar Export** — multi-format chat export (11 formats: MD, TXT, HTML, JSON, PDF, DOCX, ODT, XLSX, ODS, CSV, PPTX), full chat or last reply, ZIP or multiple downloads (`ExportPanel`, `lib/office-generator.js`, `/api/generate-office`) — 2026-03
 
 ### Active
 
@@ -81,6 +82,7 @@ A vibe coder can paste, upload, or point to their AI-generated code and get a cl
 | Overwrite checkbox for Create wizard | Prevents accidental folder overwrites while allowing intentional ones | Implemented |
 | Lucide React icons over emoji in report card | Better visual consistency and accessibility | Implemented |
 | Report card export (Markdown + JSON) | Users can save and share their code reviews | Implemented |
+| Unified chat export (11 server-generated formats) | Share conversations outside the app without copy-paste; same engine as builtin `generate_office_file` | Implemented (2026-03) |
 
 ---
-*Last updated: 2026-03-14*
+*Last updated: 2026-03-21*

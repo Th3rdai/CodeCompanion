@@ -39,7 +39,8 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **3D visual effects** — splash screen, particle fields, floating geometry, holographic token counter
 - **Model persistence** — selected model remembered across page refreshes
 - **Quick rebuild** — `rebuild.sh` script for fast frontend rebuild and server restart
-- **Conversation history** — auto-saved, searchable, with archive and export
+- **Conversation history** — auto-saved, searchable, with archive and per-conversation export
+- **Chat export** — toolbar **Export**: 11 formats (Markdown, HTML, JSON, PDF, Word, Excel, CSV, PowerPoint, OpenDocument, plain text, etc.), full chat or last reply only, multi-file or ZIP; server-side generation via `/api/generate-office`
 - **Tool-call loop** — Ollama can autonomously call external tools up to 5 rounds per request
 
 ## Quick Start
