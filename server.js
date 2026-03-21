@@ -343,6 +343,13 @@ app.post('/api/config', (req, res) => {
     log('INFO', `Docling config updated: ${config.docling.url}`);
   }
 
+  // Memory configuration
+  if (req.body.memory !== undefined) {
+    const prev = config.memory || {};
+    config.memory = { ...prev, ...req.body.memory };
+    log('INFO', `Memory config updated: enabled=${config.memory.enabled}, model=${config.memory.embeddingModel || 'auto'}`);
+  }
+
   // Agent terminal configuration
   if (req.body.agentTerminal !== undefined) {
     config.agentTerminal = { ...config.agentTerminal, ...req.body.agentTerminal };
