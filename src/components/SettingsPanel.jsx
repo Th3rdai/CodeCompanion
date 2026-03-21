@@ -1176,6 +1176,20 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               </>
             )}
 
+            {/* Browser / dev server: explain why there is no Upgrade button (Electron-only updater) */}
+            {!isElectron && (
+              <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
+                <p className="text-sm font-medium text-slate-200">Software Updates</p>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  The <span className="text-slate-300">Upgrade</span> control only appears in the{' '}
+                  <span className="text-slate-300">desktop app</span> (packaged Electron). In the browser you are
+                  running the web UI — use a fresh build or reload from your dev setup; for release builds, install
+                  from the project <code className="text-indigo-300/90 text-[11px]">release/</code> output or GitHub
+                  Releases.
+                </p>
+              </div>
+            )}
+
             <div className="mb-5 p-3 glass rounded-lg text-xs text-slate-400">
               <strong className="text-slate-300">Need a hand?</strong>
               <ul className="mt-1.5 space-y-1">

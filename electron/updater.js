@@ -23,6 +23,12 @@ function initAutoUpdater(win, dataDir) {
   autoUpdater.logger.transports.file.level = 'info';
   log.info('[Auto-Updater] Initializing...');
 
+  // GitHub: (1) Web URL .../releases/latest + Accept: application/json → 406 (fixed via patch-package
+  // on electron-updater to use api.github.com). (2) If the repo has only prereleases, API /releases/latest
+  // returns 404 — keep allowPrerelease true so the updater resolves versions from the Atom feed.
+  // When you publish stable-only releases and want to hide betas from stable users, set false and test.
+  autoUpdater.allowPrerelease = true;
+
   // Check for updates on startup (download behavior follows electron-updater defaults, e.g. autoDownload)
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
     log.error('[Auto-Updater] Initial check failed:', err.message);

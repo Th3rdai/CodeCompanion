@@ -1,0 +1,21 @@
+diff --git a/node_modules/electron-updater/out/providers/GitHubProvider.js b/node_modules/electron-updater/out/providers/GitHubProvider.js
+index 6795ee8..aacad5e 100644
+--- a/node_modules/electron-updater/out/providers/GitHubProvider.js
++++ b/node_modules/electron-updater/out/providers/GitHubProvider.js
+@@ -146,12 +146,11 @@ class GitHubProvider extends BaseGitHubProvider {
+     }
+     async getLatestTagName(cancellationToken) {
+         const options = this.options;
+-        // do not use API for GitHub to avoid limit, only for custom host or GitHub Enterprise
+-        const url = options.host == null || options.host === "github.com"
+-            ? (0, util_1.newUrlFromBase)(`${this.basePath}/latest`, this.baseUrl)
+-            : new url_1.URL(`${this.computeGithubBasePath(`/repos/${options.owner}/${options.repo}/releases`)}/latest`, this.baseApiUrl);
++        // Use GitHub REST API (api.github.com). The web URL github.com/.../releases/latest with
++        // Accept: application/json returns 406 Not Acceptable (GitHub no longer serves JSON there).
++        const url = new url_1.URL(`${this.computeGithubBasePath(`/repos/${options.owner}/${options.repo}/releases`)}/latest`, this.baseApiUrl);
+         try {
+-            const rawData = await this.httpRequest(url, { Accept: "application/json" }, cancellationToken);
++            const rawData = await this.httpRequest(url, { Accept: "application/vnd.github+json" }, cancellationToken);
+             if (rawData == null) {
+                 return null;
+             }

@@ -19,12 +19,12 @@ echo "--- macOS (DMG + ZIP) ---"
 npx electron-builder --mac --config electron-builder.config.js --publish never
 echo ""
 
-echo "--- Windows (NSIS + ZIP) ---"
-npx electron-builder --win --config electron-builder.config.js --publish never
+echo "--- Windows x64 (NSIS + ZIP) — use --arm64 on Apple Silicon hosts if you need Windows on ARM only ---"
+npx electron-builder --win --x64 --config electron-builder.config.js --publish never
 echo ""
 
-echo "--- Linux (AppImage + ZIP) ---"
-npx electron-builder --linux --config electron-builder.config.js --publish never
+echo "--- Linux x64 (AppImage + ZIP) — add --arm64 for Linux arm64 (e.g. Raspberry Pi 5) ---"
+npx electron-builder --linux --x64 --config electron-builder.config.js --publish never
 echo ""
 
 echo "=== Done. Artifacts in release/ ==="

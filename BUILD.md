@@ -71,13 +71,29 @@ Optional **AI-driven shell commands** from chat, same `TOOL_CALL:` mechanism as 
 # macOS (DMG + ZIP; Apple Silicon arm64 when building on M1/M2/M3/M4)
 npm run electron:build:mac
 
-# Windows (NSIS installer + ZIP; default arch depends on host; requires resources/icon.ico for NSIS)
+# Windows (NSIS installer + ZIP; on Apple Silicon defaults to win-arm64 unless you pass --x64)
 npm run electron:build:win
-# Windows x64 explicitly: npx electron-builder --win --x64 --config electron-builder.config.js --publish never
 
-# Linux (AppImage + ZIP)
+# Linux (AppImage + ZIP; on Apple Silicon defaults to linux-arm64 unless you pass --x64)
 npm run electron:build:linux
+
+# Most users need x64 Windows + x64 Linux — one command (after npm run build):
+npm run electron:build:win-linux-x64
+# Equivalent: npx electron-builder --win --linux --x64 --config electron-builder.config.js --publish never
 ```
+
+**Artifacts** (version from `package.json`, e.g. `1.5.0`):
+
+| Platform | Typical files in `release/` |
+|----------|-----------------------------|
+| Windows x64 | `Code Companion Setup 1.5.0.exe` (NSIS), `Code Companion-1.5.0-win.zip` |
+| Linux x64 | `Code Companion-1.5.0.AppImage`, `code-companion-1.5.0.zip` |
+| Windows arm64 | `Code Companion-1.5.0-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
+| Linux arm64 | `Code Companion-1.5.0-arm64.AppImage`, `code-companion-1.5.0-arm64.zip` |
+
+Auto-update metadata: `latest.yml` (Windows), `latest-linux.yml` / `latest-linux-arm64.yml` (Linux).
+
+**electron-updater patch:** `patches/electron-updater+6.8.3.patch` (applied via `patch-package` on `npm install`) fixes GitHub’s **406** response when the stock `electron-updater` client requested JSON from the **web** `.../releases/latest` URL. The patch uses **`api.github.com`** with `Accept: application/vnd.github+json` instead. **`electron/updater.js`** sets **`autoUpdater.allowPrerelease = true`** so repos that only publish **prereleases** still resolve updates (GitHub’s `/releases/latest` API returns **404** when there is no stable release). If you later ship **stable-only** releases and want stable users to ignore betas, set `allowPrerelease` to `false` and test.
 
 **Note:** User config (e.g. GitHub PAT in Settings) and `.cc-config.json` are excluded from the package so installers never contain your tokens.
 
