@@ -214,8 +214,8 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Data directory stored next to app as sibling folder, not in OS user-data — delete the folder removes everything
   2. Auto-migration from legacy OS data location on first run (non-destructive)
-  3. Settings shows "Check for Updates" button with download progress and "Restart & Update"
-  4. Global notification banner appears when update available/downloaded
+  3. Settings → General (Electron) shows **Software Updates** with **Upgrade**, download progress, and **Restart to upgrade** (GitHub Releases via electron-updater)
+  4. OS / electron-updater notifications may appear when an update is available or downloaded (in addition to in-app status)
   5. Splash screen uses premium neon/glassmorphism design with animations
   6. DMG background and NSIS installer have matching branded visuals
   7. electron-builder publish config points to correct GitHub repo

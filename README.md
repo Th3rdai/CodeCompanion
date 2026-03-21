@@ -189,6 +189,7 @@ Configure image support in Settings → Image Support:
 ### Desktop installers
 
 - Installers (DMG on macOS, EXE on Windows, AppImage on Linux) include the app, **startup.sh**, **deploy.sh**, and **rebuild.sh**. Your settings and history live in a data folder (see the data readme in the app). GitHub PAT and other secrets in Settings are never packaged.
+- **In-app updates (packaged app only):** Settings → General → **Software Updates** — **Upgrade** checks **GitHub Releases** for a newer published build; when a download finishes, use **Restart to upgrade**. This does not replace local development (pull/rebuild from the repo). Running the app unpackaged (`electron:dev`) disables **Upgrade** and explains that updates apply to the installed app.
 
 ## MCP Server
 

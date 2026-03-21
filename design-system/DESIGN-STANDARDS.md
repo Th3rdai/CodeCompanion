@@ -519,6 +519,8 @@ Mode tabs currently use **emoji icons** for a friendly, approachable feel:
 }
 ```
 
+Interactive components (mode tabs, sidebar rows, primary actions) also use **Tailwind** `focus-visible:ring-2` / `focus-visible:ring-indigo-400/*` so keyboard focus matches the indigo accent without fighting `:focus` on mouse clicks (`focus-visible` only).
+
 ### 10.2 ARIA Patterns
 
 | Pattern | Implementation |

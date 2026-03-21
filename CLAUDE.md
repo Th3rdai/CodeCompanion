@@ -103,7 +103,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 - 3D Visual Effects toggle
 - Color Theme picker (hue slider + 5 presets)
 - Welcome Tour restart
-- Electron-only: Data Management, Port Configuration, Software Updates
+- Electron-only: Data Management, Port Configuration, **Software Updates** — **Upgrade** checks [electron-updater](https://www.electron.build/auto-update.html) against **GitHub Releases** (`publish` in `electron-builder.config.js`); **Restart to upgrade** applies after download. Unpackaged dev (`electron:dev`) disables Upgrade with a short note; use a packaged install to update in-app.
 
 ## Design & Layout Standards
 

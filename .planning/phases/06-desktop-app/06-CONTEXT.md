@@ -70,7 +70,7 @@ Transform Code Companion from manual terminal-and-browser workflow into a self-c
   3. `.exe` (Windows) — NSIS installer with custom install path option, default `C:\Program Files\Code Companion`
   4. `.zip` (all platforms) — Portable archives for manual extraction
 - **Naming convention:** `CodeCompanion-1.0.0-mac.dmg`, `CodeCompanion-1.0.0-linux.AppImage`, `CodeCompanion-1.0.0-win.exe`, `CodeCompanion-1.0.0-portable-[platform].zip`
-- **Auto-update via electron-updater** — Check on launch, download in background, prompt to restart
+- **Auto-update via electron-updater** — Check on launch; Settings → General → **Software Updates** uses **Upgrade** / **Restart to upgrade** against GitHub Releases (unpackaged dev disables Upgrade)
 - **Release hosting** — GitHub Releases backend + GitHub Pages landing page (hero, screenshot, download buttons)
 - **App icon** — Styled version of existing branding, 1024x1024 PNG source, electron-builder generates .icns/.ico
 - **Skip code signing for Phase 6** — Document Gatekeeper/SmartScreen workarounds in GitHub README only (not in-app)

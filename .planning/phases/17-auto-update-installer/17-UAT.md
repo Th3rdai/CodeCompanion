@@ -3,7 +3,7 @@ status: complete
 phase: 17-auto-update-installer
 source: manual (ad-hoc session work)
 started: 2026-03-16T00:50:00Z
-updated: 2026-03-16T00:50:00Z
+updated: 2026-03-20T00:00:00Z
 ---
 
 ## Current Test
@@ -16,8 +16,8 @@ updated: 2026-03-16T00:50:00Z
 expected: Run `npm run electron:dev`. Premium splash screen with animated orbs, grid, neon logo, glassmorphic pill, sweep progress bar, particles, Th3rdAI branding.
 result: pass
 
-### 2. Check for Updates in Settings
-expected: Open Settings (gear icon) → General tab → scroll down to Electron section. "Software Updates" card visible with "Check for the latest version" text and a "Check for Updates" button. Click the button — spinner appears, then shows "You're running the latest version" or update info.
+### 2. Upgrade in Settings (Software Updates)
+expected: Open Settings (gear icon) → General tab → scroll down to Electron section. **Software Updates** card shows copy about installing the latest release from GitHub and the **Upgrade** button. Click **Upgrade** — spinner appears, then status shows you’re on the latest release or update progress / **Restart to upgrade** when a newer release is ready. Unpackaged dev runs show an “installed app only” note and disable **Upgrade**.
 result: pass
 
 ### 3. Portable Data Directory
