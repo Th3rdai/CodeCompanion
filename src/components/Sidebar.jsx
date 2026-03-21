@@ -80,41 +80,50 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
         <ParticleField particleCount={300} speed={0.15} color={theme.primary} />
 
         <div className={`border-b border-slate-700/30 relative z-10 ${isCollapsed ? 'p-2' : 'p-4 space-y-2'}`}>
-          <button onClick={onNew}
-            className={`btn-neon text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400
+          <button
+            type="button"
+            onClick={onNew}
+            className={`btn-neon cursor-pointer text-white font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900/90
               ${isCollapsed ? 'w-10 h-10 rounded-lg flex items-center justify-center text-lg' : 'w-full rounded-lg py-2.5 px-4 flex items-center justify-center gap-2'}`}
-            title="New conversation">
+            title="New conversation"
+          >
             <span>+</span>
             {!isCollapsed && <span>New Conversation</span>}
           </button>
           {!isCollapsed && (
             <>
               <label htmlFor="sidebar-search" className="sr-only">Search conversations</label>
-              <input id="sidebar-search" type="text" value={search} onChange={e => setSearch(e.target.value)}
+              <input id="sidebar-search" type="search" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search chats..."
-                className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500" />
+                className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500 transition-shadow duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50" />
             </>
           )}
         </div>
 
         {!isCollapsed && (
           <div className="px-4 pt-2 pb-1 flex items-center gap-2 relative z-10">
-            <button onClick={onToggleArchived}
-              className={`text-xs px-2.5 py-1 rounded-lg transition-colors ${
+            <button
+              type="button"
+              onClick={onToggleArchived}
+              className={`cursor-pointer text-xs px-2.5 py-1 rounded-lg transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60 ${
                 showArchived
                   ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
-              }`}>
+              }`}
+            >
               {showArchived ? '📦 Archived' : '💬 Active'}
             </button>
             <span className="text-xs text-slate-600">{filtered.length} chat{filtered.length !== 1 ? 's' : ''}</span>
-            <button onClick={() => multiSelectMode ? exitMultiSelect() : setMultiSelect(true)}
-              className={`ml-auto text-xs px-2 py-1 rounded-lg transition-colors ${
+            <button
+              type="button"
+              onClick={() => multiSelectMode ? exitMultiSelect() : setMultiSelect(true)}
+              className={`ml-auto cursor-pointer text-xs px-2 py-1 rounded-lg transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60 ${
                 multiSelectMode
                   ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-slate-700/50'
               }`}
-              title={multiSelectMode ? 'Cancel selection' : 'Select multiple'}>
+              title={multiSelectMode ? 'Cancel selection' : 'Select multiple'}
+            >
               {multiSelectMode ? '✕ Cancel' : '☐ Select'}
             </button>
           </div>
@@ -123,21 +132,47 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
         {multiSelectMode && (
           <div className="px-3 py-2 border-b border-slate-700/30 relative z-10 flex items-center gap-1.5 flex-wrap">
             <span className="text-xs text-indigo-300 font-medium mr-1">{selectedIds.size} selected</span>
-            <button onClick={toggleSelectAll}
-              className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="cursor-pointer text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+            >
               {filtered.length > 0 && filtered.every(h => selectedIds.has(h.id)) ? 'Deselect All' : 'Select All'}
             </button>
             <div className="flex-1" />
             {selectedIds.size > 0 && (<>
-              <button onClick={() => handleBulkAction(onBulkExport, 'md')}
-                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors" title="Export as Markdown">📥 MD</button>
-              <button onClick={() => handleBulkAction(onBulkExport, 'txt')}
-                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors" title="Export as Text">📄 TXT</button>
-              <button onClick={() => handleBulkAction(onBulkArchive, showArchived ? false : true)}
-                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
-                title={showArchived ? 'Unarchive' : 'Archive'}>{showArchived ? '📂' : '📦'}</button>
-              <button onClick={() => handleBulkAction(onBulkDelete)}
-                className="text-xs px-2 py-1 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors" title="Delete selected">🗑️</button>
+              <button
+                type="button"
+                onClick={() => handleBulkAction(onBulkExport, 'md')}
+                className="cursor-pointer text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+                title="Export as Markdown"
+              >
+                📥 MD
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBulkAction(onBulkExport, 'txt')}
+                className="cursor-pointer text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+                title="Export as Text"
+              >
+                📄 TXT
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBulkAction(onBulkArchive, showArchived ? false : true)}
+                className="cursor-pointer text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+                title={showArchived ? 'Unarchive' : 'Archive'}
+              >
+                {showArchived ? '📂' : '📦'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBulkAction(onBulkDelete)}
+                className="cursor-pointer text-xs px-2 py-1 rounded-md text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+                title="Delete selected"
+              >
+                🗑️
+              </button>
             </>)}
           </div>
         )}
@@ -156,9 +191,15 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
           {filtered.map(h => {
             const modeIcon = modes?.find(m => m.id === h.mode)?.icon || '💬';
             const isSelected = selectedIds.has(h.id);
+            const rowLabel = `${h.title || 'Untitled'}${h.mode ? `, ${h.mode}` : ''}`;
             return (
-              <div key={h.id}
-                className={`group flex items-center rounded-lg cursor-pointer transition-colors
+              <div
+                key={h.id}
+                role="button"
+                tabIndex={0}
+                aria-label={isCollapsed ? rowLabel : undefined}
+                aria-current={activeId === h.id && !multiSelectMode ? 'true' : undefined}
+                className={`group flex items-center rounded-lg cursor-pointer transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/55 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900/80
                   ${isCollapsed ? 'justify-center p-2 mb-1' : 'gap-2 px-3 py-2.5 mb-1'}
                   ${isSelected && multiSelectMode
                     ? 'bg-indigo-600/20 border border-indigo-500/30'
@@ -166,8 +207,16 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
                       ? 'bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm'
                       : 'hover:bg-indigo-500/10'}`}
                 onClick={() => { if (multiSelectMode) { toggleSelect(h.id); } else { onSelect(h.id); onClose(); } }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (multiSelectMode) toggleSelect(h.id);
+                    else { onSelect(h.id); onClose(); }
+                  }
+                }}
                 onContextMenu={(e) => handleContextMenu(e, h)}
-                title={isCollapsed ? (h.title || 'Untitled') : undefined}>
+                title={isCollapsed ? (h.title || 'Untitled') : undefined}
+              >
                 {isCollapsed ? (
                   <span className="text-base leading-none" role="img" aria-hidden="true">{modeIcon}</span>
                 ) : (
@@ -197,9 +246,14 @@ export default function Sidebar({ history, activeId, onSelect, onNew, onDelete, 
                       </div>
                     </div>
                     {!multiSelectMode && (
-                      <button onClick={(e) => { e.stopPropagation(); handleContextMenu(e, h); }}
-                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1"
-                        aria-label="More options">⋯</button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleContextMenu(e, h); }}
+                        className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1 rounded cursor-pointer focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                        aria-label="More options"
+                      >
+                        ⋯
+                      </button>
                     )}
                   </>
                 )}

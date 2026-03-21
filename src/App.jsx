@@ -1403,12 +1403,16 @@ export default function App() {
             <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative overflow-hidden">
               <FloatingGeometry shapeCount={5} />
               {MODES.map(m => (
-                  <button key={m.id} onClick={() => setMode(m.id)}
-                    className={`relative z-10 flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setMode(m.id)}
+                    className={`relative z-10 flex cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]
                       ${mode === m.id
                         ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
-                        : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}>
-                    <span>{m.icon}</span><span>{m.label}</span>
+                        : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}
+                  >
+                    <span aria-hidden="true">{m.icon}</span><span>{m.label}</span>
                   </button>
               ))}
             </div>
