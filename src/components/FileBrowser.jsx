@@ -369,41 +369,43 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
       </div>
 
       {projectFolder && (
-        <div className="px-3 py-2 border-b border-slate-700/30 flex flex-wrap gap-2">
+        <div className="px-3 py-2 border-b border-slate-700/30 flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => launchIDE('/api/launch-vscode', 'VS Code', setLaunchingVSCode)}
+              disabled={launchingVSCode || !folderPath}
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30 transition-colors disabled:opacity-50"
+            >
+              {launchingVSCode ? 'Opening...' : '🔷 VS Code'}
+            </button>
+            <button
+              onClick={() => launchIDE('/api/launch-cursor', 'Cursor', setLaunchingCursor)}
+              disabled={launchingCursor || !folderPath}
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors disabled:opacity-50"
+            >
+              {launchingCursor ? 'Opening...' : '🖱 Cursor'}
+            </button>
+            <button
+              onClick={() => launchIDE('/api/launch-windsurf', 'Windsurf', setLaunchingWindsurf)}
+              disabled={launchingWindsurf || !folderPath}
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
+            >
+              {launchingWindsurf ? 'Opening...' : '🌊 Windsurf'}
+            </button>
+            <button
+              onClick={() => launchIDE('/api/launch-opencode', 'OpenCode', setLaunchingOpenCode)}
+              disabled={launchingOpenCode || !folderPath}
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50"
+            >
+              {launchingOpenCode ? 'Opening...' : '💻 OpenCode'}
+            </button>
+          </div>
           <button
             onClick={() => launchIDE('/api/launch-claude-code', 'Claude Code', setLaunchingClaude)}
             disabled={launchingClaude || !folderPath}
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors disabled:opacity-50"
+            className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/40 border border-indigo-400/40 shadow-sm shadow-indigo-900/20 transition-colors disabled:opacity-50"
           >
-            {launchingClaude ? 'Opening...' : '⌨ Claude'}
-          </button>
-          <button
-            onClick={() => launchIDE('/api/launch-cursor', 'Cursor', setLaunchingCursor)}
-            disabled={launchingCursor || !folderPath}
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors disabled:opacity-50"
-          >
-            {launchingCursor ? 'Opening...' : '🖱 Cursor'}
-          </button>
-          <button
-            onClick={() => launchIDE('/api/launch-windsurf', 'Windsurf', setLaunchingWindsurf)}
-            disabled={launchingWindsurf || !folderPath}
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
-          >
-            {launchingWindsurf ? 'Opening...' : '🌊 Windsurf'}
-          </button>
-          <button
-            onClick={() => launchIDE('/api/launch-opencode', 'OpenCode', setLaunchingOpenCode)}
-            disabled={launchingOpenCode || !folderPath}
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50"
-          >
-            {launchingOpenCode ? 'Opening...' : '💻 OpenCode'}
-          </button>
-          <button
-            onClick={() => launchIDE('/api/launch-vscode', 'VS Code', setLaunchingVSCode)}
-            disabled={launchingVSCode || !folderPath}
-            className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30 transition-colors disabled:opacity-50"
-          >
-            {launchingVSCode ? 'Opening...' : '🔷 VS Code'}
+            {launchingClaude ? 'Opening…' : '⌨ Claude Code'}
           </button>
         </div>
       )}
