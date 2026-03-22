@@ -82,14 +82,14 @@ npm run electron:build:win-linux-x64
 # Equivalent: npx electron-builder --win --linux --x64 --config electron-builder.config.js --publish never
 ```
 
-**Artifacts** (version from `package.json`, e.g. `1.5.3`):
+**Artifacts** (version from `package.json`; filenames follow **`artifactName`** in `electron-builder.config.js`: **`${name}-${version}-${arch}.${ext}`** — npm **`name`** is `code-companion`, so no spaces and updater YAML URLs match GitHub assets):
 
 | Platform | Typical files in `release/` |
 |----------|-----------------------------|
-| Windows x64 | `Code Companion Setup 1.5.3.exe` (NSIS), `Code Companion-1.5.3-win.zip` |
-| Linux x64 | `Code Companion-1.5.3.AppImage`, `code-companion-1.5.3.zip` |
-| Windows arm64 | `Code Companion-1.5.3-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
-| Linux arm64 | `Code Companion-1.5.3-arm64.AppImage`, `code-companion-1.5.3-arm64.zip` |
+| macOS arm64 | `code-companion-1.5.x-arm64.dmg`, `code-companion-1.5.x-arm64.zip`, `latest-mac.yml` |
+| Windows x64 | `code-companion-1.5.x-x64.exe` (NSIS), `code-companion-1.5.x-x64.zip`, `latest.yml` |
+| Linux x64 | `code-companion-1.5.x-x64.AppImage`, `code-companion-1.5.x-x64.zip`, `latest-linux.yml` |
+| Windows arm64 / Linux arm64 | Same pattern with **`arm64`** (build `--win --arm64` / `--linux --arm64`) |
 
 Auto-update metadata: `latest.yml` (Windows), `latest-linux.yml` / `latest-linux-arm64.yml` (Linux).
 

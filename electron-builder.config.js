@@ -3,6 +3,11 @@ module.exports = {
   productName: 'Code Companion',
   copyright: 'Copyright © 2026 James Avila / Th3rdAI',
   directories: { output: 'release' },
+  /**
+   * Use package `name` (no spaces) so release filenames match `latest-*.yml` `url` entries.
+   * Spaces in `productName` led to GitHub assets like `Code.Companion-…` while YAML listed `Code-Companion-…` → 404 for auto-update downloads.
+   */
+  artifactName: '${name}-${version}-${arch}.${ext}',
   asar: false,
   files: [
     'dist/**/*',
