@@ -82,14 +82,14 @@ npm run electron:build:win-linux-x64
 # Equivalent: npx electron-builder --win --linux --x64 --config electron-builder.config.js --publish never
 ```
 
-**Artifacts** (version from `package.json`, e.g. `1.5.1`):
+**Artifacts** (version from `package.json`, e.g. `1.5.2`):
 
 | Platform | Typical files in `release/` |
 |----------|-----------------------------|
-| Windows x64 | `Code Companion Setup 1.5.1.exe` (NSIS), `Code Companion-1.5.1-win.zip` |
-| Linux x64 | `Code Companion-1.5.1.AppImage`, `code-companion-1.5.1.zip` |
-| Windows arm64 | `Code Companion-1.5.1-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
-| Linux arm64 | `Code Companion-1.5.1-arm64.AppImage`, `code-companion-1.5.1-arm64.zip` |
+| Windows x64 | `Code Companion Setup 1.5.2.exe` (NSIS), `Code Companion-1.5.2-win.zip` |
+| Linux x64 | `Code Companion-1.5.2.AppImage`, `code-companion-1.5.2.zip` |
+| Windows arm64 | `Code Companion-1.5.2-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
+| Linux arm64 | `Code Companion-1.5.2-arm64.AppImage`, `code-companion-1.5.2-arm64.zip` |
 
 Auto-update metadata: `latest.yml` (Windows), `latest-linux.yml` / `latest-linux-arm64.yml` (Linux).
 
@@ -127,7 +127,7 @@ Built artifacts go to `release/`. All scripts use `--publish never` (local build
 
 ### CI (tag push)
 
-Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.1` and `"version": "1.5.1"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
+Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.2` and `"version": "1.5.2"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
 
 ### Manual publish (one machine)
 

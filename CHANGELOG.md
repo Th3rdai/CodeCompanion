@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.2] - 2026-03-22
+
+### Security
+- **CSP** — Per-request **nonces** for `script-src` (no `unsafe-inline` for scripts); SPA `index.html` served with matching nonces.
+- **API errors** — Generic **5xx** / SSE messages via `lib/client-errors.js` (details server-side only).
+- **SCA** — CI runs **`npm audit --audit-level=critical`** (`.github/workflows/ci.yml`).
+- **GitHub** — **`validateTokenCached`** reduces repeated GitHub `/user` calls from Settings.
+
+### Changed
+- **Tags & remotes** — `v1.5.2` aligned with `master` on **origin** and **th3rdai**; installers follow **th3rdai/CodeCompanion** (`electron-builder` publish target).
+
+---
+
 ## [1.5.1] - 2026-03-22
 
 ### Changed

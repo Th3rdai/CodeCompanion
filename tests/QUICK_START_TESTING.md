@@ -210,7 +210,7 @@ cat tests/TESTING_SESSION_TRACKER.md
 **If MINOR BUGS FOUND**:
 - ✅ Ready for beta release
 - Document known issues
-- Plan fixes for v1.5.1
+- Plan fixes for v1.5.2
 
 **If CRITICAL BUGS FOUND**:
 - ❌ Cannot release
