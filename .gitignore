@@ -15,6 +15,9 @@ history/
 .env
 .env.local
 
+# Claude Code — optional MCP overrides (copy from .mcp.json.example)
+.mcp.local.json
+
 # License signing keys (NEVER commit)
 scripts/.license-private-key
 scripts/.license-public-key
@@ -34,7 +37,10 @@ __pycache__/
 
 # AI agent/IDE config directories
 .agent/
+# Claude Code — team files are force-added (git add -f); rest of .claude/ stays local
 .claude/
+# Optional MCP overrides (copy from .mcp.json.example)
+.mcp.local.json
 .codebuddy/
 .codex/
 .continue/
