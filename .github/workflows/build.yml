@@ -118,9 +118,11 @@ jobs:
           name: installer-linux
           path: artifacts/installer-linux
 
-      - name: Verify mac updater metadata
-        run: |
-          test -f "artifacts/installer-mac/latest-mac.yml" || { echo "::error::missing artifacts/installer-mac/latest-mac.yml — mac build did not produce updater metadata"; exit 1; }
+      - name: Verify electron-builder artifactName (updater-safe)
+        run: node scripts/verify-artifact-name-config.js
+
+      - name: Verify updater YAML files reference on-disk assets
+        run: node scripts/verify-updater-yaml-assets.js artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
