@@ -1,7 +1,7 @@
-const { defineConfig } = require('@playwright/test');
+const { defineConfig, devices } = require('@playwright/test');
 
-// Server runs with HTTPS by default (self-signed cert). Use BASE_URL env var to override if needed.
-const baseURL = process.env.BASE_URL || 'https://127.0.0.1:4173';
+// Must match webServer below (FORCE_HTTP=1). Override with BASE_URL for HTTPS preview (e.g. self-signed :4173).
+const baseURL = process.env.BASE_URL || 'http://127.0.0.1:4173';
 const useHTTPS = baseURL.startsWith('https://');
 
 module.exports = defineConfig({
@@ -16,6 +16,13 @@ module.exports = defineConfig({
     headless: true,
     ignoreHTTPSErrors: useHTTPS
   },
+  // Named project so `npm run test:ui` / `--project=chromium` work (see package.json).
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
   webServer: {
     // Build so E2E matches current src (server serves dist/).
     command: 'npm run build && FORCE_HTTP=1 PORT=4173 node server.js',

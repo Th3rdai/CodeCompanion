@@ -34,7 +34,7 @@ npm run test:e2e          # Playwright E2E workflow tests
 
 Details: **[docs/TESTING.md](docs/TESTING.md)** (folders, `BASE_URL`, CI).
 
-**Playwright:** The config starts a **built** app with `FORCE_HTTP=1` on port **4173** (HTTP). Default `BASE_URL` may be HTTPS; if tests fail with SSL errors, use `BASE_URL=http://127.0.0.1:4173` (see `docs/TESTING.md`).
+**Playwright:** The config starts a **built** app with `FORCE_HTTP=1` on port **4173** (HTTP). Default `BASE_URL` is **`http://127.0.0.1:4173`** to match that. If you point tests at an HTTPS server, set `BASE_URL` accordingly (see `docs/TESTING.md`).
 
 **Validation Command:** Use `/validate-project` slash command in Claude Code to run the comprehensive 7-phase validation suite (build, tests, API smoke tests, workflow tests).
 

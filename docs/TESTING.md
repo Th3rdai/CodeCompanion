@@ -27,10 +27,12 @@ Some UI specs use **`test.skip`** placeholders (e.g. build handoff / AI ops) unt
 
 ## Playwright base URL
 
-The config defaults to `BASE_URL` of `https://127.0.0.1:4173` with `ignoreHTTPSErrors` when using HTTPS. The **webServer** command starts the app with **`FORCE_HTTP=1`**, so the server is often **HTTP** on port **4173**. If tests fail with SSL errors, run with:
+The config defaults to **`http://127.0.0.1:4173`**, matching **webServer** (`FORCE_HTTP=1` on port **4173**). `ignoreHTTPSErrors` is enabled only when `BASE_URL` starts with `https://`.
+
+To test against a **HTTPS** dev server (e.g. self-signed cert on :4173), set:
 
 ```bash
-BASE_URL=http://127.0.0.1:4173 npm run test:ui
+BASE_URL=https://127.0.0.1:4173 npm run test:ui
 ```
 
 ## CI

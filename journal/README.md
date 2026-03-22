@@ -4,7 +4,7 @@
 |------|--------|-------|
 | 2026-03-24 | Pass | **`build-file-ops.test.js`** + **install docs** + **CHANGELOG 1.5.3**; **`git push`** **origin** + **th3rdai** **`master`**. **`journal/2026-03-24.md`** |
 | 2026-03-23 | Spot-check | npm audit 0; test:unit 127 pass / 4 skip; deps (exceljs/read-excel-file/file-type+officeparser patch), agent `generate_office_file` `sourcePath`, docs + Archon. Full P1–P7 not rerun — see 2026-03-22. **`journal/2026-03-23.md`** |
-| 2026-03-22 | Pass | validate-project --thorough (15:43): HTTPS `:4173`, `BASE_URL=https://127.0.0.1:4173`, 132 unit / 32 UI / 14 E2E; earlier runs on same date in **journal/2026-03-22.md** |
+| 2026-03-22 | Pass | Latest **16:27** — `BASE_URL=http://127.0.0.1:4173`, 134 unit, 32 UI / 15 skip, 14 E2E, P7 `qwen3-8b-util`; also 15:43 HTTPS run — **journal/2026-03-22.md** |
 | 2026-03-21 | Pass | validate-project --thorough: P1–P7 green; test fixes (Jargon glossary dialog scope; Review `getByPlaceholder('Paste your code here...')`; mode tab `Review`/`Security` exact). See journal/2026-03-21.md |
 | 2026-03-20 | Pass | P1–P7 green with `FORCE_HTTP=1` + `BASE_URL=http://127.0.0.1:4173` for P4/P5 (avoid HTTPS/default baseURL mismatch). 32 UI + 14 E2E passed, 15 UI skipped. See journal/2026-03-20.md |
 | 2026-03-14 | Pass | 27 Playwright + 16 unit tests, all API endpoints, SSE streaming, MCP 11 tools. Full green. |

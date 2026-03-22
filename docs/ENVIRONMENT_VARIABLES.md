@@ -45,7 +45,7 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 
 | Variable | Purpose |
 |----------|---------|
-| `BASE_URL` | Base URL for tests (default `https://127.0.0.1:4173`). Use `http://127.0.0.1:4173` if the test web server uses `FORCE_HTTP=1` (matches `webServer` in config). |
+| `BASE_URL` | Base URL for tests (default **`http://127.0.0.1:4173`**, matches `webServer` + `FORCE_HTTP=1`). Set to `https://127.0.0.1:4173` only when the test server is actually serving HTTPS. |
 
 ## Docling / Electron
 

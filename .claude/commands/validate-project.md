@@ -53,6 +53,8 @@ Expected: rate limiting test passes. Requires server running (P2).
 
 Playwright browser tests for interactive UI elements. Requires built frontend (P1) and server (P2).
 
+`playwright.config.js` starts **webServer** with **`FORCE_HTTP=1`** on **4173**; default **`BASE_URL`** is **`http://127.0.0.1:4173`** (do not use HTTPS unless the server under test is HTTPS). Same as `npm run test:ui` — optionally `npx playwright test tests/ui/ --project=chromium`.
+
 !`npx playwright test tests/ui/`
 
 **Coverage areas:**

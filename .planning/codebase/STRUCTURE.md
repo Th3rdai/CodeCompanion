@@ -78,7 +78,7 @@
 **Configuration:**
 - `vite.config.js`: Vite, alias `@` → `./src`
 - `electron-builder.config.js`: Desktop packaging
-- `playwright.config.js`: Playwright, baseURL 4173, webServer
+- `playwright.config.js`: Playwright, default `BASE_URL` http://127.0.0.1:4173 (matches `webServer` `FORCE_HTTP=1`), `chromium` project
 
 **Core Logic:**
 - `lib/ollama-client.js`: Ollama API
