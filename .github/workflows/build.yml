@@ -67,6 +67,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify updater metadata in release/ (per platform)
+        run: node scripts/verify-release-output.js ${{ matrix.platform }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -100,6 +103,9 @@ jobs:
             exit 1
           fi
 
+      - name: Verify CI repo matches electron-builder publish (in-app updates)
+        run: node scripts/verify-ci-repo-matches-publish.js
+
       - name: Download mac artifacts
         uses: actions/download-artifact@v4
         with:
@@ -127,6 +133,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          fail_on_unmatched_files: true
           files: |
             artifacts/installer-mac/*
             artifacts/installer-win/*

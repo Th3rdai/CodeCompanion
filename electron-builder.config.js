@@ -95,6 +95,8 @@ module.exports = {
     provider: 'github',
     owner: 'th3rdai',
     repo: 'CodeCompanion',
+    /** Explicit: never skip writing latest-*.yml to release/ (electron-builder default is true). */
+    publishAutoUpdate: true,
   },
   extraResources: [
     { from: 'resources/data-readme.txt', to: 'data-readme.txt' },

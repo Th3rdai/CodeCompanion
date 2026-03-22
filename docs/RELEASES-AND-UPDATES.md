@@ -42,11 +42,23 @@ The GitHub Actions workflow **fails** if the tag suffix does not match `package.
 
 **Workflow:** [`.github/workflows/build.yml`](../.github/workflows/build.yml)
 
+### Canonical repository (critical for in-app updates)
+
+The built app resolves updates from **`electron-builder.config.js` → `publish.owner` / `publish.repo`** (currently **`th3rdai` / `CodeCompanion`**). The GitHub Release **must** be created on **that same repository**.
+
+- If you only push the tag to a **fork** (e.g. `your-org/CodeCompanion`), CI may succeed there, but **installed apps still request `latest-mac.yml` from `github.com/th3rdai/CodeCompanion`** → **404** on the feed.
+- **Fix:** push the release tag to **`github.com/th3rdai/CodeCompanion`**, or change `publish.owner` / `publish.repo` to match the repo you actually release from (and rebuild).
+
+The release workflow runs **`scripts/verify-ci-repo-matches-publish.js`** so a mismatch fails **before** assets upload.
+
+---
+
 1. Ensure **`package.json`** has the new version committed.
 2. Create and push an annotated or lightweight tag:  
    `git tag v1.6.0`  
-   `git push origin v1.6.0`
-3. CI builds **macOS**, **Windows**, and **Linux**, then creates a **single GitHub Release** and uploads **all** `release/` outputs from each job (including **`latest-mac.yml`** and blockmaps where produced).
+   `git push origin v1.6.0`  
+   Use the **remote that points at the publish repo** (see above).
+3. CI builds **macOS**, **Windows**, and **Linux**, then creates a **single GitHub Release** and uploads **all** `release/` outputs from each job (including **`latest-mac.yml`** and blockmaps where produced). Each build job fails if **`release/`** is missing the platform’s **`latest-*.yml`**. The release step uses **`fail_on_unmatched_files`** so an empty asset glob cannot silently ship.
 
 **Notes**
 

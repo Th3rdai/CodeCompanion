@@ -8,6 +8,10 @@
     "email": "james@th3rdai.com",
     "url": "https://github.com/Th3rdai"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/th3rdai/CodeCompanion.git"
+  },
   "main": "electron/main.js",
   "scripts": {
     "start": "node server.js",
