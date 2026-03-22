@@ -6,11 +6,18 @@ Code Companion reads **environment variables** for the Node server, tests, and t
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `HOST` | `0.0.0.0` | Bind address. Use `127.0.0.1` to listen on localhost only. |
+| `HOST` | *(see below)* | Overrides bind address. If unset: **`127.0.0.1`** unless `CC_BIND_ALL=1`, then **`0.0.0.0`**. |
+| `CC_BIND_ALL` | unset | Set to `1` to listen on **all interfaces** (`0.0.0.0`) when `HOST` is not set. Use for LAN access; prefer **localhost-only** when possible. |
+| `CC_API_SECRET` | unset | If set, clients may send header **`X-CC-API-Key: <same value>`** to call **sensitive** endpoints from non-loopback IPs (e.g. browser opened as `http://192.168.x.x:PORT`). |
+| `VITE_CC_API_KEY` | unset | **Vite build-time** — same value as **`CC_API_SECRET`** so the SPA can send **`X-CC-API-Key`** on **`apiFetch`** requests (embedded in the bundle; use only on trusted networks). |
+| `CC_CORS_ALLOW_LAN` | unset | Set to `1` to allow **any** browser `Origin` (legacy wide open). Default CORS allows **`localhost` / `127.0.0.1`** origins and `CC_ALLOWED_ORIGINS`. |
+| `CC_ALLOWED_ORIGINS` | unset | Comma-separated extra allowed origins (e.g. `http://192.168.1.10:8900`) when not using `CC_CORS_ALLOW_LAN=1`. |
 | `PORT` | from config or `8900` | Overrides `preferredPort` in `.cc-config.json` when set. |
 | `FORCE_HTTP` | unset | Set to `1` to **disable HTTPS** even if `cert/server.crt` and `cert/server.key` exist (e.g. Playwright, rate-limit tests). |
 | `DEBUG` | unset | Set to `1` or `true` for verbose server logging. |
 | `CC_DATA_DIR` | app directory | Data root for config, history, logs (Electron sets this). |
+
+**Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, and **`POST /mcp`** (HTTP MCP). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
 
 ## Rate limiting (optional overrides)
 
@@ -26,12 +33,13 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 | `RATE_LIMIT_MAX_REVIEW` | `20` | `POST /api/review`, `/api/pentest` |
 | `RATE_LIMIT_MAX_SCORE` | `20` | `POST /api/score` |
 | `RATE_LIMIT_MAX_MEMORY` | `30` | Memory write/delete routes |
+| `RATE_LIMIT_MAX_API_GLOBAL` | `300` | Broad cap per IP for **all** `/api/*` methods (in addition to per-route limits) |
 
 ## Agent terminal (`lib/builtin-agent-tools.js`)
 
 | Variable | Purpose |
 |----------|---------|
-| `CC_ALLOW_AGENT_TERMINAL` | Set to `1` to allow the agent terminal when the server binds to a **non-loopback** address (not Electron). Without it, terminal is restricted when exposed on the LAN. |
+| `CC_ALLOW_AGENT_TERMINAL` | Set to `1` to allow the agent terminal when the server binds to **`0.0.0.0`** / **`::`** (see `CC_BIND_ALL` / `HOST`). Matches `lib/builtin-agent-tools.js` exposure check. |
 
 ## Playwright (`playwright.config.js`)
 

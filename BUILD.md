@@ -109,6 +109,34 @@ The built app (DMG, EXE, AppImage, and portable ZIPs) includes:
 
 Built artifacts go to `release/`. All scripts use `--publish never` (local build only).
 
+### Publishing releases (so in-app **Software Updates** works)
+
+**Maintainer guide:** [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) — versioning, CI vs manual publish, checklists, and prerelease behavior.
+
+`electron-updater` loads **`latest-mac.yml`** (and DMG/ZIP URLs) from **GitHub Releases** for `publish.owner` / `publish.repo` in `electron-builder.config.js` (`th3rdai` / `CodeCompanion`). If a release **tag** exists but those files were **never uploaded**, users see **404** on `latest-mac.yml` when tapping **Upgrade**.
+
+**Fix (maintainers):**
+
+1. Build mac artifacts: `npm run electron:build:mac` — produces `release/latest-mac.yml`, DMG, ZIP, blockmaps.
+2. **Publish** to GitHub, e.g. with a token:  
+   `npx electron-builder --mac --config electron-builder.config.js --publish always`  
+   Or manually attach **`release/latest-mac.yml`**, **`*.dmg`**, **`*-mac.zip`**, and blockmaps to the matching **GitHub release** for that version.
+3. **`allowPrerelease`** is `true` in `electron/updater.js` — the updater may follow a **prerelease** (e.g. `v1.0.0-beta.1`). If that tag has **no** mac updater assets, mac updates fail until the release is fixed or a **newer** release with full assets is published.
+
+**Workaround (users):** Download the DMG/ZIP from [Releases](https://github.com/th3rdai/CodeCompanion/releases) and install manually until the release assets are complete.
+
+### CI (tag push)
+
+Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.1` and `"version": "1.5.1"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
+
+### Manual publish (one machine)
+
+With `GH_TOKEN` set to a token that can upload release assets:
+
+```bash
+npm run electron:publish:mac    # or :win / :linux
+```
+
 | Platform | Files |
 |----------|-------|
 | macOS | `Code Companion-{version}-arm64.dmg`, `Code Companion-{version}-arm64-mac.zip` (Apple Silicon) |

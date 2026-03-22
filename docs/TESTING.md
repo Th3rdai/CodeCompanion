@@ -8,6 +8,7 @@
 | `npm run test:unit` | Node [`node:test`](https://nodejs.org/api/test.html) — unit, MCP security, tone/UI labels, rate limit, scaffold, image helpers, pentest schema, etc. |
 | `npm run test:ui` | Playwright tests under `tests/ui/` only |
 | `npm run test:e2e` | Playwright tests under `tests/e2e/` only |
+| `npm run mcp:test` | Spawns **stdio** `mcp-server.js` via MCP SDK and lists tools (11 expected) |
 
 Run unit tests before small backend changes; run Playwright when changing UI or API behavior used by the browser.
 

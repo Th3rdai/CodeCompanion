@@ -72,7 +72,7 @@ Open [http://localhost:8900](http://localhost:8900) in your browser. **SSL error
 
 **Desktop installers:** For a packaged app (no Node/npm required), use the [downloads page](https://th3rdai.com/downloads/) or build from source: `npm run electron:build` (see [BUILD.md](BUILD.md)). Produces DMG (macOS), EXE (Windows), and AppImage (Linux).
 
-**Remote access:** The server binds to all interfaces by default (`HOST=0.0.0.0`), so you can open the app from another device on your network using the host machine’s IP (e.g. `http://192.168.1.5:3000`). On startup the server logs a "Remote access:" URL. To listen only on localhost, run with `HOST=127.0.0.1 ./startup.sh`. Use **http** (not https)—the app does not serve TLS by default, so `https://` will cause SSL errors. If the browser still forces https or assets fail to load, clear HSTS for the host (Chrome: `chrome://net-internals/#hsts` → delete domain for the IP), then open the URL with `http://` explicitly. Ensure the host firewall allows inbound TCP on port 3000.
+**Network binding (security default):** The server **defaults to `127.0.0.1`** (localhost-only). To accept connections from other devices on the LAN, set **`CC_BIND_ALL=1`** or **`HOST=0.0.0.0`** before starting (see [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)). On startup, when bound to all interfaces, the server logs a **Remote access:** URL (e.g. `http://192.168.1.5:8900`). Sensitive Settings/API routes accept requests from **loopback** only unless you set **`CC_API_SECRET`** on the server and (for browser UIs opened by IP) **`VITE_CC_API_KEY`** at build time to match — see [SECURITY.md](SECURITY.md) and [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md). Use **http** (not https) unless you added `cert/` files — otherwise `https://` will cause SSL errors. Clear HSTS for the host if the browser forces HTTPS (Chrome: `chrome://net-internals/#hsts`). Ensure the host firewall allows inbound TCP on your chosen port (default **8900** unless overridden).
 
 **Remote access not working?**
 1. **From the other device** run: `curl -s -o /dev/null -w "%{http_code}" http://HOST_IP:8900/api/config` (replace `HOST_IP` with the Mac's IP, e.g. `192.168.1.5`). If you get `200`, the server is reachable; if connection refused or timeout, the host is blocking it.
@@ -102,6 +102,7 @@ npm test             # All Playwright tests
 npm run test:e2e      # Playwright E2E tests (browser + API)
 npm run test:ui       # Playwright UI tests
 npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-limit, etc.)
+npm run audit:security  # npm audit — fails on critical advisories (same gate as CI)
 ```
 
 ### More documentation
@@ -109,9 +110,12 @@ npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-
 | Doc | Contents |
 |-----|----------|
 | [SECURITY.md](SECURITY.md) | How to report vulnerabilities; security and privacy design |
-| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md) | `HOST`, `PORT`, `DEBUG`, rate limits, Playwright `BASE_URL`, etc. |
+| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md) | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc. |
+| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md) | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing |
 | [docs/TESTING.md](docs/TESTING.md) | Unit vs Playwright, folder layout, `BASE_URL` tips |
 | [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md) | What `IDE_COMMANDS/` is and pointer to full README there |
+| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf)) | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater |
+| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations) |
 
 ## User Guide
 
@@ -233,6 +237,12 @@ Or use the MCP Inspector to test interactively:
 
 ```bash
 npm run mcp:inspect
+```
+
+Quick **stdio** smoke test (no browser; lists 11 tools if OK):
+
+```bash
+npm run mcp:test
 ```
 
 ### Add to Claude Desktop
@@ -384,7 +394,7 @@ All settings (Ollama URL, project folder, MCP clients, etc.) are configured in t
 
 ## Security
 
-See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and security practices.
+**Security reporting:** Report vulnerabilities **privately** — email [james@th3rdai.com](mailto:james@th3rdai.com) or use the repo [Security](https://github.com/th3rdai/CodeCompanion/security) tab (**Report a vulnerability** when available). Full policy, response expectations, and design notes: **[SECURITY.md](SECURITY.md)**.
 
 ## Testing
 

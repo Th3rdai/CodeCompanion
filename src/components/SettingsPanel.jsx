@@ -1,10 +1,25 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import McpServerPanel from './McpServerPanel';
 import McpClientPanel from './McpClientPanel';
 import { use3DEffects, THEME_PRESETS } from '../contexts/Effects3DContext';
 import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
 import { Download, Upload, Settings } from 'lucide-react';
+
+/** Short, actionable copy for electron-updater failures (full error may be huge). */
+function formatSoftwareUpdateError(raw) {
+  if (raw == null || typeof raw !== 'string') return raw || 'Update check failed.';
+  if (raw.includes('latest-mac.yml') || raw.includes('latest.yml') || raw.includes('latest-linux')) {
+    if (raw.includes('404') || raw.includes('Not Found')) {
+      return 'The GitHub release has no updater metadata (e.g. latest-mac.yml). Builds must be published with those files, or install manually from GitHub Releases.';
+    }
+  }
+  if (/HttpError:.*404/i.test(raw) || (raw.includes('404') && raw.includes('github.com'))) {
+    return 'Update file not found on GitHub (404). The release may be missing published build artifacts — install manually from Releases or wait for a fixed publish.';
+  }
+  return raw.length > 320 ? `${raw.slice(0, 280)}…` : raw;
+}
 
 export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePath, onSave, onClose, onOpenMemoryPanel }) {
   const [activeTab, setActiveTab] = useState('general');
@@ -83,7 +98,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   // Load brand assets, timeout, port, and image support from config
   useEffect(() => {
     if (!brandLoaded) {
-      fetch('/api/config').then(r => r.json()).then(data => {
+      apiFetch('/api/config').then(r => r.json()).then(data => {
         if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
         if (data.reviewTimeoutSec != null) setReviewTimeoutSec(data.reviewTimeoutSec);
         if (data.chatTimeoutSec != null) setChatTimeoutSec(data.chatTimeoutSec);
@@ -116,7 +131,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   // Load available models for vision detection
   useEffect(() => {
-    fetch('/api/models').then(r => r.json()).then(data => {
+    apiFetch('/api/models').then(r => r.json()).then(data => {
       if (data.models) setModels(data.models);
     }).catch(() => {});
   }, []);
@@ -124,7 +139,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   async function saveBrandAssets(assets) {
     setBrandAssets(assets);
     try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandAssets: assets }) });
+      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandAssets: assets }) });
     } catch {}
   }
 
@@ -132,7 +147,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     const updatedSupport = { ...imageSupport, ...updates };
     setImageSupport(updatedSupport);
     try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageSupport: updatedSupport }) });
+      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageSupport: updatedSupport }) });
     } catch {}
   }
 
@@ -151,7 +166,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   // Fetch memory config and data on mount
   useEffect(() => {
-    fetch('/api/config').then(r => r.json()).then(data => {
+    apiFetch('/api/config').then(r => r.json()).then(data => {
       if (data.memory) {
         setMemoryEnabled(!!data.memory.enabled);
         setEmbeddingModel(data.memory.embeddingModel || '');
@@ -159,10 +174,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         setAutoExtract(data.memory.autoExtract !== false);
       }
     }).catch(() => {});
-    fetch('/api/memory/models').then(r => r.json()).then(data => {
+    apiFetch('/api/memory/models').then(r => r.json()).then(data => {
       setEmbeddingModels(Array.isArray(data) ? data : (data.models || []));
     }).catch(() => setEmbeddingModels([]));
-    fetch('/api/memory/stats').then(r => r.json()).then(data => {
+    apiFetch('/api/memory/stats').then(r => r.json()).then(data => {
       setMemoryStats(data);
     }).catch(() => {});
   }, []);
@@ -176,7 +191,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       ...updates,
     };
     try {
-      await fetch('/api/config', {
+      await apiFetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ memory: memConfig }),
@@ -188,7 +203,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     if (!confirm('Re-embed all memories with the current embedding model? This may take a while.')) return;
     setReembedding(true);
     try {
-      await fetch('/api/memory/reembed', { method: 'POST' });
+      await apiFetch('/api/memory/reembed', { method: 'POST' });
     } catch {}
     setReembedding(false);
   }
@@ -281,7 +296,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         }
       } else {
         // Non-Electron mode: use API
-        const response = await fetch('/api/config', {
+        const response = await apiFetch('/api/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ preferredPort: portNum })
@@ -304,7 +319,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       const result = await window.electronAPI.checkForUpdates();
       if (!result.success) {
         setUpdateStatus('error');
-        setUpdateError(result.error || 'Check failed');
+        setUpdateError(formatSoftwareUpdateError(result.error || 'Check failed'));
         return;
       }
       // updateInfo is present even when already latest; rely on isUpdateAvailable from main process.
@@ -316,7 +331,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       }
     } catch (err) {
       setUpdateStatus('error');
-      setUpdateError(err.message);
+      setUpdateError(formatSoftwareUpdateError(err.message));
     }
   }
 
@@ -324,7 +339,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     try {
       await window.electronAPI.restartForUpdate();
     } catch (err) {
-      setUpdateError(err.message);
+      setUpdateError(formatSoftwareUpdateError(err.message));
     }
   }
 
@@ -336,7 +351,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   async function fetchGhTokenStatus() {
     try {
-      const res = await fetch('/api/github/token/status');
+      const res = await apiFetch('/api/github/token/status');
       const data = await res.json();
       setGhTokenStatus(data);
     } catch {}
@@ -347,7 +362,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setGhValidating(true);
     setGhResult(null);
     try {
-      const res = await fetch('/api/github/token', {
+      const res = await apiFetch('/api/github/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: ghToken }),
@@ -366,7 +381,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   async function handleRemoveGhToken() {
     try {
-      await fetch('/api/github/token', {
+      await apiFetch('/api/github/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: '' }),
@@ -379,8 +394,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   async function handleTest() {
     setTesting(true); setTestResult(null);
     try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ollamaUrl: url }) });
-      const res = await fetch('/api/models');
+      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ollamaUrl: url }) });
+      const res = await apiFetch('/api/models');
       const data = await res.json();
       setTestResult(data.connected ? { ok: true, count: data.models.length } : { ok: false, error: data.detail || 'Cannot connect' });
     } catch (err) { setTestResult({ ok: false, error: err.message }); }
@@ -391,12 +406,12 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setDoclingTesting(true);
     setDoclingTestResult(null);
     try {
-      await fetch('/api/config', {
+      await apiFetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ docling: { url: doclingUrl, apiKey: doclingApiKey } }),
       });
-      const res = await fetch('/api/docling/health');
+      const res = await apiFetch('/api/docling/health');
       const data = await res.json();
       setDoclingTestResult(data.connected
         ? { ok: true, message: data.version ? `Connected (v${data.version})` : 'Connected to docling-serve' }
@@ -412,11 +427,11 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setFolderResult(null);
     if (!folder.trim()) { setFolderResult({ ok: false, error: 'Enter a folder path' }); return; }
     try {
-      const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectFolder: folder }) });
+      const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectFolder: folder }) });
       const data = await res.json();
       if (data.error) { setFolderResult({ ok: false, error: data.error }); }
       else {
-        const treeRes = await fetch(`/api/files/tree?path=${encodeURIComponent(folder)}&depth=1`);
+        const treeRes = await apiFetch(`/api/files/tree?path=${encodeURIComponent(folder)}&depth=1`);
         const treeData = await treeRes.json();
         if (treeData.tree) { setFolderResult({ ok: true, count: treeData.tree.length }); }
         else { setFolderResult({ ok: false, error: treeData.error || 'Cannot read folder' }); }
@@ -479,7 +494,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   onClick={() => {
                     const next = !doclingEnabled;
                     setDoclingEnabled(next);
-                    fetch('/api/config', {
+                    apiFetch('/api/config', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ docling: { enabled: next } }),
@@ -556,7 +571,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   onClick={() => {
                     const next = !terminalEnabled;
                     setTerminalEnabled(next);
-                    fetch('/api/config', {
+                    apiFetch('/api/config', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ agentTerminal: { enabled: next } }),
@@ -694,10 +709,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 value={reviewTimeoutSec}
                 onChange={e => setReviewTimeoutSec(parseInt(e.target.value, 10))}
                 onMouseUp={() => {
-                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
+                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
                 }}
                 onTouchEnd={() => {
-                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
+                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
                 }}
                 className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
                 aria-label="Review timeout seconds"
@@ -723,10 +738,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 value={chatTimeoutSec}
                 onChange={e => setChatTimeoutSec(parseInt(e.target.value, 10))}
                 onMouseUp={() => {
-                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
+                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
                 }}
                 onTouchEnd={() => {
-                  fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
+                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
                 }}
                 className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
                 aria-label="Chat timeout seconds"
@@ -759,7 +774,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     onChange={e => {
                       const val = parseInt(e.target.value, 10);
                       setNumCtx(val);
-                      fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numCtx: val }) }).catch(() => {});
+                      apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numCtx: val }) }).catch(() => {});
                     }}
                     className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                   >
@@ -786,7 +801,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     onClick={() => {
                       const next = !autoAdjustContext;
                       setAutoAdjustContext(next);
-                      fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ autoAdjustContext: next }) }).catch(() => {});
+                      apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ autoAdjustContext: next }) }).catch(() => {});
                     }}
                     className={`relative w-9 h-5 rounded-full transition-colors ${
                       autoAdjustContext ? 'bg-indigo-500' : 'bg-slate-600'
@@ -1426,7 +1441,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
           <button onClick={async () => {
               await onSave(url, folder, icmTemplate);
               try {
-                await fetch('/api/config', {
+                await apiFetch('/api/config', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

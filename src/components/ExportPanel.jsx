@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 
 const FORMAT_GROUPS = [
   {
@@ -130,7 +131,7 @@ export default function ExportPanel({ messages, mode, showToast }) {
 
         for (const ext of formats) {
           const filename = buildFilename(ext);
-          const res = await fetch('/api/generate-office', {
+          const res = await apiFetch('/api/generate-office', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content, filename }),
@@ -161,7 +162,7 @@ export default function ExportPanel({ messages, mode, showToast }) {
         try {
           const filename = buildFilename(ext);
           showToast(`Generating ${ext.slice(1).toUpperCase()}...`);
-          const res = await fetch('/api/generate-office', {
+          const res = await apiFetch('/api/generate-office', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content, filename }),

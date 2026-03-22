@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { copyText } from '../lib/clipboard';
 import MarkdownContent from './MarkdownContent';
 import BuildHeader from './BuildHeader';
@@ -49,8 +50,8 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
   async function loadProjectData(projectId) {
     try {
       const [roadmapRes, progressRes] = await Promise.all([
-        fetch(`/api/build/projects/${projectId}/roadmap`),
-        fetch(`/api/build/projects/${projectId}/progress`),
+        apiFetch(`/api/build/projects/${projectId}/roadmap`),
+        apiFetch(`/api/build/projects/${projectId}/progress`),
       ]);
       const roadmap = await roadmapRes.json();
       const progress = await progressRes.json();
@@ -64,7 +65,7 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
   async function loadPhaseDetail(projectId, phaseNum) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/build/projects/${projectId}/phase/${phaseNum}`);
+      const res = await apiFetch(`/api/build/projects/${projectId}/phase/${phaseNum}`);
       const data = await res.json();
       setPhaseDetail(data);
       setSelectedPhase(phaseNum);
@@ -78,7 +79,7 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
 
   async function handleRemoveProject(id) {
     try {
-      await fetch(`/api/build/projects/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/build/projects/${id}`, { method: 'DELETE' });
       onRefresh?.();
       onToast?.('Project removed from list');
     } catch {}
@@ -94,7 +95,7 @@ export default function BuildPanel({ projects, activeProject, onSelectProject, o
     setImporting(true);
     setError(null);
     try {
-      const res = await fetch('/api/build/projects', {
+      const res = await apiFetch('/api/build/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: importPath.trim() }),

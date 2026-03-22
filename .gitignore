@@ -8,6 +8,7 @@ release/
 # Runtime data
 logs/
 history/
+memory/
 *.log
 
 # Config with secrets
@@ -51,8 +52,9 @@ __pycache__/
 !.cursor/skills/plan-reviewer/
 !.cursor/skills/plan-reviewer/**
 .gemini/
-.github/
+.github/*
 !.github/workflows/
+!.github/workflows/**
 .kiro/
 .opencode/
 .qoder/

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { apiFetch } from './lib/api-fetch';
 import { copyText, readText } from './lib/clipboard';
 import MarkdownContent from './components/MarkdownContent';
 import MessageBubble from './components/MessageBubble';
@@ -231,7 +232,7 @@ export default function App() {
   // Fetch build projects for BuildPanel
   async function fetchBuildProjects() {
     try {
-      const res = await fetch('/api/build/projects');
+      const res = await apiFetch('/api/build/projects');
       const data = await res.json();
       setBuildProjects(Array.isArray(data) ? data : []);
     } catch { setBuildProjects([]); }
@@ -275,7 +276,7 @@ export default function App() {
 
   async function fetchConfig() {
     try {
-      const res = await fetch('/api/config');
+      const res = await apiFetch('/api/config');
       const data = await res.json();
       setOllamaUrl(data.ollamaUrl || '');
       setProjectFolder(data.projectFolder || '');
@@ -286,7 +287,7 @@ export default function App() {
   async function fetchModels() {
     setRefreshing(true);
     try {
-      const res = await fetch('/api/models');
+      const res = await apiFetch('/api/models');
       const data = await res.json();
       if (data.models) {
         setModels(data.models); setConnected(true); setOllamaUrl(data.ollamaUrl || '');
@@ -314,12 +315,12 @@ export default function App() {
   }
 
   async function fetchHistory() {
-    try { const res = await fetch('/api/history'); setHistory(await res.json()); } catch {}
+    try { const res = await apiFetch('/api/history'); setHistory(await res.json()); } catch {}
   }
 
   async function handleSaveSettings(newUrl, newFolder, newIcmTemplatePath) {
     try {
-      const res = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder, icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath }) });
       const data = await res.json();
       setOllamaUrl(newUrl);
@@ -334,7 +335,7 @@ export default function App() {
 
   async function loadConversation(id) {
     try {
-      const res = await fetch(`/api/history/${id}`);
+      const res = await apiFetch(`/api/history/${id}`);
       const conv = await res.json();
       setMessages(conv.messages || []); setMode(conv.mode || 'explain'); setActiveConvId(conv.id);
       if (conv.model) setSelectedModel(conv.model);
@@ -374,24 +375,24 @@ export default function App() {
       if (existing) { conv.createdAt = existing.createdAt; if (existing.archived) conv.archived = existing.archived; }
     } else { conv.createdAt = new Date().toISOString(); }
     try {
-      const res = await fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
+      const res = await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
       const { id } = await res.json();
       setActiveConvId(id); fetchHistory();
     } catch {}
   }
 
   async function deleteConversation(id) {
-    try { await fetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } fetchHistory(); showToast('Conversation deleted'); } catch {}
+    try { await apiFetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } fetchHistory(); showToast('Conversation deleted'); } catch {}
   }
   async function renameConversation(id, newTitle) {
-    try { const res = await fetch(`/api/history/${id}`); const conv = await res.json(); conv.title = newTitle; await fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); fetchHistory(); showToast('Renamed'); } catch {}
+    try { const res = await apiFetch(`/api/history/${id}`); const conv = await res.json(); conv.title = newTitle; await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); fetchHistory(); showToast('Renamed'); } catch {}
   }
   async function archiveConversation(id, archive) {
-    try { const res = await fetch(`/api/history/${id}`); const conv = await res.json(); conv.archived = archive; await fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); if (activeConvId === id && archive) { setMessages([]); setActiveConvId(null); } fetchHistory(); showToast(archive ? 'Archived' : 'Unarchived'); } catch {}
+    try { const res = await apiFetch(`/api/history/${id}`); const conv = await res.json(); conv.archived = archive; await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); if (activeConvId === id && archive) { setMessages([]); setActiveConvId(null); } fetchHistory(); showToast(archive ? 'Archived' : 'Unarchived'); } catch {}
   }
   async function exportConversation(id, format) {
     try {
-      const res = await fetch(`/api/history/${id}`); const conv = await res.json();
+      const res = await apiFetch(`/api/history/${id}`); const conv = await res.json();
       let content = ''; const title = conv.title || 'Untitled'; const modeLabel = MODES.find(m => m.id === conv.mode)?.label || conv.mode;
       if (format === 'md') {
         content = `# ${title}\n\n**Mode:** ${modeLabel}  \n**Model:** ${conv.model || 'N/A'}  \n**Date:** ${new Date(conv.createdAt).toLocaleString()}  \n\n---\n\n`;
@@ -408,7 +409,7 @@ export default function App() {
 
   async function bulkDeleteConversations(ids) {
     for (const id of ids) {
-      try { await fetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } } catch {}
+      try { await apiFetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } } catch {}
     }
     fetchHistory();
     showToast(`Deleted ${ids.length} conversation${ids.length !== 1 ? 's' : ''}`);
@@ -421,9 +422,9 @@ export default function App() {
   async function bulkArchiveConversations(ids, archive) {
     for (const id of ids) {
       try {
-        const res = await fetch(`/api/history/${id}`); const conv = await res.json();
+        const res = await apiFetch(`/api/history/${id}`); const conv = await res.json();
         conv.archived = archive;
-        await fetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
+        await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
         if (activeConvId === id && archive) { setMessages([]); setActiveConvId(null); }
       } catch {}
     }
@@ -448,7 +449,7 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     try {
-      const res = await fetch('/api/history', {
+      const res = await apiFetch('/api/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(conv),
@@ -470,7 +471,7 @@ export default function App() {
       builderData: data,
       overallGrade: data.scoreData?.overallGrade,
     };
-    fetch('/api/history', {
+    apiFetch('/api/history', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(convData),
@@ -483,11 +484,11 @@ export default function App() {
   async function handleUpdateReviewDeepDive(deepDiveMessages) {
     if (!activeConvId || mode !== 'review') return;
     try {
-      const res = await fetch(`/api/history/${activeConvId}`);
+      const res = await apiFetch(`/api/history/${activeConvId}`);
       const conv = await res.json();
       if (conv.reviewData) {
         conv.reviewData.deepDiveMessages = deepDiveMessages;
-        await fetch('/api/history', {
+        await apiFetch('/api/history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(conv),
@@ -510,7 +511,7 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     try {
-      const res = await fetch('/api/history', {
+      const res = await apiFetch('/api/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(conv),
@@ -525,11 +526,11 @@ export default function App() {
   async function handleUpdatePentestDeepDive(deepDiveMessages) {
     if (!activeConvId || mode !== 'pentest') return;
     try {
-      const res = await fetch(`/api/history/${activeConvId}`);
+      const res = await apiFetch(`/api/history/${activeConvId}`);
       const conv = await res.json();
       if (conv.pentestData) {
         conv.pentestData.deepDiveMessages = deepDiveMessages;
-        await fetch('/api/history', {
+        await apiFetch('/api/history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(conv),
@@ -599,7 +600,7 @@ export default function App() {
 
     let assistantContent = '';
     try {
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: ac.signal,
@@ -857,7 +858,7 @@ export default function App() {
         // Handle image file
         try {
           // Get config for validation
-          const configRes = await fetch('/api/config');
+          const configRes = await apiFetch('/api/config');
           const config = await configRes.json();
 
           // Validate image
@@ -964,7 +965,7 @@ export default function App() {
         // Handle image file
         try {
           // Get config for validation
-          const configRes = await fetch('/api/config');
+          const configRes = await apiFetch('/api/config');
           const config = await configRes.json();
 
           // Validate image
@@ -1063,7 +1064,7 @@ export default function App() {
 
         try {
           // Get config for validation
-          const configRes = await fetch('/api/config');
+          const configRes = await apiFetch('/api/config');
           const config = await configRes.json();
 
           // Validate image
@@ -1184,7 +1185,7 @@ export default function App() {
 
     try {
       showToast(`Generating ${ext.slice(1).toUpperCase()}...`);
-      const res = await fetch('/api/generate-office', {
+      const res = await apiFetch('/api/generate-office', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, filename }),
@@ -1216,7 +1217,7 @@ export default function App() {
   async function handleCreateSuccess(projectPath) {
     // Verify the folder was actually created before saving to config
     try {
-      const verify = await fetch(`/api/files/tree?depth=1&folder=${encodeURIComponent(projectPath)}`);
+      const verify = await apiFetch(`/api/files/tree?depth=1&folder=${encodeURIComponent(projectPath)}`);
       if (!verify.ok) {
         showToast('Project folder was not found on disk. Try creating again.');
         return;
@@ -1227,7 +1228,7 @@ export default function App() {
     }
     setProjectFolder(projectPath);
     try {
-      await fetch('/api/config', {
+      await apiFetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectFolder: projectPath })
@@ -1239,7 +1240,7 @@ export default function App() {
 
   async function handleBuildProjectCreated(projectPath, data) {
     try {
-      await fetch('/api/build/projects/register', {
+      await apiFetch('/api/build/projects/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: data?.name || projectPath.split('/').pop(), projectPath }),
@@ -1250,7 +1251,7 @@ export default function App() {
     setShowBuildWizard(false);
     // Find the newly registered project and select it
     try {
-      const res = await fetch('/api/build/projects');
+      const res = await apiFetch('/api/build/projects');
       const projects = await res.json();
       const newest = projects.find(p => p.path === projectPath);
       if (newest) setActiveBuildProject(newest.id);
@@ -1262,7 +1263,7 @@ export default function App() {
     // Register the created project in the Build registry and switch to Build mode
     const name = data?.name || projectPath.split('/').pop();
     try {
-      await fetch('/api/build/projects/register', {
+      await apiFetch('/api/build/projects/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, projectPath }),
@@ -1271,7 +1272,7 @@ export default function App() {
     await fetchBuildProjects();
     // Find and select the newly registered project
     try {
-      const res = await fetch('/api/build/projects');
+      const res = await apiFetch('/api/build/projects');
       const projects = await res.json();
       const newest = projects.find(p => p.path === projectPath);
       if (newest) setActiveBuildProject(newest.id);
@@ -1838,7 +1839,7 @@ export default function App() {
                 onClose={() => setShowFileBrowser(false)}
                 onClearFolder={async () => {
                   try {
-                    const res = await fetch('/api/config', {
+                    const res = await apiFetch('/api/config', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ projectFolder: '' })
@@ -1852,7 +1853,7 @@ export default function App() {
                 onSetFolder={async (folder) => {
                   setProjectFolder(folder);
                   try {
-                    await fetch('/api/config', {
+                    await apiFetch('/api/config', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ projectFolder: folder })

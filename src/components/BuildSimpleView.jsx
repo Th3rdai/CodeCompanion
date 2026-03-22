@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { Lightbulb, RefreshCw, FolderOpen, Layers, Search, FileText, Save, AlertTriangle } from 'lucide-react';
 import MarkdownContent from './MarkdownContent';
 import ClaudeCodeHandoff from './ClaudeCodeHandoff';
@@ -88,7 +89,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/build/projects/${project.id}/next-action`, {
+      const res = await apiFetch(`/api/build/projects/${project.id}/next-action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel }),
@@ -121,7 +122,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
     let accumulated = '';
 
     try {
-      const res = await fetch(`/api/build/projects/${project.id}/research`, {
+      const res = await apiFetch(`/api/build/projects/${project.id}/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, phaseNumber }),
@@ -160,7 +161,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
       // Re-call with writeToFile flag
       setSaving(true);
       try {
-        const res = await fetch(`/api/build/projects/${project.id}/plan`, {
+        const res = await apiFetch(`/api/build/projects/${project.id}/plan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ model: selectedModel, phaseNumber, researchContext: researchText, writeToFile: true }),
@@ -199,7 +200,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
     let accumulated = '';
 
     try {
-      const res = await fetch(`/api/build/projects/${project.id}/plan`, {
+      const res = await apiFetch(`/api/build/projects/${project.id}/plan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, phaseNumber, researchContext: researchText }),

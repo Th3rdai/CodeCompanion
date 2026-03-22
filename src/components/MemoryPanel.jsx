@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { Brain, Trash2, Search, X } from 'lucide-react';
 
 const TYPE_COLORS = {
@@ -45,7 +46,7 @@ export default function MemoryPanel({ onClose }) {
   async function fetchMemories() {
     setLoading(true);
     try {
-      const res = await fetch('/api/memory');
+      const res = await apiFetch('/api/memory');
       const data = await res.json();
       setMemories(Array.isArray(data) ? data : (data.memories || []));
     } catch {
@@ -62,7 +63,7 @@ export default function MemoryPanel({ onClose }) {
     }
     setSearching(true);
     try {
-      const res = await fetch(`/api/memory/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      const res = await apiFetch(`/api/memory/search?q=${encodeURIComponent(searchQuery.trim())}`);
       const data = await res.json();
       setMemories(Array.isArray(data) ? data : (data.memories || data.results || []));
     } catch {
@@ -78,7 +79,7 @@ export default function MemoryPanel({ onClose }) {
 
   async function handleDelete(id) {
     try {
-      await fetch(`/api/memory/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/memory/${id}`, { method: 'DELETE' });
       setMemories(prev => prev.filter(m => m.id !== id));
     } catch {}
   }

@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -24,7 +25,7 @@ const {
   deleteClonedRepo,
   listClonedRepos,
   listUserRepos,
-  validateToken,
+  validateTokenCached,
   createRepo,
   initAndPush,
   getGitStatus,
@@ -48,7 +49,10 @@ const { canConvertBuiltin, convertBuiltin } = require('./lib/builtin-doc-convert
 const { startDocling, stopDocling } = require('./lib/docling-starter');
 
 const app = express();
-const HOST = process.env.HOST || '0.0.0.0'; // use 0.0.0.0 to allow remote access
+// Default localhost-only; set CC_BIND_ALL=1 or HOST=0.0.0.0 for LAN access (see docs/ENVIRONMENT_VARIABLES.md)
+const HOST =
+  process.env.HOST ||
+  (process.env.CC_BIND_ALL === '1' ? '0.0.0.0' : '127.0.0.1');
 const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
 
 // HTTPS: use cert/server.crt + cert/server.key if present (self-signed or otherwise)
@@ -144,6 +148,16 @@ initHistory(dataRoot);
 initMemory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 
+const {
+  createRequireLocalOrApiKey,
+  createCorsOptions,
+  assertResolvedPathUnderAllowedRoots,
+  resolveFolderInput,
+  assertLocalPathForGitPush,
+  isAllowedGitHubRemoteUrl,
+} = require('./lib/security-helpers');
+const requireLocalOrApiKey = createRequireLocalOrApiKey({ log });
+
 // ── Port configuration ───────────────────────────────
 // Priority: process.env.PORT > config.preferredPort > 8900
 const config = getConfig();
@@ -154,11 +168,37 @@ const mcpClientManager = new McpClientManager({ log, debug });
 const toolCallHandler = new ToolCallHandler(mcpClientManager, { log, debug, getConfig });
 
 // ── Mount MCP API routes ─────────────────────────────
+const { CLIENT_INTERNAL_ERROR, STREAM_INTERNAL_ERROR } = require('./lib/client-errors');
 const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
-  getConfig, updateConfig, mcpClientManager, log, debug
+  getConfig, updateConfig, mcpClientManager, log, debug, requireLocalOrApiKey,
 });
 
 app.use(express.json({ limit: '5mb' }));
+
+// Per-request CSP nonce (scripts in index.html must match; no unsafe-inline for script-src)
+app.use((_req, res, next) => {
+  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  next();
+});
+
+// Serve Vite production build (dist/) if available, fallback to legacy public/
+const distDir = path.join(__dirname, 'dist');
+const publicDir = path.join(__dirname, 'public');
+const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
+
+function injectCspNonceIntoHtml(html, nonce) {
+  if (!nonce) return html;
+  return html.replace(/<script(?![^>]*\snonce=)/gi, `<script nonce="${nonce}" `);
+}
+
+function sendSpaIndexHtml(res) {
+  const indexPath = path.join(staticDir, 'index.html');
+  if (!fs.existsSync(indexPath)) return false;
+  let html = fs.readFileSync(indexPath, 'utf8');
+  html = injectCspNonceIntoHtml(html, res.locals.cspNonce);
+  res.type('html').send(html);
+  return true;
+}
 
 // ── Security Event Logger ────────────────────────────
 function logSecurity(event, details = {}) {
@@ -170,7 +210,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.cspNonce}'`],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       connectSrc: ["'self'", "http://localhost:*", "http://127.0.0.1:*", "https://prod.spline.design"],
@@ -180,7 +220,7 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false, // Allow Spline 3D scenes
 }));
-app.use(cors({ origin: (_origin, cb) => cb(null, true), credentials: true })); // Allow same-host origins
+app.use(cors(createCorsOptions())); // localhost / 127.0.0.1 by default; CC_CORS_ALLOW_LAN=1 or CC_ALLOWED_ORIGINS for LAN
 
 // When serving HTTP only, clear HSTS so browsers don't upgrade to HTTPS
 app.use((_req, res, next) => {
@@ -190,11 +230,14 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Serve Vite production build (dist/) if available, fallback to legacy public/
-const distDir = path.join(__dirname, 'dist');
-const publicDir = path.join(__dirname, 'public');
-const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
+// HTML shell must include per-request nonces (do not serve raw index.html from static)
+app.get(['/', '/index.html'], (req, res, next) => {
+  if (sendSpaIndexHtml(res)) return;
+  next();
+});
+
 app.use(express.static(staticDir, {
+  index: false,
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -234,6 +277,17 @@ app.use('/api/score', createRateLimiter({ name: 'score', max: SCORE_RATE_LIMIT_M
 app.use('/api/tutorial-suggestions', createRateLimiter({ name: 'tutorial-suggestions', max: 20, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
 app.use('/api/memory', createRateLimiter({ name: 'memory', max: MEMORY_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'PUT', 'DELETE'] }));
 
+const API_GLOBAL_RATE_MAX = Number(process.env.RATE_LIMIT_MAX_API_GLOBAL || 300);
+app.use(
+  '/api',
+  createRateLimiter({
+    name: 'api-global',
+    max: API_GLOBAL_RATE_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  })
+);
+
 // ── MCP Management API routes ────────────────────────
 app.use('/api', mcpApiRouter);
 
@@ -254,7 +308,7 @@ app.get('/api/config', (req, res) => {
 
 // ── POST /api/config ─────────────────────────────────
 
-app.post('/api/config', (req, res) => {
+app.post('/api/config', requireLocalOrApiKey, (req, res) => {
   const { ollamaUrl, projectFolder, icmTemplatePath } = req.body;
   const config = getConfig();
 
@@ -408,7 +462,7 @@ app.get('/api/models', async (req, res) => {
     log('ERROR', `Cannot reach Ollama at ${url}`, { error: err.message, cause: err.cause?.message });
     res.status(503).json({
       error: 'Cannot reach Ollama',
-      detail: err.message,
+      detail: 'Connection failed',
       ollamaUrl: config.ollamaUrl,
       connected: false
     });
@@ -426,10 +480,12 @@ app.get('/api/docling/health', async (req, res) => {
     if (result.connected) {
       res.json({ connected: true, version: result.version, doclingUrl: url });
     } else {
-      res.status(503).json({ connected: false, detail: result.error, doclingUrl: url });
+      log('WARN', 'Docling not connected', { detail: result.error, doclingUrl: url });
+      res.status(503).json({ connected: false, detail: 'Service unavailable', doclingUrl: url });
     }
   } catch (err) {
-    res.status(503).json({ connected: false, detail: err.message, doclingUrl: url });
+    log('WARN', 'Docling health check failed', { error: err.message, doclingUrl: url });
+    res.status(503).json({ connected: false, detail: 'Health check failed', doclingUrl: url });
   }
 });
 
@@ -501,7 +557,7 @@ app.post('/api/convert-document',
               setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
             });
           }
-          return res.status(500).json({ error: 'Conversion failed', detail: err.message });
+          return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
         }
         log('INFO', `Falling back to built-in converter for ${filename}`);
       }
@@ -514,7 +570,7 @@ app.post('/api/convert-document',
         return res.json(mkResponse(result, 'builtin'));
       } catch (err) {
         log('ERROR', `Built-in conversion failed: ${filename}`, { error: err.message });
-        return res.status(500).json({ error: 'Conversion failed', detail: err.message });
+        return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
       }
     }
 
@@ -569,7 +625,7 @@ app.post('/api/generate-office',
       res.send(result.buffer);
     } catch (err) {
       log('ERROR', `Export failed: ${filename}`, { error: err.message });
-      res.status(500).json({ error: 'File generation failed', detail: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 );
@@ -760,16 +816,16 @@ app.post('/api/chat', async (req, res) => {
           if (msg.includes('timeout') || msg.includes('timed out')) {
             sendEvent({ error: images?.length > 0
               ? 'Request timed out. Vision models can take longer - try fewer images.'
-              : `Request timed out: ${err.message}` });
+              : 'Request timed out. Try a shorter message or fewer images.' });
           } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
             sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
           } else if (msg.includes('500')) {
             const totalLen = loopMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
             sendEvent({ error: totalLen > 30000
               ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document or a model with a larger context window.`
-              : `Ollama error: ${err.message}` });
+              : STREAM_INTERNAL_ERROR });
           } else {
-            sendEvent({ error: `Ollama error: ${err.message}` });
+            sendEvent({ error: STREAM_INTERNAL_ERROR });
           }
           res.write('data: [DONE]\n\n');
           return res.end();
@@ -863,9 +919,9 @@ app.post('/api/chat', async (req, res) => {
         const totalLen = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
         userError = totalLen > 30000
           ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document, reduce conversation history, or use a model with a larger context window.`
-          : `Ollama error: ${ollamaRes.status} — ${errText || 'internal server error'}`;
+          : STREAM_INTERNAL_ERROR;
       } else {
-        userError = `Ollama error: ${ollamaRes.status} ${errText}`;
+        userError = `Ollama returned HTTP ${ollamaRes.status}. Check the model name and try again.`;
       }
       sendEvent({ error: userError });
       res.write('data: [DONE]\n\n');
@@ -949,11 +1005,11 @@ app.post('/api/chat', async (req, res) => {
           if (msg.includes('timeout') || msg.includes('timed out')) {
             sendEvent({ error: images?.length > 0
               ? 'Request timed out. Vision models can take longer - try fewer images.'
-              : `Request timed out: ${err.message}` });
+              : 'Request timed out. Try a shorter message or fewer images.' });
           } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
             sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
           } else {
-            sendEvent({ error: err.message });
+            sendEvent({ error: STREAM_INTERNAL_ERROR });
           }
           res.write('data: [DONE]\n\n');
           res.end();
@@ -984,13 +1040,13 @@ app.post('/api/chat', async (req, res) => {
     if (msg.includes('timeout') || msg.includes('timed out')) {
       sendEvent({ error: images?.length > 0
         ? 'Request timed out. Vision models can take longer - try fewer images.'
-        : `Request timed out: ${err.message}` });
+        : 'Request timed out. Try a shorter message or fewer images.' });
     } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
       sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
     } else if (msg.includes('econnrefused') || msg.includes('enotfound')) {
       sendEvent({ error: 'Cannot connect to Ollama. Please check that Ollama is running.' });
     } else {
-      sendEvent({ error: `Connection failed: ${err.message}` });
+      sendEvent({ error: STREAM_INTERNAL_ERROR });
     }
     res.write('data: [DONE]\n\n');
     res.end();
@@ -1056,7 +1112,7 @@ app.post('/api/review', async (req, res) => {
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
       log('ERROR', `Ollama fallback error: ${ollamaRes.status}`, { body: errText });
-      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
@@ -1117,7 +1173,7 @@ app.post('/api/review', async (req, res) => {
       } catch (err) {
         log('ERROR', 'Review fallback stream error', { error: err.message });
         if (!res.writableEnded) {
-          sendEvent({ error: err.message });
+          sendEvent({ error: STREAM_INTERNAL_ERROR });
           res.write('data: [DONE]\n\n');
           res.end();
         }
@@ -1133,7 +1189,7 @@ app.post('/api/review', async (req, res) => {
   } catch (err) {
     log('ERROR', 'Review failed completely', { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: `Review failed: ${err.message}` });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 });
@@ -1193,7 +1249,7 @@ app.post('/api/pentest', async (req, res) => {
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
       log('ERROR', `Ollama pentest fallback error: ${ollamaRes.status}`, { body: errText });
-      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
@@ -1254,7 +1310,7 @@ app.post('/api/pentest', async (req, res) => {
       } catch (err) {
         log('ERROR', 'Pentest fallback stream error', { error: err.message });
         if (!res.writableEnded) {
-          sendEvent({ error: err.message });
+          sendEvent({ error: STREAM_INTERNAL_ERROR });
           res.write('data: [DONE]\n\n');
           res.end();
         }
@@ -1270,7 +1326,7 @@ app.post('/api/pentest', async (req, res) => {
   } catch (err) {
     log('ERROR', 'Pentest failed completely', { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: `Pentest failed: ${err.message}` });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 });
@@ -1323,7 +1379,7 @@ Important: Include the COMPLETE file content in each block, not just the changed
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
@@ -1369,7 +1425,7 @@ Important: Include the COMPLETE file content in each block, not just the changed
           }
         }
       } catch (err) {
-        if (!res.writableEnded) { sendEvent({ error: err.message }); res.write('data: [DONE]\n\n'); res.end(); }
+        if (!res.writableEnded) { sendEvent({ error: STREAM_INTERNAL_ERROR }); res.write('data: [DONE]\n\n'); res.end(); }
       }
     }
 
@@ -1379,7 +1435,7 @@ Important: Include the COMPLETE file content in each block, not just the changed
   } catch (err) {
     log('ERROR', 'Remediate failed', { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: `Remediate failed: ${err.message}` });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 });
@@ -1450,7 +1506,7 @@ app.post('/api/pentest/folder', async (req, res) => {
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
@@ -1496,7 +1552,7 @@ app.post('/api/pentest/folder', async (req, res) => {
           }
         }
       } catch (err) {
-        if (!res.writableEnded) { sendEvent({ error: err.message }); res.write('data: [DONE]\n\n'); res.end(); }
+        if (!res.writableEnded) { sendEvent({ error: STREAM_INTERNAL_ERROR }); res.write('data: [DONE]\n\n'); res.end(); }
       }
     }
 
@@ -1506,7 +1562,7 @@ app.post('/api/pentest/folder', async (req, res) => {
   } catch (err) {
     log('ERROR', 'Pentest folder failed', { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: `Pentest folder failed: ${err.message}` });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 });
@@ -1549,7 +1605,7 @@ app.post('/api/validate/generate', async (req, res) => {
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
       res.write('data: [DONE]\n\n');
       return res.end();
     }
@@ -1595,7 +1651,7 @@ app.post('/api/validate/generate', async (req, res) => {
           }
         }
       } catch (err) {
-        if (!res.writableEnded) { sendEvent({ error: err.message }); res.write('data: [DONE]\n\n'); res.end(); }
+        if (!res.writableEnded) { sendEvent({ error: STREAM_INTERNAL_ERROR }); res.write('data: [DONE]\n\n'); res.end(); }
       }
     }
 
@@ -1605,13 +1661,13 @@ app.post('/api/validate/generate', async (req, res) => {
   } catch (err) {
     log('ERROR', 'Validate generate failed', { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: `Validate generate failed: ${err.message}` });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 });
 
 // ── POST /api/validate/install (write validate.md to IDE command path) ──
-app.post('/api/validate/install', (req, res) => {
+app.post('/api/validate/install', requireLocalOrApiKey, (req, res) => {
   const { projectFolder, content, targets } = req.body;
   // targets is an array of relative paths like ['.claude/commands/validate.md', ...]
 
@@ -1619,7 +1675,18 @@ app.post('/api/validate/install', (req, res) => {
     return res.status(400).json({ error: 'Missing projectFolder, content, or targets' });
   }
 
-  const absFolder = path.resolve(projectFolder);
+  const config = getConfig();
+  const resolvedProject = resolveFolderInput(projectFolder);
+  if (!resolvedProject) {
+    return res.status(400).json({ error: 'Invalid projectFolder path' });
+  }
+  const allowed = assertResolvedPathUnderAllowedRoots(resolvedProject, config);
+  if (!allowed.ok) {
+    log('WARN', 'validate/install blocked — projectFolder outside allowed roots');
+    return res.status(403).json({ error: allowed.error });
+  }
+
+  const absFolder = resolvedProject;
   if (!fs.existsSync(absFolder)) {
     return res.status(400).json({ error: 'Project folder not found' });
   }
@@ -1639,7 +1706,7 @@ app.post('/api/validate/install', (req, res) => {
       results.push({ target, success: true });
       log('INFO', `Validate installed: ${targetPath}`);
     } catch (err) {
-      results.push({ target, success: false, error: err.message });
+      results.push({ target, success: false, error: 'Write failed' });
     }
   }
 
@@ -1694,7 +1761,7 @@ app.post('/api/score', async (req, res) => {
       if (!ollamaRes.ok) {
         const errText = await ollamaRes.text();
         log('ERROR', `Ollama score fallback error: ${ollamaRes.status}`, { body: errText });
-        sendEvent({ error: `Ollama error: ${ollamaRes.status} ${errText}` });
+        sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
         res.write('data: [DONE]\n\n');
         return res.end();
       }
@@ -1737,7 +1804,7 @@ app.post('/api/score', async (req, res) => {
   } catch (err) {
     log('ERROR', 'Score endpoint failed', { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 });
@@ -1785,7 +1852,7 @@ app.post('/api/launch-claude-code', async (req, res) => {
     }
   } catch (err) {
     log('ERROR', 'launch-claude-code failed', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1816,7 +1883,7 @@ app.post('/api/launch-cursor', async (req, res) => {
     }
   } catch (err) {
     log('ERROR', 'launch-cursor failed', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1847,7 +1914,7 @@ app.post('/api/launch-windsurf', async (req, res) => {
     }
   } catch (err) {
     log('ERROR', 'launch-windsurf failed', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1888,7 +1955,7 @@ app.post('/api/launch-vscode', async (req, res) => {
     }
   } catch (err) {
     log('ERROR', 'launch-vscode failed', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1914,7 +1981,7 @@ app.post('/api/launch-opencode', async (req, res) => {
     }
   } catch (err) {
     log('ERROR', 'launch-opencode failed', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1956,7 +2023,7 @@ app.post('/api/history', async (req, res) => {
     }
   } catch (err) {
     const status = err.message.includes('Invalid conversation id') ? 400 : 500;
-    res.status(status).json({ error: err.message });
+    res.status(status).json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1967,7 +2034,7 @@ app.delete('/api/history/:id', (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     const status = err.message.includes('Invalid conversation id') ? 400 : 500;
-    res.status(status).json({ error: err.message });
+    res.status(status).json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -1989,7 +2056,7 @@ app.get('/api/memory/stats', (req, res) => {
     res.json(getMemoryStats());
   } catch (err) {
     log('ERROR', 'Failed to get memory stats', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2022,7 +2089,7 @@ app.get('/api/memory/search', async (req, res) => {
     res.json(cleaned);
   } catch (err) {
     log('ERROR', 'Memory search failed', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2043,7 +2110,7 @@ app.get('/api/memory', (req, res) => {
     res.json({ memories: cleaned, total, page, limit });
   } catch (err) {
     log('ERROR', 'Failed to list memories', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2082,7 +2149,7 @@ app.post('/api/memory', async (req, res) => {
     res.json(cleaned);
   } catch (err) {
     log('ERROR', 'Failed to add memory', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2099,7 +2166,7 @@ app.put('/api/memory/:id', (req, res) => {
     res.json(cleaned);
   } catch (err) {
     log('ERROR', 'Failed to update memory', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2115,7 +2182,7 @@ app.delete('/api/memory/:id', (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     log('ERROR', 'Failed to delete memory', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2171,6 +2238,12 @@ app.get('/api/files/tree', (req, res) => {
   folder = resolveFolder(folder);
   if (!folder) return res.status(404).json({ error: 'Folder not found' });
 
+  const allowedCheck = assertResolvedPathUnderAllowedRoots(folder, config);
+  if (!allowedCheck.ok) {
+    log('WARN', 'files/tree blocked — folder outside allowed roots', { folder });
+    return res.status(403).json({ error: allowedCheck.error });
+  }
+
   const depth = Number.parseInt(req.query.depth, 10);
   const maxDepth = Number.isNaN(depth) ? 3 : Math.min(Math.max(depth, 1), 6);
 
@@ -2180,7 +2253,7 @@ app.get('/api/files/tree', (req, res) => {
     res.json(result);
   } catch (err) {
     log('ERROR', 'Failed to build file tree', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2211,7 +2284,9 @@ app.get('/api/files/read', (req, res) => {
     }
     const status = err.message === 'File not found' ? 404 : err.message === 'Not a file' ? 400 : 500;
     log('ERROR', 'Failed to read file', { path: filePath, error: err.message, status });
-    res.status(status).json({ error: `Cannot read file: ${err.message}` });
+    res.status(status).json({
+      error: status === 500 ? CLIENT_INTERNAL_ERROR : (status === 404 ? 'Not found' : err.message),
+    });
   }
 });
 
@@ -2246,15 +2321,26 @@ app.get('/api/files/read-raw', (req, res) => {
 });
 
 // POST /api/files/save — save content back to file with .bak backup
-app.post('/api/files/save', (req, res) => {
+app.post('/api/files/save', requireLocalOrApiKey, (req, res) => {
   const { filePath, folder, content } = req.body;
 
   if (!filePath || !folder || content === undefined) {
     return res.status(400).json({ error: 'Missing filePath, folder, or content' });
   }
 
+  const config = getConfig();
+  const resolvedFolder = resolveFolderInput(folder);
+  if (!resolvedFolder) {
+    return res.status(400).json({ error: 'Invalid folder path' });
+  }
+  const allowed = assertResolvedPathUnderAllowedRoots(resolvedFolder, config);
+  if (!allowed.ok) {
+    log('WARN', 'files/save blocked — folder outside allowed roots', { folder });
+    return res.status(403).json({ error: allowed.error });
+  }
+
   try {
-    const result = saveProjectFile(folder, filePath, content);
+    const result = saveProjectFile(resolvedFolder, filePath, content);
     log('INFO', 'File saved', { path: filePath, size: result.size, backedUp: result.backedUp });
     res.json({ success: true, ...result });
   } catch (err) {
@@ -2263,7 +2349,7 @@ app.post('/api/files/save', (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     log('ERROR', 'Failed to save file', { path: filePath, error: err.message });
-    res.status(500).json({ error: `Cannot save file: ${err.message}` });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2298,7 +2384,7 @@ app.post('/api/create-project', (req, res) => {
     return res.status(status).json({ success: false, error: result.errors?.[0] || 'Scaffold failed', code });
   } catch (err) {
     log('ERROR', 'create-project failed', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message, code: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: CLIENT_INTERNAL_ERROR, code: 'SERVER_ERROR' });
   }
 });
 
@@ -2323,7 +2409,7 @@ app.post('/api/build-project', (req, res) => {
     return res.status(status).json({ success: false, error: result.errors?.[0] || 'Scaffold failed', code });
   } catch (err) {
     log('ERROR', 'build-project failed', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message, code: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: CLIENT_INTERNAL_ERROR, code: 'SERVER_ERROR' });
   }
 });
 
@@ -2370,7 +2456,7 @@ Example: {"audience":"Developers and technical writers","tone":"Professional","o
     });
   } catch (err) {
     log('WARN', 'tutorial-suggestions failed', { error: err.message });
-    res.status(500).json({ error: err.message || 'Failed to generate suggestions' });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2429,7 +2515,7 @@ app.post('/api/build/projects', (req, res) => {
       log('INFO', `Auto-scaffolded .planning/ for imported project: ${resolved}`);
     } catch (err) {
       log('ERROR', `Failed to scaffold .planning/ for import: ${err.message}`);
-      return res.status(500).json({ error: 'Failed to create planning structure: ' + err.message });
+      return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
 
@@ -2450,7 +2536,7 @@ app.get('/api/build/projects/:id/state', (req, res) => {
     const bridge = new GsdBridge(project.path);
     res.json(bridge.getState());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2461,7 +2547,7 @@ app.get('/api/build/projects/:id/roadmap', (req, res) => {
     const bridge = new GsdBridge(project.path);
     res.json(bridge.getRoadmap());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2472,7 +2558,7 @@ app.get('/api/build/projects/:id/progress', (req, res) => {
     const bridge = new GsdBridge(project.path);
     res.json(bridge.getProgress());
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2483,7 +2569,7 @@ app.get('/api/build/projects/:id/phase/:n', (req, res) => {
     const bridge = new GsdBridge(project.path);
     res.json(bridge.getPhaseDetail(req.params.n));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2515,7 +2601,7 @@ app.post('/api/build/projects/:id/next-action', async (req, res) => {
     res.json({ action: result, timestamp: new Date().toISOString() });
   } catch (err) {
     log('ERROR', `next-action failed: ${err.message}`);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2576,7 +2662,7 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
     if (!aborted) sendEvent({ done: true });
   } catch (err) {
     log('ERROR', `build-research failed: ${err.message}`);
-    sendEvent({ error: err.message });
+    sendEvent({ error: STREAM_INTERNAL_ERROR });
   }
   if (!res.writableEnded) res.end();
 });
@@ -2662,7 +2748,7 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
     if (!aborted) sendEvent({ done: true, validated, written });
   } catch (err) {
     log('ERROR', `build-plan failed: ${err.message}`);
-    sendEvent({ error: err.message });
+    sendEvent({ error: STREAM_INTERNAL_ERROR });
   }
   if (!res.writableEnded) res.end();
 });
@@ -2688,7 +2774,7 @@ app.get('/api/build/projects/:id/files', (req, res) => {
     const files = PLANNING_FILE_WHITELIST.filter(f => entries.includes(f));
     res.json({ files });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2712,7 +2798,7 @@ app.get('/api/build/projects/:id/files/:filename', (req, res) => {
     const content = fs.readFileSync(fullPath, 'utf-8');
     res.json({ content, filename });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2739,7 +2825,7 @@ app.put('/api/build/projects/:id/files/:filename', (req, res) => {
     fs.renameSync(tmpPath, fullPath);
     res.json({ success: true, filename });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2772,7 +2858,7 @@ app.get('/api/github/repos', (req, res) => {
     const repos = listClonedRepos(dataRoot);
     res.json({ repos });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2816,12 +2902,12 @@ app.get('/api/github/browse', async (req, res) => {
     const repos = await listUserRepos(token, page);
     res.json({ repos });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // POST /api/github/token — validate and save GitHub token
-app.post('/api/github/token', async (req, res) => {
+app.post('/api/github/token', requireLocalOrApiKey, async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
@@ -2832,7 +2918,7 @@ app.post('/api/github/token', async (req, res) => {
     return res.json({ valid: true, message: 'Token cleared' });
   }
 
-  const result = await validateToken(token);
+  const result = await validateTokenCached(token);
   if (result.valid) {
     const config = getConfig();
     config.githubToken = token;
@@ -2843,12 +2929,12 @@ app.post('/api/github/token', async (req, res) => {
 });
 
 // GET /api/github/token/status — check if a token is configured
-app.get('/api/github/token/status', async (req, res) => {
+app.get('/api/github/token/status', requireLocalOrApiKey, async (req, res) => {
   const config = getConfig();
   const token = config.githubToken;
   if (!token) return res.json({ configured: false });
 
-  const result = await validateToken(token);
+  const result = await validateTokenCached(token);
   res.json({ configured: true, ...result });
 });
 
@@ -2871,22 +2957,29 @@ app.post('/api/github/create', async (req, res) => {
     res.status(result.success ? 201 : 400).json(result);
   } catch (err) {
     log('ERROR', `GitHub create error: ${err.message}`);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // POST /api/github/push — init local repo and push to remote
-app.post('/api/github/push', (req, res) => {
+app.post('/api/github/push', requireLocalOrApiKey, (req, res) => {
   const config = getConfig();
   const token = config.githubToken;
   if (!token) return res.status(401).json({ error: 'GitHub token not configured' });
 
   const { localPath, remoteUrl, commitMessage, branch } = req.body || {};
   if (!localPath || !remoteUrl) return res.status(400).json({ error: 'localPath and remoteUrl are required' });
-  if (!fs.existsSync(localPath)) return res.status(404).json({ error: 'Local path does not exist' });
+  if (!isAllowedGitHubRemoteUrl(remoteUrl)) {
+    return res.status(400).json({ error: 'remoteUrl must be a github.com HTTPS or git@github.com SSH URL' });
+  }
+  const pathCheck = assertLocalPathForGitPush(localPath, config);
+  if (!pathCheck.ok) {
+    return res.status(403).json({ error: pathCheck.error });
+  }
+  if (!fs.existsSync(pathCheck.resolved)) return res.status(404).json({ error: 'Local path does not exist' });
 
   try {
-    const result = initAndPush(localPath, remoteUrl, token, { commitMessage, branch });
+    const result = initAndPush(pathCheck.resolved, remoteUrl, token, { commitMessage, branch });
     if (result.success) {
       log('INFO', `Pushed to GitHub: ${remoteUrl}`);
     } else {
@@ -2895,7 +2988,7 @@ app.post('/api/github/push', (req, res) => {
     res.json(result);
   } catch (err) {
     log('ERROR', `Push error: ${err.message}`);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -3031,13 +3124,13 @@ app.post('/api/git/review', async (req, res) => {
     res.json({ review, truncated });
   } catch (err) {
     log('ERROR', `git review: ${err.message}`, { repoPath });
-    res.status(500).json({ error: err.message, review: '' });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR, review: '' });
   }
 });
 
 // ── GET /api/logs ────────────────────────────────────
 
-app.get('/api/logs', (req, res) => {
+app.get('/api/logs', requireLocalOrApiKey, (req, res) => {
   const type = req.query.type === 'debug' ? 'debug.log' : 'app.log';
   const lines = parseInt(req.query.lines) || 50;
   const logPath = path.join(logDir, type);
@@ -3047,7 +3140,7 @@ app.get('/api/logs', (req, res) => {
     const allLines = content.split('\n').filter(Boolean);
     res.json({ lines: allLines.slice(-lines), file: type, total: allLines.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -3067,7 +3160,7 @@ function createMcpServer() {
 }
 
 // Place AFTER all /api/* routes but BEFORE SPA fallback
-app.all('/mcp', async (req, res) => {
+app.all('/mcp', requireLocalOrApiKey, async (req, res) => {
   try {
     const config = getConfig();
     if (config.mcpServer?.httpEnabled === false) {
@@ -3107,8 +3200,7 @@ process.on('SIGTERM', async () => {
 // ── SPA Fallback (must be after all API routes) ──────
 
 app.get('*', (req, res) => {
-  const indexPath = path.join(staticDir, 'index.html');
-  if (fs.existsSync(indexPath)) return res.sendFile(indexPath);
+  if (sendSpaIndexHtml(res)) return;
   res.status(404).send('Not found');
 });
 

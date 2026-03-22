@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { Tab } from '@headlessui/react';
 import { FileText, Upload as UploadIcon, FolderOpen, FolderSearch, AlertTriangle, History, Copy, Download, Check, ChevronDown, Wrench, X } from 'lucide-react';
 import JSZip from 'jszip';
@@ -173,7 +174,7 @@ export default function SecurityPanel({
       // Phase 9.2: Include images in security scan request
       const images = attachedImages.map(img => img.content); // Array of base64 (NO prefix)
 
-      const res = await fetch('/api/pentest', {
+      const res = await apiFetch('/api/pentest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -293,7 +294,7 @@ export default function SecurityPanel({
       .map(m => ({ role: m.role === 'system' ? 'system' : m.role, content: m.content }));
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -425,7 +426,7 @@ export default function SecurityPanel({
     for (const file of imageFiles) {
       setProcessingImages(prev => prev + 1);
       try {
-        const configRes = await fetch('/api/config');
+        const configRes = await apiFetch('/api/config');
         const config = await configRes.json();
 
         const validation = await validateImage(file, config.imageSupport || {});
@@ -629,7 +630,7 @@ export default function SecurityPanel({
           // Phase 9.2: Process dropped image
           setProcessingImages(prev => prev + 1);
           try {
-            const configRes = await fetch('/api/config');
+            const configRes = await apiFetch('/api/config');
             const config = await configRes.json();
 
             const validation = await validateImage(file, config.imageSupport || {});
@@ -770,7 +771,7 @@ export default function SecurityPanel({
     setFolderPreview(null);
 
     try {
-      const res = await fetch('/api/pentest/folder/preview', {
+      const res = await apiFetch('/api/pentest/folder/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder: folderPath.trim() }),
@@ -799,7 +800,7 @@ export default function SecurityPanel({
     setFolderMeta(null);
 
     try {
-      const res = await fetch('/api/pentest/folder', {
+      const res = await apiFetch('/api/pentest/folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, folder: folderPath.trim() }),
@@ -922,7 +923,7 @@ export default function SecurityPanel({
     ];
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, mode: 'chat', messages: chatMessages }),
@@ -1074,7 +1075,7 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
       : `(Original source code not available. Target: ${filename || 'unknown'}. Generate recommended remediation code examples based on the security findings below.)`;
 
     try {
-      const res = await fetch('/api/pentest/remediate', {
+      const res = await apiFetch('/api/pentest/remediate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

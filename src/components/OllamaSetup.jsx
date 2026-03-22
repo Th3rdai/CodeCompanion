@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { Wifi, WifiOff, Download, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 
 /**
@@ -49,7 +50,7 @@ export default function OllamaSetup({ onComplete }) {
         }
       } else {
         // Browser mode - check via API endpoint
-        const response = await fetch('/api/health');
+        const response = await apiFetch('/api/health');
         const data = await response.json();
         if (data.ollamaConnected) {
           setState('complete');

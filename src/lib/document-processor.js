@@ -4,6 +4,8 @@
  * Documents are converted to markdown by docling-serve (proxied through Express).
  */
 
+import { apiFetch } from './api-fetch';
+
 // Supported document extensions for conversion via docling-serve
 export const DOCUMENT_EXTENSIONS = new Set([
   '.pdf', '.pptx', '.docx', '.xlsx', '.xls', '.csv',
@@ -95,7 +97,7 @@ export function readFileAsBase64(file) {
 export async function convertDocument(file) {
   const base64 = await readFileAsBase64(file);
 
-  const res = await fetch('/api/convert-document', {
+  const res = await apiFetch('/api/convert-document', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content: base64, filename: file.name }),

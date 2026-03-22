@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { Tab } from '@headlessui/react';
 import { FileText, Upload as UploadIcon, FolderOpen, AlertTriangle, History, X } from 'lucide-react';
 import { readText } from '../lib/clipboard';
@@ -161,7 +162,7 @@ export default function ReviewPanel({
       // Phase 9.1: Include images in review request
       const images = attachedImages.map(img => img.content); // Array of base64 (NO prefix)
 
-      const res = await fetch('/api/review', {
+      const res = await apiFetch('/api/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -284,7 +285,7 @@ export default function ReviewPanel({
       .map(m => ({ role: m.role === 'system' ? 'system' : m.role, content: m.content }));
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -406,7 +407,7 @@ export default function ReviewPanel({
         // Phase 9.1: Process image files
         setProcessingImages(prev => prev + 1);
         try {
-          const configRes = await fetch('/api/config');
+          const configRes = await apiFetch('/api/config');
           const config = await configRes.json();
 
           const validation = await validateImage(file, config.imageSupport || {});
@@ -500,7 +501,7 @@ export default function ReviewPanel({
         // Phase 9.1: Process image files
         setProcessingImages(prev => prev + 1);
         try {
-          const configRes = await fetch('/api/config');
+          const configRes = await apiFetch('/api/config');
           const config = await configRes.json();
 
           const validation = await validateImage(file, config.imageSupport || {});

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { ChevronDown, ChevronRight, FileText, CheckCircle } from 'lucide-react';
 import PlanningFileViewer from './PlanningFileViewer';
 
@@ -17,7 +18,7 @@ export default function BuildAdvancedView({ project, projectData, onToast, onVie
   useState(() => {
     if (!project?.id) return;
     setFilesLoading(true);
-    fetch(`/api/build/projects/${project.id}/files`)
+    apiFetch(`/api/build/projects/${project.id}/files`)
       .then(r => r.json())
       .then(data => setFiles(data.files || []))
       .catch(() => setFiles([]))

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { X, Edit3, Save, XCircle } from 'lucide-react';
 
 /**
@@ -16,7 +17,7 @@ export default function PlanningFileViewer({ projectId, filename, onClose, onToa
     setLoading(true);
     setError(null);
     setEditing(false);
-    fetch(`/api/build/projects/${projectId}/files/${filename}`)
+    apiFetch(`/api/build/projects/${projectId}/files/${filename}`)
       .then(r => {
         if (r.status === 403) throw new Error('This file cannot be edited');
         if (r.status === 404) throw new Error('File not found');
@@ -35,7 +36,7 @@ export default function PlanningFileViewer({ projectId, filename, onClose, onToa
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/build/projects/${projectId}/files/${filename}`, {
+      const res = await apiFetch(`/api/build/projects/${projectId}/files/${filename}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: editedContent }),

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { isConvertibleFilename, convertDocument } from '../lib/document-processor';
 
 // Persist folder expand/collapse state in localStorage (survives refresh)
@@ -118,7 +119,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     setLaunchError(null);
     setLoading(true);
     try {
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectPath: folderPath })
@@ -146,7 +147,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     setLoading(true);
     setFolderError(null);
     try {
-      const res = await fetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(target)}`);
+      const res = await apiFetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(target)}`);
       const data = await res.json();
       if (!res.ok) {
         setFolderError(data.error || 'Could not load folder');
@@ -171,7 +172,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     if (node.convertible) {
       setConverting(node.path);
       try {
-        const rawRes = await fetch(`/api/files/read-raw?path=${encodeURIComponent(node.path)}`);
+        const rawRes = await apiFetch(`/api/files/read-raw?path=${encodeURIComponent(node.path)}`);
         if (!rawRes.ok) throw new Error('Failed to read file');
         const blob = await rawRes.blob();
         const file = new File([blob], node.name);
@@ -203,7 +204,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
 
     setLoadingFile(true);
     try {
-      const res = await fetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
+      const res = await apiFetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
       const data = await res.json();
       setPreview(data);
     } catch {}
@@ -222,7 +223,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     if (node.convertible) {
       setConverting(node.path);
       try {
-        const rawRes = await fetch(`/api/files/read-raw?path=${encodeURIComponent(node.path)}`);
+        const rawRes = await apiFetch(`/api/files/read-raw?path=${encodeURIComponent(node.path)}`);
         if (!rawRes.ok) throw new Error('Failed to read file');
         const blob = await rawRes.blob();
         const file = new File([blob], node.name);
@@ -244,7 +245,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
     }
 
     try {
-      const res = await fetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
+      const res = await apiFetch(`/api/files/read?path=${encodeURIComponent(node.path)}`);
       const data = await res.json();
       if (data.content !== undefined) {
         onAttachFile({ name: data.name, path: data.path, content: data.content, lines: data.lines });
@@ -285,7 +286,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
       if (files[0].path) {
         setDropping({ total: 1, done: 0, message: 'Opening folder...' });
         try {
-          const res = await fetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(files[0].path)}`);
+          const res = await apiFetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(files[0].path)}`);
           const data = await res.json();
           if (data.tree && onSetFolder) {
             onSetFolder(files[0].path);

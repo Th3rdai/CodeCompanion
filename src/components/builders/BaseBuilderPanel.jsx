@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { apiFetch } from '../../lib/api-fetch';
 import LoadingAnimation from '../LoadingAnimation';
 import MarkdownContent from '../MarkdownContent';
 import BuilderScoreCard from './BuilderScoreCard';
@@ -196,7 +197,7 @@ export default function BaseBuilderPanel({
     try {
       const currentFormData = formDataRef.current;
       const content = config.buildContent(currentFormData);
-      const res = await fetch('/api/score', {
+      const res = await apiFetch('/api/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -311,7 +312,7 @@ export default function BaseBuilderPanel({
     if (!sourceFile?.path || !sourceFile?.folder) return;
     try {
       const content = config.buildContent(formDataRef.current);
-      const res = await fetch('/api/files/save', {
+      const res = await apiFetch('/api/files/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: sourceFile.path, folder: sourceFile.folder, content }),
@@ -407,7 +408,7 @@ Format your response as:
         ...updatedMessages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role, content: m.content })),
       ];
 
-      const res = await fetch('/api/chat', {
+      const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

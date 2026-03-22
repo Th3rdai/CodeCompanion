@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 
 function StatusDot({ status }) {
   const colors = {
@@ -33,7 +34,7 @@ function AddServerModal({ onAdd, onClose }) {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('/api/mcp/clients/test-connection', {
+      const res = await apiFetch('/api/mcp/clients/test-connection', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildPayload()),
@@ -54,7 +55,7 @@ function AddServerModal({ onAdd, onClose }) {
     // Generate id from name: lowercase, replace spaces/special chars with hyphens
     const id = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     try {
-      const res = await fetch('/api/mcp/clients', {
+      const res = await apiFetch('/api/mcp/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, name, autoConnect: true, ...buildPayload() }),
@@ -62,7 +63,7 @@ function AddServerModal({ onAdd, onClose }) {
       const data = await res.json();
       if (data.id) {
         // Auto-connect after saving
-        await fetch(`/api/mcp/clients/${id}/connect`, { method: 'POST' });
+        await apiFetch(`/api/mcp/clients/${id}/connect`, { method: 'POST' });
         onAdd();
         onClose();
       } else {
@@ -156,7 +157,7 @@ export default function McpClientPanel() {
   async function fetchClients() {
     setLoading(true);
     try {
-      const res = await fetch('/api/mcp/clients');
+      const res = await apiFetch('/api/mcp/clients');
       const data = await res.json();
       // API returns array directly
       setClients(Array.isArray(data) ? data : []);
@@ -168,7 +169,7 @@ export default function McpClientPanel() {
 
   async function handleConnect(id) {
     try {
-      await fetch(`/api/mcp/clients/${id}/connect`, { method: 'POST' });
+      await apiFetch(`/api/mcp/clients/${id}/connect`, { method: 'POST' });
       fetchClients();
     } catch (err) {
       console.error('Failed to connect:', err);
@@ -177,7 +178,7 @@ export default function McpClientPanel() {
 
   async function handleDisconnect(id) {
     try {
-      await fetch(`/api/mcp/clients/${id}/disconnect`, { method: 'POST' });
+      await apiFetch(`/api/mcp/clients/${id}/disconnect`, { method: 'POST' });
       fetchClients();
     } catch (err) {
       console.error('Failed to disconnect:', err);
@@ -187,7 +188,7 @@ export default function McpClientPanel() {
   async function handleRemove(id) {
     if (confirm('Remove this server connection?')) {
       try {
-        await fetch(`/api/mcp/clients/${id}`, { method: 'DELETE' });
+        await apiFetch(`/api/mcp/clients/${id}`, { method: 'DELETE' });
         fetchClients();
       } catch (err) {
         console.error('Failed to remove:', err);

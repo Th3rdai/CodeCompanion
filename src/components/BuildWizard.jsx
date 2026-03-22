@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import DictateButton from './DictateButton';
 import { joinAppend } from '../lib/dictationAppend';
 import { BUILD_TUTORIAL_STEPS } from '../data/tutorialSteps';
@@ -71,7 +72,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
     const hasProjectInfo = name.trim() || description.trim();
     if (!hasProjectInfo) return;
     setContextualSuggestionsLoading(true);
-    fetch('/api/tutorial-suggestions', {
+    apiFetch('/api/tutorial-suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), description: description.trim(), mode: 'build' })
@@ -124,7 +125,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
 
     if (step >= 2 && (fieldKey === 'audience' || fieldKey === 'tone' || fieldKey === 'outputRoot')) {
       setLoadingSuggestionFor(fieldKey);
-      fetch('/api/tutorial-suggestions', {
+      apiFetch('/api/tutorial-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), description: description.trim(), mode: 'build' })
@@ -178,7 +179,7 @@ export default function BuildWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess
     setStepError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/build-project', {
+      const res = await apiFetch('/api/build-project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

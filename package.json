@@ -22,12 +22,18 @@
     "electron:build:win": "npm run build && electron-builder --win --config electron-builder.config.js --publish never",
     "electron:build:linux": "npm run build && electron-builder --linux --config electron-builder.config.js --publish never",
     "electron:build:win-linux-x64": "npm run build && electron-builder --win --linux --x64 --config electron-builder.config.js --publish never",
+    "electron:publish:mac": "npm run build && electron-builder --mac --config electron-builder.config.js --publish always",
+    "electron:publish:win": "npm run build && electron-builder --win --config electron-builder.config.js --publish always",
+    "electron:publish:linux": "npm run build && electron-builder --linux --config electron-builder.config.js --publish always",
     "test": "npx playwright test",
     "test:ui": "npx playwright test tests/ui --project=chromium",
     "test:e2e": "npx playwright test tests/e2e --project=chromium",
     "test:unit": "node --test tests/unit/*.test.js tests/rate-limit.test.js tests/mcp-security.test.js tests/tone-validation.test.js tests/ui-labels.test.js",
+    "audit:security": "npm audit --audit-level=critical",
     "mcp": "node mcp-server.js",
+    "mcp:test": "node scripts/mcp-stdio-smoke.js",
     "mcp:inspect": "npx @modelcontextprotocol/inspector node mcp-server.js",
+    "docs:pdf:releases": "node scripts/export-md-to-pdf.cjs docs/RELEASES-AND-UPDATES.md docs/RELEASES-AND-UPDATES.pdf",
     "postinstall": "patch-package"
   },
   "dependencies": {

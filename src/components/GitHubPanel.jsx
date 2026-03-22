@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { parseApiJson } from '../utils/parseApiJson';
 
 /**
@@ -78,7 +79,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
 
   async function checkToken() {
     try {
-      const res = await fetch('/api/github/token/status');
+      const res = await apiFetch('/api/github/token/status');
       const data = await parseApiJson(res);
       setTokenStatus(data);
     } catch {}
@@ -87,7 +88,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
   async function fetchClonedRepos() {
     setLoadingCloned(true);
     try {
-      const res = await fetch('/api/github/repos');
+      const res = await apiFetch('/api/github/repos');
       const data = await parseApiJson(res);
       setClonedRepos(data.repos || []);
     } catch {}
@@ -101,7 +102,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setCloning(true);
     setCloneResult(null);
     try {
-      const res = await fetch('/api/github/clone', {
+      const res = await apiFetch('/api/github/clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: repoUrl }),
@@ -121,7 +122,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
 
   async function handleOpenRepo(dirName) {
     try {
-      const res = await fetch('/api/github/open', {
+      const res = await apiFetch('/api/github/open', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dirName }),
@@ -135,7 +136,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
 
   async function handleDeleteRepo(dirName) {
     try {
-      await fetch(`/api/github/repos/${encodeURIComponent(dirName)}`, { method: 'DELETE' });
+      await apiFetch(`/api/github/repos/${encodeURIComponent(dirName)}`, { method: 'DELETE' });
       fetchClonedRepos();
     } catch {}
   }
@@ -144,7 +145,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setBrowseLoading(true);
     setBrowseError('');
     try {
-      const res = await fetch('/api/github/browse');
+      const res = await apiFetch('/api/github/browse');
       const data = await parseApiJson(res);
       if (data.error) {
         setBrowseError(data.error);
@@ -161,7 +162,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setGitLoading(true);
     setGitError('');
     try {
-      const res = await fetch('/api/git/status');
+      const res = await apiFetch('/api/git/status');
       const data = await parseApiJson(res);
       if (!res.ok || data.error) {
         setGitError(data.error || 'Failed to load git status');
@@ -191,7 +192,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setCreatingBranch(true);
     setGitError('');
     try {
-      const res = await fetch('/api/git/branch', {
+      const res = await apiFetch('/api/git/branch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: branchName.trim(), checkout: true })
@@ -213,7 +214,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setDiffLoading(true);
     try {
       const query = filePath ? `?file=${encodeURIComponent(filePath)}` : '';
-      const res = await fetch(`/api/git/diff${query}`);
+      const res = await apiFetch(`/api/git/diff${query}`);
       const data = await parseApiJson(res);
       setDiffContent(data.diff || '');
     } catch {
@@ -227,7 +228,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setMergeLoading(true);
     setMergePreview(null);
     try {
-      const res = await fetch('/api/git/merge-preview', {
+      const res = await apiFetch('/api/git/merge-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceBranch: mergeSourceBranch, targetRef: 'HEAD' })
@@ -242,7 +243,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
 
   async function handleResolveConflict(filePath, strategy) {
     try {
-      await fetch('/api/git/resolve', {
+      await apiFetch('/api/git/resolve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath, strategy })
@@ -260,7 +261,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     setReviewLoading(true);
     setReviewResult('');
     try {
-      const res = await fetch('/api/git/review', {
+      const res = await apiFetch('/api/git/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: selectedModel, filePath: selectedDiffFile || '' })
@@ -310,7 +311,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         };
       }
 
-      const res = await fetch(endpoint, {
+      const res = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -335,7 +336,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     try {
       // Step 1: Create repo on GitHub
       setPubStep('Creating repository on GitHub...');
-      const createRes = await fetch('/api/github/create', {
+      const createRes = await apiFetch('/api/github/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: pubRepoName.trim(), description: pubDescription.trim(), isPrivate: pubPrivate }),
@@ -349,7 +350,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
 
       // Step 2: Init local repo and push
       setPubStep('Pushing code to GitHub...');
-      const pushRes = await fetch('/api/github/push', {
+      const pushRes = await apiFetch('/api/github/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

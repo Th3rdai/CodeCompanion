@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { copyText } from '../lib/clipboard';
 
 // Actual Code Companion MCP tool names (must match mcp/tools.js)
@@ -42,7 +43,7 @@ export default function McpServerPanel() {
 
   async function fetchStatus() {
     try {
-      const res = await fetch('/api/mcp/server/status');
+      const res = await apiFetch('/api/mcp/server/status');
       const data = await res.json();
       setEnabled(data.httpEnabled !== false);
       setDisabledTools(data.disabledTools || []);
@@ -54,7 +55,7 @@ export default function McpServerPanel() {
 
   async function fetchStats() {
     try {
-      const res = await fetch('/api/mcp/server/stats');
+      const res = await apiFetch('/api/mcp/server/stats');
       const data = await res.json();
       setStats(data);
     } catch (err) {
@@ -64,7 +65,7 @@ export default function McpServerPanel() {
 
   async function handleToggleServer() {
     try {
-      const res = await fetch('/api/mcp/server/toggle', {
+      const res = await apiFetch('/api/mcp/server/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: !enabled }),
@@ -85,7 +86,7 @@ export default function McpServerPanel() {
       newDisabled = [...disabledTools, toolId];
     }
     try {
-      await fetch('/api/mcp/server/tools', {
+      await apiFetch('/api/mcp/server/tools', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ disabledTools: newDisabled }),

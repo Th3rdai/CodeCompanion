@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import DictateButton from './DictateButton';
 import { CREATE_TUTORIAL_STEPS } from '../data/tutorialSteps';
 import { joinAppend } from '../lib/dictationAppend';
@@ -91,7 +92,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
     const hasProjectInfo = name.trim() || description.trim();
     if (!hasProjectInfo) return;
     setContextualSuggestionsLoading(true);
-    fetch('/api/tutorial-suggestions', {
+    apiFetch('/api/tutorial-suggestions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name.trim(), description: description.trim(), role: role.trim() || undefined, mode: 'create' })
@@ -147,7 +148,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
 
     if (step >= 2 && (fieldKey === 'audience' || fieldKey === 'tone' || fieldKey === 'outputRoot')) {
       setLoadingSuggestionFor(fieldKey);
-      fetch('/api/tutorial-suggestions', {
+      apiFetch('/api/tutorial-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), description: description.trim(), role: role.trim() || undefined, mode: 'create' })
@@ -207,7 +208,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
     setStepError(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/create-project', {
+      const res = await apiFetch('/api/create-project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

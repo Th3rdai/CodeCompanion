@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { apiFetch } from '../lib/api-fetch';
 import { FolderSearch, Download, Copy, Check, AlertTriangle, CheckCircle, XCircle, FileText, Github, PackageCheck } from 'lucide-react';
 import { copyText } from '../lib/clipboard';
 import MarkdownContent from './MarkdownContent';
@@ -51,7 +52,7 @@ export default function ValidatePanel({
     if (inputTab === 'github') {
       setPhase('scanning');
       try {
-        const res = await fetch('/api/github/clone', {
+        const res = await apiFetch('/api/github/clone', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: target }),
@@ -69,7 +70,7 @@ export default function ValidatePanel({
 
     setPhase('scanning');
     try {
-      const res = await fetch('/api/validate/scan', {
+      const res = await apiFetch('/api/validate/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folder }),
@@ -93,7 +94,7 @@ export default function ValidatePanel({
     setGenerateError('');
 
     try {
-      const res = await fetch('/api/validate/generate', {
+      const res = await apiFetch('/api/validate/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -161,7 +162,7 @@ export default function ValidatePanel({
 
   async function handleInstallIDE(target) {
     try {
-      const res = await fetch('/api/validate/install', {
+      const res = await apiFetch('/api/validate/install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -184,7 +185,7 @@ export default function ValidatePanel({
 
   async function handleInstallAll() {
     try {
-      const res = await fetch('/api/validate/install', {
+      const res = await apiFetch('/api/validate/install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
