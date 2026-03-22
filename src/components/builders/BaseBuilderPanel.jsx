@@ -1,5 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../../lib/api-fetch';
+import { useAbortable } from '../../hooks/useAbortable';
+import { registerAbort, unregisterAbort } from '../../hooks/useAbortRegistry';
+import StopButton from '../ui/StopButton';
 import LoadingAnimation from '../LoadingAnimation';
 import MarkdownContent from '../MarkdownContent';
 import BuilderScoreCard from './BuilderScoreCard';
@@ -97,6 +100,17 @@ export default function BaseBuilderPanel({
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
   const isLoading = phase === 'loading';
+
+  // ── Abort support ──────────────────────────────────
+  const scoreAbort = useAbortable();
+  const reviseAbort = useAbortable();
+  const handleStop = useCallback(() => {
+    scoreAbort.abort();
+    reviseAbort.abort();
+    setReviseStreaming(false);
+    if (phase === 'loading') setPhase('input');
+  }, [scoreAbort, reviseAbort, phase]);
+  useEffect(() => { registerAbort(handleStop); return () => unregisterAbort(handleStop); }, [handleStop]);
 
   // ── Initialize form data from config fields ──────────
   useEffect(() => {
@@ -197,9 +211,11 @@ export default function BaseBuilderPanel({
     try {
       const currentFormData = formDataRef.current;
       const content = config.buildContent(currentFormData);
+      const signal = scoreAbort.startAbortable();
       const res = await apiFetch('/api/score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({
           model: selectedModel,
           mode: config.modeId,
@@ -277,10 +293,13 @@ export default function BaseBuilderPanel({
       setScoreError(`Unexpected response: ${text.slice(0, 200)}`);
       setPhase('input');
     } catch (err) {
+      if (scoreAbort.isAborted(err)) { setPhase('input'); return; }
       setScoreError(`Connection failed: ${err.message}`);
       setPhase('input');
+    } finally {
+      scoreAbort.clearAbortable();
     }
-  }, [selectedModel, connected, isLoading, formData, config, onSaveBuilder]);
+  }, [selectedModel, connected, isLoading, formData, config, onSaveBuilder, scoreAbort]);
 
   // ── Download handler ─────────────────────────────────
   const handleDownload = useCallback(() => {
@@ -408,9 +427,11 @@ Format your response as:
         ...updatedMessages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role, content: m.content })),
       ];
 
+      const signal = reviseAbort.startAbortable();
       const res = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({
           model: selectedModel,
           mode: config.modeId,
@@ -465,15 +486,18 @@ Format your response as:
         return updated;
       });
     } catch (err) {
-      setReviseMessages(prev => [
-        ...prev,
-        { role: 'assistant', content: `Connection failed: ${err.message}` },
-      ]);
+      if (!reviseAbort.isAborted(err)) {
+        setReviseMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: `Connection failed: ${err.message}` },
+        ]);
+      }
     } finally {
+      reviseAbort.clearAbortable();
       setReviseStreaming(false);
       setTimeout(() => reviseEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     }
-  }, [reviseInput, reviseStreaming, reviseMessages, selectedModel, formData, scoreData, config]);
+  }, [reviseInput, reviseStreaming, reviseMessages, selectedModel, formData, scoreData, config, reviseAbort]);
 
   // ── Apply revision from AI response ─────────────────
   const applyRevision = useCallback(() => {
@@ -516,7 +540,12 @@ Format your response as:
 
   // ── Render: Loading Phase ────────────────────────────
   if (phase === 'loading') {
-    return <LoadingAnimation />;
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <LoadingAnimation />
+        <StopButton onClick={handleStop} label="Stop Scoring" />
+      </div>
+    );
   }
 
   // ── Render: Scored Phase ─────────────────────────────
@@ -689,13 +718,17 @@ Format your response as:
                 onResult={chunk => setReviseInput(prev => joinAppend(prev, chunk))}
                 disabled={reviseStreaming || !connected}
               />
-              <button
-                onClick={handleRevise}
-                disabled={!reviseInput.trim() || reviseStreaming || !connected}
-                className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
-              >
-                {reviseStreaming ? '...' : 'Send'}
-              </button>
+              {reviseStreaming ? (
+                <StopButton onClick={handleStop} className="min-w-[60px]" />
+              ) : (
+                <button
+                  onClick={handleRevise}
+                  disabled={!reviseInput.trim() || !connected}
+                  className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+                >
+                  Send
+                </button>
+              )}
             </div>
             {hasRevision && (
               <button
@@ -857,13 +890,17 @@ Format your response as:
 
         {/* Submit */}
         <div className="flex justify-center">
-          <button
-            onClick={handleScore}
-            disabled={!requiredFieldsFilled() || !selectedModel || !connected || isLoading}
-            className="btn-neon text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : `Score My ${config.title}`}
-          </button>
+          {isLoading ? (
+            <StopButton onClick={handleStop} label="Stop Scoring" className="px-8 py-3 text-base" />
+          ) : (
+            <button
+              onClick={handleScore}
+              disabled={!requiredFieldsFilled() || !selectedModel || !connected}
+              className="btn-neon text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : `Score My ${config.title}`}
+            </button>
+          )}
         </div>
       </div>
     </section>

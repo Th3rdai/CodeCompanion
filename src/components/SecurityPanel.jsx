@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { apiFetch } from '../lib/api-fetch';
+import { useAbortable } from '../hooks/useAbortable';
+import { registerAbort, unregisterAbort } from '../hooks/useAbortRegistry';
+import StopButton from './ui/StopButton';
 import { Tab } from '@headlessui/react';
 import { FileText, Upload as UploadIcon, FolderOpen, FolderSearch, AlertTriangle, History, Copy, Download, Check, ChevronDown, Wrench, X } from 'lucide-react';
 import JSZip from 'jszip';
@@ -161,6 +164,16 @@ export default function SecurityPanel({
 
   const isLoading = phase === 'loading';
 
+  // ── Abort support ──────────────────────────────────
+  const singleAbort = useAbortable();
+  const folderAbort = useAbortable();
+  const handleStop = useCallback(() => {
+    singleAbort.abort();
+    folderAbort.abort();
+    setPhase(fallbackContent ? 'fallback' : 'input');
+  }, [singleAbort, folderAbort, fallbackContent]);
+  useEffect(() => { registerAbort(handleStop); return () => unregisterAbort(handleStop); }, [handleStop]);
+
   // ── Submit security scan ─────────────────────────────
   const handleSubmitScan = useCallback(async () => {
     if (!code.trim() || !selectedModel || isLoading) return;
@@ -174,9 +187,11 @@ export default function SecurityPanel({
       // Phase 9.2: Include images in security scan request
       const images = attachedImages.map(img => img.content); // Array of base64 (NO prefix)
 
+      const signal = singleAbort.startAbortable();
       const res = await apiFetch('/api/pentest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({
           model: selectedModel,
           code: code.trim(),
@@ -250,10 +265,13 @@ export default function SecurityPanel({
       setScanError(`Unexpected response: ${text.slice(0, 200)}`);
       setPhase('input');
     } catch (err) {
+      if (singleAbort.isAborted(err)) { setPhase(fallbackContent ? 'fallback' : 'input'); return; }
       setScanError(`Connection failed: ${err.message}`);
       setPhase('input');
+    } finally {
+      singleAbort.clearAbortable();
     }
-  }, [code, filename, selectedModel, isLoading]);
+  }, [code, filename, selectedModel, isLoading, singleAbort, fallbackContent]);
 
   // ── Deep dive into a category ──────────────────────
   const handleDeepDive = useCallback((categoryKey, categoryData) => {
@@ -800,9 +818,11 @@ export default function SecurityPanel({
     setFolderMeta(null);
 
     try {
+      const signal = folderAbort.startAbortable();
       const res = await apiFetch('/api/pentest/folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({ model: selectedModel, folder: folderPath.trim() }),
       });
 
@@ -871,14 +891,22 @@ export default function SecurityPanel({
       setScanError(`Unexpected response: ${text.slice(0, 200)}`);
       setPhase('input');
     } catch (err) {
+      if (folderAbort.isAborted(err)) { setPhase(fallbackContent ? 'fallback' : 'input'); return; }
       setScanError(`Connection failed: ${err.message}`);
       setPhase('input');
+    } finally {
+      folderAbort.clearAbortable();
     }
-  }, [folderPath, selectedModel, isLoading]);
+  }, [folderPath, selectedModel, isLoading, folderAbort, fallbackContent]);
 
   // ── Render: Loading ───────────────────────────────
   if (phase === 'loading') {
-    return <LoadingAnimation filename={filename} />;
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <LoadingAnimation filename={filename} />
+        <StopButton onClick={handleStop} label="Stop Scan" />
+      </div>
+    );
   }
 
   // ── Render: Security Report ───────────────────────
@@ -1637,13 +1665,17 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
                         </div>
                       ))}
                     </div>
-                    <button
-                      onClick={handleSubmitFolderScan}
-                      disabled={!selectedModel || !connected || isLoading}
-                      className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl px-6 py-3 font-medium text-sm transition-colors disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-orange-500/20"
-                    >
-                      {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : `Scan ${folderPreview.files.length} Files for Vulnerabilities`}
-                    </button>
+                    {isLoading ? (
+                      <StopButton onClick={handleStop} label="Stop Scan" className="w-full py-3 text-sm" />
+                    ) : (
+                      <button
+                        onClick={handleSubmitFolderScan}
+                        disabled={!selectedModel || !connected}
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl px-6 py-3 font-medium text-sm transition-colors disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-orange-500/20"
+                      >
+                        {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : `Scan ${folderPreview.files.length} Files for Vulnerabilities`}
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -1754,13 +1786,17 @@ ${fallbackContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
         {/* Submit */}
         <div className="flex justify-center">
-          <button
-            onClick={handleSubmitScan}
-            disabled={!code.trim() || !selectedModel || !connected || isLoading}
-            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:from-slate-700 disabled:to-slate-700 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-orange-500/20"
-          >
-            {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Scan for Vulnerabilities'}
-          </button>
+          {isLoading || phase === 'fallback' ? (
+            <StopButton onClick={handleStop} label="Stop Scan" className="px-8 py-3 text-base" />
+          ) : (
+            <button
+              onClick={handleSubmitScan}
+              disabled={!code.trim() || !selectedModel || !connected}
+              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:from-slate-700 disabled:to-slate-700 disabled:shadow-none disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-orange-500/20"
+            >
+              {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Scan for Vulnerabilities'}
+            </button>
+          )}
         </div>
 
         {/* Tips */}

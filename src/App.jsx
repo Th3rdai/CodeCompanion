@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiFetch } from './lib/api-fetch';
+import { abortAll } from './hooks/useAbortRegistry';
 import { copyText, readText } from './lib/clipboard';
 import MarkdownContent from './components/MarkdownContent';
 import MessageBubble from './components/MessageBubble';
@@ -701,6 +702,18 @@ export default function App() {
     chatAbortRef.current?.abort();
     setTerminalOutput(null);
   }
+
+  // ── Global Escape key → abort all active requests ──
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        handleStopChat();
+        abortAll();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }
 

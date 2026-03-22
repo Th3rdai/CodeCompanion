@@ -1,5 +1,8 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { apiFetch } from '../lib/api-fetch';
+import { useAbortable } from '../hooks/useAbortable';
+import { registerAbort, unregisterAbort } from '../hooks/useAbortRegistry';
+import StopButton from './ui/StopButton';
 import { FolderSearch, Download, Copy, Check, AlertTriangle, CheckCircle, XCircle, FileText, Github, PackageCheck } from 'lucide-react';
 import { copyText } from '../lib/clipboard';
 import MarkdownContent from './MarkdownContent';
@@ -38,6 +41,11 @@ export default function ValidatePanel({
   const [generateError, setGenerateError] = useState('');
   const [copied, setCopied] = useState(false);
   const [installed, setInstalled] = useState({}); // { claude: true, cursor: true, ... }
+
+  // ── Abort support ──────────────────────────────────
+  const { startAbortable, abort, isAborted, clearAbortable } = useAbortable();
+  const handleStop = useCallback(() => { abort(); setPhase(generatedContent ? 'result' : 'input'); }, [abort, generatedContent]);
+  useEffect(() => { registerAbort(handleStop); return () => unregisterAbort(handleStop); }, [handleStop]);
 
   // ── Scan project ──────────────────────────────────
   const handleScan = useCallback(async () => {
@@ -94,9 +102,11 @@ export default function ValidatePanel({
     setGenerateError('');
 
     try {
+      const signal = startAbortable();
       const res = await apiFetch('/api/validate/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({
           model: selectedModel,
           folder: folderPath.trim(),
@@ -131,10 +141,13 @@ export default function ValidatePanel({
       setGeneratedContent(accumulated);
       setPhase('result');
     } catch (err) {
+      if (isAborted(err)) { setPhase(accumulated ? 'result' : 'input'); return; }
       setGenerateError(`Generation failed: ${err.message}`);
       setPhase('input');
+    } finally {
+      clearAbortable();
     }
-  }, [scanResult, selectedModel, folderPath]);
+  }, [scanResult, selectedModel, folderPath, startAbortable, isAborted, clearAbortable]);
 
   // ── Export helpers ────────────────────────────────
   async function handleCopy() {
@@ -498,13 +511,17 @@ export default function ValidatePanel({
             </div>
 
             {/* Generate button */}
-            <button
-              onClick={handleGenerate}
-              disabled={!selectedModel || !connected}
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl px-6 py-3 font-medium text-sm transition-colors disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-500/20"
-            >
-              {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Generate validate.md'}
-            </button>
+            {phase === 'generating' ? (
+              <StopButton onClick={handleStop} label="Stop Generation" className="w-full py-3 text-sm" />
+            ) : (
+              <button
+                onClick={handleGenerate}
+                disabled={!selectedModel || !connected}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl px-6 py-3 font-medium text-sm transition-colors disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-500/20"
+              >
+                {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Generate validate.md'}
+              </button>
+            )}
           </div>
         )}
 

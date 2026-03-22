@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { apiFetch } from '../lib/api-fetch';
+import { useAbortable } from '../hooks/useAbortable';
+import { registerAbort, unregisterAbort } from '../hooks/useAbortRegistry';
+import StopButton from './ui/StopButton';
 import { Tab } from '@headlessui/react';
 import { FileText, Upload as UploadIcon, FolderOpen, AlertTriangle, History, X } from 'lucide-react';
 import { readText } from '../lib/clipboard';
@@ -149,6 +152,11 @@ export default function ReviewPanel({
 
   const isLoading = phase === 'loading';
 
+  // ── Abort support ──────────────────────────────────
+  const { startAbortable, abort, isAborted, clearAbortable } = useAbortable();
+  const handleStop = useCallback(() => { abort(); setPhase(fallbackContent ? 'fallback' : 'input'); }, [abort, fallbackContent]);
+  useEffect(() => { registerAbort(handleStop); return () => unregisterAbort(handleStop); }, [handleStop]);
+
   // ── Submit review ─────────────────────────────────
   const handleSubmitReview = useCallback(async () => {
     if (!code.trim() || !selectedModel || isLoading) return;
@@ -162,9 +170,11 @@ export default function ReviewPanel({
       // Phase 9.1: Include images in review request
       const images = attachedImages.map(img => img.content); // Array of base64 (NO prefix)
 
+      const signal = startAbortable();
       const res = await apiFetch('/api/review', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal,
         body: JSON.stringify({
           model: selectedModel,
           code: code.trim(),
@@ -244,10 +254,13 @@ export default function ReviewPanel({
       setReviewError(`Unexpected response: ${text.slice(0, 200)}`);
       setPhase('input');
     } catch (err) {
+      if (isAborted(err)) { setPhase(fallbackContent ? 'fallback' : 'input'); return; }
       setReviewError(`Connection failed: ${err.message}`);
       setPhase('input');
+    } finally {
+      clearAbortable();
     }
-  }, [code, filename, selectedModel, isLoading]);
+  }, [code, filename, selectedModel, isLoading, startAbortable, isAborted, clearAbortable, fallbackContent]);
 
   // ── Deep dive into a finding ──────────────────────
   const handleDeepDive = useCallback((finding, categoryKey) => {
@@ -648,7 +661,12 @@ export default function ReviewPanel({
 
   // ── Render: Loading ───────────────────────────────
   if (phase === 'loading') {
-    return <LoadingAnimation filename={filename} />;
+    return (
+      <div className="flex flex-col items-center gap-4">
+        <LoadingAnimation filename={filename} />
+        <StopButton onClick={handleStop} label="Stop Review" />
+      </div>
+    );
   }
 
   // ── Render: Report Card ───────────────────────────
@@ -1054,13 +1072,17 @@ export default function ReviewPanel({
 
         {/* Submit */}
         <div className="flex justify-center">
-          <button
-            onClick={handleSubmitReview}
-            disabled={!code.trim() || !selectedModel || !connected || isLoading}
-            className="btn-neon text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Run Code Review'}
-          </button>
+          {isLoading || phase === 'fallback' ? (
+            <StopButton onClick={handleStop} label="Stop Review" className="px-8 py-3 text-base" />
+          ) : (
+            <button
+              onClick={handleSubmitReview}
+              disabled={!code.trim() || !selectedModel || !connected}
+              className="btn-neon text-white rounded-xl px-8 py-3 font-medium text-base transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              {!connected ? 'Connect to Ollama First' : !selectedModel ? 'Select a Model' : 'Run Code Review'}
+            </button>
+          )}
         </div>
 
         {/* Tips */}
