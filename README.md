@@ -104,6 +104,15 @@ npm run test:ui       # Playwright UI tests
 npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-limit, etc.)
 ```
 
+### More documentation
+
+| Doc | Contents |
+|-----|----------|
+| [SECURITY.md](SECURITY.md) | How to report vulnerabilities; security and privacy design |
+| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md) | `HOST`, `PORT`, `DEBUG`, rate limits, Playwright `BASE_URL`, etc. |
+| [docs/TESTING.md](docs/TESTING.md) | Unit vs Playwright, folder layout, `BASE_URL` tips |
+| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md) | What `IDE_COMMANDS/` is and pointer to full README there |
+
 ## User Guide
 
 ### Modes at a glance
@@ -328,6 +337,8 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── ui/                # Playwright UI tests
 │   └── e2e/               # Playwright end-to-end tests
 ├── playwright.config.js   # Playwright test runner configuration
+├── startup.sh             # Production-style server start (see Quick Start)
+├── fix_cache.html         # Optional: open locally to clear browser localStorage (troubleshooting)
 └── dist/                  # Production build output
 ```
 
@@ -356,9 +367,56 @@ Settings are stored in `.cc-config.json`:
 
 - **icmTemplatePath**: Optional. Folder that contains `Commands` and `ICM-fw` subfolders (e.g. your IDE templates). When set, **Create** mode copies `Commands` → `.cursor/commands` and `ICM-fw` contents into the project root for each new project. Set in **Settings → General** as "Create template path".
 
+## Environment Variables
+
+Code Companion works out of the box with no environment variables. These are optional overrides:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `8900` | Server port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `DEBUG` | off | Set `DEBUG=1` for verbose console output |
+| `FORCE_HTTP` | off | Set `FORCE_HTTP=1` to disable HTTPS even when certs exist |
+| `CC_DATA_DIR` | project root | Data directory (set automatically in Electron) |
+| `CC_ALLOW_AGENT_TERMINAL` | off | Allow agent terminal tools on network-exposed servers |
+
+All settings (Ollama URL, project folder, MCP clients, etc.) are configured in the Settings panel and persisted to `.cc-config.json`.
+
+## Security
+
+See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and security practices.
+
+## Testing
+
+| Command | What it runs |
+|---------|-------------|
+| `npm test` | All Playwright tests (UI + E2E) |
+| `npm run test:unit` | Node.js unit tests (`node:test`) — builder scoring, pentest schemas, rate limiting, spawn-path, MCP security |
+| `npm run test:ui` | Playwright UI component tests — onboarding, glossary, report card, input methods, builders |
+| `npm run test:e2e` | Playwright E2E tests — full review workflow with browser + server |
+
+Test files are in `tests/` organized by type:
+- `tests/unit/` — Pure logic tests (no browser)
+- `tests/ui/` — Playwright browser tests for individual components
+- `tests/e2e/` — Full user journey tests
+- `tests/*.test.js` — Standalone unit tests (MCP security, tone, labels, rate limiting)
+
+## IDE Commands
+
+The `IDE_COMMANDS/` directory contains slash commands that are automatically copied into new projects created via Create or Build mode. They're installed to all supported IDEs:
+
+| IDE | Install path |
+|-----|-------------|
+| Claude Code | `.claude/commands/` |
+| Cursor | `.cursor/commands/` and `.cursor/prompts/` |
+| VS Code | `.github/prompts/` |
+| OpenCode | `.opencode/commands/` |
+
+Use **Install All** in Validate mode to install `validate.md` across all IDEs at once.
+
 ## License
 
-**Th3rdAI — personal & non-commercial use only.**  
+**Th3rdAI — personal & non-commercial use only.**
 You may use Code Companion for personal learning and non-commercial projects. **Commercial use** (business use, paid services, redistribution for profit, etc.) **requires a separate written agreement** from Th3rdAI.
 
 - Full terms: see [`LICENSE`](LICENSE) in this repository.  

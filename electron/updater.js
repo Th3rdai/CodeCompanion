@@ -15,6 +15,11 @@ function initAutoUpdater(win, dataDir) {
     autoUpdater = updaterModule.autoUpdater;
   } catch (err) {
     console.error('[Auto-Updater] Failed to load:', err.message);
+    ipcMain.handle('check-for-updates', async () => ({
+      success: false,
+      error: `Auto-updater unavailable: ${err.message}`,
+    }));
+    ipcMain.handle('restart-for-update', () => {});
     return;
   }
 
@@ -72,10 +77,19 @@ function initAutoUpdater(win, dataDir) {
   });
 
   // IPC Handler: Manual update check
+  // Note: checkForUpdates() always includes updateInfo (latest from feed) even when already on latest —
+  // callers must use isUpdateAvailable, not truthiness of updateInfo.
   ipcMain.handle('check-for-updates', async () => {
     try {
       const result = await autoUpdater.checkForUpdatesAndNotify();
-      return { success: true, updateInfo: result?.updateInfo };
+      if (result == null) {
+        return { success: true, updateInfo: null, isUpdateAvailable: false };
+      }
+      return {
+        success: true,
+        updateInfo: result.updateInfo,
+        isUpdateAvailable: result.isUpdateAvailable === true,
+      };
     } catch (err) {
       log.error('[Auto-Updater] Manual check failed:', err);
       return { success: false, error: err.message };

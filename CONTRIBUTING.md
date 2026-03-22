@@ -32,9 +32,15 @@ npm run test:ui           # Playwright UI component tests
 npm run test:e2e          # Playwright E2E workflow tests
 ```
 
-**Playwright Configuration:** The server runs on HTTPS by default (`https://localhost:4173`). Tests are configured to use HTTPS and ignore self-signed certificate errors. If you need to test with HTTP, set `BASE_URL=http://127.0.0.1:4173` environment variable.
+Details: **[docs/TESTING.md](docs/TESTING.md)** (folders, `BASE_URL`, CI).
+
+**Playwright:** The config starts a **built** app with `FORCE_HTTP=1` on port **4173** (HTTP). Default `BASE_URL` may be HTTPS; if tests fail with SSL errors, use `BASE_URL=http://127.0.0.1:4173` (see `docs/TESTING.md`).
 
 **Validation Command:** Use `/validate-project` slash command in Claude Code to run the comprehensive 7-phase validation suite (build, tests, API smoke tests, workflow tests).
+
+## Security
+
+Please read **[SECURITY.md](SECURITY.md)** before reporting vulnerabilities. For environment and deployment knobs that affect exposure (`HOST`, TLS, rate limits), see **[docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)**.
 
 ## Pull Requests
 
@@ -46,6 +52,7 @@ npm run test:e2e          # Playwright E2E workflow tests
 ## Code Style
 
 - React functional components with hooks
+- **Component files:** use **PascalCase** names (e.g. `ReviewPanel.jsx`, `DictateButton.jsx`). Group related components in subfolders (`builders/`, `3d/`, etc.).
 - Tailwind CSS for styling (no separate CSS files)
 - Express routes in `server.js`, business logic in `lib/`
 - Friendly-teacher tone in all user-facing text — analogies, no jargon

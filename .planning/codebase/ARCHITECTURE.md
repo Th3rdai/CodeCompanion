@@ -1,135 +1,57 @@
-# Architecture
+# Architecture Overview
 
-**Analysis Date:** 2026-03-14
+**Analysis Date:** 2025-03-21
 
-## Pattern Overview
+## Runtime shape
 
-**Overall:** Monolithic Express + React SPA with optional Electron shell
+| Layer | Role | Primary paths |
+|-------|------|----------------|
+| **HTTP + API** | Express app, static SPA, SSE chat, REST | `server.js` |
+| **Frontend** | React 19 + Vite, Tailwind 4, mode-driven UI | `src/main.jsx` → `src/App.jsx`, `src/components/` |
+| **Desktop** | Electron shell: window, IPC, data dir, optional Ollama/Docling helpers, auto-update | `electron/main.js`, `electron/preload.js`, `electron/*.js` |
+| **Libraries** | Ollama, file I/O, MCP, review/pentest/validate/build, office export | `lib/` |
 
-**Key Characteristics:**
-- Single Express server serves API + static SPA
-- Server-Sent Events (SSE) for streaming AI responses
-- MCP server runs in-process (HTTP) or as stdio subprocess
-- Electron spawns server as child process, loads app in BrowserWindow
-- No database — JSON file storage for config and history
+No separate database: JSON files under the app data root (`CC_DATA_DIR` or repo root) for config, history, memory, build registry.
 
-## Layers
+## Entry points
 
-**API Layer:**
-- Purpose: HTTP endpoints, rate limiting, request validation
-- Location: `server.js`
-- Contains: Route handlers, rate limiter, MCP HTTP endpoint
-- Depends on: lib modules, MCP tools
-- Used by: React frontend, MCP clients, external tools
+**Server:** `server.js` — loads `lib/config` (`initConfig` with `dataRoot`), history, memory, logger; constructs `McpClientManager` and `ToolCallHandler`; mounts middleware, `/api/*` routes, `app.all('/mcp', …)` for MCP HTTP transport; serves `dist/` or `public/`; SPA fallback `app.get('*', …)` **after** git routes.
 
-**Business Logic:**
-- Purpose: Ollama calls, review/scoring, file browsing, GitHub, scaffolding
-- Location: `lib/`
-- Contains: `ollama-client.js`, `review.js`, `builder-score.js`, `file-browser.js`, `github.js`, `icm-scaffolder.js`, `history.js`, `config.js`, `mcp-client-manager.js`, `tool-call-handler.js`, `mcp-api-routes.js`
-- Depends on: Node built-ins, MCP SDK
-- Used by: `server.js`, `mcp-server.js`
+**Web UI:** `src/main.jsx` wraps `App` in `Effects3DProvider`; `src/App.jsx` owns mode state, chat streaming, panels, and Electron detection via `window.electronAPI`.
 
-**MCP Layer:**
-- Purpose: Expose tools to Claude/Cursor; connect to external MCP clients
-- Location: `mcp/`, `mcp-server.js`
-- Contains: `mcp/tools.js`, `mcp/schemas.js` — tool registration and Zod schemas
-- Depends on: lib (config, ollama, history, file-browser)
-- Used by: MCP clients (stdio), HTTP `/mcp` endpoint
+**Electron:** `package.json` `"main": "electron/main.js"`. Main process forks/starts the Node server, opens `BrowserWindow`, wires IPC (`preload.js` exposes safe APIs). Packaged app uses `electron/data-manager.js` for user data paths; web dev uses Vite on port **8902** with proxy to API on **8900** (`vite.config.js`).
 
-**Presentation Layer:**
-- Purpose: UI for 11 modes, settings, file browser, GitHub, MCP management
-- Location: `src/`
-- Contains: `App.jsx`, `src/components/`, `src/contexts/`
-- Depends on: Fetch API, localStorage, optional `window.electronAPI`
-- Used by: End users
+## Configuration
 
-**Electron Layer:**
-- Purpose: Desktop app shell, server lifecycle, IDE launch, Ollama setup
-- Location: `electron/`
-- Contains: `main.js`, `preload.js`, `menu.js`, `data-manager.js`, `window-state.js`, `updater.js`, `ollama-setup.js`, `ide-launcher.js`
-- Depends on: Node, Electron APIs
-- Used by: Desktop users
+| Mechanism | Purpose |
+|-----------|---------|
+| `lib/config.js` | Loads/merges defaults with `.cc-config.json` at `appRoot`; `getConfig` / `updateConfig` / `saveConfig`. Nested merge for `memory`, `imageSupport`, `docling`, `agentTerminal`. |
+| `.cc-config.json` | Persisted settings: Ollama URL, ports, timeouts, MCP client list, GitHub token, project folder, memory, docling, agent terminal allowlist, etc. **Not committed** as a rule; path is `path.join(appRoot, '.cc-config.json')`. |
+| Env | `PORT`, `HOST`, `CC_DATA_DIR`, `DEBUG`, `FORCE_HTTP` (disables HTTPS in `server.js`), etc. |
 
-## Data Flow
+Client-facing config omits secrets (`sanitizeConfigForClient` in `server.js` strips `githubToken`, masks MCP env, strips `license` field).
 
-**Chat (streaming):**
-1. Client POSTs `/api/chat` with model, messages, mode
-2. Server enriches system prompt with MCP tool descriptions if clients connected
-3. If external tools: `chatComplete` + tool-call loop (max 5 rounds), then stream final text
-4. Else: `chatStream` → parse Ollama JSON lines → send SSE `{ token }` events
-5. Client appends tokens to message bubble in real time
+## Cross-cutting product features
 
-**Review / Score:**
-1. Client POSTs `/api/review` or `/api/score`
-2. Server calls `reviewCode` or `scoreContent` (Ollama with JSON schema)
-3. On success: return structured JSON (report-card / score-card)
-4. On schema failure: fallback to streaming chat response via SSE
+**Chat Stop (abort):** Client `src/App.jsx` uses `chatAbortRef` (`AbortController`) and passes `signal` to `fetch('/api/chat', …)`. Server `server.js` creates `chatAbortController`, aborts on `req.on('close')`, passes `abortSignal` into `lib/ollama-client.js` (`chatStream` / `chatComplete`) and tool loop; stream reader cancelled on disconnect.
 
-**MCP Tool Call (from LLM):**
-1. LLM returns text with `<TOOL_CALL>...</TOOL_CALL>` blocks
-2. `tool-call-handler.js` parses, `mcp-client-manager` executes
-3. Results fed back as user message; loop until no more tool calls or max rounds
+**Export / Office:** `src/components/ExportPanel.jsx` drives downloads; server `POST /api/generate-office` and `GET /api/export/formats` use `lib/office-generator.js` (DOCX/XLSX/PPTX/PDF/etc. from chat content).
 
-**State Management:**
-- React `useState` / `useCallback` in `App.jsx` — no Redux/Zustand
-- `localStorage` for selected model, onboarding completion
-- Electron: `window.electronAPI` for data dir, export/import, last mode, port config
+**patch-package:** `package.json` `postinstall`: `patch-package`. Patch present: `patches/electron-updater+6.8.3.patch` (GitHub release / 406 handling per project docs). Electron updater logic in `electron/updater.js`.
 
-## Key Abstractions
+**stdio MCP PATH:** `lib/mcp-client-manager.js` calls `mergeDevToolPathIntoEnv` from `lib/spawn-path.js` when spawning stdio MCP servers so `npx`/`uvx` resolve in minimal shells (e.g. Electron).
 
-**Mode:**
-- Purpose: Chat behavior and system prompt
-- Examples: `src/App.jsx` MODES array, `lib/prompts.js` SYSTEM_PROMPTS
-- Pattern: Mode id maps to prompt and placeholder
+**Docling:** `lib/docling-starter.js` (web), `electron/docling-manager.js` (desktop); conversion via `lib/docling-client.js` + `lib/builtin-doc-converter.js`; `GET /api/docling/health`, `POST /api/convert-document`.
 
-**Builder Mode:**
-- Purpose: Config-driven forms with AI scoring
-- Examples: `src/components/builders/BaseBuilderPanel.jsx`, `PromptingPanel.jsx`, `SkillzPanel.jsx`, `AgenticPanel.jsx`
-- Pattern: Shared BaseBuilderPanel, mode-specific schema from `lib/builder-schemas.js`
+## Electron vs browser
 
-**MCP Tool:**
-- Purpose: Callable capability for MCP clients
-- Examples: `mcp/tools.js` — `codecompanion_chat`, `codecompanion_explain`, `browse_files`, etc.
-- Pattern: `server.tool(name, description, schema, handler)`
-
-## Entry Points
-
-**Web:**
-- Location: `server.js` → `app.listen(PORT)`
-- Triggers: `node server.js` or `npm start`
-- Responsibilities: Serve API, static files, MCP HTTP
-
-**MCP stdio:**
-- Location: `mcp-server.js`
-- Triggers: `node mcp-server.js` (by Claude Desktop, Cursor, etc.)
-- Responsibilities: Register tools, handle stdio transport
-
-**Desktop:**
-- Location: `electron/main.js`
-- Triggers: `electron electron/main.js` or packaged app
-- Responsibilities: Spawn server, create window, IPC handlers
-
-**Frontend:**
-- Location: `src/main.jsx`
-- Triggers: Vite dev server or static load from Express
-- Responsibilities: Mount React app with Effects3DProvider
-
-## Error Handling
-
-**Strategy:** Try/catch with logging; return 4xx/5xx or SSE error events
-
-**Patterns:**
-- API: `res.status(400|500).json({ error })`
-- SSE: `sendEvent({ error })` then `res.write('data: [DONE]\n\n')`
-- Ollama offline: 503 with `connected: false`
-- MCP: `isError: true` in tool response content
-
-## Cross-Cutting Concerns
-
-**Logging:** `lib/logger.js` — file + optional console, `log('INFO', ...)`, `debug(...)`
-**Validation:** Zod in `lib/builder-schemas.js`, `mcp/schemas.js`; manual checks in route handlers
-**Authentication:** None for app; GitHub token and MCP env stored in config, masked in responses
+| Concern | Browser | Electron |
+|---------|---------|----------|
+| API base | Same origin or Vite proxy | Local server URL from main process |
+| Data / port | Typical web storage | `electron/data-manager.js`, port config IPC |
+| Updates | N/A | `electron/updater.js` + `electron-updater` |
+| Ollama / Docling setup | User installs manually | `electron/ollama-setup.js`, `docling-manager.js` optional automation |
 
 ---
 
-*Architecture analysis: 2026-03-14*
+*Architecture analysis: 2025-03-21*

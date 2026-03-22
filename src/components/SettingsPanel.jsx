@@ -302,13 +302,17 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setUpdateError(null);
     try {
       const result = await window.electronAPI.checkForUpdates();
-      if (result.success && result.updateInfo) {
-        // Events will handle status changes
-      } else if (result.success) {
-        setUpdateStatus('up-to-date');
-      } else {
+      if (!result.success) {
         setUpdateStatus('error');
         setUpdateError(result.error || 'Check failed');
+        return;
+      }
+      // updateInfo is present even when already latest; rely on isUpdateAvailable from main process.
+      if (result.isUpdateAvailable) {
+        setUpdateStatus('available');
+        if (result.updateInfo) setUpdateInfo(result.updateInfo);
+      } else {
+        setUpdateStatus('up-to-date');
       }
     } catch (err) {
       setUpdateStatus('error');
