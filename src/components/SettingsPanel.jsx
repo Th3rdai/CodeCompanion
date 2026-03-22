@@ -246,6 +246,17 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
           setIsPackaged(true);
         }
       }
+      if (typeof window.electronAPI.getUpdateState === 'function') {
+        try {
+          const st = await window.electronAPI.getUpdateState();
+          if (st?.success && st.updateDownloaded && st.updateInfo) {
+            setUpdateStatus('ready');
+            setUpdateInfo(st.updateInfo);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch Electron data:', err);
     }
@@ -333,6 +344,39 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       setUpdateStatus('error');
       setUpdateError(formatSoftwareUpdateError(err.message));
     }
+  }
+
+  /** Primary Upgrade / Download control: re-check when unknown; when already "available", start download (re-check alone does nothing visible). */
+  async function handleUpgradeClick() {
+    if (!isPackaged) return;
+    setUpdateError(null);
+
+    if (updateStatus === 'available') {
+      setUpdateStatus('downloading');
+      setDownloadProgress(0);
+      try {
+        const dl = await window.electronAPI.downloadUpdate();
+        if (dl.success) {
+          if (dl.updateInfo) setUpdateInfo(dl.updateInfo);
+          setUpdateStatus('ready');
+          return;
+        }
+        const errMsg = dl.error || '';
+        if (String(errMsg).includes('check update first')) {
+          setUpdateStatus('available');
+          await handleCheckForUpdates();
+          return;
+        }
+        setUpdateStatus('error');
+        setUpdateError(formatSoftwareUpdateError(errMsg));
+      } catch (err) {
+        setUpdateStatus('error');
+        setUpdateError(formatSoftwareUpdateError(err.message));
+      }
+      return;
+    }
+
+    await handleCheckForUpdates();
   }
 
   async function handleRestartForUpdate() {
@@ -1126,12 +1170,13 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     aria-live="polite"
                   >
                     {updateStatus === 'up-to-date' && "You're on the latest release."}
-                    {updateStatus === 'available' && `Version ${updateInfo?.version} is available.`}
+                    {updateStatus === 'available' &&
+                      `Version ${updateInfo?.version} is available. Tap Download update to fetch it, or wait if a download already started in the background.`}
                     {updateStatus === 'downloading' && `Downloading… ${downloadProgress}%`}
                     {updateStatus === 'ready' && `Version ${updateInfo?.version} is ready. Restart to finish.`}
                     {updateStatus === 'checking' && 'Checking for a newer release…'}
                     {updateStatus === 'error' && (updateError || 'Update check failed.')}
-                    {!updateStatus && 'Tap Upgrade to check for a newer release.'}
+                    {!updateStatus && 'Tap Check for updates to look for a newer release.'}
                   </div>
 
                   {/* Download progress bar */}
@@ -1164,7 +1209,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     ) : (
                       <button
                         type="button"
-                        onClick={handleCheckForUpdates}
+                        onClick={handleUpgradeClick}
                         disabled={
                           !isPackaged ||
                           updateStatus === 'checking' ||
@@ -1176,8 +1221,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                           <span className="inline-block spin" aria-hidden>
                             &#x27F3;
                           </span>
+                        ) : updateStatus === 'available' ? (
+                          'Download update'
                         ) : (
-                          'Upgrade'
+                          'Check for updates'
                         )}
                       </button>
                     )}
@@ -1195,12 +1242,12 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               </>
             )}
 
-            {/* Browser / dev server: explain why there is no Upgrade button (Electron-only updater) */}
+            {/* Browser / dev server: explain why there is no updater button (Electron-only) */}
             {!isElectron && (
               <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
                 <p className="text-sm font-medium text-slate-200">Software Updates</p>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  The <span className="text-slate-300">Upgrade</span> control only appears in the{' '}
+                  The <span className="text-slate-300">Check for updates</span> control only appears in the{' '}
                   <span className="text-slate-300">desktop app</span> (packaged Electron). In the browser you are
                   running the web UI — use a fresh build or reload from your dev setup; for release builds, install
                   from the project <code className="text-indigo-300/90 text-[11px]">release/</code> output or GitHub

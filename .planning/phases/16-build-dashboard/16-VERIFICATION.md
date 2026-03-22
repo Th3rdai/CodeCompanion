@@ -85,7 +85,7 @@ human_verification:
 | `tests/ui/build-simple-view.spec.js` | Playwright stubs P2-01, P2-02, P2-03 (min 15 lines) | VERIFIED | 15 lines; 6 skip tests covering all three requirements |
 | `tests/ui/build-ai-ops.spec.js` | Playwright stubs P3-01 (min 10 lines) | STUB | 8 lines — 2 short; content correct but below min_lines threshold |
 | `tests/ui/build-advanced-view.spec.js` | Playwright stubs P4-01 (min 10 lines) | STUB | 8 lines — 2 short; content correct but below min_lines threshold |
-| `tests/unit/build-file-ops.test.js` | Unit test stubs P4-02 (min 10 lines) | VERIFIED | 10 lines; 4 skip tests covering whitelist, traversal, atomic write |
+| `tests/unit/build-file-ops.test.js` | Integration tests P4-02 (whitelist GET/PUT, 403, atomic write) | VERIFIED | Spawns server; 4 `it` blocks, 0 skipped; `node --test tests/unit/build-file-ops.test.js` |
 | `tests/ui/build-handoff.spec.js` | Playwright stubs P5-01 (min 10 lines) | STUB | 8 lines — 2 short; content correct but below min_lines threshold |
 
 ---

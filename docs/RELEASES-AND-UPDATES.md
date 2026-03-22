@@ -83,7 +83,7 @@ Each script runs `electron-builder … --publish always`, which creates or updat
 
 ## What must exist on GitHub for updates to work
 
-**Symptom when something is missing:** users see errors about **`latest-mac.yml`** (or similar) **404**, or **Upgrade** does nothing useful.
+**Symptom when something is missing:** users see errors about **`latest-mac.yml`** (or similar) **404**, or **Check for updates** / **Download update** in Settings does not complete an install (e.g. missing assets on the release).
 
 **Rule:** For each **released version**, the GitHub Release for that tag must include **all** files electron-builder emitted for that platform build — at minimum for **macOS**:
 

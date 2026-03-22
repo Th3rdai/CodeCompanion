@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auto-update
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  getUpdateState: () => ipcRenderer.invoke('get-update-state'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
   restartForUpdate: () => ipcRenderer.invoke('restart-for-update'),
   onUpdateAvailable: (callback) => {
     ipcRenderer.on('update-available', (event, info) => callback(info));

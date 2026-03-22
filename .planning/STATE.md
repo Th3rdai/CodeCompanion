@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-23T12:00:00.000Z"
-last_activity: 2026-03-23 — **npm audit** clean (no `xlsx`; **exceljs** / **read-excel-file**; **`file-type`** override + **`patches/officeparser+6.0.4.patch`**). Builtin **`generate_office_file`** **`sourcePath`**: project file → `convertBuiltin` → `generateOfficeFile` (Excel without Docling). Docs: CLAUDE, EXPORT-CHAT, SECURITY-OPERATIONS, CLIPLAN; tests `tests/unit/builtin-agent-tools-path.test.js`. Archon task + project note updated.
+last_updated: "2026-03-20T20:00:00.000Z"
+last_activity: 2026-03-20 — **Docs + git sync**: **CHANGELOG [1.5.3]** (install paths, updater IPC, P4-02, Stop/Escape), **INSTALL-MAC/WINDOWS**, **BUILD** (incl. Google Drive mirror note), **RELEASES**; **`master`** pushed to **origin** + **th3rdai**. Prior: **P4-02** / installer docs / **`generate_office_file`** **`sourcePath`**.
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit and security).
-Last activity: 2026-03-23 — Dependency/advisory stack: **exceljs**, **read-excel-file**, **officeparser** + **file-type** override/patch; **`generate_office_file`** optional **`sourcePath`** for file→spreadsheet without Docling. Prior: 2026-03-21 — Export panel; Electron updater. Next: optional CLIPLAN Phase 4 (confirm-before-run), streaming terminal SSE (§4.7).
+Last activity: 2026-03-20 — **CHANGELOG 1.5.3** + install/updater docs; **dual-remote** GitHub sync (**origin**, **th3rdai**). Next: optional CLIPLAN Phase 4 (confirm-before-run), streaming terminal SSE (§4.7).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

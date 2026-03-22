@@ -24,7 +24,7 @@ The project uses Node.js with Express (CommonJS), React 19 with Vite 7, and Tail
 - Restore last active mode (Chat, Review, etc.) on relaunch -- persist to config
 - Portable data: `CodeCompanion-Data/` folder next to the executable, visible to user
 - Include a `README.txt` inside `CodeCompanion-Data/` explaining what the folder is and not to delete it
-- macOS fallback: if portable path is not writable (code signing restrictions), fall back to `~/Library/Application Support/Code Companion`
+- macOS fallback: if portable path is not writable (code signing restrictions), fall back to `~/Library/Application Support/code-companion` (Electron `userData` from package `name`)
 - Auto-migrate existing `./data/` from dev location on first desktop launch -- copy to new location seamlessly
 - Data persists across app updates -- installers preserve the data directory
 - Pre-update backup: auto-create timestamped ZIP of data folder before each update as safety net

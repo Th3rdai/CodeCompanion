@@ -82,14 +82,14 @@ npm run electron:build:win-linux-x64
 # Equivalent: npx electron-builder --win --linux --x64 --config electron-builder.config.js --publish never
 ```
 
-**Artifacts** (version from `package.json`, e.g. `1.5.2`):
+**Artifacts** (version from `package.json`, e.g. `1.5.3`):
 
 | Platform | Typical files in `release/` |
 |----------|-----------------------------|
-| Windows x64 | `Code Companion Setup 1.5.2.exe` (NSIS), `Code Companion-1.5.2-win.zip` |
-| Linux x64 | `Code Companion-1.5.2.AppImage`, `code-companion-1.5.2.zip` |
-| Windows arm64 | `Code Companion-1.5.2-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
-| Linux arm64 | `Code Companion-1.5.2-arm64.AppImage`, `code-companion-1.5.2-arm64.zip` |
+| Windows x64 | `Code Companion Setup 1.5.3.exe` (NSIS), `Code Companion-1.5.3-win.zip` |
+| Linux x64 | `Code Companion-1.5.3.AppImage`, `code-companion-1.5.3.zip` |
+| Windows arm64 | `Code Companion-1.5.3-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
+| Linux arm64 | `Code Companion-1.5.3-arm64.AppImage`, `code-companion-1.5.3-arm64.zip` |
 
 Auto-update metadata: `latest.yml` (Windows), `latest-linux.yml` / `latest-linux-arm64.yml` (Linux).
 
@@ -109,11 +109,15 @@ The built app (DMG, EXE, AppImage, and portable ZIPs) includes:
 
 Built artifacts go to `release/`. All scripts use `--publish never` (local build only).
 
+### Google Drive mirror (Th3rdAI)
+
+A manual copy of installers may live under **Google Drive → My Drive → `_TH3RDAI.INC/CodeCompanion/`** with **`Mac/`**, **`Windows/`**, and **`Linux/`** subfolders (synced via Google Drive for desktop). After a local build, copy **`release/`** outputs into the matching folder — e.g. **`Mac/`**: `*.dmg`, `*-mac.zip`, `*.blockmap`, **`latest-mac.yml`**. Only copy **`latest.yml`** / **`latest-linux*.yml`** if they were produced in the **same** build as the corresponding `.exe` / `.AppImage` (stale YAML is worse than none). For a full matrix (all platforms), use **`./scripts/build-installers.sh`** or CI, then sync each platform’s artifacts.
+
 ### Publishing releases (so in-app **Software Updates** works)
 
 **Maintainer guide:** [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) — versioning, CI vs manual publish, checklists, and prerelease behavior.
 
-`electron-updater` loads **`latest-mac.yml`** (and DMG/ZIP URLs) from **GitHub Releases** for `publish.owner` / `publish.repo` in `electron-builder.config.js` (`th3rdai` / `CodeCompanion`). If a release **tag** exists but those files were **never uploaded**, users see **404** on `latest-mac.yml` when tapping **Upgrade**.
+`electron-updater` loads **`latest-mac.yml`** (and DMG/ZIP URLs) from **GitHub Releases** for `publish.owner` / `publish.repo` in `electron-builder.config.js` (`th3rdai` / `CodeCompanion`). If a release **tag** exists but those files were **never uploaded**, users see **404** on `latest-mac.yml` when using **Check for updates** / **Download update** in Settings.
 
 **Fix (maintainers):**
 
@@ -127,7 +131,7 @@ Built artifacts go to `release/`. All scripts use `--publish never` (local build
 
 ### CI (tag push)
 
-Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.2` and `"version": "1.5.2"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
+Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.3` and `"version": "1.5.3"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
 
 ### Manual publish (one machine)
 

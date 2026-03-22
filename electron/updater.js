@@ -8,6 +8,8 @@ const { createBackup } = require('./data-manager');
 function initAutoUpdater(win, dataDir) {
   let autoUpdater;
   let log;
+  /** Set when `update-downloaded` fires so renderer can sync if it missed the event (e.g. opened Settings late). */
+  let lastDownloadedInfo = null;
 
   try {
     log = require('electron-log');
@@ -20,6 +22,15 @@ function initAutoUpdater(win, dataDir) {
       error: `Auto-updater unavailable: ${err.message}`,
     }));
     ipcMain.handle('restart-for-update', () => {});
+    ipcMain.handle('get-update-state', async () => ({
+      success: false,
+      updateDownloaded: false,
+      updateInfo: null,
+    }));
+    ipcMain.handle('download-update', async () => ({
+      success: false,
+      error: `Auto-updater unavailable: ${err.message}`,
+    }));
     return;
   }
 
@@ -59,6 +70,7 @@ function initAutoUpdater(win, dataDir) {
   // Event: Update downloaded - create backup before applying
   autoUpdater.on('update-downloaded', async (info) => {
     log.info('[Auto-Updater] Update downloaded:', info.version);
+    lastDownloadedInfo = info;
 
     try {
       log.info('[Auto-Updater] Creating pre-update backup...');
@@ -100,6 +112,23 @@ function initAutoUpdater(win, dataDir) {
   ipcMain.handle('restart-for-update', () => {
     log.info('[Auto-Updater] Restarting for update...');
     autoUpdater.quitAndInstall();
+  });
+
+  ipcMain.handle('get-update-state', () => ({
+    success: true,
+    updateDownloaded: lastDownloadedInfo != null,
+    updateInfo: lastDownloadedInfo,
+  }));
+
+  /** Explicit download — needed when UI is already "update available" (re-check alone does not change state). */
+  ipcMain.handle('download-update', async () => {
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true, updateInfo: lastDownloadedInfo };
+    } catch (err) {
+      log.error('[Auto-Updater] downloadUpdate failed:', err);
+      return { success: false, error: err.message || String(err) };
+    }
   });
 
   log.info('[Auto-Updater] Ready');

@@ -34,7 +34,7 @@ function getPortableRoot() {
 
 /**
  * Resolves the data directory for Code Companion.
- * macOS: ~/Library/Application Support/Code Companion
+ * macOS: ~/Library/Application Support/code-companion (npm `name`; matches Electron `userData`)
  * Windows/Linux: Self-contained next to the app (portable)
  * Dev mode: Project root
  */

@@ -1,4 +1,4 @@
-# Code Companion v1.5.2 - macOS Installation Guide
+# Code Companion v1.5.3 - macOS Installation Guide
 
 ## ✅ Build Complete
 
@@ -7,12 +7,12 @@
 ### Installation Options
 
 **Option 1: DMG Installer (Recommended)**
-- **File:** `Code Companion-1.5.2-arm64.dmg` (180 MB)
+- **File:** `Code Companion-1.5.3-arm64.dmg` (≈180 MB; exact size varies by build)
 - **Installation:** Drag app to Applications folder
 - ⭐ **Recommended - traditional macOS experience**
 
 **Option 2: ZIP Archive (Portable)**
-- **File:** `Code Companion-1.5.2-arm64-mac.zip` (183 MB)
+- **File:** `Code Companion-1.5.3-arm64-mac.zip` (≈183 MB)
 - **Installation:** Extract and run from anywhere
 - No installation required, self-contained
 
@@ -20,7 +20,7 @@
 
 ## 🚀 Installation Steps (DMG)
 
-1. **Download** `Code Companion-1.5.2-arm64.dmg`
+1. **Download** `Code Companion-1.5.3-arm64.dmg`
 2. **Double-click** the DMG file to mount it
 3. **Drag** Code Companion.app to the Applications folder
 4. **Eject** the DMG (right-click → Eject)
@@ -50,18 +50,19 @@
 
 ## 📁 Data Storage Location
 
-**macOS uses the standard Application Support directory:**
+**macOS stores app data under the Electron user-data folder.** The directory name comes from the npm package name (`code-companion` in `package.json`), not the display name “Code Companion”:
+
 ```
-~/Library/Application Support/Code Companion/
+~/Library/Application Support/code-companion/
 ```
 
 **To access:**
 1. Finder → Go menu → Hold Option key → Library
-2. Navigate to `Application Support/Code Companion/`
+2. Navigate to `Application Support/code-companion/`
 
 **Or via Terminal:**
 ```bash
-open ~/Library/Application\ Support/Code\ Companion/
+open ~/Library/Application\ Support/code-companion/
 ```
 
 **Contains:**
@@ -83,25 +84,31 @@ open ~/Library/Application\ Support/Code\ Companion/
 
 ---
 
-## What's New in v1.5.2
+## What's New in v1.5.3
 
-### 🔒 Security & release alignment
+### Desktop & docs
+- **Software Updates (Electron)** — After an update is found, use **Download update** (then **Restart** when ready). **Check for updates** only checks the server; it does not download by itself.
+- **Install docs** — macOS data path corrected to **`~/Library/Application Support/code-companion/`** (matches Electron `userData`).
+
+### Also in recent releases (v1.5.2 and earlier)
+
+#### 🔒 Security & release alignment
 - **CSP nonces** for production HTML; **generic** server error messages to clients; **CI** dependency audit (`npm audit` critical gate).
 - **GitHub token** validation cached briefly to reduce API calls.
-- **Version sync** — `package.json`, git tag **`v1.5.2`**, and **`master`** on both GitHub remotes match; **desktop installers** for this version ship from **th3rdai/CodeCompanion** Releases (in-app Software Updates).
+- **Releases** — Installers ship from **th3rdai/CodeCompanion** Releases (in-app Software Updates when assets are published).
 
-### 🚀 Docling Auto-Start
+#### 🚀 Docling Auto-Start
 - Automatic document conversion (PDF, DOCX, PPTX, Excel, PowerPoint)
 - Auto-starts docling-serve on app launch
 - No manual setup required
 
-### 🎨 UI Improvements
+#### 🎨 UI Improvements
 - **Prominent project folder path display** with gradient background
 - Larger, clearer text in File Browser
 - Better visibility and contrast
 
-### 🔧 Technical Enhancements
-- Fixed data directory location for macOS (now uses standard ~/Library/Application Support)
+#### 🔧 Technical Enhancements
+- macOS data uses standard Application Support (`~/Library/Application Support/code-companion/`)
 - Graceful shutdown handling
 - Improved startup scripts
 - Comprehensive documentation
@@ -122,7 +129,7 @@ open ~/Library/Application\ Support/Code\ Companion/
 
 **Location:**
 - `/Applications/Code Companion.app`
-- Data: `~/Library/Application Support/Code Companion/`
+- Data: `~/Library/Application Support/code-companion/`
 
 ### ZIP Installation (Portable)
 
@@ -135,7 +142,7 @@ open ~/Library/Application\ Support/Code\ Companion/
 **How to use:**
 1. Extract ZIP to desired location
 2. Run `Code Companion.app`
-3. Data saves in `~/Library/Application Support/Code Companion/`
+3. Data saves in `~/Library/Application Support/code-companion/` (same as DMG)
 
 ---
 
@@ -183,7 +190,7 @@ Another app is using the default port.
 ### Data Directory Not Found
 If you're upgrading from an older version that used a portable data directory:
 1. Old location: Next to the app or in project folder
-2. New location: `~/Library/Application Support/Code Companion/`
+2. Current location: `~/Library/Application Support/code-companion/`
 3. The app will automatically migrate data on first run (if found in legacy locations)
 
 ---
@@ -198,7 +205,7 @@ If you're upgrading from an older version that used a portable data directory:
 
 **To remove data:**
 ```bash
-rm -rf ~/Library/Application\ Support/Code\ Companion/
+rm -rf ~/Library/Application\ Support/code-companion/
 ```
 
 ### ZIP Installation
@@ -210,7 +217,7 @@ rm -rf ~/Library/Application\ Support/Code\ Companion/
 
 ## 📋 Build Information
 
-- **Version:** 1.5.2
+- **Version:** 1.5.3 (see `package.json` for the exact release you installed)
 - **Build Date:** 2026-03-20
 - **Architecture:** Apple Silicon (ARM64)
 - **Electron:** 41.0.3
@@ -231,8 +238,8 @@ open -a "Code Companion" --args --port=8901
 # Launch with debugging
 open -a "Code Companion" --args --debug
 
-# View logs in real-time
-tail -f ~/Library/Application\ Support/Code\ Companion/logs/app.log
+# View logs in real-time (embedded server — same folder as config/history)
+tail -f ~/Library/Application\ Support/code-companion/logs/app.log
 ```
 
 ---
@@ -251,7 +258,7 @@ tail -f ~/Library/Application\ Support/Code\ Companion/logs/app.log
 - **Gatekeeper:** Normal warning for unsigned apps - safe to bypass
 - **Intel Macs:** Use Rosetta 2 or build from source
 - **Data Location:** Standard macOS location (~/Library/Application Support)
-- **Updates:** Manual updates (download new DMG and replace app)
+- **Updates:** In-app **Software Updates** when GitHub Release includes updater metadata (`latest-mac.yml`, etc.); otherwise download a new DMG/ZIP from Releases
 - **Firewall:** May need manual firewall allow on first run
 
 ---

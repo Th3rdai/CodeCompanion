@@ -43,7 +43,7 @@ created: 2026-03-15
 | 16-01-03 | 01 | 1 | P2-03 | unit | `npx playwright test tests/ui/build-simple-view.spec.js -x` | ❌ W0 | ⬜ pending |
 | 16-02-01 | 02 | 2 | P3-01 | unit | `npx playwright test tests/ui/build-ai-ops.spec.js -x` | ❌ W0 | ⬜ pending |
 | 16-03-01 | 03 | 3 | P4-01 | unit | `npx playwright test tests/ui/build-advanced-view.spec.js -x` | ❌ W0 | ⬜ pending |
-| 16-03-02 | 03 | 3 | P4-02 | unit | `npx playwright test tests/unit/build-file-ops.test.js -x` | ❌ W0 | ⬜ pending |
+| 16-03-02 | 03 | 3 | P4-02 | unit | `node --test tests/unit/build-file-ops.test.js` | ✅ W0 | ✅ green |
 | 16-04-01 | 04 | 4 | P5-01 | unit | `npx playwright test tests/ui/build-handoff.spec.js -x` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
@@ -55,7 +55,7 @@ created: 2026-03-15
 - [ ] `tests/ui/build-simple-view.spec.js` — stubs for P2-01, P2-02, P2-03
 - [ ] `tests/ui/build-ai-ops.spec.js` — stubs for P3-01
 - [ ] `tests/ui/build-advanced-view.spec.js` — stubs for P4-01
-- [ ] `tests/unit/build-file-ops.test.js` — stubs for P4-02
+- [x] `tests/unit/build-file-ops.test.js` — P4-02 integration tests (whitelist, 403, traversal, atomic write)
 
 ---
 

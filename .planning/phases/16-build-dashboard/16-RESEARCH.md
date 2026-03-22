@@ -341,7 +341,7 @@ app.use('/api/build/projects', createRateLimiter({
 | P2-03 | "What's Next" card displays AI recommendation | unit | `npx playwright test tests/ui/build-simple-view.spec.js -x` | No - Wave 0 |
 | P3-01 | Research endpoint returns SSE stream | unit | `npx playwright test tests/ui/build-ai-ops.spec.js -x` | No - Wave 0 |
 | P4-01 | File viewer displays whitelisted files | unit | `npx playwright test tests/ui/build-advanced-view.spec.js -x` | No - Wave 0 |
-| P4-02 | File editor saves with atomic write | unit | `npx playwright test tests/unit/build-file-ops.test.js -x` | No - Wave 0 |
+| P4-02 | File editor saves with atomic write | unit | `node --test tests/unit/build-file-ops.test.js` | No - Wave 0 |
 | P5-01 | Handoff shows copy-pasteable GSD commands | unit | `npx playwright test tests/ui/build-handoff.spec.js -x` | No - Wave 0 |
 
 ### Sampling Rate
@@ -353,7 +353,7 @@ app.use('/api/build/projects', createRateLimiter({
 - [ ] `tests/ui/build-simple-view.spec.js` -- covers P2-01, P2-02, P2-03
 - [ ] `tests/ui/build-ai-ops.spec.js` -- covers P3-01
 - [ ] `tests/ui/build-advanced-view.spec.js` -- covers P4-01
-- [ ] `tests/unit/build-file-ops.test.js` -- covers P4-02 (atomic write)
+- [x] `tests/unit/build-file-ops.test.js` -- covers P4-02 (atomic write + whitelist; integration)
 - [ ] `tests/ui/build-handoff.spec.js` -- covers P5-01
 
 ## Sources
