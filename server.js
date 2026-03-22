@@ -339,6 +339,12 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     log('INFO', `Ollama URL changed to: ${config.ollamaUrl}`);
   }
 
+  // Default model for MCP and API calls
+  if (req.body.selectedModel !== undefined) {
+    config.selectedModel = req.body.selectedModel || '';
+    if (config.selectedModel) log('INFO', `Default model set to: ${config.selectedModel}`);
+  }
+
   // Review timeout
   if (req.body.reviewTimeoutSec !== undefined) {
     const timeout = parseInt(req.body.reviewTimeoutSec, 10);

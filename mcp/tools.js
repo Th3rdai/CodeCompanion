@@ -18,11 +18,12 @@ function capResponse(text) {
 }
 
 /**
- * Resolve model name — if user didn't specify one, use the first available.
+ * Resolve model name — if user didn't specify one, use config default or first available.
  * Returns the model name string, or null if no models available.
  */
-async function resolveModel(model, listModelsFn, ollamaUrl) {
+async function resolveModel(model, listModelsFn, ollamaUrl, config) {
   if (model) return model;
+  if (config?.selectedModel) return config.selectedModel;
   const models = await listModelsFn(ollamaUrl);
   if (!models || models.length === 0) return null;
   return models[0].name; // models are objects {name, size, ...}
@@ -39,7 +40,7 @@ function createModeHandler(modeKey, deps) {
       const config = getConfig();
       const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
 
-      const selectedModel = await resolveModel(model, listModels, ollamaUrl);
+      const selectedModel = await resolveModel(model, listModels, ollamaUrl, config);
       if (!selectedModel) {
         return {
           isError: true,
