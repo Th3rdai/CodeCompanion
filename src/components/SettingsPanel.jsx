@@ -5,20 +5,31 @@ import McpClientPanel from './McpClientPanel';
 import { use3DEffects, THEME_PRESETS } from '../contexts/Effects3DContext';
 import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
-import { Download, Upload, Settings } from 'lucide-react';
+import { Download, Upload, Settings, ExternalLink } from 'lucide-react';
+import { OFFICIAL_RELEASES_LATEST_URL } from '../lib/release-urls';
 
-/** Short, actionable copy for electron-updater failures (full error may be huge). */
+/** Friendly copy for updater failures — avoid jargon; full technical text is often huge. */
 function formatSoftwareUpdateError(raw) {
-  if (raw == null || typeof raw !== 'string') return raw || 'Update check failed.';
-  if (raw.includes('latest-mac.yml') || raw.includes('latest.yml') || raw.includes('latest-linux')) {
-    if (raw.includes('404') || raw.includes('Not Found')) {
-      return 'The GitHub release has no updater metadata (e.g. latest-mac.yml). Builds must be published with those files, or install manually from GitHub Releases.';
-    }
+  if (raw == null || typeof raw !== 'string') {
+    return "We couldn't check for updates. Try again in a moment.";
   }
-  if (/HttpError:.*404/i.test(raw) || (raw.includes('404') && raw.includes('github.com'))) {
-    return 'Update file not found on GitHub (404). The release may be missing published build artifacts — install manually from Releases or wait for a fixed publish.';
+  const r = raw;
+  if (
+    (r.includes('latest-mac.yml') || r.includes('latest.yml') || r.includes('latest-linux')) &&
+    (r.includes('404') || r.includes('Not Found') || r.includes('not find'))
+  ) {
+    return "Automatic updates aren't available for this version yet. Click Open download page below to get the newest installer — it only takes a minute.";
   }
-  return raw.length > 320 ? `${raw.slice(0, 280)}…` : raw;
+  if (/HttpError:.*404/i.test(r) || (r.includes('404') && r.includes('github.com'))) {
+    return "We couldn't find the update file online. Click Open download page below to download and install the latest version.";
+  }
+  if (/network|ENOTFOUND|ETIMEDOUT|ECONNRESET|getaddrinfo/i.test(r)) {
+    return "We couldn't reach the update server. Check your internet connection, then try again.";
+  }
+  if (/certificate|SSL|TLS|UNABLE_TO_VERIFY/i.test(r)) {
+    return "We couldn't verify the secure connection for updates. Check your network or VPN, then try again.";
+  }
+  return r.length > 280 ? `${r.slice(0, 240)}…` : r;
 }
 
 export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePath, onSave, onClose, onOpenMemoryPanel }) {
@@ -385,6 +396,18 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     } catch (err) {
       setUpdateError(formatSoftwareUpdateError(err.message));
     }
+  }
+
+  async function handleOpenDownloadPage() {
+    const api = window.electronAPI;
+    if (api?.openExternalUrl) {
+      const res = await api.openExternalUrl(OFFICIAL_RELEASES_LATEST_URL);
+      if (!res?.success && res?.error) {
+        setUpdateError(`Couldn't open your browser: ${res.error}`);
+      }
+      return;
+    }
+    window.open(OFFICIAL_RELEASES_LATEST_URL, '_blank', 'noopener,noreferrer');
   }
 
   function showToast(msg) {
@@ -1154,8 +1177,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
                   <div className="mb-3">
                     <p className="text-sm font-medium text-slate-200">Software Updates</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Install the latest published release from GitHub. The app restarts to apply an update.
+                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                      We&apos;ll let you know when a newer version is ready. After it downloads, you&apos;ll restart once to
+                      finish installing. If anything goes wrong, use Open download page to grab the installer directly —
+                      no command line needed.
                     </p>
                   </div>
 
@@ -1169,14 +1194,14 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     }`}
                     aria-live="polite"
                   >
-                    {updateStatus === 'up-to-date' && "You're on the latest release."}
+                    {updateStatus === 'up-to-date' && "You're up to date."}
                     {updateStatus === 'available' &&
-                      `Version ${updateInfo?.version} is available. Tap Download update to fetch it, or wait if a download already started in the background.`}
+                      `Version ${updateInfo?.version} is ready. Click Download update, or wait if it already started in the background.`}
                     {updateStatus === 'downloading' && `Downloading… ${downloadProgress}%`}
-                    {updateStatus === 'ready' && `Version ${updateInfo?.version} is ready. Restart to finish.`}
-                    {updateStatus === 'checking' && 'Checking for a newer release…'}
-                    {updateStatus === 'error' && (updateError || 'Update check failed.')}
-                    {!updateStatus && 'Tap Check for updates to look for a newer release.'}
+                    {updateStatus === 'ready' && `Version ${updateInfo?.version} is ready. Click Restart to upgrade to finish.`}
+                    {updateStatus === 'checking' && 'Checking for updates…'}
+                    {updateStatus === 'error' && (updateError || "We couldn't check for updates right now.")}
+                    {!updateStatus && 'Click Check for updates to see if a newer version is available.'}
                   </div>
 
                   {/* Download progress bar */}
@@ -1197,7 +1222,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     </p>
                   )}
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
                     {updateStatus === 'ready' ? (
                       <button
                         type="button"
@@ -1228,6 +1253,15 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                         )}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={handleOpenDownloadPage}
+                      className="inline-flex items-center gap-1.5 glass cursor-pointer text-slate-400 hover:text-slate-200 hover:bg-slate-600/20 rounded-lg px-3 py-2 text-xs font-medium transition-colors border border-slate-600/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+                      title="Opens the official downloads page in your browser"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+                      Open download page
+                    </button>
                   </div>
                 </div>
 
@@ -1247,11 +1281,18 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
                 <p className="text-sm font-medium text-slate-200">Software Updates</p>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  The <span className="text-slate-300">Check for updates</span> control only appears in the{' '}
-                  <span className="text-slate-300">desktop app</span> (packaged Electron). In the browser you are
-                  running the web UI — use a fresh build or reload from your dev setup; for release builds, install
-                  from the project <code className="text-indigo-300/90 text-[11px]">release/</code> output or GitHub
-                  Releases.
+                  Automatic updates run in the <span className="text-slate-300">desktop app</span> only. In the browser
+                  you&apos;re using the web version — refresh the page or ask your host for a new build. For the
+                  installed app, download updates from the{' '}
+                  <a
+                    className="text-indigo-300/90 hover:text-indigo-200 underline underline-offset-2"
+                    href={OFFICIAL_RELEASES_LATEST_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    official download page
+                  </a>
+                  .
                 </p>
               </div>
             )}

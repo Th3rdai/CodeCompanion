@@ -547,6 +547,18 @@ ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-is-packaged', () => app.isPackaged);
 ipcMain.handle('get-data-dir', () => dataDir);
 
+ipcMain.handle('open-external-url', async (event, url) => {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) {
+    return { success: false, error: 'Invalid URL' };
+  }
+  try {
+    await shell.openExternal(url.trim());
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 ipcMain.handle('export-data', async () => {
   try {
     const zipPath = await exportData(dataDir);

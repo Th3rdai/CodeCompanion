@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('port-fallback', (event, data) => callback(data));
   },
 
+  /** Open https URLs in the system browser (installers page, docs). */
+  openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+
   // Auto-update
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   getUpdateState: () => ipcRenderer.invoke('get-update-state'),
