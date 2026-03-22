@@ -21,7 +21,7 @@ Quick map of **network/API hardening**, assessment artifacts, and related env va
 ## Dependency / supply-chain (SCA)
 
 - **CI gate:** pushes and PRs to `main`/`master` run `npm audit --audit-level=critical` after `npm ci`, unit tests, and `npm run build`.
-- **Full audit:** run `npm audit` locally. Known transitive issues without fixes (e.g. `xlsx`) are tracked manually; prefer upgrades when upstream publishes patches.
+- **Full audit:** run `npm audit` locally. **SheetJS `xlsx`** was removed (prototype-pollution advisories); spreadsheets use **exceljs** / **read-excel-file**. **`file-type`** is overridden to **≥21.3.1** with an **officeparser** patch for ESM compatibility (`patches/officeparser+6.0.4.patch`). Re-run `npm audit` after dependency changes.
 
 ## Archon
 

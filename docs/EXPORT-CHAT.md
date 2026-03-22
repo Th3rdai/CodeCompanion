@@ -15,6 +15,8 @@ The **Export** control in the chat toolbar opens **`ExportPanel`** (`src/compone
 
 Implementation: **`lib/office-generator.js`**. Builtin agent tool **`generate_office_file`** reuses the same generator.
 
+**Agent-only — convert a project file to Excel (or any supported export) without Docling:** pass **`sourcePath`** (relative or absolute path under **Settings → Project folder**). The server reads the file, runs **`convertBuiltin`** (`lib/builtin-doc-converter.js`), then **`generateOfficeFile`**. Use with **`filename` / `savePath`** ending in `.xlsx` (or `.csv`, `.ods`, etc.). Requires a configured project folder. See **`lib/builtin-agent-tools.js`** and unit tests in **`tests/unit/builtin-agent-tools-path.test.js`**.
+
 ## See also
 
 - **`CLAUDE.md`** — Project Structure and **Export (toolbar)** sections.

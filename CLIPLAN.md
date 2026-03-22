@@ -2,7 +2,7 @@
 
 **Status:** **Implemented — living reference document**
 **Created:** 2026-03-20  
-**Last review:** 2026-03-20 — post-implementation review (plan-reviewer skill)
+**Last review:** 2026-03-23 — `generate_office_file` + `sourcePath` (§4.11)
 **Audience:** Implementing agents, security review, UX  
 
 **Post-implementation review:** Verified 2026-03-20 — **`npm run test:unit`** passes (116 tests, 0 failures); acceptance criteria in §8 treated as met for shipped v1 (optional items remain §4.7 / Phase 4).
@@ -292,6 +292,16 @@ if (req.body.agentTerminal !== undefined) {
 ```
 
 `sanitizeConfigForClient()` — no sensitive fields in v1, pass through as-is.
+
+### 4.11 Office export tool: `generate_office_file` (no terminal)
+
+Shipped alongside the terminal tool: **`builtin.generate_office_file`** — same **`lib/office-generator.js`** stack as **`POST /api/generate-office`**.
+
+- **Args:** `content` (markdown) **or** **`sourcePath`** (file under **Settings → Project folder**), plus `filename` / `savePath`.
+- **`sourcePath`:** resolved with **`validateProjectFilePath()`** (must stay under `projectFolder`). File is read, **`convertBuiltin`** (`lib/builtin-doc-converter.js`) produces markdown, then **`generateOfficeFile`** writes XLSX/DOCX/etc. **Docling is not used** on this path — suitable for CSV/PDF/DOCX → Excel when built-in extraction is enough.
+- **Security:** no shell; read-only source path validation mirrors agent cwd rules.
+
+See **`lib/builtin-agent-tools.js`**, **`docs/EXPORT-CHAT.md`**, **`tests/unit/builtin-agent-tools-path.test.js`**.
 
 ---
 

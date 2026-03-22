@@ -1,0 +1,22 @@
+diff --git a/node_modules/officeparser/dist/OfficeParser.js b/node_modules/officeparser/dist/OfficeParser.js
+index cddb409..7301819 100644
+--- a/node_modules/officeparser/dist/OfficeParser.js
++++ b/node_modules/officeparser/dist/OfficeParser.js
+@@ -58,7 +58,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
+ };
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.OfficeParser = void 0;
+-const fileType = __importStar(require("file-type"));
+ const fs = __importStar(require("fs"));
+ const ExcelParser_1 = require("./parsers/ExcelParser");
+ const OpenOfficeParser_1 = require("./parsers/OpenOfficeParser");
+@@ -169,7 +168,8 @@ class OfficeParser {
+                 throw (0, errorUtils_1.getOfficeError)(errorUtils_1.OfficeErrorType.INVALID_INPUT, internalConfig);
+             }
+             if (!ext) {
+-                const type = await fileType.fromBuffer(buffer);
++                const { fileTypeFromBuffer } = await import('file-type');
++                const type = await fileTypeFromBuffer(buffer);
+                 if (type) {
+                     ext = type.ext.toLowerCase();
+                 }

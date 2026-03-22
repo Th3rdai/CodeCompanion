@@ -35,9 +35,9 @@ Client-facing config omits secrets (`sanitizeConfigForClient` in `server.js` str
 
 **Chat Stop (abort):** Client `src/App.jsx` uses `chatAbortRef` (`AbortController`) and passes `signal` to `fetch('/api/chat', …)`. Server `server.js` creates `chatAbortController`, aborts on `req.on('close')`, passes `abortSignal` into `lib/ollama-client.js` (`chatStream` / `chatComplete`) and tool loop; stream reader cancelled on disconnect.
 
-**Export / Office:** `src/components/ExportPanel.jsx` drives downloads; server `POST /api/generate-office` and `GET /api/export/formats` use `lib/office-generator.js` (DOCX/XLSX/PPTX/PDF/etc. from chat content).
+**Export / Office:** `src/components/ExportPanel.jsx` drives downloads; server `POST /api/generate-office` and `GET /api/export/formats` use `lib/office-generator.js` (DOCX/XLSX/PPTX/PDF/etc.). Builtin agent **`generate_office_file`** can pass **`sourcePath`** → `lib/builtin-doc-converter.js` → same generator (file→Excel without Docling when built-in supports the type).
 
-**patch-package:** `package.json` `postinstall`: `patch-package`. Patch present: `patches/electron-updater+6.8.3.patch` (GitHub release / 406 handling per project docs). Electron updater logic in `electron/updater.js`.
+**patch-package:** `package.json` `postinstall`: `patch-package`. Patches: `patches/electron-updater+6.8.3.patch` (GitHub release / 406); `patches/officeparser+6.0.4.patch` (**`file-type`** ESM + **`fileTypeFromBuffer`**). Electron updater in `electron/updater.js`.
 
 **stdio MCP PATH:** `lib/mcp-client-manager.js` calls `mergeDevToolPathIntoEnv` from `lib/spawn-path.js` when spawning stdio MCP servers so `npx`/`uvx` resolve in minimal shells (e.g. Electron).
 
