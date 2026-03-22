@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] - 2026-03-22
+
+### Changed
+- **Desktop installers rebuilt** — macOS (DMG/ZIP), Windows x64 (NSIS/ZIP), Linux x64 (AppImage/ZIP) from current `main` (Vite + Electron).
+
+### Added
+- **Chat Stop** — abort in-flight `/api/chat` (streaming + agent tool rounds); server aborts Ollama via `AbortSignal`.
+- **Toolbar Export** — 11 output formats via `office-generator` + `POST /api/generate-office`.
+- **Claude Code automation** — `.claude/` skills, agents, hooks (sensitive-file guard, unit tests on `lib/`/`server.js`/`mcp/` edits); see `docs/CLAUDE-CODE-AUTOMATION.md`.
+- **`electron-updater` patch** — GitHub API for `getLatestTagName` + `allowPrerelease` for prerelease-only feeds (`patches/electron-updater+*.patch`).
+
+### Fixed
+- GitHub **406** on updater check when using web `releases/latest` JSON URL (patched upstream provider via `patch-package`).
+
+---
+
 ## [1.5.0] - 2026-03-17
 
 ### Added - Image & Vision Model Support 🖼️

@@ -1,4 +1,4 @@
-# Code Companion v1.5.0 - Windows Installation Guide
+# Code Companion v1.5.1 - Windows Installation Guide
 
 ## ✅ Build Complete
 
@@ -7,23 +7,23 @@
 ### Option 1: NSIS Installer (Recommended)
 
 **x64 (Intel/AMD - Most Windows PCs):**
-- **File:** `Code Companion Setup 1.5.0.exe` (184 MB)
+- **File:** `Code Companion Setup 1.5.1.exe` (184 MB)
 - **Installation:** Run the installer, follow prompts
 - ⭐ **Recommended for most users**
 
 **ARM64 (ARM-based Windows):**
-- **File:** `Code Companion Setup 1.5.0.exe` (ARM64 version, 184 MB)
+- **File:** `Code Companion Setup 1.5.1.exe` (ARM64 version, 184 MB)
 - **Installation:** Run the installer, follow prompts
 - For Windows on ARM (Surface Pro X, etc.)
 
 ### Option 2: ZIP Archive (Portable)
 
 **x64 (Intel/AMD):**
-- **File:** `Code Companion-1.5.0-win.zip` (184 MB)
+- **File:** `Code Companion-1.5.1-win.zip` (184 MB)
 - Extract and run `Code Companion.exe`
 
 **ARM64 (ARM-based Windows):**
-- **File:** `Code Companion-1.5.0-arm64-win.zip` (184 MB)
+- **File:** `Code Companion-1.5.1-arm64-win.zip` (184 MB)
 - Extract and run `Code Companion.exe`
 
 ---
@@ -31,7 +31,7 @@
 ## 🚀 Installation Steps (NSIS Installer)
 
 1. **Download** the appropriate installer for your CPU architecture
-2. **Double-click** `Code Companion Setup 1.5.0.exe`
+2. **Double-click** `Code Companion Setup 1.5.1.exe`
 3. **Choose installation directory** (default: `C:\Users\YourName\AppData\Local\Programs\Code Companion`)
 4. **Select options:**
    - ✅ Create Desktop Shortcut (recommended)
@@ -80,7 +80,7 @@ Or next to the executable if using the portable ZIP version.
 
 ---
 
-## What's New in v1.5.0
+## What's New in v1.5.1
 
 ### 🚀 Docling Auto-Start
 - Automatic document conversion (PDF, DOCX, PPTX, Excel, PowerPoint)
@@ -207,7 +207,7 @@ Another app is using the default port.
 
 ## 📋 Build Information
 
-- **Version:** 1.5.0
+- **Version:** 1.5.1
 - **Build Date:** 2026-03-20
 - **Architectures:** x64, ARM64
 - **Electron:** 41.0.3

@@ -1,4 +1,4 @@
-# Code Companion v1.5.0 - macOS Installation Guide
+# Code Companion v1.5.1 - macOS Installation Guide
 
 ## ✅ Build Complete
 
@@ -7,12 +7,12 @@
 ### Installation Options
 
 **Option 1: DMG Installer (Recommended)**
-- **File:** `Code Companion-1.5.0-arm64.dmg` (180 MB)
+- **File:** `Code Companion-1.5.1-arm64.dmg` (180 MB)
 - **Installation:** Drag app to Applications folder
 - ⭐ **Recommended - traditional macOS experience**
 
 **Option 2: ZIP Archive (Portable)**
-- **File:** `Code Companion-1.5.0-arm64-mac.zip` (183 MB)
+- **File:** `Code Companion-1.5.1-arm64-mac.zip` (183 MB)
 - **Installation:** Extract and run from anywhere
 - No installation required, self-contained
 
@@ -20,7 +20,7 @@
 
 ## 🚀 Installation Steps (DMG)
 
-1. **Download** `Code Companion-1.5.0-arm64.dmg`
+1. **Download** `Code Companion-1.5.1-arm64.dmg`
 2. **Double-click** the DMG file to mount it
 3. **Drag** Code Companion.app to the Applications folder
 4. **Eject** the DMG (right-click → Eject)
@@ -83,7 +83,7 @@ open ~/Library/Application\ Support/Code\ Companion/
 
 ---
 
-## What's New in v1.5.0
+## What's New in v1.5.1
 
 ### 🚀 Docling Auto-Start
 - Automatic document conversion (PDF, DOCX, PPTX, Excel, PowerPoint)
@@ -205,7 +205,7 @@ rm -rf ~/Library/Application\ Support/Code\ Companion/
 
 ## 📋 Build Information
 
-- **Version:** 1.5.0
+- **Version:** 1.5.1
 - **Build Date:** 2026-03-20
 - **Architecture:** Apple Silicon (ARM64)
 - **Electron:** 41.0.3

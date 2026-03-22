@@ -82,14 +82,14 @@ npm run electron:build:win-linux-x64
 # Equivalent: npx electron-builder --win --linux --x64 --config electron-builder.config.js --publish never
 ```
 
-**Artifacts** (version from `package.json`, e.g. `1.5.0`):
+**Artifacts** (version from `package.json`, e.g. `1.5.1`):
 
 | Platform | Typical files in `release/` |
 |----------|-----------------------------|
-| Windows x64 | `Code Companion Setup 1.5.0.exe` (NSIS), `Code Companion-1.5.0-win.zip` |
-| Linux x64 | `Code Companion-1.5.0.AppImage`, `code-companion-1.5.0.zip` |
-| Windows arm64 | `Code Companion-1.5.0-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
-| Linux arm64 | `Code Companion-1.5.0-arm64.AppImage`, `code-companion-1.5.0-arm64.zip` |
+| Windows x64 | `Code Companion Setup 1.5.1.exe` (NSIS), `Code Companion-1.5.1-win.zip` |
+| Linux x64 | `Code Companion-1.5.1.AppImage`, `code-companion-1.5.1.zip` |
+| Windows arm64 | `Code Companion-1.5.1-arm64-win.zip` (build `--win --arm64`; NSIS name collides with x64 if built in same folder without renaming) |
+| Linux arm64 | `Code Companion-1.5.1-arm64.AppImage`, `code-companion-1.5.1-arm64.zip` |
 
 Auto-update metadata: `latest.yml` (Windows), `latest-linux.yml` / `latest-linux-arm64.yml` (Linux).
 
