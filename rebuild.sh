@@ -6,7 +6,7 @@
 
 APP_NAME="Th3rdAI Code Companion"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-PORT=3000
+PORT=8900
 LOG_DIR="$APP_DIR/logs"
 APP_LOG="$LOG_DIR/app.log"
 MAX_WAIT=10
@@ -22,16 +22,20 @@ cd "$APP_DIR"
 echo ""
 echo "  [1/4] Stopping server..."
 
-PIDS=$(lsof -ti:$PORT 2>/dev/null)
+# Read preferred port from config, kill that port plus HTTPS redirect port (PORT+1)
+CFG_PORT=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('.cc-config.json','utf8')).preferredPort||8900)}catch{console.log(8900)}" 2>/dev/null)
+PORT=${CFG_PORT:-8900}
+REDIRECT_PORT=$((PORT + 1))
+PIDS=$(lsof -ti:$PORT -ti:$REDIRECT_PORT 2>/dev/null | sort -u)
 if [ -n "$PIDS" ]; then
   echo "$PIDS" | xargs kill 2>/dev/null
   sleep 1
-  PIDS=$(lsof -ti:$PORT 2>/dev/null)
+  PIDS=$(lsof -ti:$PORT -ti:$REDIRECT_PORT 2>/dev/null | sort -u)
   if [ -n "$PIDS" ]; then
     echo "$PIDS" | xargs kill -9 2>/dev/null
     sleep 1
   fi
-  echo "        ✓ Stopped"
+  echo "        ✓ Stopped (port $PORT)"
 else
   echo "        ✓ No running instance"
 fi
