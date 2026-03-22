@@ -2431,7 +2431,7 @@ app.post('/api/tutorial-suggestions', async (req, res) => {
   }
   const config = getConfig();
   const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-  const selectedModel = model || config.defaultModel || 'llama3.2';
+  const selectedModel = model || config.selectedModel || 'llama3.2';
 
   const prompt = `You are helping fill out a project wizard. The user has already entered:
 
@@ -2586,7 +2586,7 @@ app.post('/api/build/projects/:id/next-action', async (req, res) => {
   if (!project) return;
   try {
     const config = getConfig();
-    const model = req.body.model || config.defaultModel;
+    const model = req.body.model || config.selectedModel;
     const bridge = new GsdBridge(project.path);
     const state = bridge.getState();
     const progress = bridge.getProgress();
@@ -2631,7 +2631,7 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
 
   try {
     const config = getConfig();
-    const model = req.body.model || config.defaultModel;
+    const model = req.body.model || config.selectedModel;
     const phaseNumber = req.body.phaseNumber;
     if (!phaseNumber) {
       sendEvent({ error: 'phaseNumber is required' });
@@ -2693,7 +2693,7 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
 
   try {
     const config = getConfig();
-    const model = req.body.model || config.defaultModel;
+    const model = req.body.model || config.selectedModel;
     const phaseNumber = req.body.phaseNumber;
     const researchContext = req.body.researchContext || '';
     if (!phaseNumber) {
@@ -3103,7 +3103,7 @@ app.post('/api/git/review', async (req, res) => {
   if (!repoPath) return;
   try {
     const config = getConfig();
-    const model = req.body?.model || config.defaultModel;
+    const model = req.body?.model || config.selectedModel;
     if (!model) {
       return res.status(400).json({ error: 'No model selected', review: '' });
     }
