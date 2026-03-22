@@ -4,6 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { validateProjectFilePath, executeBuiltinTool } = require('../../lib/builtin-agent-tools.js');
+const { canConvertBuiltin } = require('../../lib/builtin-doc-converter.js');
+
+test('canConvertBuiltin is false for legacy .xls (Docling-only)', () => {
+  assert.strictEqual(canConvertBuiltin('data.xls'), false);
+  assert.strictEqual(canConvertBuiltin('book.xlsx'), true);
+});
 
 test('validateProjectFilePath accepts relative file under project', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-proj-'));
