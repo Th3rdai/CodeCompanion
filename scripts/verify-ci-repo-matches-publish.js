@@ -20,12 +20,15 @@ if (!actual) {
 }
 
 if (expected !== actual) {
-  console.error(
-    `::error::This workflow is running on **github.com/${actual}** but electron-builder.config.js ` +
-      `publish targets **github.com/${expected}**. Installed apps fetch \`latest-*.yml\` from the publish repo only.\n` +
-      `Fix: push the release tag to **${expected}**, or change publish.owner/repo to match **${actual}**.`
+  // Warn but don't fail — allows mirror repos (e.g. 3rdAI-admin) to build
+  // artifacts without creating a release. The publish repo (th3rdai) is the
+  // only one that serves auto-update metadata (latest-*.yml).
+  console.warn(
+    `::warning::This workflow is running on **github.com/${actual}** but electron-builder.config.js ` +
+      `publish targets **github.com/${expected}**. Creating a release here won't serve auto-updates.\n` +
+      `The release tag should also be pushed to **${expected}** for in-app updates to work.`
   );
-  process.exit(1);
+  process.exit(0);
 }
 
 console.log(`ok: GITHUB_REPOSITORY matches publish target (${expected})`);
