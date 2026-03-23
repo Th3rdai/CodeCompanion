@@ -5,6 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import browserAppReady from '../helpers/app-ready.js';
 
 const mockReportCardResponse = {
   type: 'report-card',
@@ -42,15 +43,15 @@ test.describe('LoadingAnimation Component', () => {
       });
     });
 
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
       localStorage.setItem('cc-selected-model', 'test-model');
     });
     await page.reload();
     // Wait for model fetch to complete and button to become enabled
     await page.waitForResponse('**/api/models');
-    await page.getByRole('button', { name: 'Review', exact: true }).click();
+    await page.getByTestId('mode-tab-review').click();
   });
 
   test('displays bouncing dots animation', async ({ page }) => {

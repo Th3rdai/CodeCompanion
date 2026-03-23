@@ -4,6 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import browserAppReady from '../helpers/app-ready.js';
 
 const mockReportCardResponse = {
   type: 'report-card',
@@ -48,6 +49,8 @@ const mockReportCardResponse = {
 };
 
 test.describe('ReportCard Progressive Disclosure', () => {
+  test.describe.configure({ mode: 'serial' });
+
   test.beforeEach(async ({ page, context }) => {
     // Mock models API so the app thinks Ollama is connected
     await context.route('**/api/models', async (route) => {
@@ -67,17 +70,18 @@ test.describe('ReportCard Progressive Disclosure', () => {
       });
     });
 
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
       localStorage.setItem('cc-selected-model', 'test-model');
     });
     await page.reload();
     // Wait for model fetch to complete and button to become enabled
     await page.waitForResponse('**/api/models');
 
-    // Navigate to Review mode and submit code
-    await page.getByRole('button', { name: 'Review', exact: true }).click();
+    // Navigate to Review mode (wait for shell — parallel runs can delay hydration)
+    await expect(page.getByTestId('mode-tab-review')).toBeVisible({ timeout: 25_000 });
+    await page.getByTestId('mode-tab-review').click();
     await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();
 

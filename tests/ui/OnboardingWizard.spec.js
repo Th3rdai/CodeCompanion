@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('OnboardingWizard component', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem('th3rdai_splash_dismissed', 'true');
+    });
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('th3rdai_onboarding_complete'));
     await page.reload();

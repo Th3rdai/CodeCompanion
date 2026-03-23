@@ -4,6 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import browserAppReady from '../helpers/app-ready.js';
 
 const mockScoreResponse = {
   type: 'score-card',
@@ -53,16 +54,16 @@ test.describe('Prompting Builder Mode', () => {
       });
     });
 
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
       localStorage.setItem('cc-selected-model', 'test-model');
     });
     await page.reload();
     await page.waitForResponse('**/api/models');
 
-    // Navigate to Prompting mode
-    await page.click('button:has-text("Prompting")');
+    // Navigate to Prompting mode (icon + label — scope to main to avoid sidebar matches)
+    await page.getByTestId('mode-tab-prompting').click();
   });
 
   test('displays prompt builder input fields', async ({ page }) => {

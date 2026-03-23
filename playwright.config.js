@@ -7,6 +7,10 @@ const useHTTPS = baseURL.startsWith('https://');
 module.exports = defineConfig({
   testDir: './tests',
   testMatch: '**/*.spec.js',
+  // Default OS parallelism (often 8) can starve the single webServer; override with PW_WORKERS=8 locally.
+  workers: process.env.PW_WORKERS ? parseInt(process.env.PW_WORKERS, 10) : 2,
+  // One Node server + many UI tests; report-card / hydration can flake without a second attempt.
+  retries: 2,
   timeout: 45_000,
   expect: {
     timeout: 10_000
@@ -27,7 +31,8 @@ module.exports = defineConfig({
     // Build so E2E matches current src (server serves dist/).
     command: 'npm run build && FORCE_HTTP=1 PORT=4173 node server.js',
     port: 4173,
-    reuseExistingServer: true,
+    // If true, an old process on :4173 can serve stale dist/ (selectors drift) — opt in: PW_REUSE_SERVER=1
+    reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     timeout: 120_000
   }
 });

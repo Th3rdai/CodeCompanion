@@ -1,4 +1,6 @@
 const { test, expect } = require('@playwright/test');
+const browserAppReady = require('../helpers/app-ready.js');
+const { reviewModeTab, securityModeTab } = require('../helpers/mode-tabs.js');
 
 /** App expects SSE from POST /api/chat (data: JSON lines + [DONE]). */
 function mockSseChatBody(assistantText) {
@@ -49,10 +51,10 @@ test.describe('Image Upload E2E - Chat Mode', () => {
       });
     });
 
-    // Navigate to app with onboarding dismissed
+    // Navigate to app with onboarding + splash dismissed (main shell mounts immediately)
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
       localStorage.setItem('cc-image-privacy-accepted', 'true'); // Skip image privacy modal
     });
     await page.reload();
@@ -282,16 +284,17 @@ test.describe('Image Upload E2E - Review Mode', () => {
     });
 
     // Navigate and switch to Review mode
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
       localStorage.setItem('cc-image-privacy-accepted', 'true');
     });
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    await page.getByRole('button', { name: 'Review', exact: true }).click();
+    await expect(page.getByTestId('mode-tab-review')).toBeVisible({ timeout: 25_000 });
+    await reviewModeTab(page).click();
 
     const modelSelect = page.locator('#model-select');
     await expect(modelSelect).toBeVisible({ timeout: 15_000 });
@@ -360,16 +363,17 @@ test.describe('Image Upload E2E - Security Mode', () => {
     });
 
     // Navigate and switch to Security mode
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
       localStorage.setItem('cc-image-privacy-accepted', 'true');
     });
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
 
-    await page.getByRole('button', { name: 'Security', exact: true }).click();
+    await expect(page.getByTestId('mode-tab-pentest')).toBeVisible({ timeout: 25_000 });
+    await securityModeTab(page).click();
 
     const modelSelect = page.locator('#model-select');
     await expect(modelSelect).toBeVisible({ timeout: 15_000 });
@@ -403,10 +407,8 @@ test.describe('Image Upload E2E - Security Mode', () => {
 
 test.describe('Image Upload E2E - Settings', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('th3rdai_onboarding_complete', 'true');
-    });
     await page.reload();
   });
 

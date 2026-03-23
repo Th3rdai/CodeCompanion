@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
+import browserAppReady from '../helpers/app-ready.js';
 
 test.describe('ReviewPanel Input Methods', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
-    await page.evaluate(() => localStorage.setItem('th3rdai_onboarding_complete', 'true'));
     await page.reload();
     // Navigate to Review mode
-    await page.getByRole('button', { name: 'Review', exact: true }).click();
+    await page.getByTestId('mode-tab-review').click();
   });
 
   test('should render three input method tabs', async ({ page }) => {

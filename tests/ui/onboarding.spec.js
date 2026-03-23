@@ -2,6 +2,10 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Onboarding first launch', () => {
   test.beforeEach(async ({ page }) => {
+    // Splash hides the shell; dismiss it so the welcome wizard can appear
+    await page.addInitScript(() => {
+      sessionStorage.setItem('th3rdai_splash_dismissed', 'true');
+    });
     // Clear localStorage to simulate first launch
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('th3rdai_onboarding_complete'));

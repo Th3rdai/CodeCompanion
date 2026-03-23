@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import browserAppReady from '../helpers/app-ready.js';
 
 // Mock API response for consistent testing
 const mockReportCardResponse = {
@@ -54,13 +55,13 @@ test.describe('Review Workflow E2E', () => {
       });
     });
 
-    // Navigate to the app with onboarding dismissed
+    // Navigate to the app with splash + onboarding dismissed
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
-    await page.evaluate(() => localStorage.setItem('th3rdai_onboarding_complete', 'true'));
     await page.reload();
 
-    // Mode tab is named exactly "Review" (sidebar chats may include "Code Review" — do not use /review/i.first())
-    await page.getByRole('button', { name: 'Review', exact: true }).click();
+    // Mode tab is icon + label (e.g. "📝 Review"); avoid matching sidebar "Code Review" with /Review/ alone — mode tabs are in main toolbar
+    await page.getByTestId('mode-tab-review').click();
   });
 
   test('should complete full paste workflow', async ({ page }) => {

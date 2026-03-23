@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import browserAppReady from '../helpers/app-ready.js';
 
 test.describe('Privacy banner', () => {
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(browserAppReady);
     await page.goto('/');
     // Clear privacy banner dismissal, ensure onboarding is complete
     await page.evaluate(() => {

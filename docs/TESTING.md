@@ -20,7 +20,8 @@ Run unit tests before small backend changes; run Playwright when changing UI or 
 | `tests/ui/` | Playwright specs for components and flows (onboarding, security mode, builders, glossary, …) |
 | `tests/e2e/` | End-to-end workflows (e.g. review with mocked API) |
 | `tests/*.test.js` | Top-level Node tests (rate limit, MCP security, tone validation, UI labels) |
-| `playwright.config.js` | Playwright: starts `npm run build && FORCE_HTTP=1 PORT=4173 node server.js`, uses `reuseExistingServer: true` |
+| `playwright.config.js` | Playwright: starts `npm run build && FORCE_HTTP=1 PORT=4173 node server.js`; see **Playwright env** below |
+| `tests/helpers/` | `app-ready.js` (splash + onboarding), `mode-tabs.js` (stable `data-testid` mode tabs) |
 | `playwright-ct.config.js` | Component-test config (experimental CT) |
 
 Some UI specs use **`test.skip`** placeholders (e.g. build handoff / AI ops) until fully wired — see individual files.
@@ -34,6 +35,16 @@ To test against a **HTTPS** dev server (e.g. self-signed cert on :4173), set:
 ```bash
 BASE_URL=https://127.0.0.1:4173 npm run test:ui
 ```
+
+## Playwright env (optional)
+
+| Variable | Effect |
+|----------|--------|
+| `PW_WORKERS` | Override parallel workers (default **2** — avoids starving the single `node server.js`). |
+| `PW_REUSE_SERVER=1` | Reuse an existing process on **:4173** instead of starting **webServer** (faster; risk: **stale `dist/`** if the server was built before your last UI change). |
+| `BASE_URL` | Same as above for HTTPS / alternate host. |
+
+The root config sets **`retries: 2`** so occasional hydration / single-server flake can recover without failing the whole run.
 
 ## CI
 

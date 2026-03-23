@@ -1492,6 +1492,7 @@ export default function App() {
                   <button
                     key={m.id}
                     type="button"
+                    data-testid={`mode-tab-${m.id}`}
                     onClick={() => setMode(m.id)}
                     className={`relative z-10 flex cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]
                       ${mode === m.id
