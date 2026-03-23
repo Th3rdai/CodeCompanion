@@ -18,7 +18,7 @@ Run unit tests before small backend changes; run Playwright when changing UI or 
 |------|------|
 | `tests/unit/` | Focused unit tests for `lib/` modules (builders, image processor, pentest schema, etc.) |
 | `tests/ui/` | Playwright specs for components and flows (onboarding, security mode, builders, glossary, …) |
-| `tests/e2e/` | End-to-end workflows (e.g. review with mocked API) |
+| `tests/e2e/` | End-to-end workflows (image upload, review, **create mode** wizard + API guardrails) |
 | `tests/*.test.js` | Top-level Node tests (rate limit, MCP security, tone validation, UI labels) |
 | `playwright.config.js` | Playwright: starts `npm run build && FORCE_HTTP=1 PORT=4173 node server.js`; see **Playwright env** below |
 | `tests/helpers/` | `app-ready.js` (splash + onboarding), `mode-tabs.js` (stable `data-testid` mode tabs) |
