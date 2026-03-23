@@ -103,8 +103,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [updateInfo, setUpdateInfo] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [updateError, setUpdateError] = useState(null);
-  /** false = unpackaged dev Electron; upgrades apply to installed app only */
-  const [isPackaged, setIsPackaged] = useState(true);
+  /** null until IPC returns; false = unpackaged dev; true = packaged installer — in-app updates only when true */
+  const [isPackaged, setIsPackaged] = useState(null);
 
   // Load brand assets, timeout, port, and image support from config
   useEffect(() => {
@@ -254,8 +254,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         try {
           setIsPackaged(await window.electronAPI.getIsPackaged());
         } catch {
-          setIsPackaged(true);
+          setIsPackaged(false);
         }
+      } else {
+        setIsPackaged(false);
       }
       if (typeof window.electronAPI.getUpdateState === 'function') {
         try {
@@ -359,7 +361,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   /** Primary Upgrade / Download control: re-check when unknown; when already "available", start download (re-check alone does nothing visible). */
   async function handleUpgradeClick() {
-    if (!isPackaged) return;
+    if (isPackaged !== true) return;
     setUpdateError(null);
 
     if (updateStatus === 'available') {
@@ -1216,7 +1218,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     </div>
                   )}
 
-                  {!isPackaged && (
+                  {isPackaged === false && (
                     <p className="text-xs text-amber-400/90 mb-3">
                       Installed app only: run a packaged build to upgrade from here. For dev, pull and rebuild from the repo.
                     </p>
@@ -1236,7 +1238,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                         type="button"
                         onClick={handleUpgradeClick}
                         disabled={
-                          !isPackaged ||
+                          isPackaged !== true ||
                           updateStatus === 'checking' ||
                           updateStatus === 'downloading'
                         }
