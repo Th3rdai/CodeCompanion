@@ -1,0 +1,13 @@
+diff --git a/node_modules/@_davideast/stitch-mcp/dist/commands/proxy/command.js b/node_modules/@_davideast/stitch-mcp/dist/commands/proxy/command.js
+index 1068625..a275b6a 100644
+--- a/node_modules/@_davideast/stitch-mcp/dist/commands/proxy/command.js
++++ b/node_modules/@_davideast/stitch-mcp/dist/commands/proxy/command.js
+@@ -40,7 +40,7 @@ var command = {
+ ${icons.error} Proxy server error: ${result.error?.message}`));
+         process.exit(1);
+       }
+-      process.exit(0);
++      // process.exit(0); // patched: keep alive for stdio MCP
+     } catch (error) {
+       console.error(theme.red(`
+ ${icons.error} Unexpected error:`), error);

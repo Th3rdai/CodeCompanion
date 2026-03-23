@@ -47,6 +47,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@_davideast/stitch-mcp": "^0.5.1",
     "@headlessui/react": "^2.2.9",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@splinetool/react-spline": "^4.1.0",
