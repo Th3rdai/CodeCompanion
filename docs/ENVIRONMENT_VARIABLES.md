@@ -53,8 +53,10 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 |----------|---------|
 | `MAC_DISTRIBUTION_SIGN` | Set to `1` for **Developer ID** signing + **hardened runtime**. Requires **`MAC_CODESIGN_IDENTITY`**. Used by `electron:build:mac:release` / `electron:publish:mac:release`. |
 | `MAC_CODESIGN_IDENTITY` | Exact name of the **Developer ID Application** certificate (e.g. `Developer ID Application: Name (TEAMID)`). Required when `MAC_DISTRIBUTION_SIGN=1`. |
-| `MAC_NOTARIZE` | Set to `1` to enable **notarization** (slow). Requires `APPLE_TEAM_ID` and Apple notarization env vars; see **BUILD.md**. |
+| `MAC_NOTARIZE` | Set to `1` to enable **notarization** (slow). Requires **`APPLE_TEAM_ID`**, **`APPLE_ID`**, **`APPLE_APP_SPECIFIC_PASSWORD`** (and distribution signing); see **BUILD.md**. |
 | `APPLE_TEAM_ID` | 10-character Team ID for `notarize.teamId` when `MAC_NOTARIZE=1`. |
+| `APPLE_ID` | Apple ID email for notarization (not your password). |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password for notarization API. |
 | `WIN_DISTRIBUTION_SIGN` | Set to `1` for **Windows Authenticode** via `.pfx` or certificate store. Requires **`WIN_CSC_LINK`/`CSC_LINK`** or **`CSC_NAME`/`WIN_CSC_NAME`**. Used by `electron:build:win:release` / `electron:publish:win:release`. |
 | `WIN_CSC_LINK` | Path to **`.pfx`** (optional if `CSC_LINK` set). |
 | `CSC_LINK` | electron-builder default: path to `.pfx` for Windows (and other) signing. |
@@ -64,6 +66,10 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 | `LINUX_GPG_KEY_ID` | GPG key id or fingerprint for `gpg --local-user` when `LINUX_GPG_SIGN=1`. |
 
 Default **`npm run electron:build:mac`** / **`:win`** / **`:linux`** do **not** set distribution signing flags — fastest local iteration.
+
+### GitHub Actions (`.github/workflows/build.yml`)
+
+These are **repository secrets**, not shell env files. When **`MAC_CERTS`** + **`MAC_CERTS_PASSWORD`** + **`MAC_CODESIGN_IDENTITY`** are set, the macOS job runs a **Developer ID** build; otherwise it stays **ad-hoc**. Optional notarization uses **`APPLE_TEAM_ID`**, **`APPLE_ID`**, **`APPLE_APP_SPECIFIC_PASSWORD`** together with the signing secrets. See **BUILD.md** (GitHub Actions subsection under macOS code signing).
 
 ## Docling / Electron
 

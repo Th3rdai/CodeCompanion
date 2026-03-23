@@ -1,11 +1,38 @@
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const { createBackup } = require('./data-manager');
+
+/**
+ * Unpackaged `electron .` / dev: electron-updater does nothing (see AppUpdater.isUpdaterActive).
+ * Skip loading the module and expose IPC so Settings never throws; renderer uses getIsPackaged to disable UI.
+ */
+function registerUnpackagedUpdaterIpc() {
+  ipcMain.handle('check-for-updates', async () => ({
+    success: true,
+    updateInfo: null,
+    isUpdateAvailable: false,
+  }));
+  ipcMain.handle('restart-for-update', () => {});
+  ipcMain.handle('get-update-state', () => ({
+    success: true,
+    updateDownloaded: false,
+    updateInfo: null,
+  }));
+  ipcMain.handle('download-update', async () => ({
+    success: false,
+    error: 'Updates apply to the installed app only. Use a packaged build (DMG/EXE/AppImage) or download from GitHub Releases.',
+  }));
+}
 
 /**
  * Initializes the auto-updater for GitHub Releases
  * Checks for updates on launch and provides IPC handlers
  */
 function initAutoUpdater(win, dataDir) {
+  if (!app.isPackaged) {
+    registerUnpackagedUpdaterIpc();
+    return;
+  }
+
   let autoUpdater;
   let log;
   /** Set when `update-downloaded` fires so renderer can sync if it missed the event (e.g. opened Settings late). */

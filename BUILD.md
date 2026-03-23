@@ -201,6 +201,21 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 
 **Optional notarization** (adds Apple server wait time): set `MAC_NOTARIZE=1`, `APPLE_TEAM_ID`, and Apple notarization credentials (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` — see [electron-builder notarize](https://www.electron.build/configuration/mac)).
 
+### GitHub Actions (tag / `workflow_dispatch` builds)
+
+The workflow **`.github/workflows/build.yml`** builds macOS with **ad-hoc** signing unless you add **repository secrets** so CI can import your **Developer ID** certificate:
+
+| Secret | Required for signing | Notes |
+|--------|----------------------|--------|
+| `MAC_CERTS` | Yes | **Base64** of your **`.p12`** (export from Keychain Access → include private key; then `base64 -i cert.p12 \| tr -d '\n'` on macOS). |
+| `MAC_CERTS_PASSWORD` | Yes | Password for the `.p12` export. |
+| `MAC_CODESIGN_IDENTITY` | Yes | Exact string, e.g. `Developer ID Application: Your Name (TEAMID)`. |
+| `APPLE_TEAM_ID` | For **notarization** | 10-character Team ID. |
+| `APPLE_ID` | For **notarization** | Apple ID email used for notarization. |
+| `APPLE_APP_SPECIFIC_PASSWORD` | For **notarization** | App-specific password (not your Apple ID password). |
+
+When **`MAC_CERTS`**, **`MAC_CERTS_PASSWORD`**, and **`MAC_CODESIGN_IDENTITY`** are all set, the mac job imports the cert into a temporary keychain and sets **`MAC_DISTRIBUTION_SIGN=1`** for that build. **Signed + notarized CI** needs those **three** plus **`APPLE_TEAM_ID`**, **`APPLE_ID`**, and **`APPLE_APP_SPECIFIC_PASSWORD`** (six secrets total); then **`MAC_NOTARIZE=1`** is enabled for that job. Omit any of the signing trio to keep **fast ad-hoc** mac builds in CI (same as local `npm run electron:build:mac`).
+
 ## Windows code signing (Authenticode)
 
 | Goal | Command | Notes |

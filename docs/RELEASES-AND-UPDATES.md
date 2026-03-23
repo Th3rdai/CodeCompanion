@@ -22,7 +22,13 @@ For **how to build** installers locally, see **[BUILD.md](../BUILD.md)**.
 | **Git tag `v*`** | Triggers CI and names the GitHub Release (e.g. `v1.6.0` → version `1.6.0`). |
 | **`electron-builder.config.js` → `publish`** | Points electron-updater at **GitHub** `owner` / `repo` (currently `th3rdai` / `CodeCompanion`). |
 | **`release/` outputs** | Per-platform artifacts plus **updater YAML** (e.g. macOS `latest-mac.yml`). These must be **attached to the same GitHub Release** the app resolves. |
-| **`electron/updater.js`** | Configures `autoUpdater` (including **`allowPrerelease`**). See [Prereleases](#prereleases-and-allowprerelease). |
+| **`electron/updater.js`** | Configures `autoUpdater` (including **`allowPrerelease`**). Unpackaged dev (`electron .`) registers stub IPC only — **in-app updates run for packaged installs only** (matches `electron-updater`’s internal `app.isPackaged` check). |
+
+### In-app **Upgrade** / **Check for updates** (what users need)
+
+1. **Installed app** from a release (DMG / NSIS / AppImage / ZIP), not `electron:dev`. The Settings UI reads `app.isPackaged`; dev builds show the amber “installed app only” note and keep the primary button disabled.
+2. **GitHub Release** on **`th3rdai/CodeCompanion`** (same as `publish` in `electron-builder.config.js`) must ship **`latest-mac.yml`**, **`latest.yml`**, Linux feeds, and the binaries those files point to — typically the CI/tag workflow output.
+3. **Optional code signing** (`:release` builds) does not turn the updater on or off; it only affects SmartScreen / Gatekeeper behavior.
 
 ---
 
