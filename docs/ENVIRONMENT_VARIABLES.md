@@ -47,6 +47,24 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 |----------|---------|
 | `BASE_URL` | Base URL for tests (default **`http://127.0.0.1:4173`**, matches `webServer` + `FORCE_HTTP=1`). Set to `https://127.0.0.1:4173` only when the test server is actually serving HTTPS. |
 
+## Electron packager (`electron-builder.config.js`)
+
+| Variable | Purpose |
+|----------|---------|
+| `MAC_DISTRIBUTION_SIGN` | Set to `1` for **Developer ID** signing + **hardened runtime**. Requires **`MAC_CODESIGN_IDENTITY`**. Used by `electron:build:mac:release` / `electron:publish:mac:release`. |
+| `MAC_CODESIGN_IDENTITY` | Exact name of the **Developer ID Application** certificate (e.g. `Developer ID Application: Name (TEAMID)`). Required when `MAC_DISTRIBUTION_SIGN=1`. |
+| `MAC_NOTARIZE` | Set to `1` to enable **notarization** (slow). Requires `APPLE_TEAM_ID` and Apple notarization env vars; see **BUILD.md**. |
+| `APPLE_TEAM_ID` | 10-character Team ID for `notarize.teamId` when `MAC_NOTARIZE=1`. |
+| `WIN_DISTRIBUTION_SIGN` | Set to `1` for **Windows Authenticode** via `.pfx` or certificate store. Requires **`WIN_CSC_LINK`/`CSC_LINK`** or **`CSC_NAME`/`WIN_CSC_NAME`**. Used by `electron:build:win:release` / `electron:publish:win:release`. |
+| `WIN_CSC_LINK` | Path to **`.pfx`** (optional if `CSC_LINK` set). |
+| `CSC_LINK` | electron-builder default: path to `.pfx` for Windows (and other) signing. |
+| `WIN_CSC_KEY_PASSWORD` / `CSC_KEY_PASSWORD` | Password for the `.pfx`. |
+| `CSC_NAME` / `WIN_CSC_NAME` | Sign using a certificate **subject name** in the store (alternative to `.pfx`). |
+| `LINUX_GPG_SIGN` | Set to `1` to create **detached GPG signatures** (`.asc`) for **`*.AppImage`** after build. Used by `electron:build:linux:release` / `electron:publish:linux:release`. |
+| `LINUX_GPG_KEY_ID` | GPG key id or fingerprint for `gpg --local-user` when `LINUX_GPG_SIGN=1`. |
+
+Default **`npm run electron:build:mac`** / **`:win`** / **`:linux`** do **not** set distribution signing flags — fastest local iteration.
+
 ## Docling / Electron
 
 | Variable | Purpose |

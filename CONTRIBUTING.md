@@ -21,6 +21,10 @@ Thanks for your interest in contributing! Code Companion is an open-source proje
 - **Both:** `npm run dev` (Vite + Express together)
 - **Production-style run:** `./deploy.sh` or `npm run build && ./startup.sh`
 
+## Desktop (Electron)
+
+Installer builds use **electron-builder** (`npm run electron:build`, per-platform scripts in `package.json`). **Release signing:** **`electron:*:release`** scripts set distribution flags — **macOS** (`MAC_CODESIGN_IDENTITY`), **Windows** (`WIN_CSC_LINK` / `CSC_LINK` or `CSC_NAME`), **Linux** optional GPG (`LINUX_GPG_KEY_ID` with `LINUX_GPG_SIGN`) — see **[BUILD.md](BUILD.md)** and **[docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)**. Release process for GitHub + in-app updates: **[docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md)**.
+
 ## Testing
 
 Before submitting a PR, run the full test suite:

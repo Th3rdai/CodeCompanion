@@ -121,9 +121,10 @@ A manual copy of installers may live under **Google Drive → My Drive → `_TH3
 
 **Fix (maintainers):**
 
-1. Build mac artifacts: `npm run electron:build:mac` — produces `release/latest-mac.yml`, DMG, ZIP, blockmaps.
+1. Build mac artifacts: `npm run electron:build:mac` — produces `release/latest-mac.yml`, DMG, ZIP, blockmaps (ad-hoc signing; fast). For **Developer ID** builds: `MAC_CODESIGN_IDENTITY="Developer ID Application: …" npm run electron:build:mac:release` — see [macOS code signing](#macos-code-signing-local-vs-distribution) below.
 2. **Publish** to GitHub, e.g. with a token:  
-   `npx electron-builder --mac --config electron-builder.config.js --publish always`  
+   `npm run electron:publish:mac` (ad-hoc) or `MAC_CODESIGN_IDENTITY="…" npm run electron:publish:mac:release` (distribution).  
+   Or: `npx electron-builder --mac --config electron-builder.config.js --publish always`  
    Or manually attach **`release/latest-mac.yml`**, **`*.dmg`**, **`*-mac.zip`**, and blockmaps to the matching **GitHub release** for that version.
 3. **`allowPrerelease`** is `true` in `electron/updater.js` — the updater may follow a **prerelease** (e.g. `v1.0.0-beta.1`). If that tag has **no** mac updater assets, mac updates fail until the release is fixed or a **newer** release with full assets is published.
 
@@ -138,7 +139,12 @@ Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. t
 With `GH_TOKEN` set to a token that can upload release assets:
 
 ```bash
-npm run electron:publish:mac    # or :win / :linux
+npm run electron:publish:mac              # macOS (ad-hoc; fast)
+npm run electron:publish:mac:release      # macOS + Developer ID (set MAC_CODESIGN_IDENTITY)
+npm run electron:publish:win              # Windows (unsigned by default)
+npm run electron:publish:win:release      # Windows + Authenticode (set WIN_CSC_LINK / CSC_LINK or CSC_NAME)
+npm run electron:publish:linux            # Linux
+npm run electron:publish:linux:release    # Linux + optional GPG signatures for AppImage (set LINUX_GPG_KEY_ID)
 ```
 
 | Platform | Files |
@@ -152,9 +158,10 @@ npm run electron:publish:mac    # or :win / :linux
 ### macOS
 
 1. Mount the DMG and drag to Applications
-2. Right-click the app and select "Open" (required for unsigned apps)
-3. Click "Open" in the Gatekeeper warning dialog
-4. App should show splash screen, start server, then load UI
+2. First launch: if Gatekeeper blocks the app (**ad-hoc** or non-notarized builds), **right-click** the app → **Open** once, then confirm. Developer ID + notarized builds often open without this step.
+3. App should show splash screen, start server, then load UI
+
+End-user notes: **[docs/INSTALL-MAC.md](docs/INSTALL-MAC.md)**.
 
 ### Windows
 
@@ -180,25 +187,43 @@ The Electron app works as follows:
 
 Key configuration: `asar: false` in `electron-builder.config.js` because `fork()` cannot execute code inside asar archives.
 
-## Code Signing (Future)
+## macOS code signing (local vs distribution)
 
-Currently builds are unsigned. Users must bypass OS warnings on first launch.
+`electron-builder.config.js` picks a **signing mode** from environment variables:
 
-When an Apple Developer account is ready, update `electron-builder.config.js`:
+| Goal | Command | Notes |
+|------|---------|--------|
+| **Fast local DMG/ZIP** (ad-hoc) | `npm run electron:build:mac` | `identity: '-'`, no hardened runtime — quickest iteration. |
+| **Signed for distribution** | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain. |
+| **Publish to GitHub (signed)** | Same identity in env + `npm run electron:publish:mac:release` | Use when shipping a release users will download. |
 
-```js
-mac: {
-  hardenedRuntime: true,
-  entitlements: 'resources/entitlements.mac.plist',
-  entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
-  identity: 'Developer ID Application: Th3rdAI (TEAM_ID)',
-  notarize: { teamId: 'TEAM_ID' },
-}
-```
+**Required for distribution builds:** `MAC_CODESIGN_IDENTITY` must match a **Developer ID Application** certificate in your login keychain. The `:release` scripts set `MAC_DISTRIBUTION_SIGN=1`, which enables **hardened runtime** and uses that identity.
 
-Set environment variables: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.
+**Optional notarization** (adds Apple server wait time): set `MAC_NOTARIZE=1`, `APPLE_TEAM_ID`, and Apple notarization credentials (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` — see [electron-builder notarize](https://www.electron.build/configuration/mac)).
 
-For Windows, obtain an EV code signing certificate and configure `win.signingHashAlgorithms`.
+## Windows code signing (Authenticode)
+
+| Goal | Command | Notes |
+|------|---------|--------|
+| **Fast local NSIS/ZIP** (unsigned) | `npm run electron:build:win` | No `.pfx` required. SmartScreen may warn until reputation builds. |
+| **Signed for distribution** | `WIN_CSC_LINK=/path/to/cert.pfx WIN_CSC_KEY_PASSWORD=… npm run electron:build:win:release` | Sets `WIN_DISTRIBUTION_SIGN=1`. Or use **`CSC_LINK`** / **`CSC_KEY_PASSWORD`** ([electron-builder](https://www.electron.build/code-signing)). |
+| **Certificate by name** (Windows store / EV token) | `CSC_NAME="…" npm run electron:build:win:release` | Use when signing via subject name instead of a `.pfx` file. |
+
+**Required when using `WIN_DISTRIBUTION_SIGN=1`:** either **`WIN_CSC_LINK` or `CSC_LINK`** (path to `.pfx`), **or** **`CSC_NAME` / `WIN_CSC_NAME`**. Password: **`WIN_CSC_KEY_PASSWORD`** or **`CSC_KEY_PASSWORD`**. Do **not** commit `.pfx` files (see `.gitignore`).
+
+**Publish (signed):** `npm run electron:publish:win:release` with the same variables.
+
+## Linux (AppImage + GPG signature)
+
+electron-builder does not use an X.509 cert for AppImages the way Windows/macOS do. Optional **detached GPG signatures** are produced after the build:
+
+| Goal | Command | Notes |
+|------|---------|--------|
+| **Build only** | `npm run electron:build:linux` | Unsigned AppImage + ZIP. |
+| **Build + `.asc` for AppImage** | `LINUX_GPG_KEY_ID=0xYOURKEYID npm run electron:build:linux:release` | Sets `LINUX_GPG_SIGN=1`; runs `gpg --detach-sign` on each `*.AppImage` (requires `gpg` on `PATH`). |
+| **Publish + signatures** | Same key env + `npm run electron:publish:linux:release` | Upload `*.AppImage` and matching **`*.AppImage.asc`** if you ship signatures. |
+
+**Required for signatures:** `LINUX_GPG_KEY_ID` (or full fingerprint) for a **secret** key available to `gpg`. Implementation: `scripts/linux-gpg-after-artifact.js` (`afterAllArtifactBuild`).
 
 ## Reverse proxy (optional)
 

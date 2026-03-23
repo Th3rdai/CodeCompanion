@@ -82,12 +82,21 @@ Use when CI is unavailable or you need to ship a hotfix build quickly.
 ```bash
 export GH_TOKEN=ghp_...   # or: export GITHUB_TOKEN=...
 
-npm run electron:publish:mac     # macOS only
-npm run electron:publish:win     # Windows only
+npm run electron:publish:mac     # macOS only (default: ad-hoc signing — fast)
+npm run electron:publish:mac:release   # macOS + Developer ID (set MAC_CODESIGN_IDENTITY)
+npm run electron:publish:win     # Windows only (unsigned unless you set CSC_* env)
+npm run electron:publish:win:release   # Windows + Authenticode (WIN_CSC_LINK / CSC_LINK or CSC_NAME)
 npm run electron:publish:linux   # Linux only
+npm run electron:publish:linux:release   # Linux + optional GPG `.asc` for AppImage (LINUX_GPG_KEY_ID)
 ```
 
 Each script runs `electron-builder … --publish always`, which creates or updates the GitHub Release and uploads artifacts for that platform.
+
+**macOS Developer ID (distribution):** `electron:publish:mac` uses **ad-hoc** signing unless you opt into release signing. To ship a **Developer ID**-signed build (and optionally **notarize**), set **`MAC_CODESIGN_IDENTITY`** to your **Developer ID Application** certificate name, then run **`npm run electron:publish:mac:release`**. Optional: **`MAC_NOTARIZE=1`**, **`APPLE_TEAM_ID`**, and Apple notarization credentials — see **[BUILD.md](../BUILD.md)** (macOS code signing) and **[ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md)** (Electron packager variables).
+
+**Windows Authenticode:** use **`electron:publish:win:release`** with **`WIN_CSC_LINK`** (or **`CSC_LINK`**) pointing at a **`.pfx`** and **`WIN_CSC_KEY_PASSWORD`** / **`CSC_KEY_PASSWORD`**, or **`CSC_NAME`** for store-based signing — see **[BUILD.md](../BUILD.md)** (Windows code signing).
+
+**Linux GPG (optional):** **`electron:publish:linux:release`** sets **`LINUX_GPG_SIGN=1`**; provide **`LINUX_GPG_KEY_ID`** so detached **`.asc`** signatures are generated for **`*.AppImage`** (requires **`gpg`** on the build machine). Upload **`.asc`** next to the AppImage if you distribute signatures.
 
 **macOS in-app updates** require **`latest-mac.yml`**, DMG/ZIP, and **blockmaps** on the **same** release your users resolve as “latest.” If you only publish Windows, mac users will not see a complete update feed.
 

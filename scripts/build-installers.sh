@@ -2,6 +2,11 @@
 # Rebuild all OS installers (macOS DMG/ZIP, Windows NSIS/ZIP, Linux AppImage/ZIP).
 # Run from project root: ./scripts/build-installers.sh
 # Output: release/ (see BUILD.md for artifact names).
+#
+# Distribution signing (optional, slower than unsigned local builds):
+#   macOS: export MAC_DISTRIBUTION_SIGN=1 and MAC_CODESIGN_IDENTITY
+#   Windows: export WIN_DISTRIBUTION_SIGN=1 and WIN_CSC_LINK (or CSC_LINK) + WIN_CSC_KEY_PASSWORD / CSC_KEY_PASSWORD
+#   Linux AppImage GPG: export LINUX_GPG_SIGN=1 and LINUX_GPG_KEY_ID (requires gpg on PATH)
 
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

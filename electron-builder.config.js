@@ -1,3 +1,40 @@
+const path = require('path');
+
+/**
+ * macOS signing modes (see BUILD.md):
+ * - Default: ad-hoc (`identity: '-'`) — faster local DMG/ZIP; Gatekeeper may prompt.
+ * - Distribution: MAC_DISTRIBUTION_SIGN=1 + MAC_CODESIGN_IDENTITY — Developer ID + hardened runtime.
+ * - Optional notarization: MAC_NOTARIZE=1 + APPLE_TEAM_ID (and APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD for xcrun).
+ *
+ * Windows Authenticode: WIN_DISTRIBUTION_SIGN=1 + WIN_CSC_LINK or CSC_LINK (.pfx), or CSC_NAME / WIN_CSC_NAME (store).
+ * Linux AppImage GPG: LINUX_GPG_SIGN=1 + LINUX_GPG_KEY_ID (afterAllArtifactBuild hook).
+ */
+const macDistributionSign = process.env.MAC_DISTRIBUTION_SIGN === '1';
+const macCodesignIdentity = (process.env.MAC_CODESIGN_IDENTITY || '').trim();
+
+if (macDistributionSign && !macCodesignIdentity) {
+  throw new Error(
+    'MAC_DISTRIBUTION_SIGN=1 requires MAC_CODESIGN_IDENTITY (e.g. "Developer ID Application: Your Name (TEAMID)"). ' +
+      'For fast local builds, omit MAC_DISTRIBUTION_SIGN and run npm run electron:build:mac'
+  );
+}
+
+const macNotarize =
+  macDistributionSign &&
+  process.env.MAC_NOTARIZE === '1' &&
+  (process.env.APPLE_TEAM_ID || '').trim();
+
+const winDistributionSign = process.env.WIN_DISTRIBUTION_SIGN === '1';
+const winPfxPath = (process.env.WIN_CSC_LINK || process.env.CSC_LINK || '').trim();
+const winCertStoreName = (process.env.CSC_NAME || process.env.WIN_CSC_NAME || '').trim();
+
+if (winDistributionSign && !winPfxPath && !winCertStoreName) {
+  throw new Error(
+    'WIN_DISTRIBUTION_SIGN=1 requires WIN_CSC_LINK or CSC_LINK (path to .pfx), or CSC_NAME / WIN_CSC_NAME (Windows certificate store). ' +
+      'For unsigned local builds, omit WIN_DISTRIBUTION_SIGN and run npm run electron:build:win'
+  );
+}
+
 module.exports = {
   appId: 'com.th3rdai.code-companion',
   productName: 'Code Companion',
@@ -48,14 +85,9 @@ module.exports = {
     target: ['dmg', 'zip'],
     icon: 'resources/icon.icns',
     category: 'public.app-category.developer-tools',
-    // Ad-hoc signing for local/unsigned builds (required on Apple Silicon)
-    // For distribution, replace with Developer ID identity and enable notarize:
-    // hardenedRuntime: true,
-    // entitlements: 'resources/entitlements.mac.plist',
-    // entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
-    // identity: 'Developer ID Application: Th3rdAI (TEAM_ID)',
-    // notarize: { teamId: 'TEAM_ID' },
-    identity: '-',
+    hardenedRuntime: macDistributionSign,
+    identity: macDistributionSign ? macCodesignIdentity : '-',
+    ...(macNotarize ? { notarize: { teamId: (process.env.APPLE_TEAM_ID || '').trim() } } : {}),
     gatekeeperAssess: false,
     extendInfo: {
       NSMicrophoneUsageDescription: 'Code Companion uses the microphone for voice dictation to transcribe speech into text fields.',
@@ -71,6 +103,13 @@ module.exports = {
   win: {
     target: ['nsis', 'zip'],
     icon: 'resources/icon.ico',
+    ...(winDistributionSign && winPfxPath
+      ? {
+          certificateFile: winPfxPath,
+          certificatePassword: process.env.WIN_CSC_KEY_PASSWORD || process.env.CSC_KEY_PASSWORD,
+          signingHashAlgorithms: ['sha256'],
+        }
+      : {}),
   },
   nsis: {
     oneClick: false,
@@ -101,4 +140,7 @@ module.exports = {
   extraResources: [
     { from: 'resources/data-readme.txt', to: 'data-readme.txt' },
   ],
+
+  /** Detached GPG signatures for *.AppImage when LINUX_GPG_SIGN=1 (see scripts/linux-gpg-after-artifact.js). */
+  afterAllArtifactBuild: path.join(__dirname, 'scripts', 'linux-gpg-after-artifact.js'),
 };

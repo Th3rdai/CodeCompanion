@@ -18,12 +18,15 @@ Use this before tagging a release or uploading installers. **Human** runs these 
 From repo root:
 
 ```bash
-npm run electron:build:mac      # macOS — DMG + ZIP in release/
+npm run electron:build:mac              # macOS — fast ad-hoc DMG + ZIP in release/
+MAC_CODESIGN_IDENTITY="Developer ID Application: …" npm run electron:build:mac:release   # mac signed + hardened
+WIN_CSC_LINK=/path/to/cert.pfx WIN_CSC_KEY_PASSWORD=… npm run electron:build:win:release   # Windows Authenticode
+LINUX_GPG_KEY_ID=0x… npm run electron:build:linux:release   # Linux AppImage + detached GPG .asc (optional)
 # or
 ./scripts/build-installers.sh # macOS + Windows x64 + Linux x64 (see script)
 ```
 
-`electron-builder.config.js` uses `publish: { provider: github, owner, repo }` for update metadata; builds use `--publish never` unless you intentionally publish.
+`electron-builder.config.js` uses `publish: { provider: github, owner, repo }` for update metadata; builds use `--publish never` unless you intentionally publish. **Distribution signing:** `electron:publish:mac:release`, `electron:publish:win:release`, `electron:publish:linux:release` — env vars in **BUILD.md** / **docs/ENVIRONMENT_VARIABLES.md**.
 
 ## Verify updater
 

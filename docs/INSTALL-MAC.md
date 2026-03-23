@@ -1,18 +1,20 @@
-# Code Companion v1.5.3 - macOS Installation Guide
+# Code Companion — macOS installation guide
+
+> **Filenames** use the npm package name **`code-companion`**, version, and arch (see [`electron-builder.config.js`](../electron-builder.config.js) `artifactName`). Example: `code-companion-1.5.x-arm64.dmg`. Exact names match [GitHub Releases](https://github.com/th3rdai/CodeCompanion/releases).
 
 ## ✅ Build Complete
 
-**Apple Silicon (M1/M2/M3) build available!**
+**Apple Silicon (M1/M2/M3/M4) build available.**
 
 ### Installation Options
 
 **Option 1: DMG Installer (Recommended)**
-- **File:** `Code Companion-1.5.3-arm64.dmg` (≈180 MB; exact size varies by build)
+- **File:** `code-companion-<version>-arm64.dmg` (size varies by build; often ~180 MB+)
 - **Installation:** Drag app to Applications folder
-- ⭐ **Recommended - traditional macOS experience**
+- ⭐ **Recommended — traditional macOS experience**
 
 **Option 2: ZIP Archive (Portable)**
-- **File:** `Code Companion-1.5.3-arm64-mac.zip` (≈183 MB)
+- **File:** `code-companion-<version>-arm64-mac.zip` (portable; size varies)
 - **Installation:** Extract and run from anywhere
 - No installation required, self-contained
 
@@ -20,7 +22,7 @@
 
 ## 🚀 Installation Steps (DMG)
 
-1. **Download** `Code Companion-1.5.3-arm64.dmg`
+1. **Download** the `.dmg` for your version from [Releases](https://github.com/th3rdai/CodeCompanion/releases)
 2. **Double-click** the DMG file to mount it
 3. **Drag** Code Companion.app to the Applications folder
 4. **Eject** the DMG (right-click → Eject)
@@ -28,23 +30,25 @@
 
 ---
 
-## 🔓 First Launch - Gatekeeper Warning
+## 🔓 First Launch — Gatekeeper
 
-**macOS will show:** "Code Companion cannot be opened because the developer cannot be verified"
+What you see depends on **how the build was signed**:
 
-**This is normal for unsigned apps.** Code Companion is safe but not code-signed (requires expensive Apple Developer certificate).
+| Build type | Typical experience |
+|------------|-------------------|
+| **Developer ID + notarization** (distribution release) | Often opens normally from Downloads or Applications; least friction. |
+| **Developer ID without notarization**, or **ad-hoc** (local/dev builds) | macOS may say the **developer cannot be verified** or ask you to confirm — use **Right-click → Open** once (see below). |
 
-**To run:**
-1. **Right-click** (or Control-click) on Code Companion.app
-2. Select **"Open"** from the menu
-3. Click **"Open"** in the dialog that appears
-4. macOS will remember your choice - no warning on future launches
+Maintainer builds from source default to **ad-hoc** signing for speed; **GitHub release** builds may use **Developer ID** when published with `electron:publish:mac:release` (see **[BUILD.md](../BUILD.md)**).
 
-**Alternative method:**
-1. System Settings → Privacy & Security
-2. Scroll to "Security" section
-3. Click **"Open Anyway"** next to the Code Companion message
-4. Click **"Open"** in the confirmation dialog
+**If you see “cannot be opened because the developer cannot be verified”:**
+
+1. **Right-click** (or Control-click) **Code Companion.app**
+2. Select **Open**
+3. Click **Open** in the dialog
+4. macOS remembers your choice for that app
+
+**Alternative:** System Settings → Privacy & Security → **Open Anyway** (when macOS lists the blocked app).
 
 ---
 
@@ -84,34 +88,15 @@ open ~/Library/Application\ Support/code-companion/
 
 ---
 
-## What's New in v1.5.3
+## Release notes
 
-### Desktop & docs
-- **Software Updates (Electron)** — After an update is found, use **Download update** (then **Restart** when ready). **Check for updates** only checks the server; it does not download by itself.
-- **Install docs** — macOS data path corrected to **`~/Library/Application Support/code-companion/`** (matches Electron `userData`).
+See **[GitHub Releases](https://github.com/th3rdai/CodeCompanion/releases)** for the current version, changelog, and asset filenames.
 
-### Also in recent releases (v1.5.2 and earlier)
+Past highlights (examples — not exhaustive):
 
-#### 🔒 Security & release alignment
-- **CSP nonces** for production HTML; **generic** server error messages to clients; **CI** dependency audit (`npm audit` critical gate).
-- **GitHub token** validation cached briefly to reduce API calls.
-- **Releases** — Installers ship from **th3rdai/CodeCompanion** Releases (in-app Software Updates when assets are published).
-
-#### 🚀 Docling Auto-Start
-- Automatic document conversion (PDF, DOCX, PPTX, Excel, PowerPoint)
-- Auto-starts docling-serve on app launch
-- No manual setup required
-
-#### 🎨 UI Improvements
-- **Prominent project folder path display** with gradient background
-- Larger, clearer text in File Browser
-- Better visibility and contrast
-
-#### 🔧 Technical Enhancements
-- macOS data uses standard Application Support (`~/Library/Application Support/code-companion/`)
-- Graceful shutdown handling
-- Improved startup scripts
-- Comprehensive documentation
+- **Software Updates (Electron)** — After an update is found, use **Download update**, then **Restart** when ready. **Check for updates** only checks the server.
+- **Docling** — Optional document conversion; can auto-start docling-serve when configured.
+- **Data path** — `~/Library/Application Support/code-companion/` (Electron `userData`).
 
 ---
 
@@ -215,14 +200,11 @@ rm -rf ~/Library/Application\ Support/code-companion/
 
 ---
 
-## 📋 Build Information
+## 📋 Build information
 
-- **Version:** 1.5.3 (see `package.json` for the exact release you installed)
-- **Build Date:** 2026-03-20
-- **Architecture:** Apple Silicon (ARM64)
-- **Electron:** 41.0.3
-- **Node.js:** 22.x
-- **macOS:** 11.0+ (Big Sur and later)
+- **Version:** Shown in the app **About** / **Settings** and in the GitHub release tag
+- **Architecture:** Apple Silicon (ARM64) for published arm64 builds
+- **Requirements:** macOS 11.0+ (Big Sur and later); **Node.js** is bundled inside the Electron app (no separate install for end users)
 
 ---
 
@@ -254,8 +236,8 @@ tail -f ~/Library/Application\ Support/code-companion/logs/app.log
 
 ## 📝 Notes
 
-- **Code Signing:** Not signed (requires expensive Apple Developer certificate)
-- **Gatekeeper:** Normal warning for unsigned apps - safe to bypass
+- **Code signing:** Release builds may be **Developer ID**-signed when maintainers use **`electron:build:mac:release`** / **`electron:publish:mac:release`** (see **[BUILD.md](../BUILD.md)**). Ad-hoc/local builds may still trigger a one-time Gatekeeper prompt.
+- **Gatekeeper:** If macOS blocks the app, use **Right-click → Open** (see **First Launch — Gatekeeper** above).
 - **Intel Macs:** Use Rosetta 2 or build from source
 - **Data Location:** Standard macOS location (~/Library/Application Support)
 - **Updates:** In-app **Software Updates** when GitHub Release includes updater metadata (`latest-mac.yml`, etc.); otherwise download a new DMG/ZIP from Releases

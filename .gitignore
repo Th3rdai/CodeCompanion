@@ -78,6 +78,9 @@ cert/*.key
 cert/*.crt
 !cert/README.txt
 
+# Windows Authenticode / code signing bundles (never commit)
+*.pfx
+
 # User data (configs with secrets, cloned repos)
 CodeCompanion-Data/
 github-repos/

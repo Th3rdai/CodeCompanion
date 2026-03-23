@@ -110,7 +110,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 - 3D Visual Effects toggle
 - Color Theme picker (hue slider + 5 presets)
 - Welcome Tour restart
-- Electron-only: Data Management, Port Configuration, **Software Updates** — **Upgrade** checks [electron-updater](https://www.electron.build/auto-update.html) against **GitHub Releases** (`publish` in `electron-builder.config.js`); **Restart to upgrade** applies after download. Unpackaged dev (`electron:dev`) disables Upgrade with a short note; use a packaged install to update in-app. GitHub `getLatestTagName` is patched via **`patches/electron-updater+6.8.3.patch`** (406 on web URL); **`allowPrerelease`** is set in `electron/updater.js` for prerelease-only feeds — see **BUILD.md**.
+- Electron-only: Data Management, Port Configuration, **Software Updates** — **Upgrade** checks [electron-updater](https://www.electron.build/auto-update.html) against **GitHub Releases** (`publish` in `electron-builder.config.js`); **Restart to upgrade** applies after download. Unpackaged dev (`electron:dev`) disables Upgrade with a short note; use a packaged install to update in-app. GitHub `getLatestTagName` is patched via **`patches/electron-updater+6.8.3.patch`** (406 on web URL); **`allowPrerelease`** is set in `electron/updater.js` for prerelease-only feeds — see **BUILD.md** (includes **macOS code signing**: ad-hoc vs `MAC_CODESIGN_IDENTITY` / `:release` scripts).
 
 ## Design & Layout Standards
 
