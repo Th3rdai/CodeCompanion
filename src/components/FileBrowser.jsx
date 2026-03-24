@@ -417,18 +417,33 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
         </div>
       )}
 
-      {!projectFolder && (
+      {/* Folder picker — shown when no project folder is set OR as a compact bar when one is set */}
+      {!projectFolder ? (
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="space-y-3 w-full max-w-[260px]">
             <p className="text-sm text-slate-400 text-center">Enter a folder path to browse</p>
-            <input
-              type="text"
-              value={folderInput}
-              onChange={e => setFolderInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
-              placeholder="Paste the path to your project folder"
-              className="w-full input-glow text-slate-200 text-xs rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
-            />
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={folderInput}
+                onChange={e => setFolderInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
+                placeholder="/path/to/project"
+                className="flex-1 input-glow text-slate-200 text-xs rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
+              />
+              {window.electronAPI?.pickFolder && (
+                <button
+                  onClick={async () => {
+                    const folder = await window.electronAPI.pickFolder();
+                    if (folder && onSetFolder) { setFolderInput(folder); onSetFolder(folder); }
+                  }}
+                  className="text-xs px-2.5 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600/30 transition-colors shrink-0"
+                  title="Browse for folder"
+                >
+                  📂
+                </button>
+              )}
+            </div>
             <button
               onClick={() => { if (folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
               disabled={!folderInput.trim()}
@@ -436,7 +451,40 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
             >
               Open Folder
             </button>
-            <p className="text-[10px] text-slate-500 text-center">Or set it in Settings, or create a project</p>
+            <p className="text-[10px] text-slate-500 text-center">Or drag a folder here, set in Settings, or create a project</p>
+          </div>
+        </div>
+      ) : (
+        <div className="px-3 py-2 border-b border-slate-700/30">
+          <div className="flex gap-1.5 items-center">
+            <input
+              type="text"
+              value={folderInput || folderPath || ''}
+              onChange={e => setFolderInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && folderInput.trim() && onSetFolder) { onSetFolder(folderInput.trim()); setFolderInput(''); } }}
+              placeholder="Change project folder…"
+              className="flex-1 input-glow text-slate-300 text-[11px] rounded-lg px-2.5 py-1.5 placeholder-slate-500 font-mono"
+            />
+            {window.electronAPI?.pickFolder && (
+              <button
+                onClick={async () => {
+                  const folder = await window.electronAPI.pickFolder();
+                  if (folder && onSetFolder) { setFolderInput(''); onSetFolder(folder); }
+                }}
+                className="text-xs px-2 py-1.5 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600/30 transition-colors shrink-0"
+                title="Browse for folder"
+              >
+                📂
+              </button>
+            )}
+            {folderInput.trim() && folderInput !== folderPath && (
+              <button
+                onClick={() => { if (onSetFolder) { onSetFolder(folderInput.trim()); setFolderInput(''); } }}
+                className="text-xs px-2 py-1.5 rounded-lg bg-indigo-500/30 text-indigo-200 hover:bg-indigo-500/40 border border-indigo-500/30 transition-colors shrink-0"
+              >
+                Go
+              </button>
+            )}
           </div>
         </div>
       )}

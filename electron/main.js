@@ -632,6 +632,15 @@ ipcMain.handle('launch-ide', async (event, { ide, folder }) => {
   }
 });
 
+// Folder picker (native OS dialog)
+ipcMain.handle('pick-folder', async () => {
+  const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose Project Folder',
+    properties: ['openDirectory'],
+  });
+  return filePaths?.[0] || null;
+});
+
 // Microphone permission (macOS)
 ipcMain.handle('get-microphone-access-status', () => {
   if (process.platform === 'darwin') {

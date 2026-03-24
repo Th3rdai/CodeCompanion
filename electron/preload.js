@@ -51,6 +51,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // IDE launcher
   launchIDE: (ide, folder) => ipcRenderer.invoke('launch-ide', { ide, folder }),
 
+  // Folder picker (native OS dialog)
+  pickFolder: () => ipcRenderer.invoke('pick-folder'),
+
   // Microphone permissions (macOS)
   getMicrophoneAccessStatus: () => ipcRenderer.invoke('get-microphone-access-status'),
   requestMicrophoneAccess: () => ipcRenderer.invoke('request-microphone-access'),
