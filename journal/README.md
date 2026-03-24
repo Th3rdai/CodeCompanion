@@ -3,7 +3,7 @@
 | Date | Result | Notes |
 |------|--------|-------|
 | 2026-03-24 | Pass | **`build-file-ops.test.js`** + **install docs** + **CHANGELOG 1.5.3**; **`git push`** **origin** + **th3rdai** **`master`**. **`journal/2026-03-24.md`** |
-| 2026-03-23 | Spot-check | npm audit 0; test:unit 127 pass / 4 skip; deps (exceljs/read-excel-file/file-type+officeparser patch), agent `generate_office_file` `sourcePath`, docs + Archon. Full P1–P7 not rerun — see 2026-03-22. **`journal/2026-03-23.md`** |
+| 2026-03-23 | Pass | Latest **18:49** — validate-project --thorough: P1–P7 green; 134 unit; 32 UI / 17 E2E / full PW 48 pass / 15 skip / 1 flaky; P6 `folder`=repo for file API; P7 `minimax-m2:cloud`. Also deps/Excel/Archon notes in **`journal/2026-03-23.md`** |
 | 2026-03-22 | Pass | Latest **21:34** — full validate resume: P6 file save under repo `folder` (not `/tmp`); P7 `minimax-m2:cloud`; 134 unit; Playwright 47 pass / 15 skip / 2 flaky; also **16:27** run — **journal/2026-03-22.md** |
 | 2026-03-21 | Pass | validate-project --thorough: P1–P7 green; test fixes (Jargon glossary dialog scope; Review `getByPlaceholder('Paste your code here...')`; mode tab `Review`/`Security` exact). See journal/2026-03-21.md |
 | 2026-03-20 | Pass | P1–P7 green with `FORCE_HTTP=1` + `BASE_URL=http://127.0.0.1:4173` for P4/P5 (avoid HTTPS/default baseURL mismatch). 32 UI + 14 E2E passed, 15 UI skipped. See journal/2026-03-20.md |
