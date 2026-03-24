@@ -15,16 +15,34 @@ function setTreeState(path, isOpen) {
   try { localStorage.setItem(TREE_STATE_KEY, JSON.stringify(state)); } catch {}
 }
 
-function FileTreeNode({ node, depth, onFileClick, onQuickAttach, converting }) {
+function FileTreeNode({ node, depth, onFileClick, onQuickAttach, converting, rootFolder }) {
   const savedState = getTreeState();
   const defaultOpen = depth === 0;
   const [open, setOpen] = useState(node.path ? (savedState[node.path] ?? defaultOpen) : defaultOpen);
+  const [children, setChildren] = useState(node.children);
+  const [loadingChildren, setLoadingChildren] = useState(false);
   const indent = depth * 16;
 
-  const toggleOpen = () => {
+  // Sync children when node prop changes (e.g. tree refresh)
+  useEffect(() => { setChildren(node.children); }, [node.children]);
+
+  const toggleOpen = async () => {
     const next = !open;
     setOpen(next);
     if (node.path) setTreeState(node.path, next);
+    // Lazy-load children for truncated directories
+    if (next && node.truncated && (!children || children.length === 0) && rootFolder) {
+      setLoadingChildren(true);
+      try {
+        const fullPath = rootFolder + '/' + node.path;
+        const res = await apiFetch(`/api/files/tree?depth=3&folder=${encodeURIComponent(fullPath)}`);
+        const data = await res.json();
+        if (res.ok && data.tree) {
+          setChildren(data.tree);
+        }
+      } catch {}
+      setLoadingChildren(false);
+    }
   };
 
   if (node.type === 'dir') {
@@ -34,13 +52,16 @@ function FileTreeNode({ node, depth, onFileClick, onQuickAttach, converting }) {
           style={{ paddingLeft: indent }}
           onClick={toggleOpen}
           onKeyDown={e => { if (e.key === 'ArrowRight' && !open) toggleOpen(); if (e.key === 'ArrowLeft' && open) toggleOpen(); }}>
-          <span className="text-xs text-slate-400" aria-hidden="true">{open ? '▾' : '▸'}</span>
+          <span className="text-xs text-slate-400" aria-hidden="true">{loadingChildren ? '⟳' : (open ? '▾' : '▸')}</span>
           <span className="text-amber-400 text-xs" aria-hidden="true">📁</span>
           <span className="truncate">{node.name}</span>
         </button>
-        {open && <div role="group">{node.children?.map((child, i) => (
-          <FileTreeNode key={child.path || i} node={child} depth={depth + 1} onFileClick={onFileClick} onQuickAttach={onQuickAttach} converting={converting} />
-        ))}</div>}
+        {open && <div role="group">
+          {loadingChildren && <div style={{ paddingLeft: indent + 16 }} className="text-xs text-slate-500 py-1 px-2 animate-pulse">Loading...</div>}
+          {children?.map((child, i) => (
+            <FileTreeNode key={child.path || i} node={child} depth={depth + 1} onFileClick={onFileClick} onQuickAttach={onQuickAttach} converting={converting} rootFolder={rootFolder} />
+          ))}
+        </div>}
       </div>
     );
   }
@@ -374,38 +395,43 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
             <button
               onClick={() => launchIDE('/api/launch-vscode', 'VS Code', setLaunchingVSCode)}
               disabled={launchingVSCode || !folderPath}
-              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30 transition-colors disabled:opacity-50"
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {launchingVSCode ? 'Opening...' : '🔷 VS Code'}
+              <img src="/ide-logos/vscode.png" alt="" className="w-4 h-4" />
+              {launchingVSCode ? 'Opening...' : 'VS Code'}
             </button>
             <button
               onClick={() => launchIDE('/api/launch-cursor', 'Cursor', setLaunchingCursor)}
               disabled={launchingCursor || !folderPath}
-              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors disabled:opacity-50"
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30 border border-emerald-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {launchingCursor ? 'Opening...' : '🖱 Cursor'}
+              <img src="/ide-logos/cursor.jpeg" alt="" className="w-4 h-4 rounded-sm" />
+              {launchingCursor ? 'Opening...' : 'Cursor'}
             </button>
             <button
               onClick={() => launchIDE('/api/launch-windsurf', 'Windsurf', setLaunchingWindsurf)}
               disabled={launchingWindsurf || !folderPath}
-              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50"
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {launchingWindsurf ? 'Opening...' : '🌊 Windsurf'}
+              <img src="/ide-logos/windsurf.png" alt="" className="w-4 h-4" />
+              {launchingWindsurf ? 'Opening...' : 'Windsurf'}
             </button>
             <button
               onClick={() => launchIDE('/api/launch-opencode', 'OpenCode', setLaunchingOpenCode)}
               disabled={launchingOpenCode || !folderPath}
-              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50"
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {launchingOpenCode ? 'Opening...' : '💻 OpenCode'}
+              <img src="/ide-logos/opencode.png" alt="" className="w-4 h-4" />
+              {launchingOpenCode ? 'Opening...' : 'OpenCode'}
             </button>
           </div>
           <button
             onClick={() => launchIDE('/api/launch-claude-code', 'Claude Code', setLaunchingClaude)}
             disabled={launchingClaude || !folderPath}
-            className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/40 border border-indigo-400/40 shadow-sm shadow-indigo-900/20 transition-colors disabled:opacity-50"
+            className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/40 border border-indigo-400/40 shadow-sm shadow-indigo-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {launchingClaude ? 'Opening…' : '⌨ Claude Code'}
+            <img src="/ide-logos/claude.jpg" alt="" className="w-5 h-5 rounded-full" />
+            {launchingClaude ? 'Opening...' : 'Claude Code'}
           </button>
         </div>
       )}
@@ -431,18 +457,31 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
                 placeholder="/path/to/project"
                 className="flex-1 input-glow text-slate-200 text-xs rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
               />
-              {window.electronAPI?.pickFolder && (
-                <button
-                  onClick={async () => {
+              <button
+                onClick={async () => {
+                  if (window.electronAPI?.pickFolder) {
                     const folder = await window.electronAPI.pickFolder();
                     if (folder && onSetFolder) { setFolderInput(folder); onSetFolder(folder); }
-                  }}
-                  className="text-xs px-2.5 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600/30 transition-colors shrink-0"
-                  title="Browse for folder"
-                >
-                  📂
-                </button>
-              )}
+                  } else {
+                    // Web fallback: trigger hidden directory input
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.webkitdirectory = true;
+                    input.onchange = () => {
+                      const file = input.files?.[0];
+                      if (file?.webkitRelativePath) {
+                        const folderName = file.webkitRelativePath.split('/')[0];
+                        if (folderName && onSetFolder) { setFolderInput(folderName); onSetFolder(folderName); }
+                      }
+                    };
+                    input.click();
+                  }
+                }}
+                className="text-xs px-2.5 py-2 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600/30 transition-colors shrink-0"
+                title="Browse for folder"
+              >
+                📂
+              </button>
             </div>
             <button
               onClick={() => { if (folderInput.trim() && onSetFolder) onSetFolder(folderInput.trim()); }}
@@ -465,18 +504,30 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
               placeholder="Change project folder…"
               className="flex-1 input-glow text-slate-300 text-[11px] rounded-lg px-2.5 py-1.5 placeholder-slate-500 font-mono"
             />
-            {window.electronAPI?.pickFolder && (
-              <button
-                onClick={async () => {
+            <button
+              onClick={async () => {
+                if (window.electronAPI?.pickFolder) {
                   const folder = await window.electronAPI.pickFolder();
                   if (folder && onSetFolder) { setFolderInput(''); onSetFolder(folder); }
-                }}
-                className="text-xs px-2 py-1.5 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600/30 transition-colors shrink-0"
-                title="Browse for folder"
-              >
-                📂
-              </button>
-            )}
+                } else {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.webkitdirectory = true;
+                  input.onchange = () => {
+                    const file = input.files?.[0];
+                    if (file?.webkitRelativePath) {
+                      const folderName = file.webkitRelativePath.split('/')[0];
+                      if (folderName && onSetFolder) { setFolderInput(''); onSetFolder(folderName); }
+                    }
+                  };
+                  input.click();
+                }
+              }}
+              className="text-xs px-2 py-1.5 rounded-lg bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600/30 transition-colors shrink-0"
+              title="Browse for folder"
+            >
+              📂
+            </button>
             {folderInput.trim() && folderInput !== folderPath && (
               <button
                 onClick={() => { if (onSetFolder) { onSetFolder(folderInput.trim()); setFolderInput(''); } }}
@@ -522,7 +573,7 @@ export default function FileBrowser({ projectFolder, onAttachFile, onClose, onCl
           </div>
           <div role="tree" aria-label="Project files">
             {tree.tree?.map((node, i) => (
-              <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} onQuickAttach={onAttachFile ? handleQuickAttach : null} converting={converting} />
+              <FileTreeNode key={node.path || i} node={node} depth={0} onFileClick={handleFileClick} onQuickAttach={onAttachFile ? handleQuickAttach : null} converting={converting} rootFolder={tree.root} />
             ))}
           </div>
           {tree.tree?.length === 0 && <p className="text-sm text-slate-400 text-center py-4">Hmm, no text files here. Try pointing to a different folder!</p>}
