@@ -87,7 +87,7 @@ module.exports = {
     category: 'public.app-category.developer-tools',
     hardenedRuntime: macDistributionSign,
     identity: macDistributionSign ? macCodesignIdentity : '-',
-    ...(macNotarize ? { notarize: { teamId: (process.env.APPLE_TEAM_ID || '').trim() } } : {}),
+    ...(macNotarize ? { notarize: true } : {}),
     gatekeeperAssess: false,
     extendInfo: {
       NSMicrophoneUsageDescription: 'Code Companion uses the microphone for voice dictation to transcribe speech into text fields.',
