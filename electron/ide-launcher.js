@@ -5,7 +5,7 @@ const execAsync = promisify(exec);
 
 /**
  * Launches an IDE with a project folder, using platform-aware commands
- * @param {string} ideName - 'cursor', 'windsurf', 'claude-code', or 'opencode'
+ * @param {string} ideName - 'vscode', 'cursor', 'windsurf', 'claude-code', or 'opencode'
  * @param {string} folder - Absolute path to project folder
  * @returns {Promise<void>}
  * @throws {Error} If IDE/platform combo unsupported or launch fails
@@ -15,6 +15,16 @@ async function launchIDE(ideName, folder) {
   let command = null;
 
   switch (ideName) {
+    case 'vscode':
+      if (platform === 'darwin') {
+        command = `open -a "Visual Studio Code" "${folder}"`;
+      } else if (platform === 'win32') {
+        command = `cmd /c start "" "code" "${folder}"`;
+      } else if (platform === 'linux') {
+        command = `code "${folder}"`;
+      }
+      break;
+
     case 'cursor':
       if (platform === 'darwin') {
         command = `open -a "Cursor" "${folder}"`;
