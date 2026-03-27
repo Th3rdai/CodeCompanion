@@ -18,7 +18,7 @@ function formatSoftwareUpdateError(raw) {
     (r.includes('latest-mac.yml') || r.includes('latest.yml') || r.includes('latest-linux')) &&
     (r.includes('404') || r.includes('Not Found') || r.includes('not find'))
   ) {
-    return "Automatic updates aren't available for this version yet. Click Open download page below to get the newest installer — it only takes a minute.";
+    return "We couldn't reach the update files on GitHub (they may still be uploading after a new release, or the release isn't published yet). Wait a few minutes and tap Check for updates again, or use Open download page to install the latest build manually.";
   }
   if (/HttpError:.*404/i.test(r) || (r.includes('404') && r.includes('github.com'))) {
     return "We couldn't find the update file online. Click Open download page below to download and install the latest version.";
@@ -31,6 +31,19 @@ function formatSoftwareUpdateError(raw) {
   }
   return r.length > 280 ? `${r.slice(0, 240)}…` : r;
 }
+
+/** True when GitHub has not published updater YAML yet (common while CI uploads a new release). */
+function isTransientGithubYaml404(raw) {
+  if (raw == null || typeof raw !== 'string') return false;
+  const r = raw;
+  return (
+    (r.includes('latest-mac.yml') || r.includes('latest.yml') || r.includes('latest-linux')) &&
+    (r.includes('404') || r.includes('Not Found') || r.includes('not find'))
+  );
+}
+
+const UPDATER_YAML_404_RETRIES = 2;
+const UPDATER_YAML_404_RETRY_MS = 12_000;
 
 export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePath, onSave, onClose, onOpenMemoryPanel }) {
   const [activeTab, setActiveTab] = useState('general');
@@ -336,14 +349,19 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     }
   }
 
-  async function handleCheckForUpdates() {
+  async function handleCheckForUpdates(attempt = 0) {
     setUpdateStatus('checking');
     setUpdateError(null);
     try {
       const result = await window.electronAPI.checkForUpdates();
       if (!result.success) {
+        const raw = result.error || 'Check failed';
+        if (attempt < UPDATER_YAML_404_RETRIES && isTransientGithubYaml404(raw)) {
+          await new Promise((r) => setTimeout(r, UPDATER_YAML_404_RETRY_MS));
+          return handleCheckForUpdates(attempt + 1);
+        }
         setUpdateStatus('error');
-        setUpdateError(formatSoftwareUpdateError(result.error || 'Check failed'));
+        setUpdateError(formatSoftwareUpdateError(raw));
         return;
       }
       // updateInfo is present even when already latest; rely on isUpdateAvailable from main process.
@@ -354,8 +372,13 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         setUpdateStatus('up-to-date');
       }
     } catch (err) {
+      const raw = err.message;
+      if (attempt < UPDATER_YAML_404_RETRIES && isTransientGithubYaml404(raw)) {
+        await new Promise((r) => setTimeout(r, UPDATER_YAML_404_RETRY_MS));
+        return handleCheckForUpdates(attempt + 1);
+      }
       setUpdateStatus('error');
-      setUpdateError(formatSoftwareUpdateError(err.message));
+      setUpdateError(formatSoftwareUpdateError(raw));
     }
   }
 
