@@ -9,6 +9,46 @@ import MermaidBlock from './MermaidBlock';
 // ── Mermaid sentinel pattern ─────────────────────────
 const MERMAID_SENTINEL_RE = /<div data-mermaid-source="([^"]*)" class="mermaid-placeholder"><\/div>/g;
 
+let domPurifyMarkdownHooksInstalled = false;
+function installMarkdownDomPurifyHooks() {
+  if (domPurifyMarkdownHooksInstalled) return;
+  domPurifyMarkdownHooksInstalled = true;
+  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    if (node.nodeName !== 'A' || !node.hasAttribute('href')) return;
+    const href = node.getAttribute('href') || '';
+    if (typeof window === 'undefined') return;
+    let u;
+    try {
+      u = new URL(href, window.location.href);
+    } catch {
+      return;
+    }
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+    if (u.origin === window.location.origin) return;
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  });
+}
+
+function openExternalHttpUrl(href) {
+  if (window.electronAPI?.openExternalUrl) {
+    window.electronAPI.openExternalUrl(href);
+  } else {
+    window.open(href, '_blank', 'noopener,noreferrer');
+  }
+}
+
+/** True when the URL is http(s) and points to a different origin than the app. */
+function isOffOriginHttpUrl(href) {
+  try {
+    const u = new URL(href, window.location.href);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    return u.origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 function renderMarkdown(text, enableJargon, streaming) {
   if (!text) return '';
   try {
@@ -28,10 +68,12 @@ function renderMarkdown(text, enableJargon, streaming) {
     };
 
     const raw = marked.parse(text, { breaks: true, renderer });
+    installMarkdownDomPurifyHooks();
     let sanitized = DOMPurify.sanitize(raw, {
       USE_PROFILES: { html: true },
       ALLOW_DATA_ATTR: true,
       ADD_DATA_URI_TAGS: ['img'],
+      FORBID_TAGS: ['iframe', 'frame', 'object', 'embed'],
     });
     if (enableJargon) {
       sanitized = highlightJargon(sanitized);
@@ -243,9 +285,28 @@ export default function MarkdownContent({ content, enableJargon = true, streamin
     setTooltip(null);
   }, []);
 
+  const handleLinkClick = useCallback((e) => {
+    if (e.defaultPrevented || e.button !== 0) return;
+    const t = e.target;
+    const el = t?.nodeType === Node.TEXT_NODE ? t.parentElement : t;
+    const a = el?.closest?.('a');
+    if (!a || !containerRef.current?.contains(a)) return;
+    const href = a.getAttribute('href');
+    if (!href || !isOffOriginHttpUrl(href)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    let absolute;
+    try {
+      absolute = new URL(href, window.location.href).href;
+    } catch {
+      return;
+    }
+    openExternalHttpUrl(absolute);
+  }, []);
+
   return (
     <div onMouseOver={handleMouseOver} onMouseOut={handleMouseOut}>
-      <div ref={containerRef} className="prose">
+      <div ref={containerRef} className="prose" onClick={handleLinkClick}>
         {segments ? (
           // Mixed content: HTML segments + MermaidBlock components
           segments.map((seg, i) =>

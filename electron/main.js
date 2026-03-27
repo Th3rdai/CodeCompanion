@@ -444,7 +444,15 @@ async function startApp() {
 
     // Set application menu
     emergencyLog('Creating application menu...');
-    Menu.setApplicationMenu(createMenu());
+    Menu.setApplicationMenu(
+      createMenu({
+        reloadAppHome: () => {
+          if (mainWindow && !mainWindow.isDestroyed() && actualPort != null) {
+            mainWindow.loadURL(`http://localhost:${actualPort}`);
+          }
+        },
+      })
+    );
     emergencyLog('Menu set');
 
     // Spawn server as child process
@@ -496,10 +504,43 @@ async function startApp() {
       saveWindowState(mainWindow, dataDir);
     });
 
-    // Open external links in browser
+    // Open target=_blank / window.open in the system browser (new Electron window denied)
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url);
       return { action: 'deny' };
+    });
+
+    // Same-window navigations (e.g. <a href="https://..."> without target=_blank) would otherwise
+    // replace the SPA with no way back. Keep only the local app origin; everything else opens
+    // in the default browser.
+    function isMainWindowAppUrl(urlString) {
+      if (!urlString || actualPort == null) return false;
+      try {
+        const u = new URL(urlString);
+        if (u.protocol === 'file:') return true; // splash.html
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+        const host = u.hostname;
+        if (host !== 'localhost' && host !== '127.0.0.1') return false;
+        const effectivePort = u.port || (u.protocol === 'https:' ? '443' : '80');
+        return String(actualPort) === effectivePort;
+      } catch {
+        return false;
+      }
+    }
+
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+      if (isMainWindowAppUrl(url)) return;
+      if (/^mailto:/i.test(url) || /^tel:/i.test(url)) {
+        event.preventDefault();
+        shell.openExternal(url);
+        return;
+      }
+      if (/^https?:\/\//i.test(url)) {
+        event.preventDefault();
+        shell.openExternal(url).catch((err) => {
+          console.error('[Main] openExternal failed:', err.message);
+        });
+      }
     });
 
     emergencyLog('=== Startup complete ===');
