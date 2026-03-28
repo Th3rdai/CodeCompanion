@@ -9,6 +9,7 @@ import { Wifi, WifiOff, Download, CheckCircle, AlertCircle, Settings } from 'luc
 export default function OllamaSetup({ onComplete }) {
   const [state, setState] = useState('not-connected'); // not-connected | installing | no-models | pulling-model | complete
   const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
+  const [ollamaApiKey, setOllamaApiKey] = useState('');
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [installProgress, setInstallProgress] = useState('');
   const [pullProgress, setPullProgress] = useState({ status: '', percent: 0, completed: 0, total: 0 });
@@ -37,8 +38,17 @@ export default function OllamaSetup({ onComplete }) {
     try {
       if (window.electronAPI?.checkOllama) {
         // Electron mode
-        const result = await window.electronAPI.checkOllama(ollamaUrl);
+        const result = await window.electronAPI.checkOllama(ollamaUrl, ollamaApiKey);
         if (result.running) {
+          try {
+            const body = { ollamaUrl: ollamaUrl.replace(/\/+$/, '') };
+            if (ollamaApiKey.trim()) body.ollamaApiKey = ollamaApiKey.trim();
+            await apiFetch('/api/config', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+          } catch (_) { /* persist is best-effort */ }
           if (result.models.length === 0) {
             setState('no-models');
           } else {
@@ -103,7 +113,7 @@ export default function OllamaSetup({ onComplete }) {
     setError(null);
 
     try {
-      const result = await window.electronAPI.pullModel(ollamaUrl, recommendedModel);
+      const result = await window.electronAPI.pullModel(ollamaUrl, recommendedModel, ollamaApiKey);
       if (result.success) {
         setState('complete');
         onComplete?.();
@@ -172,17 +182,42 @@ export default function OllamaSetup({ onComplete }) {
             </div>
 
             {showUrlInput && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Ollama URL
-                </label>
-                <input
-                  type="text"
-                  value={ollamaUrl}
-                  onChange={(e) => setOllamaUrl(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
-                  placeholder="http://localhost:11434"
-                />
+              <div className="mt-4 space-y-3 rounded-xl border border-indigo-500/30 bg-slate-900/50 p-4">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  <strong className="text-slate-300">Local:</strong> default URL below.{' '}
+                  <strong className="text-slate-300">Ollama Cloud:</strong> use{' '}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">https://ollama.com</code> and paste your API key.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2" htmlFor="ollama-setup-url">
+                    Ollama URL
+                  </label>
+                  <input
+                    id="ollama-setup-url"
+                    type="text"
+                    value={ollamaUrl}
+                    onChange={(e) => setOllamaUrl(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 font-mono text-sm"
+                    placeholder="http://localhost:11434 or https://ollama.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2" htmlFor="ollama-setup-api-key">
+                    API key <span className="text-slate-500 font-normal">(Cloud only)</span>
+                  </label>
+                  <input
+                    id="ollama-setup-api-key"
+                    type="password"
+                    value={ollamaApiKey}
+                    onChange={(e) => setOllamaApiKey(e.target.value)}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 font-mono text-sm"
+                    placeholder="Leave empty for local Ollama"
+                    autoComplete="off"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  You can also change these anytime in the main app: <strong className="text-slate-400">Settings → General → Ollama connection</strong>.
+                </p>
               </div>
             )}
           </>

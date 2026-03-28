@@ -3,6 +3,8 @@
  * Code Companion MCP Server — stdio transport
  * Used by Claude Desktop, Claude Code, Cursor, etc.
  */
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
 const { createLogger } = require('./lib/logger');

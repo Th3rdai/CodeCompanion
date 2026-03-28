@@ -62,9 +62,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDoclingStatus: () => ipcRenderer.invoke('get-docling-status'),
 
   // Ollama setup
-  checkOllama: (ollamaUrl) => ipcRenderer.invoke('check-ollama', ollamaUrl),
+  checkOllama: (ollamaUrl, ollamaApiKey) => ipcRenderer.invoke('check-ollama', {
+    ollamaUrl: ollamaUrl || 'http://localhost:11434',
+    ollamaApiKey: ollamaApiKey || '',
+  }),
   installOllama: () => ipcRenderer.invoke('install-ollama'),
-  pullModel: (ollamaUrl, modelName) => ipcRenderer.invoke('pull-model', { ollamaUrl, modelName }),
+  pullModel: (ollamaUrl, modelName, ollamaApiKey) => ipcRenderer.invoke('pull-model', {
+    ollamaUrl,
+    modelName,
+    ollamaApiKey: ollamaApiKey || '',
+  }),
   onPullProgress: (callback) => ipcRenderer.on('pull-progress', (_, data) => callback(data)),
   offPullProgress: () => ipcRenderer.removeAllListeners('pull-progress'),
 });

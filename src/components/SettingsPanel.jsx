@@ -48,6 +48,7 @@ const UPDATER_YAML_404_RETRY_MS = 12_000;
 export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePath, onSave, onClose, onOpenMemoryPanel }) {
   const [activeTab, setActiveTab] = useState('general');
   const [url, setUrl] = useState(ollamaUrl);
+  const [ollamaApiKey, setOllamaApiKey] = useState('');
   const [folder, setFolder] = useState(projectFolder || '');
   const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || '');
   useEffect(() => setIcmTemplate(icmTemplatePath || ''), [icmTemplatePath]);
@@ -138,6 +139,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             compressionQuality: data.imageSupport.compressionQuality ?? 0.9,
           });
         }
+        if (data.ollamaApiKey != null) setOllamaApiKey(data.ollamaApiKey || '');
         if (data.docling) {
           setDoclingUrl(data.docling.url || 'http://127.0.0.1:5002');
           setDoclingApiKey(data.docling.apiKey || '');
@@ -496,10 +498,18 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     } catch {}
   }
 
+  function ollamaApiKeyPayload() {
+    const t = (ollamaApiKey || '').trim();
+    if (t === '') return { ollamaApiKey: '' };
+    if (/^•+$/.test(t)) return {};
+    return { ollamaApiKey: t };
+  }
+
   async function handleTest() {
     setTesting(true); setTestResult(null);
     try {
-      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ollamaUrl: url }) });
+      const body = { ollamaUrl: url, ...ollamaApiKeyPayload() };
+      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const res = await apiFetch('/api/models');
       const data = await res.json();
       setTestResult(data.connected ? { ok: true, count: data.models.length } : { ok: false, error: data.detail || 'Cannot connect' });
@@ -573,23 +583,66 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         {/* Tab content */}
         {activeTab === 'general' && (
           <div className="space-y-5">
-            {/* Ollama URL */}
-            <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">Ollama Server URL</label>
-              <div className="flex gap-2">
-                <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder="http://localhost:11434"
-                  className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
-                <button onClick={handleTest} disabled={testing}
-                  className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                  {testing ? <span className="inline-block spin">&#x27F3;</span> : 'Test Connection'}
-                </button>
+            {/* Ollama — local or Cloud (card so URL + API key are easy to find) */}
+            <section className="rounded-xl border border-indigo-500/25 bg-slate-900/40 p-4 space-y-4" aria-labelledby="settings-ollama-heading">
+              <div className="flex flex-col gap-0.5">
+                <h3 id="settings-ollama-heading" className="text-sm font-semibold text-slate-100 tracking-tight">
+                  Ollama connection
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Use your computer (<code className="text-[11px] bg-slate-800 px-1 rounded">localhost:11434</code>) or{' '}
+                  <strong className="text-slate-400 font-medium">Ollama Cloud</strong> — set URL to{' '}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">https://ollama.com</code> and add your API key below.
+                </p>
               </div>
-              {testResult && (
-                <div className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                  {testResult.ok ? `Connected! Found ${testResult.count} model${testResult.count !== 1 ? 's' : ''}.` : `Failed: ${testResult.error}`}
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2 font-medium" htmlFor="settings-ollama-url">
+                  Server URL
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    id="settings-ollama-url"
+                    type="text"
+                    value={url}
+                    onChange={e => setUrl(e.target.value)}
+                    placeholder="http://localhost:11434 or https://ollama.com"
+                    className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                  />
+                  <button type="button" onClick={handleTest} disabled={testing}
+                    className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap shrink-0">
+                    {testing ? <span className="inline-block spin">&#x27F3;</span> : 'Test'}
+                  </button>
                 </div>
-              )}
-            </div>
+                {testResult && (
+                  <div className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                    {testResult.ok ? `Connected — ${testResult.count} model${testResult.count !== 1 ? 's' : ''} found.` : `Failed: ${testResult.error}`}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2 font-medium" htmlFor="settings-ollama-api-key">
+                  Ollama Cloud API key <span className="text-slate-500 font-normal">(only if you use cloud)</span>
+                </label>
+                <input
+                  id="settings-ollama-api-key"
+                  type="password"
+                  value={ollamaApiKey}
+                  onChange={e => setOllamaApiKey(e.target.value)}
+                  placeholder="Paste key from ollama.com/settings/keys — leave empty for local Ollama only"
+                  autoComplete="off"
+                  className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                />
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline inline-flex items-center gap-0.5">
+                    Open Ollama API keys <ExternalLink className="w-3 h-3 inline" aria-hidden />
+                  </a>
+                  <span className="text-slate-600 mx-1">·</span>
+                  Or set env <code className="text-[11px] bg-slate-800 px-1 rounded">OLLAMA_API_KEY</code> (see docs). Tap <strong className="text-slate-400">Save &amp; Close</strong> to store the key.
+                </p>
+              </div>
+            </section>
 
             {/* Document Conversion (Docling) */}
             <div className="border-t border-slate-700/40 pt-4 mt-4">
@@ -1573,7 +1626,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         <div className="flex gap-2 justify-end mt-6">
           <button onClick={onClose} className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors">Cancel</button>
           <button onClick={async () => {
-              await onSave(url, folder, icmTemplate);
+              await onSave(url, folder, icmTemplate, ollamaApiKeyPayload());
               try {
                 await apiFetch('/api/config', {
                   method: 'POST',

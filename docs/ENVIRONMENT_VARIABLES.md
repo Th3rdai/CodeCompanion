@@ -16,6 +16,7 @@ Code Companion reads **environment variables** for the Node server, tests, and t
 | `FORCE_HTTP` | unset | Set to `1` to **disable HTTPS** even if `cert/server.crt` and `cert/server.key` exist (e.g. Playwright, rate-limit tests). |
 | `DEBUG` | unset | Set to `1` or `true` for verbose server logging. |
 | `CC_DATA_DIR` | app directory | Data root for config, history, logs (Electron sets this). |
+| `OLLAMA_API_KEY` | unset | **Ollama Cloud** — Bearer token for `https://ollama.com` (or any Ollama endpoint that requires auth). Used when **`ollamaApiKey`** in **`.cc-config.json`** is empty; otherwise **Settings → General** / config file takes precedence. On startup, **`server.js`** loads **`.env`** from the app/repo root (via **dotenv**), so you can set this key there without exporting it in the shell (do not commit secrets). |
 
 **Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, and **`POST /mcp`** (HTTP MCP). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
 
@@ -85,5 +86,5 @@ These are **repository secrets**, not shell env files. When **`MAC_CERTS`** + **
 
 ## Config file vs env
 
-- **`.cc-config.json`** (or path under `CC_DATA_DIR`): Ollama URL, project folder, review timeouts, MCP client definitions, GitHub token (stored on disk — protect file permissions).
+- **`.cc-config.json`** (or path under `CC_DATA_DIR`): Ollama URL, optional **`ollamaApiKey`** (Ollama Cloud), project folder, review timeouts, MCP client definitions, GitHub token (stored on disk — protect file permissions).
 - **`.env`** in the repo root is optional and **not required** for normal runs; use it only if you inject secrets locally without committing them. Prefer UI **Settings** or editing `.cc-config.json` for persistent app configuration.

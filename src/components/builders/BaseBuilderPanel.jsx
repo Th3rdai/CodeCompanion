@@ -97,6 +97,7 @@ export default function BaseBuilderPanel({
   const [sourceFile, setSourceFile] = useState(null); // { name, path, folder } — tracks loaded file for save-back
 
   const reviseEndRef = useRef(null);
+  const inlineChatRef = useRef(null);
   const fileInputRef = useRef(null);
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
@@ -417,11 +418,15 @@ Apply the TÂCHES methodology:
 - Add examples where helpful
 - Be specific and explicit — eliminate ambiguity`}
 
-CRITICAL: Always include the COMPLETE improved prompt inside <revised_prompt> tags. Do not just describe changes — show the full rewritten prompt. The user will click "Apply" to use your revision.
+CRITICAL: Always include the COMPLETE improved content inside <revised_prompt> tags. Do not just describe changes — show the full rewritten content. The user will click "Apply" to use your revision.
+
+You have the COMPLETE original content above — do NOT ask the user to share it again.
+You have full terminal and file access via the run_terminal_cmd and write_file tools. Do NOT say you cannot access files or the terminal.
+Do NOT apologize or say you lack access. Just provide the improved content directly.
 
 Format your response as:
 1. Brief explanation of what you changed and why
-2. The complete revised prompt in <revised_prompt>...</revised_prompt> tags`;
+2. The complete revised content in <revised_prompt>...</revised_prompt> tags`;
 
       const chatMessages = [
         { role: 'system', content: systemContext },
@@ -571,21 +576,28 @@ Format your response as:
             onRevise={handleCategoryRevise}
           />
 
-          {/* Toolbar */}
-          <InputToolbar
-            textareaRef={null}
-            getText={() => ''}
-            setText={() => {}}
-            messages={reviseMessages.length ? reviseMessages : [{ role: 'assistant', content: scoreData?.summary || JSON.stringify(scoreData) }]}
-            mode={config.title}
-            onToast={onToast}
-            connected={connected}
-            streaming={false}
-            hideButtons={['upload', 'paste', 'clear', 'dictate']}
-          />
-
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
+            {/* Ask AI to Improve — builds all suggestions into a prompt */}
+            {scoreData?.categories && (() => {
+              const allSuggestions = Object.entries(scoreData.categories)
+                .flatMap(([k, v]) => (v.suggestions || []).map(s => `[${k}] ${s}`));
+              return allSuggestions.length > 0 ? (
+                <button
+                  onClick={() => {
+                    const prompt = `Improve this ${config.title.toLowerCase()} based on these suggestions:\n` +
+                      allSuggestions.map((s, i) => `${i + 1}. ${s}`).join('\n');
+                    setReviseInput(prompt);
+                    setReviseMessages([]);
+                    setPhase('revising');
+                    onToast?.('Suggestions loaded — click Send to get improvements');
+                  }}
+                  className="text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                >
+                  Ask AI to Improve
+                </button>
+              ) : null;
+            })()}
             <button
               onClick={handleSave}
               className="text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
@@ -616,7 +628,7 @@ Format your response as:
               onClick={handleScore}
               className="text-xs px-4 py-2 rounded-lg border border-blue-500/30 text-blue-300 hover:bg-blue-500/10 transition-colors"
             >
-              Score Again
+              Re-Score
             </button>
             <button
               onClick={handleNew}
@@ -624,6 +636,89 @@ Format your response as:
             >
               New
             </button>
+          </div>
+
+          {/* Inline chat — discuss the score */}
+          <div className="space-y-3">
+            <InputToolbar
+              textareaRef={inlineChatRef}
+              getText={() => reviseInput}
+              setText={val => setReviseInput(prev => prev + val)}
+              messages={reviseMessages.length ? reviseMessages : [{ role: 'assistant', content: scoreData?.summary || JSON.stringify(scoreData) }]}
+              mode={config.title}
+              onToast={onToast}
+              onClear={() => setReviseInput('')}
+              connected={connected}
+              streaming={reviseStreaming}
+              hideButtons={['upload', 'paste']}
+            />
+
+            {/* Show conversation messages inline */}
+            {reviseMessages.filter(m => m.role === 'user' || m.role === 'assistant').length > 0 && (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+                {reviseMessages.filter(m => m.role === 'user' || m.role === 'assistant').map((msg, i) => (
+                  <div key={i} className={`rounded-xl p-3 text-sm ${
+                    msg.role === 'user'
+                      ? 'glass border border-indigo-500/20 ml-8 text-slate-200'
+                      : 'glass border border-slate-700/30 mr-8'
+                  }`}>
+                    <div className="text-[10px] text-slate-500 mb-1 uppercase font-semibold">
+                      {msg.role === 'user' ? 'You' : 'AI'}
+                    </div>
+                    {msg.role === 'assistant' ? <MarkdownContent content={msg.content} /> : <p>{msg.content}</p>}
+                  </div>
+                ))}
+                {reviseStreaming && (
+                  <div className="flex items-center gap-2 text-slate-400 text-sm py-2">
+                    <div className="flex gap-1">
+                      <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span>Thinking...</span>
+                  </div>
+                )}
+                <div ref={reviseEndRef} />
+              </div>
+            )}
+
+            {/* Chat input */}
+            <div className="flex gap-2">
+              <textarea
+                ref={inlineChatRef}
+                value={reviseInput}
+                onChange={e => setReviseInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (reviseInput.trim()) {
+                      setPhase('revising');
+                      setTimeout(() => handleRevise(), 50);
+                    }
+                  }
+                }}
+                placeholder={`Ask about the score or how to improve your ${config.title.toLowerCase()}...`}
+                rows={2}
+                disabled={reviseStreaming || !connected}
+                className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+              />
+              {reviseStreaming ? (
+                <StopButton onClick={handleStop} className="min-w-[60px]" />
+              ) : (
+                <button
+                  onClick={() => {
+                    if (reviseInput.trim()) {
+                      setPhase('revising');
+                      setTimeout(() => handleRevise(), 50);
+                    }
+                  }}
+                  disabled={!reviseInput.trim() || !connected}
+                  className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+                >
+                  Ask
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </section>

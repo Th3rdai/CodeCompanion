@@ -319,10 +319,10 @@ export default function App() {
     try { const res = await apiFetch('/api/history'); setHistory(await res.json()); } catch {}
   }
 
-  async function handleSaveSettings(newUrl, newFolder, newIcmTemplatePath) {
+  async function handleSaveSettings(newUrl, newFolder, newIcmTemplatePath, extra = {}) {
     try {
       const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder, icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath }) });
+        body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder, icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath, ...extra }) });
       const data = await res.json();
       setOllamaUrl(newUrl);
       // Server normalizes empty folder to user home — keep client in sync

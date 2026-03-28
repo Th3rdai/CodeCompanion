@@ -701,10 +701,11 @@ ipcMain.handle('request-microphone-access', async () => {
 // Docling status
 ipcMain.handle('get-docling-status', () => getDoclingStatus());
 
-ipcMain.handle('check-ollama', async (event, ollamaUrl) => {
+ipcMain.handle('check-ollama', async (event, payload) => {
   try {
-    const url = ollamaUrl || 'http://localhost:11434';
-    const result = await checkOllamaRunning(url);
+    const url = (typeof payload === 'string' ? payload : payload?.ollamaUrl) || 'http://localhost:11434';
+    const apiKey = typeof payload === 'object' && payload ? payload.ollamaApiKey : undefined;
+    const result = await checkOllamaRunning(url, apiKey);
     return result;
   } catch (error) {
     console.error('[Main] Check Ollama error:', error);
@@ -722,13 +723,13 @@ ipcMain.handle('install-ollama', async (event) => {
   }
 });
 
-ipcMain.handle('pull-model', async (event, { ollamaUrl, modelName }) => {
+ipcMain.handle('pull-model', async (event, { ollamaUrl, modelName, ollamaApiKey }) => {
   try {
     const url = ollamaUrl || 'http://localhost:11434';
     const result = await pullModel(url, modelName, (progress) => {
       // Send progress updates to renderer
       event.sender.send('pull-progress', progress);
-    });
+    }, ollamaApiKey);
     return result;
   } catch (error) {
     console.error('[Main] Pull model error:', error);

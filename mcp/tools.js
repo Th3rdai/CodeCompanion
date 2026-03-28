@@ -1,4 +1,5 @@
 const { SYSTEM_PROMPTS } = require('../lib/prompts');
+const { effectiveOllamaApiKey } = require('../lib/ollama-client');
 const {
   modeToolSchema,
   browseFilesSchema,
@@ -24,7 +25,8 @@ function capResponse(text) {
 async function resolveModel(model, listModelsFn, ollamaUrl, config) {
   if (model) return model;
   if (config?.selectedModel) return config.selectedModel;
-  const models = await listModelsFn(ollamaUrl);
+  const auth = effectiveOllamaApiKey(config) ? { apiKey: effectiveOllamaApiKey(config) } : {};
+  const models = await listModelsFn(ollamaUrl, auth);
   if (!models || models.length === 0) return null;
   return models[0].name; // models are objects {name, size, ...}
 }
@@ -54,7 +56,8 @@ function createModeHandler(modeKey, deps) {
         { role: 'user', content }
       ];
 
-      const response = await chatComplete(ollamaUrl, selectedModel, messages);
+      const auth = effectiveOllamaApiKey(config) ? { apiKey: effectiveOllamaApiKey(config) } : {};
+      const response = await chatComplete(ollamaUrl, selectedModel, messages, 120000, [], auth);
       return { content: [{ type: 'text', text: capResponse(response) }] };
     } catch (err) {
       debug(`${modeKey} tool error`, { error: err.message });
@@ -134,7 +137,8 @@ function registerAllTools(server, deps, disabledTools = []) {
       try {
         const config = getConfig();
         const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-        const models = await listModels(ollamaUrl);
+        const auth = effectiveOllamaApiKey(config) ? { apiKey: effectiveOllamaApiKey(config) } : {};
+        const models = await listModels(ollamaUrl, auth);
 
         if (models.length === 0) {
           return { content: [{ type: 'text', text: 'No Ollama models found. Pull a model with: ollama pull llama3.2' }] };
@@ -158,7 +162,8 @@ function registerAllTools(server, deps, disabledTools = []) {
       try {
         const config = getConfig();
         const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-        const status = await checkConnection(ollamaUrl);
+        const auth = effectiveOllamaApiKey(config) ? { apiKey: effectiveOllamaApiKey(config) } : {};
+        const status = await checkConnection(ollamaUrl, auth);
 
         const response = `Th3rdAI Code Companion Status:
 - Ollama: ${status.connected ? `Connected (${status.modelCount} model${status.modelCount !== 1 ? 's' : ''})` : 'Disconnected'}

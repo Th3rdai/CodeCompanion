@@ -4,6 +4,8 @@ const cors = require('cors');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+// Repo-root .env (OLLAMA_API_KEY, etc.) — loaded before config; existing process.env wins
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const https = require('https');
 const os = require('os');
 const { Readable } = require('stream');
@@ -14,7 +16,12 @@ const { initConfig, getConfig, updateConfig } = require('./lib/config');
 const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
 const { initMemory, addMemory, getMemories, getMemory, updateMemory, deleteMemory, searchMemories, getStats: getMemoryStats, extractAndStore, buildMemoryContext } = require('./lib/memory');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
-const { listModels, checkConnection, chatStream, chatComplete, embed } = require('./lib/ollama-client');
+const { listModels, checkConnection, chatStream, chatComplete, embed, effectiveOllamaApiKey } = require('./lib/ollama-client');
+
+function ollamaAuthOpts(cfg) {
+  const k = effectiveOllamaApiKey(cfg);
+  return k ? { apiKey: k } : {};
+}
 const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles, isConvertibleDocument } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
@@ -104,6 +111,10 @@ function sanitizeConfigForClient(config) {
   // Mask docling API key
   if (safe.docling) {
     safe.docling = { ...safe.docling, apiKey: safe.docling.apiKey ? '••••••••' : '' };
+  }
+
+  if (safe.ollamaApiKey) {
+    safe.ollamaApiKey = '••••••••';
   }
 
   return safe;
@@ -345,6 +356,20 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     log('INFO', `Ollama URL changed to: ${config.ollamaUrl}`);
   }
 
+  if (req.body.ollamaApiKey !== undefined) {
+    const v = req.body.ollamaApiKey;
+    if (typeof v === 'string') {
+      const t = v.trim();
+      if (t === '') {
+        config.ollamaApiKey = '';
+        log('INFO', 'Ollama API key cleared');
+      } else if (!/^•+$/.test(t)) {
+        config.ollamaApiKey = t;
+        log('INFO', 'Ollama API key updated');
+      }
+    }
+  }
+
   // Default model for MCP and API calls
   if (req.body.selectedModel !== undefined) {
     config.selectedModel = req.body.selectedModel || '';
@@ -464,7 +489,7 @@ app.get('/api/models', async (req, res) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
 
-    const models = await listModels(config.ollamaUrl);
+    const models = await listModels(config.ollamaUrl, ollamaAuthOpts(config));
     clearTimeout(timeout);
 
     log('INFO', `Models loaded: ${models.length} found`);
@@ -760,7 +785,10 @@ app.post('/api/chat', async (req, res) => {
       effectiveTimeoutMs = Math.min(effectiveTimeoutMs, 600000); // cap at 10 min
     }
   }
-  const ollamaOptions = effectiveNumCtx > 0 ? { num_ctx: effectiveNumCtx } : {};
+  const ollamaOptions = {
+    ...(effectiveNumCtx > 0 ? { num_ctx: effectiveNumCtx } : {}),
+    ...ollamaAuthOpts(config),
+  };
 
   // Set up SSE
   res.setHeader('Content-Type', 'text/event-stream');
@@ -1100,7 +1128,8 @@ app.post('/api/review', async (req, res) => {
       timeoutSec: config.reviewTimeoutSec,
       images: images || [],
       numCtx: config.numCtx || 0,
-      autoAdjustContext: config.autoAdjustContext
+      autoAdjustContext: config.autoAdjustContext,
+      ollamaApiKey: effectiveOllamaApiKey(config),
     });
 
     if (result.type === 'report-card') {
@@ -1237,7 +1266,8 @@ app.post('/api/pentest', async (req, res) => {
   try {
     const result = await pentestCode(config.ollamaUrl, model, code, {
       filename,
-      images: images || []
+      images: images || [],
+      ollamaApiKey: effectiveOllamaApiKey(config),
     });
 
     if (result.type === 'security-report') {
@@ -1390,7 +1420,7 @@ Important: Include the COMPLETE file content in each block, not just the changed
     const ollamaRes = await chatStream(config.ollamaUrl, model, [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userContent }
-    ]);
+    ], [], ollamaAuthOpts(config));
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
@@ -1498,7 +1528,9 @@ app.post('/api/pentest/folder', async (req, res) => {
 
     log('INFO', `Pentest folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ''}`);
 
-    const result = await pentestFolder(config.ollamaUrl, model, files, {});
+    const result = await pentestFolder(config.ollamaUrl, model, files, {
+      ollamaApiKey: effectiveOllamaApiKey(config),
+    });
 
     if (result.type === 'security-report') {
       log('INFO', `Pentest folder complete: overall grade ${result.data.overallGrade}`);
@@ -1616,7 +1648,7 @@ app.post('/api/validate/generate', async (req, res) => {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
     }
 
-    const ollamaRes = await generateValidateCommand(config.ollamaUrl, model, folder, scanResult);
+    const ollamaRes = await generateValidateCommand(config.ollamaUrl, model, folder, scanResult, ollamaAuthOpts(config));
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
@@ -1747,7 +1779,7 @@ app.post('/api/score', async (req, res) => {
   try {
     const config = getConfig();
     const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-    const result = await scoreContent(ollamaUrl, model, mode, content, metadata);
+    const result = await scoreContent(ollamaUrl, model, mode, content, metadata, ollamaAuthOpts(config));
 
     if (result.type === 'score-card') {
       log('INFO', `Score complete: overall grade ${result.data?.overallGrade || 'N/A'}`);
@@ -2033,7 +2065,7 @@ app.post('/api/history', async (req, res) => {
     if (config.memory?.enabled && config.memory?.autoExtract
         && req.body.messages?.length >= 4) {
       const embModel = config.memory.embeddingModel || 'nomic-embed-text';
-      extractAndStore(config.ollamaUrl, req.body.model, embModel, req.body)
+      extractAndStore(config.ollamaUrl, req.body.model, embModel, req.body, config)
         .catch(err => log('WARN', 'Memory extraction failed', { error: err.message }));
     }
   } catch (err) {
@@ -2078,7 +2110,7 @@ app.get('/api/memory/stats', (req, res) => {
 app.get('/api/memory/models', async (req, res) => {
   try {
     const config = getConfig();
-    const models = await listModels(config.ollamaUrl);
+    const models = await listModels(config.ollamaUrl, ollamaAuthOpts(config));
     const embeddingModels = models.filter(m =>
       /embed|bert|minilm/i.test(m.family || '')
     );
@@ -2097,7 +2129,7 @@ app.get('/api/memory/search', async (req, res) => {
     }
     const config = getConfig();
     const embModel = config.memory?.embeddingModel || 'nomic-embed-text';
-    const queryEmbedding = await embed(config.ollamaUrl, q.trim(), embModel);
+    const queryEmbedding = await embed(config.ollamaUrl, q.trim(), embModel, ollamaAuthOpts(config));
     const results = searchMemories(queryEmbedding, 10, 0.3);
     // Strip embeddings from response to reduce payload
     const cleaned = results.map(({ embedding, ...rest }) => rest);
@@ -2146,7 +2178,7 @@ app.post('/api/memory', async (req, res) => {
     try {
       const config = getConfig();
       embModel = config.memory?.embeddingModel || 'nomic-embed-text';
-      embeddingVec = await embed(config.ollamaUrl, content.trim(), embModel);
+      embeddingVec = await embed(config.ollamaUrl, content.trim(), embModel, ollamaAuthOpts(config));
     } catch (embErr) {
       log('WARN', 'Embedding generation failed for new memory', { error: embErr.message });
     }
@@ -2203,6 +2235,9 @@ app.delete('/api/memory/:id', (req, res) => {
 
 // ── File Browser API ─────────────────────────────────
 
+// Directories to skip when searching for folders by name
+const FOLDER_SEARCH_SKIP = new Set(['.Trash', '.Trashes', 'Library', 'node_modules', '.git', '.cache', '.npm', '.nvm']);
+
 // Search common directories for a folder by name (1-2 levels deep)
 function findFolderByName(name) {
   const searchRoots = [
@@ -2212,11 +2247,15 @@ function findFolderByName(name) {
     path.join(os.homedir(), 'Developer'),
     path.join(os.homedir(), 'Documents'),
     path.join(os.homedir(), 'Desktop'),
+    path.join(os.homedir(), 'Docker'),
     __dirname,
   ];
   for (const root of searchRoots) {
     const candidate = path.join(root, name);
     try {
+      // Skip if the match is inside a blocked directory
+      if (FOLDER_SEARCH_SKIP.has(path.basename(root))) continue;
+      if (candidate.split(path.sep).some(seg => FOLDER_SEARCH_SKIP.has(seg))) continue;
       if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
     } catch {}
   }
@@ -2227,6 +2266,7 @@ function findFolderByName(name) {
       const children = fs.readdirSync(root, { withFileTypes: true });
       for (const child of children) {
         if (!child.isDirectory()) continue;
+        if (FOLDER_SEARCH_SKIP.has(child.name)) continue;
         const candidate = path.join(root, child.name, name);
         try {
           if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
@@ -2458,7 +2498,7 @@ Example: {"audience":"Developers and technical writers","tone":"Professional","o
   try {
     const text = await chatComplete(ollamaUrl, selectedModel, [
       { role: 'user', content: prompt }
-    ], 15000);
+    ], 15000, [], ollamaAuthOpts(config));
     const raw = text.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
     const parsed = JSON.parse(raw || '{}');
     const audience = typeof parsed.audience === 'string' ? parsed.audience.trim() : null;
@@ -2612,7 +2652,7 @@ app.post('/api/build/projects/:id/next-action', async (req, res) => {
       }
     ];
 
-    const result = await chatComplete(config.ollamaUrl, model, messages, 30000);
+    const result = await chatComplete(config.ollamaUrl, model, messages, 30000, [], ollamaAuthOpts(config));
     res.json({ action: result, timestamp: new Date().toISOString() });
   } catch (err) {
     log('ERROR', `next-action failed: ${err.message}`);
@@ -2665,7 +2705,7 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
       }
     ];
 
-    const result = await chatComplete(config.ollamaUrl, model, messages, 180000);
+    const result = await chatComplete(config.ollamaUrl, model, messages, 180000, [], ollamaAuthOpts(config));
 
     // Stream result progressively as words
     const words = result.split(/(\s+)/);
@@ -2726,7 +2766,7 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
       }
     ];
 
-    const result = await chatComplete(config.ollamaUrl, model, messages, 180000);
+    const result = await chatComplete(config.ollamaUrl, model, messages, 180000, [], ollamaAuthOpts(config));
 
     // Stream result progressively as words
     const words = result.split(/(\s+)/);
@@ -3184,7 +3224,7 @@ app.post('/api/git/review', async (req, res) => {
         content: `Git diff (working tree)${rel ? ` for file: ${rel}` : ' (all changes)'}:\n\n\`\`\`diff\n${diffBody}\n\`\`\``,
       },
     ];
-    const review = await chatComplete(config.ollamaUrl, model, messages, 120000);
+    const review = await chatComplete(config.ollamaUrl, model, messages, 120000, [], ollamaAuthOpts(config));
     res.json({ review, truncated });
   } catch (err) {
     log('ERROR', `git review: ${err.message}`, { repoPath });

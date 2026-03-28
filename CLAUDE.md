@@ -102,7 +102,7 @@ Both scaffolders automatically copy IDE command files from `IDE_COMMANDS/` (app 
 
 Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes:
 
-- Ollama Server URL with test connection
+- **Ollama connection** — server URL (local or `https://ollama.com`), optional **Ollama Cloud API key** (Bearer auth; stored as `ollamaApiKey` in `.cc-config.json`; env **`OLLAMA_API_KEY`** used when empty), test button
 - Project Folder with validation
 - Create template path (Commands + ICM-fw)
 - Brand Assets (label/path/description rows)
@@ -129,7 +129,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (2776 symbols, 5184 relationships, 162 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (2784 symbols, 5201 relationships, 163 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

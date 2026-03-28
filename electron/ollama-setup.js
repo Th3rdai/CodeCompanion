@@ -6,17 +6,28 @@ const https = require('https');
 
 const execAsync = promisify(exec);
 
+function ollamaAuthHeaders(apiKey) {
+  const h = {};
+  const k = apiKey && String(apiKey).trim();
+  if (k) h.Authorization = `Bearer ${k}`;
+  return h;
+}
+
 /**
  * Check if Ollama is running and list models
  * @param {string} ollamaUrl - Ollama server URL
+ * @param {string} [apiKey] - Optional Bearer token (Ollama Cloud)
  * @returns {Promise<{running: boolean, models: string[]}>}
  */
-async function checkOllamaRunning(ollamaUrl) {
+async function checkOllamaRunning(ollamaUrl, apiKey) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 3000);
 
-    const response = await fetch(`${ollamaUrl}/api/tags`, { signal: controller.signal });
+    const response = await fetch(`${ollamaUrl}/api/tags`, {
+      signal: controller.signal,
+      headers: ollamaAuthHeaders(apiKey),
+    });
     clearTimeout(timeout);
 
     if (!response.ok) {
@@ -165,11 +176,11 @@ function downloadFile(url, destPath) {
  * @param {Function} onProgress - Progress callback (status, total, completed, percent)
  * @returns {Promise<{success: boolean}>}
  */
-async function pullModel(ollamaUrl, modelName, onProgress) {
+async function pullModel(ollamaUrl, modelName, onProgress, apiKey) {
   try {
     const response = await fetch(`${ollamaUrl}/api/pull`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...ollamaAuthHeaders(apiKey) },
       body: JSON.stringify({ name: modelName, stream: true }),
     });
 

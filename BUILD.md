@@ -20,6 +20,18 @@ npm run electron:build
 ./scripts/build-installers.sh
 ```
 
+### Desktop app (Electron) — when the UI looks stale
+
+The in-app server serves the **Vite production bundle** in **`dist/`**. After changing React or other frontend code, run **`npm run build`** before opening the desktop app, or use a single command:
+
+```bash
+npm run electron:run
+# or the short alias:
+npm run electron
+```
+
+That rebuilds `dist/` and launches Electron. **`npm run dev`** (Vite + server) is for browser development with hot reload; it does not update what the packaged-style Electron window serves unless `dist/` is rebuilt.
+
 ## Validation (7-phase / CI-style)
 
 From repo root (HTTP on port 4173 avoids HTTPS vs Playwright mismatch when `cert/` exists):
