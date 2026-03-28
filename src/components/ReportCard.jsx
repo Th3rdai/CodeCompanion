@@ -331,7 +331,7 @@ function buildBulkFixPrompts(categories) {
 
 // ── Main Report Card ────────────────────────────────
 
-export default function ReportCard({ data, filename, onDeepDive, onNewReview }) {
+export default function ReportCard({ data, filename, onDeepDive, onNewReview, onPasteFixPrompts }) {
   if (!data) return null;
 
   const { overallGrade, topPriority, categories, cleanBillOfHealth } = data;
@@ -367,18 +367,29 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview }) 
           </div>
           <div className="flex gap-2 shrink-0 relative flex-wrap justify-end">
             {bulkPrompts && (
-              <button
-                onClick={async () => {
-                  await copyText(bulkPrompts);
-                  setCopiedAll(true);
-                  setTimeout(() => setCopiedAll(false), 3000);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/20 transition-colors cursor-pointer"
-                aria-label="Copy all fix prompts to clipboard"
-              >
-                <ClipboardCopy className="w-4 h-4" />
-                {copiedAll ? 'Copied! Paste into your AI tool' : 'Copy All Fix Prompts'}
-              </button>
+              <>
+                <button
+                  onClick={async () => {
+                    await copyText(bulkPrompts);
+                    setCopiedAll(true);
+                    setTimeout(() => setCopiedAll(false), 3000);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/20 transition-colors cursor-pointer"
+                  aria-label="Copy all fix prompts to clipboard"
+                >
+                  <ClipboardCopy className="w-4 h-4" />
+                  {copiedAll ? 'Copied!' : 'Copy All Fix Prompts'}
+                </button>
+                {onPasteFixPrompts && (
+                  <button
+                    onClick={() => onPasteFixPrompts(bulkPrompts)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                    aria-label="Send fix prompts to chat"
+                  >
+                    Ask AI to Fix
+                  </button>
+                )}
+              </>
             )}
             <div className="relative">
               <button

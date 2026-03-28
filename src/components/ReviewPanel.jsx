@@ -9,6 +9,7 @@ import { readText } from '../lib/clipboard';
 import ReportCard from './ReportCard';
 import MessageBubble from './MessageBubble';
 import DictateButton from './DictateButton';
+import InputToolbar from './ui/InputToolbar';
 import MarkdownContent from './MarkdownContent';
 import LoadingAnimation from './LoadingAnimation';
 import ImageThumbnail from './ImageThumbnail';
@@ -690,7 +691,99 @@ export default function ReviewPanel({
           filename={filename}
           onDeepDive={handleDeepDive}
           onNewReview={handleNewReview}
+          onPasteFixPrompts={prompts => {
+            setDeepDiveInput(prompts);
+            setTimeout(() => deepDiveInputRef.current?.focus(), 100);
+            onToast?.('Fix prompts pasted into chat — click Ask to send');
+          }}
         />
+        {/* Inline chat for discussing findings */}
+        <div className="max-w-3xl mx-auto mt-3 space-y-3">
+          <InputToolbar
+            textareaRef={deepDiveInputRef}
+            getText={() => deepDiveInput}
+            setText={val => setDeepDiveInput(prev => prev + val)}
+            messages={deepDiveMessages.length ? deepDiveMessages : [{ role: 'assistant', content: JSON.stringify(reportData, null, 2) }]}
+            mode="Review"
+            onToast={onToast}
+            onClear={() => setDeepDiveInput('')}
+            connected={connected}
+            streaming={deepDiveStreaming}
+            hideButtons={['upload']}
+          />
+
+          {/* Show conversation messages inline */}
+          {deepDiveMessages.filter(m => m.role === 'user' || m.role === 'assistant').length > 0 && (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+              {deepDiveMessages.filter(m => m.role === 'user' || m.role === 'assistant').map((msg, i) => (
+                <div key={i} className={`rounded-xl p-3 text-sm ${
+                  msg.role === 'user'
+                    ? 'glass border border-indigo-500/20 ml-8 text-slate-200'
+                    : 'glass border border-slate-700/30 mr-8'
+                }`}>
+                  <div className="text-[10px] text-slate-500 mb-1 uppercase font-semibold">
+                    {msg.role === 'user' ? 'You' : 'AI'}
+                  </div>
+                  {msg.role === 'assistant' ? <MarkdownContent content={msg.content} /> : <p>{msg.content}</p>}
+                </div>
+              ))}
+              {deepDiveStreaming && (
+                <div className="flex items-center gap-2 text-slate-400 text-sm py-2">
+                  <div className="flex gap-1">
+                    <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span>Thinking...</span>
+                </div>
+              )}
+              <div ref={deepDiveEndRef} />
+            </div>
+          )}
+
+          {/* Chat input */}
+          <div className="flex gap-2">
+            <textarea
+              ref={deepDiveInputRef}
+              value={deepDiveInput}
+              onChange={e => setDeepDiveInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!deepDiveMessages.length) {
+                    // Initialize deep-dive context with the review data
+                    setDeepDiveMessages([
+                      { role: 'system', content: `You are continuing a code review discussion. The original code:\n\n${code}\n\nFilename: ${filename}\n\nReview findings:\n${JSON.stringify(reportData, null, 2)}` },
+                    ]);
+                  }
+                  handleDeepDiveFollowUp();
+                }
+              }}
+              placeholder="Paste fix prompts or ask about the findings..."
+              rows={2}
+              disabled={deepDiveStreaming || !connected}
+              className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+            />
+            {deepDiveStreaming ? (
+              <StopButton onClick={handleStop} className="min-w-[60px]" />
+            ) : (
+              <button
+                onClick={() => {
+                  if (!deepDiveMessages.length) {
+                    setDeepDiveMessages([
+                      { role: 'system', content: `You are continuing a code review discussion. The original code:\n\n${code}\n\nFilename: ${filename}\n\nReview findings:\n${JSON.stringify(reportData, null, 2)}` },
+                    ]);
+                  }
+                  handleDeepDiveFollowUp();
+                }}
+                disabled={!deepDiveInput.trim() || !connected}
+                className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+              >
+                Ask
+              </button>
+            )}
+          </div>
+        </div>
         {isSuspicious && suggestedModel && (
           <div className="max-w-3xl mx-auto mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
@@ -728,12 +821,34 @@ export default function ReviewPanel({
               </div>
             )}
           </div>
+          <InputToolbar
+            textareaRef={null}
+            getText={() => ''}
+            setText={() => {}}
+            messages={[{ role: 'assistant', content: fallbackContent }]}
+            mode="Review"
+            onToast={onToast}
+            connected={connected}
+            streaming={false}
+            hideButtons={['upload', 'paste', 'clear', 'dictate']}
+          />
           <div className="flex gap-2">
             <button
               onClick={handleNewReview}
               className="text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 transition-colors"
             >
               Review Another
+            </button>
+            <button
+              onClick={() => {
+                setDeepDiveMessages([
+                  { role: 'system', content: `You are continuing a code review discussion. The original code:\n\n${code}\n\nThe review findings:\n\n${fallbackContent}` },
+                ]);
+                setPhase('deep-dive');
+              }}
+              className="text-xs px-3 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+            >
+              Continue Discussion
             </button>
           </div>
         </div>
@@ -777,7 +892,19 @@ export default function ReviewPanel({
         </div>
 
         {/* Follow-up input */}
-        <div className="glass-heavy border-t border-slate-700/30 p-4">
+        <div className="glass-heavy border-t border-slate-700/30 p-4 space-y-2">
+          <InputToolbar
+            textareaRef={deepDiveInputRef}
+            getText={() => deepDiveInput}
+            setText={val => setDeepDiveInput(prev => prev + val)}
+            messages={deepDiveMessages}
+            mode="Review"
+            onToast={onToast}
+            onClear={() => setDeepDiveInput('')}
+            connected={connected}
+            streaming={deepDiveStreaming}
+            hideButtons={['upload']}
+          />
           <div className="flex gap-2">
             <label htmlFor="deep-dive-input" className="sr-only">Ask a follow-up question</label>
             <textarea
@@ -910,28 +1037,18 @@ export default function ReviewPanel({
                     className="w-full input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-y placeholder-slate-500"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handlePasteFromClipboard}
-                    title="Paste code from clipboard"
-                    className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-700/30 hover:border-indigo-500/30"
-                  >
-                    📋 Paste from Clipboard
-                  </button>
-                  <DictateButton
-                    onResult={handleDictation}
-                    disabled={!connected}
-                    className="!w-auto !h-auto text-xs px-2.5 py-1.5 !rounded-lg border border-slate-700/30 hover:border-indigo-500/30"
-                  />
-                  <button
-                    onClick={() => { setCode(''); setFilename(''); }}
-                    title="Clear code input"
-                    disabled={!code}
-                    className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-red-300 hover:bg-red-500/10 transition-colors border border-slate-700/30 hover:border-red-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    🧹 Clear
-                  </button>
-                </div>
+                <InputToolbar
+                  textareaRef={textareaRef}
+                  getText={() => code}
+                  setText={val => setCode(prev => prev + val)}
+                  messages={deepDiveMessages.length ? deepDiveMessages : reportData ? [{ role: 'assistant', content: fallbackContent || JSON.stringify(reportData) }] : []}
+                  mode="Review"
+                  onToast={onToast}
+                  onClear={() => { setCode(''); setFilename(''); }}
+                  connected={connected}
+                  streaming={deepDiveStreaming}
+                  hideButtons={['upload']}
+                />
               </Tab.Panel>
 
               {/* Upload File Panel */}

@@ -7,6 +7,7 @@ import LoadingAnimation from '../LoadingAnimation';
 import MarkdownContent from '../MarkdownContent';
 import BuilderScoreCard from './BuilderScoreCard';
 import DictateButton from '../DictateButton';
+import InputToolbar from '../ui/InputToolbar';
 import { joinAppend } from '../../lib/dictationAppend';
 
 // ── Tag Input Component ──────────────────────────────
@@ -570,6 +571,19 @@ Format your response as:
             onRevise={handleCategoryRevise}
           />
 
+          {/* Toolbar */}
+          <InputToolbar
+            textareaRef={null}
+            getText={() => ''}
+            setText={() => {}}
+            messages={reviseMessages.length ? reviseMessages : [{ role: 'assistant', content: scoreData?.summary || JSON.stringify(scoreData) }]}
+            mode={config.title}
+            onToast={onToast}
+            connected={connected}
+            streaming={false}
+            hideButtons={['upload', 'paste', 'clear', 'dictate']}
+          />
+
           {/* Action buttons */}
           <div className="flex flex-wrap gap-2 justify-center">
             <button
@@ -702,6 +716,18 @@ Format your response as:
         {/* Input area */}
         <div className="glass-heavy border-t border-slate-700/30 p-4">
           <div className="max-w-3xl mx-auto space-y-2">
+            <InputToolbar
+              textareaRef={null}
+              getText={() => reviseInput}
+              setText={val => setReviseInput(prev => prev + val)}
+              messages={reviseMessages}
+              mode={config.title}
+              onToast={onToast}
+              onClear={() => setReviseInput('')}
+              connected={connected}
+              streaming={reviseStreaming}
+              hideButtons={['upload']}
+            />
             <div className="flex flex-wrap gap-2 items-start">
               <label htmlFor="revise-input" className="sr-only">Revision instructions</label>
               <textarea
@@ -713,10 +739,6 @@ Format your response as:
                 rows={2}
                 disabled={reviseStreaming || !connected}
                 className="flex-1 min-w-0 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
-              />
-              <DictateButton
-                onResult={chunk => setReviseInput(prev => joinAppend(prev, chunk))}
-                disabled={reviseStreaming || !connected}
               />
               {reviseStreaming ? (
                 <StopButton onClick={handleStop} className="min-w-[60px]" />
@@ -887,6 +909,20 @@ Format your response as:
             </div>
           ))}
         </div>
+
+        {/* Toolbar */}
+        <InputToolbar
+          textareaRef={null}
+          getText={() => ''}
+          setText={() => {}}
+          messages={reviseMessages.length ? reviseMessages : scoreData ? [{ role: 'assistant', content: JSON.stringify(scoreData) }] : []}
+          mode={config.title}
+          onToast={onToast}
+          onClear={() => { setFormData({}); formDataRef.current = {}; }}
+          connected={connected}
+          streaming={reviseStreaming}
+          hideButtons={['upload', 'dictate']}
+        />
 
         {/* Submit */}
         <div className="flex justify-center">

@@ -82,6 +82,9 @@ cert/*.crt
 *.pfx
 
 # User data (configs with secrets, cloned repos)
-CodeCompanion-Data/
+CodeCompanion-Data/**
+!CodeCompanion-Data/logs/
+CodeCompanion-Data/logs/**
+!CodeCompanion-Data/logs/.gitkeep
 github-repos/
 .gitnexus

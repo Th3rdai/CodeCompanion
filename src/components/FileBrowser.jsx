@@ -17,8 +17,8 @@ function setTreeState(path, isOpen) {
 
 function FileTreeNode({ node, depth, onFileClick, onQuickAttach, converting, rootFolder }) {
   const savedState = getTreeState();
-  const defaultOpen = depth === 0;
-  const [open, setOpen] = useState(node.path ? (savedState[node.path] ?? defaultOpen) : defaultOpen);
+  // Only root (depth 0) starts expanded; everything else collapsed unless user previously expanded it
+  const [open, setOpen] = useState(node.path ? (savedState[node.path] === true) : depth === 0);
   const [children, setChildren] = useState(node.children);
   const [loadingChildren, setLoadingChildren] = useState(false);
   const indent = depth * 16;

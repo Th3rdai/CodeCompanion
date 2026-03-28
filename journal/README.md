@@ -2,6 +2,7 @@
 
 | Date | Result | Notes |
 |------|--------|-------|
+| 2026-03-27 | Pass | **`validate-project --thorough`** — P1–P7 green; P6 file save to `/tmp` blocked by allowed-roots (use repo `folder`); **`journal/2026-03-27.md`** |
 | 2026-03-24 | Pass | **`build-file-ops.test.js`** + **install docs** + **CHANGELOG 1.5.3**; **`git push`** **origin** + **th3rdai** **`master`**. **`journal/2026-03-24.md`** |
 | 2026-03-23 | Pass | Latest **20:22** — second full validate same day; P1–P7 green; 134 unit; 32 UI / 17 E2E / full PW 48 pass / 15 skip / 1 flaky report-card; P6/P7 HTTP; **`journal/2026-03-23.md`** |
 | 2026-03-22 | Pass | Latest **21:34** — full validate resume: P6 file save under repo `folder` (not `/tmp`); P7 `minimax-m2:cloud`; 134 unit; Playwright 47 pass / 15 skip / 2 flaky; also **16:27** run — **journal/2026-03-22.md** |
