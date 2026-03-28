@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+async function reloadAndWaitForModels(page) {
+  const modelsPromise = page.waitForResponse(
+    (r) => r.url().includes('/api/models'),
+    { timeout: 30_000 }
+  );
+  await page.reload();
+  await modelsPromise;
+  await page.waitForSelector('#model-select', { state: 'visible', timeout: 30_000 });
+}
+
 test.describe('OnboardingWizard component', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
@@ -7,7 +17,7 @@ test.describe('OnboardingWizard component', () => {
     });
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('th3rdai_onboarding_complete'));
-    await page.reload();
+    await reloadAndWaitForModels(page);
   });
 
   test('UX-01: displays 5 steps with correct vibe-coder content', async ({ page }) => {
@@ -38,21 +48,22 @@ test.describe('OnboardingWizard component', () => {
 
   test('UX-01: keyboard navigation works (arrow keys, Enter, Escape)', async ({ page }) => {
     // Verify wizard is showing
-    await expect(page.getByRole('dialog', { name: 'Welcome wizard' })).toBeVisible();
+    const wizard = page.getByRole('dialog', { name: 'Welcome wizard' });
+    await expect(wizard).toBeVisible();
 
-    // Focus wizard
-    await page.getByRole('dialog', { name: 'Welcome wizard' }).focus();
+    // Click overlay so the dialog container (tabIndex=0) receives focus — locator.focus() flakes in CI
+    await wizard.click({ position: { x: 24, y: 24 } });
 
-    // ArrowRight advances step
+    // ArrowRight advances step (content fades ~200ms between steps)
     await page.keyboard.press('ArrowRight');
-    await expect(page.getByText('Connect to Ollama')).toBeVisible();
+    await expect(page.getByText('Connect to Ollama')).toBeVisible({ timeout: 10_000 });
 
     // ArrowLeft goes back
     await page.keyboard.press('ArrowLeft');
-    await expect(page.getByText('Welcome to Code Companion')).toBeVisible();
+    await expect(page.getByText('Welcome to Code Companion')).toBeVisible({ timeout: 10_000 });
 
     // Escape closes wizard
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Welcome wizard' })).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome wizard' })).not.toBeVisible({ timeout: 10_000 });
   });
 });

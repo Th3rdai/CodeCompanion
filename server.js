@@ -732,10 +732,13 @@ app.post('/api/chat', async (req, res) => {
     debug('Agent tools injected into system prompt', { toolsLength: toolsPrompt.length });
   }
 
-  const fullMessages = [
-    { role: 'system', content: enrichedSystemPrompt },
-    ...messages
-  ];
+  // If client already sent a system message (e.g. review deep-dive), use it instead of the default
+  const clientHasSystem = messages.some(m => m.role === 'system');
+  const fullMessages = clientHasSystem
+    ? messages.map(m => m.role === 'system'
+        ? { role: 'system', content: m.content + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt + visionPrompt }
+        : m)
+    : [{ role: 'system', content: enrichedSystemPrompt }, ...messages];
 
   // ── Compute Ollama options (num_ctx, timeout) with auto-adjustment ──
   const totalChars = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);

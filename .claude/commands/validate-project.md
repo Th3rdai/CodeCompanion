@@ -92,11 +92,15 @@ Verify all major API routes respond correctly. Server must be running on port 89
 ### Conversation History CRUD
 !`curl -ksf -X POST https://127.0.0.1:8903/api/history -H 'Content-Type: application/json' -d '{"id":"validate-test","title":"Validation Test","messages":[{"role":"user","content":"test"}]}' && echo "History save: OK"`
 !`curl -ksf https://127.0.0.1:8903/api/history | node -e "process.stdin.on('data',d=>{const h=JSON.parse(d);console.log('History list:',Array.isArray(h)?'OK':'ERROR')})"`
+
+> **Large history:** If `GET /api/history` returns a very large JSON body, piping straight to `JSON.parse` in a one-liner may fail. Prefer `curl -ksf … -o /tmp/h.json` then `node -e "JSON.parse(require('fs').readFileSync('/tmp/h.json'))"` or use `jq`.
 !`curl -ksf https://127.0.0.1:8903/api/history/validate-test | node -e "process.stdin.on('data',d=>{const h=JSON.parse(d);console.log('History get:',h.id==='validate-test'?'OK':'ERROR')})"`
 !`curl -ksf -X DELETE https://127.0.0.1:8903/api/history/validate-test && echo "History delete: OK"`
 
 ### File Browser (path traversal protection)
 !`curl -ksf "https://127.0.0.1:8903/api/files/tree" | node -e "process.stdin.on('data',d=>{const t=JSON.parse(d);console.log('File tree:',t.root?'OK':'ERROR')})"`
+
+> **Huge trees:** If the configured project folder is very large, unscoped `GET /api/files/tree` may return megabytes. For smoke tests, add `folder=` (URL-encoded project path) to scope the tree, or write the response to a file before parsing.
 !`curl -ksf "https://127.0.0.1:8903/api/files/read?path=package.json" | node -e "process.stdin.on('data',d=>{const f=JSON.parse(d);console.log('File read:',f.content?'OK':'ERROR')})"`
 !`STATUS=$(curl -ksw "%{http_code}" "https://127.0.0.1:8903/api/files/read?path=../../etc/passwd" -o /dev/null); test "$STATUS" = "200" && echo "Path traversal blocked: FAIL (status: $STATUS)" || echo "Path traversal blocked: OK (status: $STATUS)"`
 

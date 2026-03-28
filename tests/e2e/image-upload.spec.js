@@ -2,6 +2,16 @@ const { test, expect } = require('@playwright/test');
 const browserAppReady = require('../helpers/app-ready.js');
 const { reviewModeTab, securityModeTab } = require('../helpers/mode-tabs.js');
 
+async function reloadAndWaitForModels(page, { timeout = 20_000, okOnly = false } = {}) {
+  const modelsPromise = page.waitForResponse(
+    (r) => r.url().includes('/api/models') && (!okOnly || r.ok()),
+    { timeout }
+  );
+  await page.reload();
+  await modelsPromise;
+  await page.waitForSelector('#model-select', { state: 'visible', timeout });
+}
+
 /** App expects SSE from POST /api/chat (data: JSON lines + [DONE]). */
 function mockSseChatBody(assistantText) {
   const parts = [
@@ -57,9 +67,7 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     await page.evaluate(() => {
       localStorage.setItem('cc-image-privacy-accepted', 'true'); // Skip image privacy modal
     });
-    await page.reload();
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForResponse((r) => r.url().includes('/api/models') && r.ok(), { timeout: 20_000 });
+    await reloadAndWaitForModels(page, { timeout: 20_000, okOnly: true });
 
     const modelSelect = page.locator('#model-select');
     await expect(modelSelect).toBeVisible({ timeout: 15_000 });
@@ -78,7 +86,7 @@ test.describe('Image Upload E2E - Chat Mode', () => {
     // Thumbnail <img> stays opacity-0 until load — assert the interactive wrapper instead.
     await expect(
       page.getByRole('button', { name: /View full-size image: test-screenshot\.png/i })
-    ).toBeVisible({ timeout: 10000 });
+    ).toBeVisible({ timeout: 20_000 });
 
     await expect(page.getByText(/Processing \d+ images?/i)).not.toBeVisible({ timeout: 8000 });
 

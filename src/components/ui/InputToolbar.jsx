@@ -40,14 +40,20 @@ export default function InputToolbar({
   const hidden = new Set(hideButtons.map(b => b.toLowerCase()));
 
   function handlePaste() {
+    // Try programmatic clipboard read first
     readText().then(text => {
-      if (text && setText) {
-        setText(prev => typeof prev === 'function' ? prev : prev + text);
+      if (text && text.length > 5 && !/^[A-Z]=>/.test(text)) {
+        // Got valid text from clipboard API
+        if (setText) setText(prev => typeof prev === 'function' ? prev : prev + text);
         textareaRef?.current?.focus();
         onToast?.('Pasted from clipboard');
       } else {
+        // Clipboard API failed or returned garbage — trigger native paste
         textareaRef?.current?.focus();
-        onToast?.('Press Ctrl+V (or Cmd+V) to paste');
+        const pasted = document.execCommand('paste');
+        if (!pasted) {
+          onToast?.('Click in the text area, then press Cmd+V to paste');
+        }
       }
     });
   }

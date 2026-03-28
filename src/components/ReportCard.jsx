@@ -331,7 +331,7 @@ function buildBulkFixPrompts(categories) {
 
 // ── Main Report Card ────────────────────────────────
 
-export default function ReportCard({ data, filename, onDeepDive, onNewReview, onPasteFixPrompts }) {
+export default function ReportCard({ data, filename, onDeepDive, onNewReview, onReviewRevision, onPasteFixPrompts }) {
   if (!data) return null;
 
   const { overallGrade, topPriority, categories, cleanBillOfHealth } = data;
@@ -344,9 +344,9 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview, on
     <div className="space-y-4 fade-in max-w-3xl mx-auto">
       {/* Overall Grade Header */}
       <div className="glass rounded-2xl border border-slate-700/30 p-6">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap items-center gap-6">
           <GradeBadge grade={overallGrade} size="lg" />
-          <div className="flex-1 min-w-0">
+          <div className="min-w-[12rem] max-w-full flex-1">
             <h2 className="text-xl font-bold text-slate-100">
               Code Review Report Card
             </h2>
@@ -415,6 +415,14 @@ export default function ReportCard({ data, filename, onDeepDive, onNewReview, on
                 </div>
               )}
             </div>
+            {onReviewRevision && (
+              <button
+                onClick={onReviewRevision}
+                className="text-xs px-3 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+              >
+                Review Revision
+              </button>
+            )}
             <button
               onClick={onNewReview}
               className="text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors"

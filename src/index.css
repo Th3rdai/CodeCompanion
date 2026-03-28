@@ -56,7 +56,7 @@ body {
   50% { border-color: rgba(var(--color-neon-rgb), 0.7); }
 }
 
-.fade-in { animation: fadeIn 0.3s ease-out; }
+.fade-in { animation: fadeIn 0.3s ease-out forwards; }
 .typing-dot { animation: pulse-dot 1.4s infinite; }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }

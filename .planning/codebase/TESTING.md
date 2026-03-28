@@ -92,6 +92,30 @@ test.describe('Prompting Builder Mode', () => {
 - Teardown: Implicit (Playwright), `child.kill()` in rate-limit test
 - Assertion: `assert.equal`, `expect(...).toBeVisible()`, `expect(...).toBeDisabled()`
 
+### Playwright: reload + `/api/models` (2026-03-28)
+
+After `page.reload()`, **do not** attach `waitForResponse('**/api/models')` *after* the reload — the request may finish before the listener runs. **Pattern:** register the waiter **before** `reload()`, then wait for `#model-select` (shell hydrated):
+
+```javascript
+async function reloadAndWaitForModels(page) {
+  const modelsPromise = page.waitForResponse(
+    (r) => r.url().includes('/api/models'),
+    { timeout: 30_000 }
+  );
+  await page.reload();
+  await modelsPromise;
+  await page.waitForSelector('#model-select', { state: 'visible', timeout: 30_000 });
+}
+```
+
+Used (inlined) in `tests/ui/privacy-banner.spec.js`, `OnboardingWizard.spec.js`, `report-card-interactions.spec.js`, and E2E `create-mode.spec.js`, `image-upload.spec.js` (image flow may pass `{ okOnly: true }` to require `r.ok()`).
+
+**Report card UI tests:** wait for `mode-tab-chat` before `mode-tab-review` so the mode tab strip is hydrated.
+
+**Onboarding keyboard test:** click the dialog overlay to focus the wizard (`tabIndex={0}`) instead of `locator.focus()` — avoids flakes in headless Chromium.
+
+**Privacy banner:** dismiss control exposes `data-testid="privacy-banner-dismiss"` (`PrivacyBanner.jsx`); tests use it instead of ambiguous `role="status"` matches.
+
 ## Mocking
 
 **Framework:** Playwright `context.route()` for API mocking
@@ -171,4 +195,4 @@ await assert.rejects(
 
 ---
 
-*Testing analysis: 2026-03-14*
+*Testing analysis: 2026-03-14; Playwright reload/hydration notes: 2026-03-28*

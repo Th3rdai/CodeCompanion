@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Playwright (UI/E2E)** — Avoid **missing `/api/models` after `reload()`** by registering `waitForResponse` before `reload()`, then waiting for `#model-select`. Applied in privacy banner, onboarding wizard, report-card, create-mode, and image-upload specs. **Onboarding:** focus wizard via dialog click (not `focus()`). **Report card tests:** wait for `mode-tab-chat` before `mode-tab-review`. **Privacy:** stable dismiss via `data-testid="privacy-banner-dismiss"` on `PrivacyBanner`.
+
+### Documentation
+- **`.planning/codebase/TESTING.md`** — New subsection: reload + `/api/models` pattern, report-card tab hydration, onboarding focus, privacy test id.
+- **`.planning/codebase/TESTING-AND-RISKS.md`** — E2E stability cross-reference.
+- **`.claude/commands/validate-project.md`** — P6 notes: large `GET /api/history` and scoped `folder=` for file tree when validating against huge project folders.
+
 ---
 
 ## [1.5.14] - 2026-03-27

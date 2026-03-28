@@ -1,6 +1,6 @@
 # Testing & Risk Hotspots
 
-**Analysis Date:** 2025-03-21
+**Analysis Date:** 2025-03-21 (Playwright notes refreshed 2026-03-28)
 
 ## Test commands (`package.json`)
 
@@ -21,7 +21,7 @@ Browser tests for **onboarding** (`onboarding.spec.js`, `OnboardingWizard.spec.j
 
 ## `tests/e2e/`
 
-Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`.
+Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`, `create-mode.spec.js`, and others. **Stability:** specs that `reload()` then wait for `/api/models` must register `waitForResponse` *before* `reload()` (see `.planning/codebase/TESTING.md`).
 
 ## Other tests (repo root `tests/`)
 
@@ -46,4 +46,4 @@ Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`.
 
 ---
 
-*Testing & risks: 2025-03-21*
+*Testing & risks: 2025-03-21; E2E stability cross-ref: 2026-03-28*

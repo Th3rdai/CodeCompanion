@@ -6,6 +6,17 @@
 import { test, expect } from '@playwright/test';
 import browserAppReady from '../helpers/app-ready.js';
 
+/** Subscribe to /api/models before reload (avoids missing the response). */
+async function reloadAndWaitForModels(page) {
+  const modelsPromise = page.waitForResponse(
+    (r) => r.url().includes('/api/models'),
+    { timeout: 30_000 }
+  );
+  await page.reload();
+  await modelsPromise;
+  await page.waitForSelector('#model-select', { state: 'visible', timeout: 30_000 });
+}
+
 const mockReportCardResponse = {
   type: 'report-card',
   data: {
@@ -75,12 +86,11 @@ test.describe('ReportCard Progressive Disclosure', () => {
     await page.evaluate(() => {
       localStorage.setItem('cc-selected-model', 'test-model');
     });
-    await page.reload();
-    // Wait for model fetch to complete and button to become enabled
-    await page.waitForResponse('**/api/models');
+    await reloadAndWaitForModels(page);
 
-    // Navigate to Review mode (wait for shell — parallel runs can delay hydration)
-    await expect(page.getByTestId('mode-tab-review')).toBeVisible({ timeout: 25_000 });
+    // Wait for any mode tab first (proves tab strip hydrated) then Review
+    await page.getByTestId('mode-tab-chat').waitFor({ state: 'visible', timeout: 30_000 });
+    await expect(page.getByTestId('mode-tab-review')).toBeVisible({ timeout: 30_000 });
     await page.getByTestId('mode-tab-review').click();
     await page.getByPlaceholder('Paste your code here...').fill('function test() { return true; }');
     await page.getByRole('button', { name: /run code review/i }).click();

@@ -43,6 +43,8 @@ export default function PrivacyBanner() {
         AI runs locally through Ollama. No tracking, no accounts, no data collection.
       </p>
       <button
+        type="button"
+        data-testid="privacy-banner-dismiss"
         onClick={handleDismiss}
         className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded-lg hover:bg-slate-700/50 transition-colors whitespace-nowrap"
         aria-label="Dismiss privacy banner"

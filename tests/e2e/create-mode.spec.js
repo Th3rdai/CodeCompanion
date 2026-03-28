@@ -5,6 +5,16 @@ const path = require('path');
 const browserAppReady = require('../helpers/app-ready.js');
 const { createModeTab } = require('../helpers/mode-tabs.js');
 
+async function reloadAndWaitForModels(page) {
+  const modelsPromise = page.waitForResponse(
+    (r) => r.url().includes('/api/models'),
+    { timeout: 30_000 }
+  );
+  await page.reload();
+  await modelsPromise;
+  await page.waitForSelector('#model-select', { state: 'visible', timeout: 30_000 });
+}
+
 function slugify(value) {
   return String(value || '')
     .normalize('NFKD')
@@ -30,7 +40,8 @@ async function getAllowedRoot(request) {
 async function openCreateMode(page) {
   await page.addInitScript(browserAppReady);
   await page.goto('/');
-  await page.reload();
+  await reloadAndWaitForModels(page);
+  await expect(page.getByTestId('mode-tab-create')).toBeVisible({ timeout: 30_000 });
   await createModeTab(page).click();
 }
 

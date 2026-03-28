@@ -12,8 +12,8 @@
  * @returns {Promise<boolean>} true if copied successfully
  */
 export async function copyText(text) {
-  // Try modern API first
-  if (navigator.clipboard && window.isSecureContext) {
+  // Try modern API first (works in user-gesture context even with self-signed certs in some browsers)
+  if (navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
@@ -23,14 +23,19 @@ export async function copyText(text) {
   }
 
   // Fallback: temporary textarea + execCommand
+  // Must be visible and in-viewport for execCommand to work reliably
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;padding:0;border:none;outline:none;box-shadow:none;opacity:0.01;';
   document.body.appendChild(ta);
+  ta.focus();
   ta.select();
+  // Also set selection range for iOS
+  ta.setSelectionRange(0, text.length);
   try {
-    document.execCommand('copy');
-    return true;
+    const ok = document.execCommand('copy');
+    return ok;
   } catch {
     return false;
   } finally {
@@ -48,7 +53,7 @@ export async function copyText(text) {
  * @returns {Promise<string|null>} clipboard text, or null if denied
  */
 export async function readText() {
-  if (navigator.clipboard && window.isSecureContext) {
+  if (navigator.clipboard) {
     try {
       return await navigator.clipboard.readText();
     } catch {

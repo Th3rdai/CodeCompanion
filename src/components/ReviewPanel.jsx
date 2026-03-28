@@ -378,8 +378,15 @@ export default function ReviewPanel({
   async function handleDeepDiveFollowUp() {
     if (!deepDiveInput.trim() || deepDiveStreaming) return;
 
+    let base = deepDiveMessages;
+    // If no messages yet, initialize with system context containing the original code
+    if (base.length === 0 && code) {
+      const sysMsg = { role: 'system', content: `You are a senior developer helping fix code issues found during a review. You have the COMPLETE original source code below — do NOT ask the user to share it again.\n\nFilename: ${filename}\n\nORIGINAL CODE:\n\`\`\`\n${code}\n\`\`\`\n\nREVIEW FINDINGS:\n${reportData ? JSON.stringify(reportData, null, 2) : fallbackContent}\n\nINSTRUCTIONS:\n1. Fix ALL issues listed in the review findings.\n2. Show the COMPLETE corrected file in a single code block.\n3. Explain each change briefly.\n4. MANDATORY: After showing the corrected code, you MUST save it by calling:\nTOOL_CALL: builtin.write_file({"path": "${filename}", "content": "YOUR CORRECTED FILE CONTENT HERE"})\nThis creates a .backup automatically. You MUST make this tool call — do not skip it.\n5. Do NOT ask the user to share the code — you already have it above.\n6. Do NOT apologize or say you lack access.` };
+      base = [sysMsg];
+    }
+
     const userMsg = { role: 'user', content: deepDiveInput.trim() };
-    const updatedMessages = [...deepDiveMessages, userMsg];
+    const updatedMessages = [...base, userMsg];
     setDeepDiveMessages(updatedMessages);
     setDeepDiveInput('');
 
@@ -691,10 +698,38 @@ export default function ReviewPanel({
           filename={filename}
           onDeepDive={handleDeepDive}
           onNewReview={handleNewReview}
+          onReviewRevision={async () => {
+            // Keep filename, clear previous results, auto-reload the file
+            setReportData(null);
+            setDeepDiveMessages([]);
+            setDeepDiveInput('');
+            setFallbackContent('');
+            // Try to reload the file from the project folder
+            if (filename) {
+              try {
+                const res = await apiFetch(`/api/files/read?path=${encodeURIComponent(filename)}`);
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.content) {
+                    setCode(data.content);
+                    setPhase('input');
+                    onToast?.(`Loaded revised ${filename} — click Run Code Review to re-score`);
+                    return;
+                  }
+                }
+              } catch {}
+            }
+            setCode('');
+            setPhase('input');
+            onToast?.(`Ready to review revised ${filename || 'file'} — paste or upload the updated code`);
+          }}
           onPasteFixPrompts={prompts => {
-            setDeepDiveInput(prompts);
-            setTimeout(() => deepDiveInputRef.current?.focus(), 100);
-            onToast?.('Fix prompts pasted into chat — click Ask to send');
+            setDeepDiveInput('');
+            setTimeout(() => {
+              setDeepDiveInput(prompts);
+              deepDiveInputRef.current?.focus();
+              onToast?.('Fix prompts ready — click Ask to send');
+            }, 50);
           }}
         />
         {/* Inline chat for discussing findings */}
@@ -709,7 +744,7 @@ export default function ReviewPanel({
             onClear={() => setDeepDiveInput('')}
             connected={connected}
             streaming={deepDiveStreaming}
-            hideButtons={['upload']}
+            hideButtons={['upload', 'paste']}
           />
 
           {/* Show conversation messages inline */}
@@ -750,12 +785,6 @@ export default function ReviewPanel({
               onKeyDown={e => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  if (!deepDiveMessages.length) {
-                    // Initialize deep-dive context with the review data
-                    setDeepDiveMessages([
-                      { role: 'system', content: `You are continuing a code review discussion. The original code:\n\n${code}\n\nFilename: ${filename}\n\nReview findings:\n${JSON.stringify(reportData, null, 2)}` },
-                    ]);
-                  }
                   handleDeepDiveFollowUp();
                 }
               }}
@@ -768,14 +797,7 @@ export default function ReviewPanel({
               <StopButton onClick={handleStop} className="min-w-[60px]" />
             ) : (
               <button
-                onClick={() => {
-                  if (!deepDiveMessages.length) {
-                    setDeepDiveMessages([
-                      { role: 'system', content: `You are continuing a code review discussion. The original code:\n\n${code}\n\nFilename: ${filename}\n\nReview findings:\n${JSON.stringify(reportData, null, 2)}` },
-                    ]);
-                  }
-                  handleDeepDiveFollowUp();
-                }}
+                onClick={() => handleDeepDiveFollowUp()}
                 disabled={!deepDiveInput.trim() || !connected}
                 className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
               >
@@ -842,7 +864,7 @@ export default function ReviewPanel({
             <button
               onClick={() => {
                 setDeepDiveMessages([
-                  { role: 'system', content: `You are continuing a code review discussion. The original code:\n\n${code}\n\nThe review findings:\n\n${fallbackContent}` },
+                  { role: 'system', content: `You are a senior developer helping fix code issues found during a review. You have the COMPLETE original source code below — do NOT ask the user to share it again.\n\nFilename: ${filename}\n\nORIGINAL CODE:\n\`\`\`\n${code}\n\`\`\`\n\nREVIEW FINDINGS:\n${fallbackContent}\n\nINSTRUCTIONS:\n1. Fix ALL issues listed in the review findings.\n2. Show the COMPLETE corrected file in a single code block.\n3. Explain each change briefly.\n4. MANDATORY: After showing the corrected code, you MUST save it by calling:\nTOOL_CALL: builtin.write_file({"path": "${filename}", "content": "YOUR CORRECTED FILE CONTENT HERE"})\nThis creates a .backup automatically. You MUST make this tool call — do not skip it.\n5. Do NOT ask the user to share the code — you already have it above.\n6. Do NOT apologize or say you lack access.` },
                 ]);
                 setPhase('deep-dive');
               }}
