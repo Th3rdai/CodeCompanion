@@ -87,8 +87,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [terminalAllowlist, setTerminalAllowlist] = useState('');
   const [terminalTimeout, setTerminalTimeout] = useState(60);
 
-  // GitHub token state
+  // GitHub token state (multi-PAT)
   const [ghToken, setGhToken] = useState('');
+  const [ghTokenLabel, setGhTokenLabel] = useState('');
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
   const [ghValidating, setGhValidating] = useState(false);
   const [ghResult, setGhResult] = useState(null);
@@ -457,18 +458,30 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       const res = await apiFetch('/api/github/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: ghToken }),
+        body: JSON.stringify({ token: ghToken, label: ghTokenLabel.trim() || undefined }),
       });
       const data = await res.json();
       setGhResult(data);
       if (data.valid) {
         setGhToken('');
+        setGhTokenLabel('');
         fetchGhTokenStatus();
       }
     } catch (err) {
       setGhResult({ valid: false, error: err.message });
     }
     setGhValidating(false);
+  }
+
+  async function handleRemoveGhTokenByName(name) {
+    try {
+      await apiFetch('/api/github/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remove: name }),
+      });
+      fetchGhTokenStatus();
+    } catch {}
   }
 
   async function handleRemoveGhToken() {
@@ -1335,43 +1348,51 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
         {activeTab === 'github' && (
           <div className="space-y-5">
-            {/* Current token status */}
-            {ghTokenStatus?.configured && ghTokenStatus?.valid ? (
-              <div className="glass rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 bg-green-400 rounded-full glow-pulse" />
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Connected as <span className="text-indigo-300">{ghTokenStatus.username}</span></p>
-                      <p className="text-xs text-slate-500 mt-0.5">Personal Access Token active</p>
+            {/* Connected tokens list */}
+            {ghTokenStatus?.tokens?.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-400 font-medium">Connected Accounts</p>
+                {ghTokenStatus.tokens.map((t, i) => (
+                  <div key={t.username || t.label || i} className="glass rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2.5 h-2.5 bg-green-400 rounded-full glow-pulse" />
+                      {t.avatar && <img src={t.avatar} alt="" className="w-6 h-6 rounded-full" />}
+                      <div>
+                        <p className="text-sm font-medium text-slate-200">
+                          <span className="text-indigo-300">{t.username || t.label}</span>
+                          {t.label && t.label !== t.username && <span className="text-slate-500 text-xs ml-1.5">({t.label})</span>}
+                        </p>
+                        {i === 0 && <p className="text-[10px] text-slate-500">Primary</p>}
+                      </div>
                     </div>
+                    <button onClick={() => handleRemoveGhTokenByName(t.username || t.label)}
+                      className="text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">
+                      Remove
+                    </button>
                   </div>
-                  <button onClick={handleRemoveGhToken}
-                    className="text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors">
-                    Remove Token
-                  </button>
-                </div>
+                ))}
               </div>
             ) : (
               <div className="glass rounded-lg p-4 text-center">
                 <p className="text-sm text-slate-300 mb-1">Let's connect your GitHub!</p>
-                <p className="text-xs text-slate-500">Add a token below and you'll be able to clone private repos and browse your account.</p>
+                <p className="text-xs text-slate-500">Add one or more tokens below to clone private repos and browse your accounts.</p>
               </div>
             )}
 
-            {/* Token input */}
+            {/* Add token input */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">
-                {ghTokenStatus?.configured ? 'Replace Token' : 'Personal Access Token'}
-              </label>
-              <div className="flex gap-2">
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Add Personal Access Token</label>
+              <div className="flex gap-2 mb-2">
+                <input type="text" value={ghTokenLabel} onChange={e => setGhTokenLabel(e.target.value)}
+                  placeholder="Label (optional, e.g. work)"
+                  className="w-1/3 input-glow text-slate-100 rounded-lg px-3 py-2.5 outline-none text-sm" />
                 <input type="password" value={ghToken} onChange={e => setGhToken(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleValidateGhToken()}
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                   className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
                 <button onClick={handleValidateGhToken} disabled={ghValidating || !ghToken.trim()}
                   className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                  {ghValidating ? <span className="inline-block spin">&#x27F3;</span> : 'Validate & Save'}
+                  {ghValidating ? <span className="inline-block spin">&#x27F3;</span> : 'Add'}
                 </button>
               </div>
               {ghResult && (

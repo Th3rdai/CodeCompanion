@@ -23,6 +23,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
   const [browseRepos, setBrowseRepos] = useState([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [browseError, setBrowseError] = useState('');
+  const [activeAccount, setActiveAccount] = useState(''); // username/label of selected PAT
 
   // Cloned repos state
   const [clonedRepos, setClonedRepos] = useState([]);
@@ -141,11 +142,12 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
     } catch {}
   }
 
-  async function handleBrowseRepos() {
+  async function handleBrowseRepos(owner) {
     setBrowseLoading(true);
     setBrowseError('');
+    const acct = owner || activeAccount;
     try {
-      const res = await apiFetch('/api/github/browse');
+      const res = await apiFetch(`/api/github/browse${acct ? `?owner=${encodeURIComponent(acct)}` : ''}`);
       const data = await parseApiJson(res);
       if (data.error) {
         setBrowseError(data.error);
@@ -389,11 +391,33 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
         <div className="flex items-center gap-2">
           <span className="text-lg">🐙</span>
           <h2 className="text-sm font-semibold text-slate-200">GitHub</h2>
-          {tokenStatus?.configured && tokenStatus?.valid && (
+          {tokenStatus?.configured && tokenStatus?.tokens?.length > 1 ? (
+            <select
+              value={activeAccount || tokenStatus.activeAccount || tokenStatus.tokens[0]?.label}
+              onChange={async (e) => {
+                const label = e.target.value;
+                setActiveAccount(label);
+                try {
+                  await apiFetch('/api/github/active-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ label }),
+                  });
+                  checkToken();
+                  if (activeSection === 'browse') handleBrowseRepos(label);
+                } catch {}
+              }}
+              className="text-xs bg-slate-700/50 text-green-400 border border-slate-600/30 rounded px-1.5 py-0.5 outline-none cursor-pointer"
+            >
+              {tokenStatus.tokens.map(t => (
+                <option key={t.label} value={t.label}>{t.label || t.username}</option>
+              ))}
+            </select>
+          ) : tokenStatus?.configured && tokenStatus?.valid ? (
             <span className="text-xs glass rounded px-1.5 py-0.5 text-green-400">
               {tokenStatus.username}
             </span>
-          )}
+          ) : null}
         </div>
         {onClose && (
           <button onClick={onClose} className="text-slate-400 hover:text-white text-sm" aria-label="Close GitHub panel">
@@ -409,7 +433,7 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
             key={s.id}
             onClick={() => {
               setActiveSection(s.id);
-              if (s.id === 'browse' && browseRepos.length === 0 && !browseLoading) handleBrowseRepos();
+              if (s.id === 'browse') { checkToken(); if (browseRepos.length === 0 && !browseLoading) handleBrowseRepos(); }
               if (s.id === 'cloned') fetchClonedRepos();
               if (s.id === 'vcs') fetchGitStatus();
             }}
@@ -572,9 +596,15 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
               </div>
             ) : (
               <>
+                {/* Active account shown when multiple PATs */}
+                {tokenStatus?.tokens?.length > 1 && (
+                  <p className="text-[10px] text-slate-500 mb-1">
+                    Showing repos for <span className="text-indigo-400">{activeAccount || tokenStatus.activeAccount || tokenStatus.tokens[0]?.label}</span> — switch in header dropdown
+                  </p>
+                )}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-slate-400">{browseRepos.length} repos</span>
-                  <button onClick={handleBrowseRepos} className="text-xs text-indigo-400 hover:text-indigo-300">
+                  <button onClick={() => handleBrowseRepos()} className="text-xs text-indigo-400 hover:text-indigo-300">
                     ↻ Refresh
                   </button>
                 </div>
@@ -874,6 +904,12 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
                 <input value={jiraEmail} onChange={e => setJiraEmail(e.target.value)} placeholder="Jira email" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
                 <input value={jiraToken} onChange={e => setJiraToken(e.target.value)} placeholder="Jira API token" type="password" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
                 <input value={jiraJql} onChange={e => setJiraJql(e.target.value)} placeholder="JQL query" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs font-mono" />
+                {(jiraBaseUrl || jiraEmail || jiraToken) && (
+                  <button onClick={() => { setJiraBaseUrl(''); setJiraEmail(''); setJiraToken(''); setJiraJql('project = YOURPROJECT ORDER BY updated DESC'); }}
+                    className="text-[10px] text-red-400/70 hover:text-red-400 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500/10 transition-colors">
+                    Clear Jira fields
+                  </button>
+                )}
               </div>
             )}
 
@@ -882,6 +918,12 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
                 <input value={trelloBoardId} onChange={e => setTrelloBoardId(e.target.value)} placeholder="Trello board ID" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
                 <input value={trelloKey} onChange={e => setTrelloKey(e.target.value)} placeholder="Trello API key" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
                 <input value={trelloToken} onChange={e => setTrelloToken(e.target.value)} placeholder="Trello token" type="password" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
+                {(trelloBoardId || trelloKey || trelloToken) && (
+                  <button onClick={() => { setTrelloBoardId(''); setTrelloKey(''); setTrelloToken(''); }}
+                    className="text-[10px] text-red-400/70 hover:text-red-400 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500/10 transition-colors">
+                    Clear Trello fields
+                  </button>
+                )}
               </div>
             )}
 
@@ -889,6 +931,12 @@ export default function GitHubPanel({ onRepoOpened, onClose, selectedModel }) {
               <div className="glass rounded-lg p-3 space-y-2">
                 <input value={asanaProjectId} onChange={e => setAsanaProjectId(e.target.value)} placeholder="Asana project ID" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
                 <input value={asanaToken} onChange={e => setAsanaToken(e.target.value)} placeholder="Asana access token" type="password" className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-xs" />
+                {(asanaProjectId || asanaToken) && (
+                  <button onClick={() => { setAsanaProjectId(''); setAsanaToken(''); }}
+                    className="text-[10px] text-red-400/70 hover:text-red-400 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500/10 transition-colors">
+                    Clear Asana fields
+                  </button>
+                )}
               </div>
             )}
 

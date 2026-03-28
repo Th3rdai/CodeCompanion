@@ -26,6 +26,8 @@ const {
   listClonedRepos,
   listUserRepos,
   validateTokenCached,
+  resolveToken,
+  getAllTokens,
   createRepo,
   initAndPush,
   getGitStatus,
@@ -70,9 +72,13 @@ function maskSensitiveValue(value) {
 
 function sanitizeConfigForClient(config) {
   const safe = { ...config };
-  safe.githubTokenConfigured = Boolean(safe.githubToken);
-  if ('githubToken' in safe) {
-    delete safe.githubToken;
+  safe.githubTokenConfigured = Boolean(safe.githubToken || (safe.githubTokens && safe.githubTokens.length));
+  if ('githubToken' in safe) delete safe.githubToken;
+  // Send token metadata (label, username, avatar) but strip actual token values
+  if (safe.githubTokens) {
+    safe.githubTokens = safe.githubTokens.map(t => ({
+      label: t.label || '', username: t.username || '', avatar: t.avatar || '',
+    }));
   }
 
   delete safe.license;
@@ -2843,7 +2849,10 @@ app.post('/api/github/clone', (req, res) => {
   if (!repoUrl) return res.status(400).json({ error: 'Missing repo URL' });
 
   const config = getConfig();
-  const token = config.githubToken || '';
+  // Resolve token by repo owner if multi-PAT configured
+  const { parseGitHubUrl } = require('./lib/github');
+  const parsed = parseGitHubUrl(repoUrl);
+  const token = resolveToken(config, parsed?.owner || config.activeGithubAccount);
 
   log('INFO', `Cloning GitHub repo: ${repoUrl}`);
   const result = cloneRepo(dataRoot, repoUrl, token);
@@ -2900,7 +2909,8 @@ app.post('/api/github/open', (req, res) => {
 // GET /api/github/browse — list user's GitHub repos (requires token)
 app.get('/api/github/browse', async (req, res) => {
   const config = getConfig();
-  const token = config.githubToken;
+  const tokenOwner = req.query.owner || config.activeGithubAccount || '';
+  const token = resolveToken(config, tokenOwner);
   if (!token) return res.status(401).json({ error: 'No GitHub token configured. Add one in Settings → GitHub.' });
 
   try {
@@ -2912,42 +2922,85 @@ app.get('/api/github/browse', async (req, res) => {
   }
 });
 
-// POST /api/github/token — validate and save GitHub token
+// POST /api/github/token — validate and save GitHub token (supports multi-PAT)
 app.post('/api/github/token', requireLocalOrApiKey, async (req, res) => {
-  const { token } = req.body;
+  const { token, label, remove } = req.body;
+  const config = getConfig();
+  if (!config.githubTokens) config.githubTokens = [];
+
+  // Remove a token by label/username
+  if (remove) {
+    const removeLower = remove.toLowerCase();
+    config.githubTokens = config.githubTokens.filter(t =>
+      (t.label || '').toLowerCase() !== removeLower &&
+      (t.username || '').toLowerCase() !== removeLower
+    );
+    // Also clear legacy token if it matches the removed one
+    if (!config.githubTokens.length) config.githubToken = '';
+    else config.githubToken = config.githubTokens[0].token;
+    updateConfig(config);
+    return res.json({ valid: true, message: `Token "${remove}" removed`, tokens: getAllTokens(config).map(t => ({ label: t.label, username: t.username, avatar: t.avatar })) });
+  }
 
   if (!token) {
-    // Clear token
-    const config = getConfig();
+    // Clear all tokens
     config.githubToken = '';
+    config.githubTokens = [];
     updateConfig(config);
-    return res.json({ valid: true, message: 'Token cleared' });
+    return res.json({ valid: true, message: 'All tokens cleared' });
   }
 
   const result = await validateTokenCached(token);
   if (result.valid) {
-    const config = getConfig();
-    config.githubToken = token;
+    const entryLabel = label || result.username;
+    const entry = { label: entryLabel, token, username: result.username, avatar: result.avatar || '' };
+    // Replace if same label exists; allow multiple tokens for same username with different labels
+    const idx = config.githubTokens.findIndex(t =>
+      (t.label || '').toLowerCase() === entryLabel.toLowerCase()
+    );
+    if (idx >= 0) config.githubTokens[idx] = entry;
+    else config.githubTokens.push(entry);
+    // Keep legacy field in sync (first token)
+    config.githubToken = config.githubTokens[0].token;
     updateConfig(config);
     log('INFO', `GitHub token saved for user: ${result.username}`);
+    result.tokens = config.githubTokens.map(t => ({ label: t.label, username: t.username, avatar: t.avatar }));
   }
   res.json(result);
 });
 
-// GET /api/github/token/status — check if a token is configured
+// GET /api/github/token/status — check if tokens are configured (multi-PAT)
 app.get('/api/github/token/status', requireLocalOrApiKey, async (req, res) => {
   const config = getConfig();
-  const token = config.githubToken;
-  if (!token) return res.json({ configured: false });
+  const tokens = getAllTokens(config);
+  if (!tokens.length) return res.json({ configured: false, tokens: [] });
 
-  const result = await validateTokenCached(token);
-  res.json({ configured: true, ...result });
+  const activeLabel = config.activeGithubAccount || tokens[0].label;
+  const activeToken = resolveToken(config, activeLabel);
+  const active = await validateTokenCached(activeToken);
+  res.json({
+    configured: true,
+    ...active,
+    activeAccount: activeLabel,
+    tokens: tokens.map(t => ({ label: t.label, username: t.username, avatar: t.avatar })),
+  });
+});
+
+// POST /api/github/active-account — switch active GitHub account
+app.post('/api/github/active-account', requireLocalOrApiKey, (req, res) => {
+  const { label } = req.body;
+  if (!label) return res.status(400).json({ error: 'Missing label' });
+  const config = getConfig();
+  config.activeGithubAccount = label;
+  updateConfig(config);
+  log('INFO', `Active GitHub account switched to: ${label}`);
+  res.json({ success: true, activeAccount: label });
 });
 
 // POST /api/github/create — create a new GitHub repo
 app.post('/api/github/create', async (req, res) => {
   const config = getConfig();
-  const token = config.githubToken;
+  const token = resolveToken(config, req.body?.owner || config.activeGithubAccount);
   if (!token) return res.status(401).json({ error: 'GitHub token not configured. Add one in Settings → GitHub.' });
 
   const { name, description, isPrivate } = req.body || {};
@@ -2970,7 +3023,9 @@ app.post('/api/github/create', async (req, res) => {
 // POST /api/github/push — init local repo and push to remote
 app.post('/api/github/push', requireLocalOrApiKey, (req, res) => {
   const config = getConfig();
-  const token = config.githubToken;
+  const { parseGitHubUrl } = require('./lib/github');
+  const parsed = parseGitHubUrl(req.body?.remoteUrl || '');
+  const token = resolveToken(config, parsed?.owner || config.activeGithubAccount);
   if (!token) return res.status(401).json({ error: 'GitHub token not configured' });
 
   const { localPath, remoteUrl, commitMessage, branch } = req.body || {};
