@@ -72,11 +72,17 @@ ALL tasks 1-9 are complete and committed. Key commits:
 - `lib/tool-call-handler.js` — Updated system prompt: explicit instruction to STOP after TOOL_CALL lines, never fabricate results.
 - Diagnosed Nano Banana `gemini-2.5-flash-image` Gemini API quota (429 RESOURCE_EXHAUSTED) as external issue.
 
+**Task 12 — Image UX, tool schemas, revision flow, batch delete (2026-03-29)**
+- `src/components/MarkdownContent.jsx` — Click-to-preview image lightbox (full-size modal, Escape to close).
+- `src/index.css` — 1080px min-width for chat images, pointer cursor, hover feedback.
+- `lib/tool-call-handler.js` — Compact tool parameter schemas in system prompt (required params + enum values); 8.5 KB vs 23.7 KB.
+- `server.js` — IMAGE_DELIVERED marker for revision flow; non-mimicable historical placeholders; `POST /api/history/batch-delete` for bulk deletion (single request, no rate limiting).
+- `src/App.jsx` — `bulkDeleteConversations` uses batch endpoint instead of N individual DELETEs.
+
 **Test Status:** 136+ unit tests; **`npm run test:integration`** (spawned server, chat/review/pentest/remediate + images); E2E as before; build clean.
 
-**Docs (2026-03-29):** **docs/TESTING.md** — `test:integration` + `tests/integration/`; **CHANGELOG [Unreleased]** — chat latency + integration test fix; **.planning/STATE.md** updated.
-**Commits (2026-03-28/29):** `b78c0fe` (auto-model + MCP image fixes), `6092e83` (placeholder leak), `afd4da8` (vision fallback + historical images).
-**Releases:** v1.5.3 through v1.5.14 pushed during prior sessions; next release should include Tasks 10-11 + doc updates.
+**Commits (2026-03-28/29):** `b78c0fe` (auto-model + MCP image fixes), `6092e83` (placeholder leak), `afd4da8` (vision fallback + historical images), `6b34e00` (lightbox + schemas + latency).
+**Releases:** v1.5.3 through v1.5.14 pushed during prior sessions; next release should include Tasks 10-12 + doc updates.
 
 </work_completed>
 

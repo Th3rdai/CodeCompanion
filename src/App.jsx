@@ -444,33 +444,29 @@ export default function App() {
   }
 
   async function bulkDeleteConversations(ids) {
-    let ok = 0;
-    let failed = 0;
-    for (const id of ids) {
-      if (!id) {
-        failed++;
-        continue;
+    const validIds = ids.filter(Boolean);
+    if (validIds.length === 0) return;
+    try {
+      const res = await apiFetch('/api/history/batch-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: validIds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      const ok = data.ok || 0;
+      const failed = data.failed || 0;
+      if (validIds.includes(activeConvId)) {
+        setMessages([]);
+        setActiveConvId(null);
       }
-      try {
-        const res = await apiFetch(`/api/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        if (res.ok) {
-          ok++;
-          if (activeConvId === id) {
-            setMessages([]);
-            setActiveConvId(null);
-          }
-        } else {
-          failed++;
-        }
-      } catch {
-        failed++;
+      fetchHistory();
+      if (failed === 0) {
+        showToast(`Deleted ${ok} conversation${ok !== 1 ? 's' : ''}`);
+      } else {
+        showToast(`Deleted ${ok}, failed ${failed}`);
       }
-    }
-    fetchHistory();
-    if (failed === 0) {
-      showToast(`Deleted ${ok} conversation${ok !== 1 ? 's' : ''}`);
-    } else {
-      showToast(`Deleted ${ok}, failed ${failed}${ok === 0 ? ' — check network or try again' : ''}`);
+    } catch (e) {
+      showToast(`Delete failed: ${e.message}`);
     }
   }
 

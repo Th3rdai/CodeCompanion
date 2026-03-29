@@ -2398,6 +2398,24 @@ app.delete('/api/history/:id', (req, res) => {
   }
 });
 
+// Batch delete — single request instead of N individual DELETEs (avoids rate limiting)
+app.post('/api/history/batch-delete', (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids must be a non-empty array' });
+  if (ids.length > 200) return res.status(400).json({ error: 'Maximum 200 deletions per batch' });
+  let ok = 0, failed = 0;
+  for (const id of ids) {
+    try {
+      deleteConversation(id);
+      ok++;
+    } catch {
+      failed++;
+    }
+  }
+  log('INFO', `Batch delete: ${ok} deleted, ${failed} failed`);
+  res.json({ ok, failed });
+});
+
 // ── Memory API ──────────────────────────────────────
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
 last_updated: "2026-03-29T12:00:00.000Z"
-last_activity: 2026-03-29 — **MCP image generation fixes** (hallucination stripping, base64 context bloat, const crash, placeholder leak, vision fallback, historical image arrays); **auto-model per mode**; **chat latency** optimizations; **integration tests** fixed. 3 commits pushed (`b78c0fe`, `6092e83`, `afd4da8`). **Next:** pre-release checklist.
+last_activity: 2026-03-29 — **MCP image generation** (hallucination stripping, vision fallback, revision flow, IMAGE_DELIVERED markers); **image lightbox** (click to preview); **tool param schemas** (compact, 8.5KB); **batch conversation delete** (single-request, no rate limit); **auto-model per mode**; **chat latency**. 5 commits: `b78c0fe`, `6092e83`, `afd4da8`, `6b34e00`, pending. **Next:** pre-release checklist.
 progress:
   total_phases: 24
   completed_phases: 15
