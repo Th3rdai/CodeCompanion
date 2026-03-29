@@ -47,7 +47,7 @@ process.on('uncaughtException', (error) => {
 });
 
 // Wrap all requires in try-catch
-let resolveDataDirectory, migrateDevData, exportData, importData;
+let resolveDataDirectory, migrateDevData, mergeDevMcpClientsFromRoot, exportData, importData;
 let loadWindowState, saveWindowState;
 let createMenu;
 let initAutoUpdater;
@@ -56,7 +56,13 @@ let checkOllamaRunning, installOllama, pullModel;
 
 try {
   emergencyLog('Loading data-manager...');
-  ({ resolveDataDirectory, migrateDevData, exportData, importData } = require('./data-manager'));
+  ({
+    resolveDataDirectory,
+    migrateDevData,
+    mergeDevMcpClientsFromRoot,
+    exportData,
+    importData,
+  } = require('./data-manager'));
   emergencyLog('✓ data-manager loaded');
 } catch (err) {
   emergencyLog(`✗ data-manager failed: ${err.message}`);
@@ -383,6 +389,13 @@ async function startApp() {
     const migration = migrateDevData(dataDir, appRoot);
     if (migration.migrated) {
       emergencyLog(`[Main] Migration results: ${JSON.stringify(migration.log)}`);
+    }
+
+    if (!app.isPackaged) {
+      const mcpMerge = mergeDevMcpClientsFromRoot(dataDir, appRoot, { isDev: true });
+      if (mcpMerge.merged) {
+        emergencyLog(`[Main] Synced ${mcpMerge.count} MCP client(s) from repo .cc-config.json into data directory`);
+      }
     }
 
     // Set log directory (used for crash dialog)

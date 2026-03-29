@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-28T20:30:00.000Z"
-last_activity: 2026-03-28 — **Docs + QA**: `.planning/codebase/TESTING.md` / **TESTING-AND-RISKS.md** updated (Playwright `reload` + `/api/models` race, privacy `data-testid`, report-card/onboarding patterns); **CHANGELOG [Unreleased]**; **Archon** task closed for Playwright stability. Prior: **2026-03-20** — CHANGELOG 1.5.3 + install docs + dual-remote sync.
+last_updated: "2026-03-28T22:00:00.000Z"
+last_activity: 2026-03-28 — **Auto model per mode** shipped (`lib/auto-model.js`, Settings **Auto model map**, `whats-next.md` + **CLAUDE.md** + **docs/ENVIRONMENT_VARIABLES.md**); prior: **Docs + QA** (TESTING.md, Playwright patterns); **CHANGELOG**; **Archon** Playwright task. **Next:** pre-release checklist in `whats-next.md` (version bump, signed build, Drive, remotes).
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit and security).
-Last activity: 2026-03-28 — **Testing docs** + **CHANGELOG** updated for Playwright stability work (March 2026). Prior: 2026-03-20 — **CHANGELOG 1.5.3** + install/updater docs; **dual-remote** GitHub sync. Next: optional CLIPLAN Phase 4 (confirm-before-run), streaming terminal SSE (§4.7).
+Last activity: 2026-03-28 — **Auto model** (toolbar + `autoModelMap` + server resolution); documentation + **whats-next** task list updated. Prior: Playwright stability docs + CHANGELOG. Next: **whats-next** pre-release checklist; optional CLIPLAN Phase 4 (confirm-before-run), streaming terminal SSE (§4.7).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

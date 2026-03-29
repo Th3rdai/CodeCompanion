@@ -121,9 +121,19 @@ The built app (DMG, EXE, AppImage, and portable ZIPs) includes:
 
 Built artifacts go to `release/`. All scripts use `--publish never` (local build only).
 
+### Free disk space (before backups)
+
+`release/` can be many gigabytes (multiple platform builds plus unpacked `win-unpacked/`, `mac-arm64/`, etc.). **`release/`** and **`dist/`** are gitignored and safe to delete — rebuild with `npm run electron:build` or `./scripts/build-installers.sh`:
+
+```bash
+./scripts/clean-artifacts.sh
+```
+
+Optional: `./scripts/clean-artifacts.sh --with-gitnexus` removes the **`.gitnexus/`** index (tens of MB); run `npx gitnexus analyze` afterward.
+
 ### Google Drive mirror (Th3rdAI)
 
-A manual copy of installers may live under **Google Drive → My Drive → `_TH3RDAI.INC/CodeCompanion/`** with **`Mac/`**, **`Windows/`**, and **`Linux/`** subfolders (synced via Google Drive for desktop). After a local build, copy **`release/`** outputs into the matching folder — e.g. **`Mac/`**: `*.dmg`, `*-mac.zip`, `*.blockmap`, **`latest-mac.yml`**. Only copy **`latest.yml`** / **`latest-linux*.yml`** if they were produced in the **same** build as the corresponding `.exe` / `.AppImage` (stale YAML is worse than none). For a full matrix (all platforms), use **`./scripts/build-installers.sh`** or CI, then sync each platform’s artifacts.
+A manual copy of installers may live under **Google Drive → My Drive → `_TH3RDAI.INC/CodeCompanion/`** with **`Mac/`**, **`Windows/`**, and **`Linux/`** subfolders (synced via Google Drive for desktop). After a local build, copy **`release/`** outputs into the matching folder — e.g. **`Mac/`**: `*.dmg`, `*-arm64.zip`, `*.blockmap`, **`latest-mac.yml`**. Only copy **`latest.yml`** / **`latest-linux*.yml`** if they were produced in the **same** build as the corresponding `.exe` / `.AppImage` (stale YAML is worse than none). For a full matrix (all platforms), use **`./scripts/build-installers.sh`** or CI, then sync each platform’s artifacts.
 
 ### Publishing releases (so in-app **Software Updates** works)
 
@@ -144,7 +154,7 @@ A manual copy of installers may live under **Google Drive → My Drive → `_TH3
 
 ### CI (tag push)
 
-Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.3` and `"version": "1.5.3"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
+Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.14` and `"version": "1.5.14"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
 
 ### Manual publish (one machine)
 

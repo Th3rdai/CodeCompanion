@@ -9,10 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Auto model per mode** — Toolbar option **Auto (best per mode)**; server resolves via **`lib/auto-model.js`** + **`autoModelMap`** in **`.cc-config.json`**; Settings → **Auto model map**; SSE **`resolvedModel`** on chat. Applies to review, pentest, score, validate, build APIs, git review, tutorial suggestions, memory extraction.
+- **`scripts/clean-artifacts.sh`** — Removes **`release/`**, **`dist/`**, and Playwright output dirs; optional **`--with-gitnexus`** to drop **`.gitnexus/`** before re-indexing. Documented in **[BUILD.md](BUILD.md)**.
+
 ### Fixed
+- **MCP image generation (Nano Banana)** — Three fixes for tool-call image handling:
+  - **Hallucination stripping** — AI models sometimes fabricate fake JSON results after `TOOL_CALL:` patterns; now truncated before feeding back to the message loop (`server.js`).
+  - **Base64 context bloat** — Stop embedding full base64 image data (3-7 MB) in AI context for subsequent rounds; images are still streamed to the frontend via SSE `toolImage` events, but the AI only sees `[Image generated successfully]`.
+  - **`const` reassignment crash** — `messages` was declared `const` but the base64-stripping `.map()` tried to reassign it; renamed to `cleanedMessages` and wired through `fullMessages` construction.
+- **Tool-call system prompt** — Explicitly instructs models to STOP after `TOOL_CALL:` lines and never fabricate results (`lib/tool-call-handler.js`).
 - **Playwright (UI/E2E)** — Avoid **missing `/api/models` after `reload()`** by registering `waitForResponse` before `reload()`, then waiting for `#model-select`. Applied in privacy banner, onboarding wizard, report-card, create-mode, and image-upload specs. **Onboarding:** focus wizard via dialog click (not `focus()`). **Report card tests:** wait for `mode-tab-chat` before `mode-tab-review`. **Privacy:** stable dismiss via `data-testid="privacy-banner-dismiss"` on `PrivacyBanner`.
 
 ### Documentation
+- **`docs/INSTALL-WINDOWS.md`** / **`docs/INSTALL-MAC.md`** — Aligned with **`package.json`** version **1.5.14** and **`artifactName`** release filenames (`code-companion-${version}-${arch}.*`).
 - **`.planning/codebase/TESTING.md`** — New subsection: reload + `/api/models` pattern, report-card tab hydration, onboarding focus, privacy test id.
 - **`.planning/codebase/TESTING-AND-RISKS.md`** — E2E stability cross-reference.
 - **`.claude/commands/validate-project.md`** — P6 notes: large `GET /api/history` and scoped `folder=` for file tree when validating against huge project folders.

@@ -121,6 +121,31 @@ function migrateDevData(dataDir, appRoot) {
 }
 
 /**
+ * Dev (unpackaged) only: Electron stores config under CC_DATA_DIR (e.g. CodeCompanion-Data),
+ * while `node server.js` uses repo-root `.cc-config.json`. If the data-dir config has no
+ * MCP clients but the repo root file does, copy mcpClients so Settings matches the file
+ * developers often edit in git.
+ */
+function mergeDevMcpClientsFromRoot(dataDir, appRoot, { isDev } = {}) {
+  if (!isDev) return { merged: false };
+  const rootPath = path.join(appRoot, '.cc-config.json');
+  const dataPath = path.join(dataDir, '.cc-config.json');
+  if (!fs.existsSync(rootPath) || !fs.existsSync(dataPath)) return { merged: false };
+  try {
+    const root = JSON.parse(fs.readFileSync(rootPath, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    const rootClients = Array.isArray(root.mcpClients) ? root.mcpClients : [];
+    const dataClients = Array.isArray(data.mcpClients) ? data.mcpClients : [];
+    if (rootClients.length === 0 || dataClients.length > 0) return { merged: false };
+    data.mcpClients = rootClients;
+    fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+    return { merged: true, count: rootClients.length };
+  } catch {
+    return { merged: false };
+  }
+}
+
+/**
  * Helper: Copy directory recursively
  */
 function copyDirectoryRecursive(src, dest) {
@@ -212,6 +237,7 @@ async function importData(dataDir, zipPath) {
 module.exports = {
   resolveDataDirectory,
   migrateDevData,
+  mergeDevMcpClientsFromRoot,
   createBackup,
   exportData,
   importData,

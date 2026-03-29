@@ -17,10 +17,30 @@ const { initHistory, listConversations, getConversation, saveConversation, delet
 const { initMemory, addMemory, getMemories, getMemory, updateMemory, deleteMemory, searchMemories, getStats: getMemoryStats, extractAndStore, buildMemoryContext } = require('./lib/memory');
 const { SYSTEM_PROMPTS } = require('./lib/prompts');
 const { listModels, checkConnection, chatStream, chatComplete, embed, effectiveOllamaApiKey } = require('./lib/ollama-client');
+const { resolveAutoModel, mergeAutoModelMap, DEFAULT_AUTO_MODEL_MAP } = require('./lib/auto-model');
 
 function ollamaAuthOpts(cfg) {
   const k = effectiveOllamaApiKey(cfg);
   return k ? { apiKey: k } : {};
+}
+
+/** When UI sends model "auto", resolve to a concrete name from autoModelMap + Ollama tags. */
+async function resolveIfAutoModel(model, mode, estimatedTokens, config) {
+  if (model !== 'auto') return model;
+  try {
+    const r = await resolveAutoModel({
+      requestedModel: 'auto',
+      mode,
+      estimatedTokens: estimatedTokens || 0,
+      config,
+      ollamaUrl: config.ollamaUrl,
+      ollamaOpts: ollamaAuthOpts(config),
+    });
+    return r.resolved;
+  } catch {
+    const m = mergeAutoModelMap(config.autoModelMap);
+    return m[mode] || m.chat || 'llama3.2';
+  }
 }
 const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles, isConvertibleDocument } = require('./lib/file-browser');
 const { scaffoldProject } = require('./lib/icm-scaffolder');
@@ -117,6 +137,9 @@ function sanitizeConfigForClient(config) {
     safe.ollamaApiKey = '••••••••';
   }
 
+  safe.autoModelMap = mergeAutoModelMap(safe.autoModelMap);
+  safe.autoModelMapDefaults = { ...DEFAULT_AUTO_MODEL_MAP };
+
   return safe;
 }
 
@@ -190,7 +213,16 @@ const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
   getConfig, updateConfig, mcpClientManager, log, debug, requireLocalOrApiKey,
 });
 
-app.use(express.json({ limit: '5mb' }));
+// Vision chat sends base64 in JSON — 5mb is too small (browser shows "Failed to fetch" when body is rejected).
+function jsonBodyLimit(req) {
+  if (!['POST', 'PUT', 'PATCH'].includes(req.method || '')) return '5mb';
+  const p = req.path || '';
+  if (p === '/api/chat' || p === '/api/review' || p.startsWith('/api/pentest')) return '50mb';
+  return '5mb';
+}
+app.use((req, res, next) => {
+  express.json({ limit: jsonBodyLimit(req) })(req, res, next);
+});
 
 // Per-request CSP nonce (scripts in index.html must match; no unsafe-inline for script-src)
 app.use((_req, res, next) => {
@@ -448,6 +480,12 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     log('INFO', `Agent terminal config updated: enabled=${config.agentTerminal.enabled}`);
   }
 
+  // Auto model map (per-mode defaults when UI uses "Auto")
+  if (req.body.autoModelMap !== undefined && typeof req.body.autoModelMap === 'object') {
+    config.autoModelMap = mergeAutoModelMap(req.body.autoModelMap);
+    log('INFO', 'autoModelMap updated');
+  }
+
   if (projectFolder !== undefined) {
     if (projectFolder) {
       log('INFO', `Config projectFolder received: "${projectFolder}"`);
@@ -670,12 +708,14 @@ app.post('/api/generate-office',
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
 app.post('/api/chat', async (req, res) => {
-  const { model, messages, mode, images } = req.body;
+  const { model: reqModel, messages, mode, images } = req.body;
 
-  if (!model || !messages || !mode) {
-    log('ERROR', 'Chat request missing fields', { model: !!model, messages: !!messages, mode: !!mode });
+  if (!reqModel || !messages || !mode) {
+    log('ERROR', 'Chat request missing fields', { model: !!reqModel, messages: !!messages, mode: !!mode });
     return res.status(400).json({ error: 'Missing model, messages, or mode' });
   }
+
+  let model = reqModel;
 
   // Validate images array if present
   if (images && !Array.isArray(images)) {
@@ -698,6 +738,37 @@ app.post('/api/chat', async (req, res) => {
   });
 
   const config = getConfig();
+
+  if (model === 'auto') {
+    try {
+      const totalCharsEstimate = messages.reduce(
+        (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
+        0
+      );
+      const estimatedTokens = Math.ceil(totalCharsEstimate / 3.5);
+      const hasImages = images && images.length > 0;
+      // Check if user uploaded images earlier in this conversation (not MCP-generated ones)
+      // MCP-generated images don't need vision models — the AI just called a tool to make them
+      const historyHasUserImages = !hasImages && messages.some(m =>
+        m.role === 'user' && Array.isArray(m.images) && m.images.length > 0
+      );
+      const r = await resolveAutoModel({
+        requestedModel: model,
+        mode,
+        estimatedTokens,
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+        preferVision: hasImages || historyHasUserImages,
+      });
+      model = r.resolved;
+      log('INFO', `Auto-model resolved: mode=${mode} → ${model}`);
+    } catch (err) {
+      log('WARN', 'Auto-model resolution failed', { error: err.message });
+      const m = mergeAutoModelMap(config.autoModelMap);
+      model = m[mode] || m.chat || 'llama3.2';
+    }
+  }
 
   // Append brand assets context if configured
   const brandAssets = config.brandAssets || [];
@@ -757,13 +828,23 @@ app.post('/api/chat', async (req, res) => {
     debug('Agent tools injected into system prompt', { toolsLength: toolsPrompt.length });
   }
 
+  // Strip base64 image data from message history — prevents 400 errors on cloud models
+  // Images were already rendered client-side; AI doesn't need megabytes of base64 in follow-ups
+  const BASE64_IMG_RE = /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
+  const cleanedMessages = messages.map(m => {
+    if (m.content && typeof m.content === 'string' && BASE64_IMG_RE.test(m.content)) {
+      return { ...m, content: m.content.replace(BASE64_IMG_RE, '![$1](image was displayed to user)') };
+    }
+    return m;
+  });
+
   // If client already sent a system message (e.g. review deep-dive), use it instead of the default
-  const clientHasSystem = messages.some(m => m.role === 'system');
+  const clientHasSystem = cleanedMessages.some(m => m.role === 'system');
   const fullMessages = clientHasSystem
-    ? messages.map(m => m.role === 'system'
+    ? cleanedMessages.map(m => m.role === 'system'
         ? { role: 'system', content: m.content + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt + visionPrompt }
         : m)
-    : [{ role: 'system', content: enrichedSystemPrompt }, ...messages];
+    : [{ role: 'system', content: enrichedSystemPrompt }, ...cleanedMessages];
 
   // ── Compute Ollama options (num_ctx, timeout) with auto-adjustment ──
   const totalChars = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
@@ -814,6 +895,10 @@ app.post('/api/chat', async (req, res) => {
         items: memoryMeta.map(m => ({ type: m.type, content: m.content }))
       }
     });
+  }
+
+  if (reqModel === 'auto') {
+    sendEvent({ resolvedModel: model });
   }
 
   try {
@@ -905,13 +990,16 @@ app.post('/api/chat', async (req, res) => {
             const parts = result.result?.content || [];
             const textParts = parts.filter(c => c.type === 'text').map(c => c.text);
             const imageParts = parts.filter(c => c.type === 'image');
+            debug('MCP tool result', { tool: `${call.serverId}.${call.toolName}`, textParts: textParts.length, imageParts: imageParts.length, partTypes: parts.map(p => p.type), resultKeys: Object.keys(result.result || {}) });
             let content = textParts.join('\n') || JSON.stringify(result.result);
-            // Embed images as markdown with base64 data URLs
+            // Stream images directly to client; do NOT embed base64 in AI context (wastes tokens)
             for (const img of imageParts) {
               const mimeType = img.mimeType || 'image/png';
               const data = img.data; // base64
               if (data) {
-                content += `\n\n![Generated Image](data:${mimeType};base64,${data})\n`;
+                // Send image to client for immediate rendering
+                sendEvent({ toolImage: { mimeType, data, tool: `${call.serverId}.${call.toolName}` } });
+                content += `\n[Image generated successfully (${mimeType}, sent to user)]`;
               }
             }
             toolResults += `\nTool ${call.serverId}.${call.toolName} returned:\n${content}\n`;
@@ -920,8 +1008,12 @@ app.post('/api/chat', async (req, res) => {
           }
         }
 
-        // Feed tool results back as assistant + tool-result messages
-        loopMessages.push({ role: 'assistant', content: responseText });
+        // Feed tool results back as assistant + tool-result messages.
+        // Strip everything after the first TOOL_CALL — models sometimes hallucinate
+        // fake results after the call pattern, which confuses subsequent rounds.
+        const firstToolIdx = responseText.indexOf('TOOL_CALL:');
+        const cleanedResponse = firstToolIdx >= 0 ? responseText.slice(0, firstToolIdx).trim() : responseText;
+        loopMessages.push({ role: 'assistant', content: cleanedResponse || '(called tools)' });
         loopMessages.push({ role: 'user', content: `Tool results:${toolResults}\n\nPlease continue your response using these results.` });
       }
 
@@ -1099,12 +1191,14 @@ app.post('/api/chat', async (req, res) => {
 // ── POST /api/review (structured report card) ────────
 
 app.post('/api/review', async (req, res) => {
-  const { model, code, filename, images } = req.body;
+  const { model: reqModel, code, filename, images } = req.body;
 
-  if (!model || !code) {
-    log('ERROR', 'Review request missing fields', { model: !!model, code: !!code });
+  if (!reqModel || !code) {
+    log('ERROR', 'Review request missing fields', { model: !!reqModel, code: !!code });
     return res.status(400).json({ error: 'Missing model or code' });
   }
+
+  let model = reqModel;
 
   // Validate images array if present
   if (images && !Array.isArray(images)) {
@@ -1122,6 +1216,26 @@ app.post('/api/review', async (req, res) => {
 
   const config = getConfig();
 
+  if (model === 'auto') {
+    try {
+      const estimatedTokens = Math.ceil(code.length / 3.5);
+      const r = await resolveAutoModel({
+        requestedModel: model,
+        mode: 'review',
+        estimatedTokens,
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+      });
+      model = r.resolved;
+      log('INFO', `Auto-model resolved: mode=review → ${model}`);
+    } catch (err) {
+      log('WARN', 'Auto-model resolution failed (review)', { error: err.message });
+      const m = mergeAutoModelMap(config.autoModelMap);
+      model = m.review || m.chat || 'llama3.2';
+    }
+  }
+
   try {
     const result = await reviewCode(config.ollamaUrl, model, code, {
       filename,
@@ -1135,7 +1249,9 @@ app.post('/api/review', async (req, res) => {
     if (result.type === 'report-card') {
       // Structured output succeeded — return JSON
       log('INFO', `Review complete: overall grade ${result.data.overallGrade}`);
-      return res.json(result);
+      const payload = { ...result };
+      if (reqModel === 'auto') payload.resolvedModel = model;
+      return res.json(payload);
     }
 
     // Chat fallback — stream via SSE
@@ -1150,7 +1266,11 @@ app.post('/api/review', async (req, res) => {
     }
 
     // Signal fallback mode to client
-    sendEvent({ fallback: true, reason: result.error });
+    sendEvent({
+      fallback: true,
+      reason: result.error,
+      ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+    });
 
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
@@ -1240,12 +1360,14 @@ app.post('/api/review', async (req, res) => {
 
 // ── POST /api/pentest (OWASP security analysis) ────────
 app.post('/api/pentest', async (req, res) => {
-  const { model, code, filename, images } = req.body;
+  const { model: reqModel, code, filename, images } = req.body;
 
-  if (!model || !code) {
-    log('ERROR', 'Pentest request missing fields', { model: !!model, code: !!code });
+  if (!reqModel || !code) {
+    log('ERROR', 'Pentest request missing fields', { model: !!reqModel, code: !!code });
     return res.status(400).json({ error: 'Missing model or code' });
   }
+
+  let model = reqModel;
 
   // Validate images array if present
   if (images && !Array.isArray(images)) {
@@ -1263,6 +1385,26 @@ app.post('/api/pentest', async (req, res) => {
 
   const config = getConfig();
 
+  if (model === 'auto') {
+    try {
+      const estimatedTokens = Math.ceil(code.length / 3.5);
+      const r = await resolveAutoModel({
+        requestedModel: model,
+        mode: 'pentest',
+        estimatedTokens,
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+      });
+      model = r.resolved;
+      log('INFO', `Auto-model resolved: mode=pentest → ${model}`);
+    } catch (err) {
+      log('WARN', 'Auto-model resolution failed (pentest)', { error: err.message });
+      const m = mergeAutoModelMap(config.autoModelMap);
+      model = m.pentest || m.chat || 'llama3.2';
+    }
+  }
+
   try {
     const result = await pentestCode(config.ollamaUrl, model, code, {
       filename,
@@ -1273,7 +1415,9 @@ app.post('/api/pentest', async (req, res) => {
     if (result.type === 'security-report') {
       // Structured output succeeded — return JSON
       log('INFO', `Pentest complete: overall grade ${result.data.overallGrade}`);
-      return res.json(result);
+      const payload = { ...result };
+      if (reqModel === 'auto') payload.resolvedModel = model;
+      return res.json(payload);
     }
 
     // Chat fallback — stream via SSE
@@ -1288,7 +1432,11 @@ app.post('/api/pentest', async (req, res) => {
     }
 
     // Signal fallback mode to client
-    sendEvent({ fallback: true, reason: result.error });
+    sendEvent({
+      fallback: true,
+      reason: result.error,
+      ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+    });
 
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
@@ -1378,13 +1526,32 @@ app.post('/api/pentest', async (req, res) => {
 
 // ── POST /api/pentest/remediate (generate fixed code from findings) ──
 app.post('/api/pentest/remediate', async (req, res) => {
-  const { model, code, filename, findings } = req.body;
+  const { model: reqModel, code, filename, findings } = req.body;
 
-  if (!model || !code || !findings) {
+  if (!reqModel || !code || !findings) {
     return res.status(400).json({ error: 'Missing model, code, or findings' });
   }
 
   const config = getConfig();
+  let model = reqModel;
+  if (model === 'auto') {
+    try {
+      const estimatedTokens = Math.ceil((code.length + String(findings).length) / 3.5);
+      const r = await resolveAutoModel({
+        requestedModel: model,
+        mode: 'pentest',
+        estimatedTokens,
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+      });
+      model = r.resolved;
+      log('INFO', `Auto-model resolved: mode=pentest (remediate) → ${model}`);
+    } catch (err) {
+      const m = mergeAutoModelMap(config.autoModelMap);
+      model = m.pentest || m.chat || 'llama3.2';
+    }
+  }
   log('INFO', `Remediate request: model=${model} code=${code.length} chars`);
 
   const systemPrompt = `You are a senior security engineer. The user will provide code that was scanned for security vulnerabilities, along with the findings. Your job is to:
@@ -1415,6 +1582,10 @@ Important: Include the COMPLETE file content in each block, not just the changed
 
     function sendEvent(data) {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    if (reqModel === 'auto') {
+      sendEvent({ resolvedModel: model });
     }
 
     const ollamaRes = await chatStream(config.ollamaUrl, model, [
@@ -1508,9 +1679,9 @@ app.post('/api/pentest/folder/preview', async (req, res) => {
 
 // ── POST /api/pentest/folder (scan a folder recursively) ──
 app.post('/api/pentest/folder', async (req, res) => {
-  const { model, folder } = req.body;
+  const { model: reqModel, folder } = req.body;
 
-  if (!model || !folder) {
+  if (!reqModel || !folder) {
     return res.status(400).json({ error: 'Missing model or folder' });
   }
 
@@ -1526,6 +1697,27 @@ app.post('/api/pentest/folder', async (req, res) => {
       return res.status(400).json({ error: 'No scannable text files found in folder' });
     }
 
+    let model = reqModel;
+    if (model === 'auto') {
+      try {
+        const totalChars = files.reduce((s, f) => s + (f.content?.length || 0), 0);
+        const estimatedTokens = Math.ceil(totalChars / 3.5);
+        const r = await resolveAutoModel({
+          requestedModel: model,
+          mode: 'pentest',
+          estimatedTokens,
+          config,
+          ollamaUrl: config.ollamaUrl,
+          ollamaOpts: ollamaAuthOpts(config),
+        });
+        model = r.resolved;
+        log('INFO', `Auto-model resolved: mode=pentest (folder) → ${model}`);
+      } catch (err) {
+        const m = mergeAutoModelMap(config.autoModelMap);
+        model = m.pentest || m.chat || 'llama3.2';
+      }
+    }
+
     log('INFO', `Pentest folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ''}`);
 
     const result = await pentestFolder(config.ollamaUrl, model, files, {
@@ -1534,7 +1726,9 @@ app.post('/api/pentest/folder', async (req, res) => {
 
     if (result.type === 'security-report') {
       log('INFO', `Pentest folder complete: overall grade ${result.data.overallGrade}`);
-      return res.json({ ...result, meta: { fileCount: files.length, totalSize, skipped, folder } });
+      const payload = { ...result, meta: { fileCount: files.length, totalSize, skipped, folder } };
+      if (reqModel === 'auto') payload.resolvedModel = model;
+      return res.json(payload);
     }
 
     // Chat fallback — stream via SSE
@@ -1548,7 +1742,12 @@ app.post('/api/pentest/folder', async (req, res) => {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
     }
 
-    sendEvent({ fallback: true, reason: result.error, meta: { fileCount: files.length, totalSize, skipped } });
+    sendEvent({
+      fallback: true,
+      reason: result.error,
+      meta: { fileCount: files.length, totalSize, skipped },
+      ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+    });
 
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
@@ -1630,12 +1829,31 @@ app.post('/api/validate/scan', async (req, res) => {
 
 // ── POST /api/validate/generate (generate validate.md via AI) ──
 app.post('/api/validate/generate', async (req, res) => {
-  const { model, folder, scanResult } = req.body;
-  if (!model || !folder || !scanResult) {
+  const { model: reqModel, folder, scanResult } = req.body;
+  if (!reqModel || !folder || !scanResult) {
     return res.status(400).json({ error: 'Missing model, folder, or scanResult' });
   }
 
   const config = getConfig();
+  let model = reqModel;
+  if (model === 'auto') {
+    try {
+      const estimatedTokens = Math.ceil(JSON.stringify(scanResult).length / 3.5);
+      const r = await resolveAutoModel({
+        requestedModel: model,
+        mode: 'validate',
+        estimatedTokens,
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+      });
+      model = r.resolved;
+      log('INFO', `Auto-model resolved: mode=validate → ${model}`);
+    } catch (err) {
+      const m = mergeAutoModelMap(config.autoModelMap);
+      model = m.validate || m.chat || 'llama3.2';
+    }
+  }
   log('INFO', `Validate generate: model=${model} folder=${folder}`);
 
   try {
@@ -1646,6 +1864,10 @@ app.post('/api/validate/generate', async (req, res) => {
 
     function sendEvent(data) {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+
+    if (reqModel === 'auto') {
+      sendEvent({ resolvedModel: model });
     }
 
     const ollamaRes = await generateValidateCommand(config.ollamaUrl, model, folder, scanResult, ollamaAuthOpts(config));
@@ -1763,9 +1985,9 @@ app.post('/api/validate/install', requireLocalOrApiKey, (req, res) => {
 // ── POST /api/score (builder mode scoring) ────────────
 
 app.post('/api/score', async (req, res) => {
-  const { model, mode, content, metadata } = req.body;
+  const { model: reqModel, mode, content, metadata } = req.body;
 
-  if (!model || !content || !mode) {
+  if (!reqModel || !content || !mode) {
     return res.status(400).json({ error: 'model, mode, and content are required' });
   }
 
@@ -1774,16 +1996,38 @@ app.post('/api/score', async (req, res) => {
     return res.status(400).json({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
   }
 
+  const config = getConfig();
+  let model = reqModel;
+  if (model === 'auto') {
+    try {
+      const estimatedTokens = Math.ceil(content.length / 3.5);
+      const r = await resolveAutoModel({
+        requestedModel: model,
+        mode,
+        estimatedTokens,
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+      });
+      model = r.resolved;
+      log('INFO', `Auto-model resolved: mode=${mode} (score) → ${model}`);
+    } catch (err) {
+      const m = mergeAutoModelMap(config.autoModelMap);
+      model = m[mode] || m.chat || 'llama3.2';
+    }
+  }
+
   log('INFO', `Score request: model=${model} mode=${mode} content=${content.length} chars`);
 
   try {
-    const config = getConfig();
     const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
     const result = await scoreContent(ollamaUrl, model, mode, content, metadata, ollamaAuthOpts(config));
 
     if (result.type === 'score-card') {
       log('INFO', `Score complete: overall grade ${result.data?.overallGrade || 'N/A'}`);
-      return res.json(result);
+      const payload = { ...result };
+      if (reqModel === 'auto') payload.resolvedModel = model;
+      return res.json(payload);
     }
 
     // Fallback: stream response
@@ -1795,7 +2039,11 @@ app.post('/api/score', async (req, res) => {
       const sendEvent = (data) => {
         if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
       };
-      sendEvent({ fallback: true, reason: result.error });
+      sendEvent({
+        fallback: true,
+        reason: result.error,
+        ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+      });
 
       // Stream the response (result.stream is a fetch Response)
       const ollamaRes = result.stream;
@@ -2065,8 +2313,28 @@ app.post('/api/history', async (req, res) => {
     if (config.memory?.enabled && config.memory?.autoExtract
         && req.body.messages?.length >= 4) {
       const embModel = config.memory.embeddingModel || 'nomic-embed-text';
-      extractAndStore(config.ollamaUrl, req.body.model, embModel, req.body, config)
-        .catch(err => log('WARN', 'Memory extraction failed', { error: err.message }));
+      (async () => {
+        let memModel = req.body.model;
+        if (memModel === 'auto') {
+          try {
+            const msgs = req.body.messages || [];
+            const totalChars = msgs.reduce((s, m) => s + (typeof m.content === 'string' ? m.content.length : 0), 0);
+            const r = await resolveAutoModel({
+              requestedModel: 'auto',
+              mode: req.body.mode || 'chat',
+              estimatedTokens: Math.ceil(totalChars / 3.5),
+              config,
+              ollamaUrl: config.ollamaUrl,
+              ollamaOpts: ollamaAuthOpts(config),
+            });
+            memModel = r.resolved;
+          } catch {
+            const m = mergeAutoModelMap(config.autoModelMap);
+            memModel = m[req.body.mode || 'chat'] || m.chat || 'llama3.2';
+          }
+        }
+        await extractAndStore(config.ollamaUrl, memModel, embModel, req.body, config);
+      })().catch(err => log('WARN', 'Memory extraction failed', { error: err.message }));
     }
   } catch (err) {
     const status = err.message.includes('Invalid conversation id') ? 400 : 500;
@@ -2080,8 +2348,10 @@ app.delete('/api/history/:id', (req, res) => {
     debug('Conversation deleted', { id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
-    const status = err.message.includes('Invalid conversation id') ? 400 : 500;
-    res.status(status).json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
+    let status = 500;
+    if (err.message.includes('Invalid conversation id')) status = 400;
+    else if (err.message === 'Conversation not found') status = 404;
+    res.status(status).json({ error: status === 404 ? 'Not found' : status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
   }
 });
 
@@ -2480,7 +2750,23 @@ app.post('/api/tutorial-suggestions', async (req, res) => {
   }
   const config = getConfig();
   const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-  const selectedModel = model || config.selectedModel || 'llama3.2';
+  let selectedModel = model || config.selectedModel || 'llama3.2';
+  if (selectedModel === 'auto') {
+    try {
+      const r = await resolveAutoModel({
+        requestedModel: 'auto',
+        mode: mode || 'create',
+        estimatedTokens: Math.ceil(((name || '').length + (description || '').length + 400) / 3.5),
+        config,
+        ollamaUrl: config.ollamaUrl,
+        ollamaOpts: ollamaAuthOpts(config),
+      });
+      selectedModel = r.resolved;
+    } catch {
+      const m = mergeAutoModelMap(config.autoModelMap);
+      selectedModel = m[mode || 'create'] || m.chat || 'llama3.2';
+    }
+  }
 
   const prompt = `You are helping fill out a project wizard. The user has already entered:
 
@@ -2635,12 +2921,14 @@ app.post('/api/build/projects/:id/next-action', async (req, res) => {
   if (!project) return;
   try {
     const config = getConfig();
-    const model = req.body.model || config.selectedModel;
     const bridge = new GsdBridge(project.path);
     const state = bridge.getState();
     const progress = bridge.getProgress();
 
     const stateStr = JSON.stringify(state).slice(0, 2000);
+    let model = req.body.model || config.selectedModel;
+    if (!model) model = 'llama3.2';
+    model = await resolveIfAutoModel(model, 'build', Math.ceil(stateStr.length / 3.5), config);
     const messages = [
       {
         role: 'system',
@@ -2680,7 +2968,6 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
 
   try {
     const config = getConfig();
-    const model = req.body.model || config.selectedModel;
     const phaseNumber = req.body.phaseNumber;
     if (!phaseNumber) {
       sendEvent({ error: 'phaseNumber is required' });
@@ -2693,6 +2980,14 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
 
     const stateStr = JSON.stringify(state).slice(0, 3000);
     const roadmapStr = JSON.stringify(roadmap.phases || roadmap).slice(0, 3000);
+    let model = req.body.model || config.selectedModel;
+    if (!model) model = 'llama3.2';
+    model = await resolveIfAutoModel(
+      model,
+      'build',
+      Math.ceil((stateStr.length + roadmapStr.length) / 3.5),
+      config
+    );
 
     const messages = [
       {
@@ -2742,7 +3037,6 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
 
   try {
     const config = getConfig();
-    const model = req.body.model || config.selectedModel;
     const phaseNumber = req.body.phaseNumber;
     const researchContext = req.body.researchContext || '';
     if (!phaseNumber) {
@@ -2754,6 +3048,14 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
     const state = bridge.getState();
 
     const stateStr = JSON.stringify(state).slice(0, 3000);
+    let model = req.body.model || config.selectedModel;
+    if (!model) model = 'llama3.2';
+    model = await resolveIfAutoModel(
+      model,
+      'build',
+      Math.ceil((stateStr.length + researchContext.length) / 3.5),
+      config
+    );
 
     const messages = [
       {
@@ -3201,7 +3503,7 @@ app.post('/api/git/review', async (req, res) => {
   if (!repoPath) return;
   try {
     const config = getConfig();
-    const model = req.body?.model || config.selectedModel;
+    let model = req.body?.model || config.selectedModel;
     if (!model) {
       return res.status(400).json({ error: 'No model selected', review: '' });
     }
@@ -3213,6 +3515,23 @@ app.post('/api/git/review', async (req, res) => {
     const maxLen = 120000;
     const truncated = diff.length > maxLen;
     const diffBody = truncated ? `${diff.slice(0, maxLen)}\n\n[…truncated…]` : diff;
+    if (model === 'auto') {
+      try {
+        const r = await resolveAutoModel({
+          requestedModel: 'auto',
+          mode: 'chat',
+          estimatedTokens: Math.ceil(diffBody.length / 3.5),
+          config,
+          ollamaUrl: config.ollamaUrl,
+          ollamaOpts: ollamaAuthOpts(config),
+        });
+        model = r.resolved;
+        log('INFO', `Auto-model resolved: git review → ${model}`);
+      } catch {
+        const m = mergeAutoModelMap(config.autoModelMap);
+        model = m.chat || 'llama3.2';
+      }
+    }
     const messages = [
       {
         role: 'system',

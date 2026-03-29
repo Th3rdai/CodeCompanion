@@ -14,7 +14,7 @@
 - ⭐ **Recommended — traditional macOS experience**
 
 **Option 2: ZIP Archive (Portable)**
-- **File:** `code-companion-<version>-arm64-mac.zip` (portable; size varies)
+- **File:** `code-companion-<version>-arm64.zip` (portable; size varies)
 - **Installation:** Extract and run from anywhere
 - No installation required, self-contained
 

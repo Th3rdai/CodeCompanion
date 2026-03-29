@@ -7,6 +7,7 @@ import { resetOnboarding } from './OnboardingWizard';
 import { resetPrivacyBanner } from './PrivacyBanner';
 import { Download, Upload, Settings, ExternalLink } from 'lucide-react';
 import { OFFICIAL_RELEASES_LATEST_URL } from '../lib/release-urls';
+import { AUTO_MODEL_MODE_ROWS } from '../lib/auto-model-modes';
 
 /** Friendly copy for updater failures — avoid jargon; full technical text is often huge. */
 function formatSoftwareUpdateError(raw) {
@@ -74,6 +75,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     compressionQuality: 0.9,
   });
   const [models, setModels] = useState([]);
+  const [autoModelMap, setAutoModelMap] = useState({});
+  const [autoModelMapDefaults, setAutoModelMapDefaults] = useState({});
+  const [showAutoModelMap, setShowAutoModelMap] = useState(false);
 
   // Docling (document conversion) state
   const [doclingUrl, setDoclingUrl] = useState('http://127.0.0.1:5002');
@@ -150,6 +154,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
           setTerminalEnabled(data.agentTerminal.enabled ?? false);
           setTerminalAllowlist((data.agentTerminal.allowlist || []).join(', '));
           setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
+        }
+        if (data.autoModelMap && typeof data.autoModelMap === 'object') setAutoModelMap(data.autoModelMap);
+        if (data.autoModelMapDefaults && typeof data.autoModelMapDefaults === 'object') {
+          setAutoModelMapDefaults(data.autoModelMapDefaults);
         }
         setBrandLoaded(true);
       }).catch(() => setBrandLoaded(true));
@@ -974,6 +982,90 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Auto model map (when toolbar uses &quot;Auto&quot;) */}
+            <div className="glass rounded-lg p-4">
+              <button
+                type="button"
+                onClick={() => setShowAutoModelMap(!showAutoModelMap)}
+                className="w-full flex items-center justify-between text-left"
+                aria-expanded={showAutoModelMap}
+              >
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Auto model map</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Per-mode defaults when you select <strong className="text-slate-400">Auto (best per mode)</strong> in the toolbar
+                  </p>
+                </div>
+                <span className="text-slate-500 text-sm">{showAutoModelMap ? '▼' : '▶'}</span>
+              </button>
+              {showAutoModelMap && (
+                <div className="mt-4 space-y-3 border-t border-slate-600/40 pt-4">
+                  <p className="text-xs text-slate-400">
+                    Large requests may prefer cloud models; small ones may prefer local — the server also checks your Ollama model list.
+                  </p>
+                  <div className="overflow-x-auto max-h-[min(60vh,480px)] overflow-y-auto pr-1">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="text-slate-500 border-b border-slate-600/50">
+                          <th className="py-2 pr-3 font-medium">Mode</th>
+                          <th className="py-2 font-medium">Model</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {AUTO_MODEL_MODE_ROWS.map((row) => (
+                          <tr key={row.id} className="border-b border-slate-700/40">
+                            <td className="py-2 pr-3 text-slate-300 whitespace-nowrap">{row.label}</td>
+                            <td className="py-2">
+                              <select
+                                value={autoModelMap[row.id] ?? autoModelMapDefaults[row.id] ?? ''}
+                                onChange={async (e) => {
+                                  const v = e.target.value;
+                                  const next = { ...autoModelMap, [row.id]: v };
+                                  setAutoModelMap(next);
+                                  try {
+                                    await apiFetch('/api/config', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ autoModelMap: next }),
+                                    });
+                                  } catch {}
+                                }}
+                                className="w-full max-w-[min(100%,280px)] bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-slate-200"
+                              >
+                                {models.length === 0 && <option value="">Load models…</option>}
+                                {models.map((m) => (
+                                  <option key={m.name} value={m.name}>
+                                    {m.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const next = { ...autoModelMapDefaults };
+                      setAutoModelMap(next);
+                      try {
+                        await apiFetch('/api/config', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ autoModelMap: next }),
+                        });
+                      } catch {}
+                    }}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/50 transition-colors"
+                  >
+                    Reset to defaults
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Image Support (Beta) */}

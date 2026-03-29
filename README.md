@@ -37,7 +37,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **Jargon glossary** — searchable plain-English definitions for technical terms
 - **Privacy banner** — "Your code never leaves your computer" messaging
 - **3D visual effects** — splash screen, particle fields, floating geometry, holographic token counter
-- **Model persistence** — selected model remembered across page refreshes
+- **Model persistence** — selected model remembered across page refreshes (including **Auto (best per mode)**, which picks a concrete model per mode via **`lib/auto-model.js`** and Settings → **Auto model map**)
 - **Quick rebuild** — `rebuild.sh` script for fast frontend rebuild and server restart
 - **Conversation history** — auto-saved, searchable, with archive and per-conversation export
 - **Chat export** — toolbar **Export**: 11 formats (Markdown, HTML, JSON, PDF, Word, Excel, CSV, PowerPoint, OpenDocument, plain text, etc.), full chat or last reply only, multi-file or ZIP; server-side generation via `/api/generate-office`

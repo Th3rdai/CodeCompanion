@@ -44,6 +44,7 @@ import ImagePrivacyWarning from './components/ImagePrivacyWarning';
 import DictateButton from './components/DictateButton';
 import ExportPanel from './components/ExportPanel';
 import { joinAppend } from './lib/dictationAppend';
+import { MAX_CHAT_POST_BYTES, estimateChatPostBodyBytes } from './lib/chat-payload';
 import { validateImage, processImage, hashImage } from './lib/image-processor';
 import { isConvertibleDocument, convertDocument, validateDocument, formatAsAttachment, getDocumentAcceptString } from './lib/document-processor';
 import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
@@ -219,6 +220,9 @@ export default function App() {
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
   const [memoryDropdownOpen, setMemoryDropdownOpen] = useState(false);
 
+  /** Cached from GET /api/config — used for image attach (drop/paste/file) without fetching every time */
+  const [imageSupportConfig, setImageSupportConfig] = useState({});
+
   // Agent terminal output state
   const [terminalOutput, setTerminalOutput] = useState(null); // {command, output, exitCode, status}
 
@@ -226,7 +230,13 @@ export default function App() {
   const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
   const selectedModelInfo = models.find(m => m.name === selectedModel);
   const isVisionModel = selectedModelInfo?.supportsVision || false;
-  const showVisionWarning = hasImages && !isVisionModel;
+  const showVisionWarning = hasImages && !isVisionModel && selectedModel !== 'auto';
+
+  /** Last model name returned from server when using Auto (SSE meta). */
+  const [autoResolvedLabel, setAutoResolvedLabel] = useState(null);
+  useEffect(() => {
+    if (selectedModel !== 'auto') setAutoResolvedLabel(null);
+  }, [mode, selectedModel]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
 
@@ -282,6 +292,7 @@ export default function App() {
       setOllamaUrl(data.ollamaUrl || '');
       setProjectFolder(data.projectFolder || '');
       setIcmTemplatePath(data.icmTemplatePath || '');
+      setImageSupportConfig(data.imageSupport && typeof data.imageSupport === 'object' ? data.imageSupport : {});
     } catch {}
   }
 
@@ -294,8 +305,11 @@ export default function App() {
         setModels(data.models); setConnected(true); setOllamaUrl(data.ollamaUrl || '');
         if (data.models.length > 0 && !selectedModel) {
           const saved = localStorage.getItem('cc-selected-model');
-          const match = saved && data.models.find(m => m.name === saved);
-          setSelectedModel(match ? match.name : data.models[0].name);
+          if (saved === 'auto') setSelectedModel('auto');
+          else {
+            const match = saved && data.models.find(m => m.name === saved);
+            setSelectedModel(match ? match.name : data.models[0].name);
+          }
         }
       } else {
         setConnected(false);
@@ -329,6 +343,9 @@ export default function App() {
       if (data.projectFolder !== undefined) setProjectFolder(data.projectFolder);
       else if (newFolder !== undefined) setProjectFolder(newFolder);
       if (newIcmTemplatePath !== undefined) setIcmTemplatePath(newIcmTemplatePath);
+      if (data.imageSupport && typeof data.imageSupport === 'object') {
+        setImageSupportConfig(data.imageSupport);
+      }
       await fetchModels();
       if (newFolder && String(newFolder).trim()) setShowFileBrowser(true);
     } catch {}
@@ -383,7 +400,23 @@ export default function App() {
   }
 
   async function deleteConversation(id) {
-    try { await apiFetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } fetchHistory(); showToast('Conversation deleted'); } catch {}
+    if (!id) return;
+    try {
+      const res = await apiFetch(`/api/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        showToast(`❌ Could not delete: ${j.error || res.statusText || res.status}`);
+        return;
+      }
+      if (activeConvId === id) {
+        setMessages([]);
+        setActiveConvId(null);
+      }
+      fetchHistory();
+      showToast('Conversation deleted');
+    } catch (e) {
+      showToast(`❌ Could not delete: ${e.message}`);
+    }
   }
   async function renameConversation(id, newTitle) {
     try { const res = await apiFetch(`/api/history/${id}`); const conv = await res.json(); conv.title = newTitle; await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); fetchHistory(); showToast('Renamed'); } catch {}
@@ -409,11 +442,34 @@ export default function App() {
   }
 
   async function bulkDeleteConversations(ids) {
+    let ok = 0;
+    let failed = 0;
     for (const id of ids) {
-      try { await apiFetch(`/api/history/${id}`, { method: 'DELETE' }); if (activeConvId === id) { setMessages([]); setActiveConvId(null); } } catch {}
+      if (!id) {
+        failed++;
+        continue;
+      }
+      try {
+        const res = await apiFetch(`/api/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (res.ok) {
+          ok++;
+          if (activeConvId === id) {
+            setMessages([]);
+            setActiveConvId(null);
+          }
+        } else {
+          failed++;
+        }
+      } catch {
+        failed++;
+      }
     }
     fetchHistory();
-    showToast(`Deleted ${ids.length} conversation${ids.length !== 1 ? 's' : ''}`);
+    if (failed === 0) {
+      showToast(`Deleted ${ok} conversation${ok !== 1 ? 's' : ''}`);
+    } else {
+      showToast(`Deleted ${ok}, failed ${failed}${ok === 0 ? ' — check network or try again' : ''}`);
+    }
   }
 
   async function bulkExportConversations(ids, format) {
@@ -589,7 +645,27 @@ export default function App() {
       ...(images.length > 0 && { images }) // Add images field if present
     };
     const newMessages = [...messages, userMsg];
+
+    const postBody = {
+      model: selectedModel,
+      mode,
+      messages: newMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        ...(m.images && { images: m.images }),
+      })),
+      ...(images.length > 0 && { images }),
+    };
+    const payloadBytes = estimateChatPostBodyBytes(postBody);
+    if (payloadBytes > MAX_CHAT_POST_BYTES) {
+      showToast(
+        `❌ Request too large (${(payloadBytes / 1024 / 1024).toFixed(1)} MB). Use smaller images, fewer images, or shorter text — stay under ~${Math.floor(MAX_CHAT_POST_BYTES / 1024 / 1024)} MB.`
+      );
+      return;
+    }
+
     setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null); setTerminalOutput(null);
+    setAutoResolvedLabel(null);
     setSendBurst(true); setTimeout(() => setSendBurst(false), 100);
 
     // Save user message immediately so it survives a reload
@@ -605,17 +681,25 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: ac.signal,
-        body: JSON.stringify({
-          model: selectedModel,
-          mode,
-          messages: newMessages.map(m => ({
-            role: m.role,
-            content: m.content,
-            ...(m.images && { images: m.images }) // Preserve images in message history
-          })),
-          ...(images.length > 0 && { images }) // Send current images to API
-        }),
+        body: JSON.stringify(postBody),
       });
+      if (!res.ok) {
+        let detail = `${res.status} ${res.statusText || ''}`.trim();
+        try {
+          const text = await res.text();
+          if (text) {
+            try {
+              const j = JSON.parse(text);
+              detail = j.error || j.message || text.slice(0, 400);
+            } catch {
+              detail = text.slice(0, 400);
+            }
+          }
+        } catch {
+          /* keep detail */
+        }
+        throw new Error(detail || 'Request failed');
+      }
       const reader = res.body.getReader(); const decoder = new TextDecoder();
       let buffer = '';
       let lastSaveTime = Date.now();
@@ -627,6 +711,7 @@ export default function App() {
           try {
             const parsed = JSON.parse(payload);
             if (parsed.memoryContext) { setActiveMemories(parsed.memoryContext); }
+            if (parsed.resolvedModel) setAutoResolvedLabel(parsed.resolvedModel);
             if (parsed.token) {
               assistantContent += parsed.token;
               setMessages(prev => {
@@ -663,6 +748,22 @@ export default function App() {
                 });
               }
             }
+            // Render MCP tool result images inline in the assistant message
+            if (parsed.toolImage) {
+              const { mimeType, data, tool } = parsed.toolImage;
+              if (data) {
+                assistantContent += `\n\n![${tool || 'Tool Result'}](data:${mimeType};base64,${data})\n`;
+                setMessages(prev => {
+                  const last = prev[prev.length - 1];
+                  if (last?.role === 'assistant') {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+                    return updated;
+                  }
+                  return [...prev, { role: 'assistant', content: assistantContent }];
+                });
+              }
+            }
           } catch {}
         }
         // Auto-save every 5 seconds during streaming
@@ -685,10 +786,15 @@ export default function App() {
       }
       // Phase 6: Vision-specific error messages
       const hasImages = images && images.length > 0;
+      const detailLower = String(err.message || '').toLowerCase();
       let errorMsg = `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!`;
 
       if (hasImages) {
-        errorMsg = `Vision inference failed. ${selectedModel} may not support images, or Ollama may not be running.`;
+        if (detailLower.includes('413') || detailLower.includes('too large') || detailLower.includes('payload')) {
+          errorMsg = `The request was too large (often base64 images in JSON). Try a smaller image, fewer images, or compress the file.`;
+        } else {
+          errorMsg = `Vision inference failed. ${selectedModel} may not support images, or Ollama may not be running.`;
+        }
       }
 
       setMessages([...newMessages, { role: 'assistant', content: `${errorMsg}\n\nTechnical detail: ${err.message}` }]);
@@ -870,19 +976,17 @@ export default function App() {
 
         // Handle image file
         try {
-          // Get config for validation
-          const configRes = await apiFetch('/api/config');
-          const config = await configRes.json();
+          const imgCfg = imageSupportConfig || {};
 
           // Validate image
-          const validation = await validateImage(file, config.imageSupport || {});
+          const validation = await validateImage(file, imgCfg);
           if (!validation.valid) {
             showToast(`❌ ${file.name}: ${validation.error}`);
             continue;
           }
 
           // Phase 7: Process image via queue (max 3 concurrent)
-          const processed = await queueImageProcessing(file, config.imageSupport || {});
+          const processed = await queueImageProcessing(file, imgCfg);
 
           // Check for duplicates
           const hash = await hashImage(processed.base64);
@@ -977,19 +1081,17 @@ export default function App() {
 
         // Handle image file
         try {
-          // Get config for validation
-          const configRes = await apiFetch('/api/config');
-          const config = await configRes.json();
+          const imgCfg = imageSupportConfig || {};
 
           // Validate image
-          const validation = await validateImage(file, config.imageSupport || {});
+          const validation = await validateImage(file, imgCfg);
           if (!validation.valid) {
             showToast(`❌ ${file.name}: ${validation.error}`);
             continue;
           }
 
           // Phase 7: Process image via queue (max 3 concurrent)
-          const processed = await queueImageProcessing(file, config.imageSupport || {});
+          const processed = await queueImageProcessing(file, imgCfg);
 
           // Check for duplicates
           const hash = await hashImage(processed.base64);
@@ -1076,19 +1178,17 @@ export default function App() {
         }
 
         try {
-          // Get config for validation
-          const configRes = await apiFetch('/api/config');
-          const config = await configRes.json();
+          const imgCfg = imageSupportConfig || {};
 
           // Validate image
-          const validation = await validateImage(file, config.imageSupport || {});
+          const validation = await validateImage(file, imgCfg);
           if (!validation.valid) {
             showToast(`❌ Pasted image: ${validation.error}`);
             continue;
           }
 
           // Phase 7: Process image via queue (max 3 concurrent)
-          const processed = await queueImageProcessing(file, config.imageSupport || {});
+          const processed = await queueImageProcessing(file, imgCfg);
 
           // Check for duplicates
           const hash = await hashImage(processed.base64);
@@ -1439,6 +1539,7 @@ export default function App() {
             <select id="model-select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}
               className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[200px]">
               {models.length === 0 && <option value="">No models found</option>}
+              {models.length > 0 && <option value="auto">Auto (best per mode)</option>}
               {[...models]
                 .sort((a, b) => {
                   // Sort vision models to top when images attached (Phase 4: Image Support)
@@ -1454,6 +1555,11 @@ export default function App() {
                 ))
               }
             </select>
+            {selectedModel === 'auto' && models.length > 0 && (
+              <span className="text-xs text-slate-500 whitespace-nowrap hidden sm:inline" title="Shown after your first message in this mode">
+                {autoResolvedLabel ? `→ ${autoResolvedLabel}` : '→ …'}
+              </span>
+            )}
           </div>
         </header>
 

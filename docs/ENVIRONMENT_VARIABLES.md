@@ -2,6 +2,16 @@
 
 Code Companion reads **environment variables** for the Node server, tests, and tooling. Most day-to-day settings (Ollama URL, project folder, MCP clients) live in **`.cc-config.json`**, not in `.env`.
 
+## `.cc-config.json` (selected keys)
+
+| Key | Purpose |
+|-----|---------|
+| `ollamaUrl` | Ollama API base URL (default `http://localhost:11434`). |
+| `ollamaApiKey` | Optional Bearer token for Ollama Cloud; empty uses **`OLLAMA_API_KEY`** from `.env` when set. |
+| `autoModelMap` | Per-mode preferred model names when the UI sends **`model: "auto"`** (toolbar **Auto (best per mode)**). Merged with built-in defaults from **`lib/auto-model.js`**. |
+| `selectedModel` | Optional default model name for server-side fallbacks (e.g. MCP). |
+| `reviewTimeoutSec` / `chatTimeoutSec` | AI timeouts (see Settings). |
+
 ## Server (`server.js`)
 
 | Variable | Default | Purpose |

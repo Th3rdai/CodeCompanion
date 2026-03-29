@@ -1,4 +1,6 @@
-# Code Companion v1.5.3 - Windows Installation Guide
+# Code Companion — Windows installation guide
+
+> **Filenames** use the npm package name **`code-companion`**, version, and arch (see [`electron-builder.config.js`](../electron-builder.config.js) `artifactName`). Example: `code-companion-1.5.x-x64.exe`. Exact names match [GitHub Releases](https://github.com/th3rdai/CodeCompanion/releases).
 
 ## ✅ Build Complete
 
@@ -7,31 +9,31 @@
 ### Option 1: NSIS Installer (Recommended)
 
 **x64 (Intel/AMD - Most Windows PCs):**
-- **File:** `Code Companion Setup 1.5.3.exe` (≈184 MB)
+- **File:** `code-companion-<version>-x64.exe` (size varies by build; often ~180 MB+)
 - **Installation:** Run the installer, follow prompts
 - ⭐ **Recommended for most users**
 
 **ARM64 (ARM-based Windows):**
-- **File:** `Code Companion Setup 1.5.3.exe` (ARM64 version, ≈184 MB)
+- **File:** `code-companion-<version>-arm64.exe` (size varies by build)
 - **Installation:** Run the installer, follow prompts
 - For Windows on ARM (Surface Pro X, etc.)
 
 ### Option 2: ZIP Archive (Portable)
 
 **x64 (Intel/AMD):**
-- **File:** `Code Companion-1.5.3-win.zip` (≈184 MB)
+- **File:** `code-companion-<version>-x64.zip`
 - Extract and run `Code Companion.exe`
 
 **ARM64 (ARM-based Windows):**
-- **File:** `Code Companion-1.5.3-arm64-win.zip` (≈184 MB)
+- **File:** `code-companion-<version>-arm64.zip`
 - Extract and run `Code Companion.exe`
 
 ---
 
 ## 🚀 Installation Steps (NSIS Installer)
 
-1. **Download** the appropriate installer for your CPU architecture
-2. **Double-click** `Code Companion Setup 1.5.3.exe`
+1. **Download** the appropriate `.exe` for your CPU architecture from [Releases](https://github.com/th3rdai/CodeCompanion/releases)
+2. **Double-click** `code-companion-<version>-x64.exe` or `code-companion-<version>-arm64.exe`
 3. **Choose installation directory** (default: `C:\Users\YourName\AppData\Local\Programs\Code Companion`)
 4. **Select options:**
    - ✅ Create Desktop Shortcut (recommended)
@@ -80,13 +82,14 @@ Or next to the executable if using the portable ZIP version.
 
 ---
 
-## What's New in v1.5.3
+## What's New in v1.5.14
 
-### Desktop & docs
-- **Software Updates** — After an update is found, use **Download update** (then **Restart** when ready). **Check for updates** only queries the release server.
-- Versioned installer filenames follow **`package.json`** (e.g. `1.5.3`).
+### Desktop & release
+- **CI + release checks** — Workflow verifies **`latest-*.yml`** artifacts and that **`GITHUB_REPOSITORY`** matches the app’s publish target before upload.
+- **Software Updates** — Plain-language status; **Open download page** always available; external links open in the system browser.
+- **Electron** — **View → Go to app home** (Ctrl+Shift+H) if navigation gets stuck; stricter in-window vs external URL handling.
 
-### Also in recent releases (v1.5.2 and earlier)
+### Also in recent releases (v1.5.3 and earlier)
 
 #### 🔒 Security & release alignment
 - **CSP nonces** for production HTML; **generic** server error messages to clients; **CI** dependency audit (`npm audit` critical gate).
@@ -218,12 +221,12 @@ Another app is using the default port.
 
 ## 📋 Build Information
 
-- **Version:** 1.5.3 (see `package.json` for the exact release you installed)
-- **Build Date:** 2026-03-20
+- **Version:** See `package.json` on the tag you installed (current development line: **1.5.14**)
+- **Build Date:** 2026-03-27 (for v1.5.14 tag)
 - **Architectures:** x64, ARM64
-- **Electron:** 41.0.3
-- **Node.js:** 22.x
-- **Installer:** NSIS (Nullsoft Scriptable Install System)
+- **Electron:** 41.0.2
+- **Node.js:** Bundled with Electron (no separate install for end users)
+- **Installer:** NSIS (Nullsoft Scriptable Install System); portable builds are **ZIP** archives
 
 ---
 
@@ -257,7 +260,7 @@ Default per-user install (NSIS) places the app under **Local Programs** (not `Pr
 - **Code Signing:** Not signed (requires expensive certificate)
 - **SmartScreen:** Normal warning for unsigned apps - safe to bypass
 - **Portable:** Data stays with the app (easy to move)
-- **Updates:** Manual updates (download new installer)
+- **Updates:** In-app **Software Updates** when the GitHub Release includes updater metadata (`latest.yml`, etc.); otherwise download the latest **`code-companion-…`** assets from [Releases](https://github.com/th3rdai/CodeCompanion/releases)
 - **Firewall:** May need manual firewall allow on first run
 
 ---
