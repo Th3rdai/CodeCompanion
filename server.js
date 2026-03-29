@@ -43,6 +43,42 @@ async function resolveIfAutoModel(model, mode, estimatedTokens, config) {
   }
 }
 const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles, isConvertibleDocument } = require('./lib/file-browser');
+
+/** Avoid re-walking the project tree on every chat (large repos were blocking the event loop). */
+const PROJECT_PROMPT_CACHE_TTL_MS = 60_000;
+let _projectPromptCache = { folder: '', at: 0, prompt: '' };
+
+function getCachedProjectPrompt(projectFolder) {
+  if (!projectFolder || !fs.existsSync(projectFolder)) return '';
+  const now = Date.now();
+  if (
+    _projectPromptCache.folder === projectFolder &&
+    now - _projectPromptCache.at < PROJECT_PROMPT_CACHE_TTL_MS
+  ) {
+    return _projectPromptCache.prompt;
+  }
+  try {
+    const { tree } = buildFileTree(projectFolder, 3);
+    function flattenTree(nodes, prefix = '') {
+      const lines = [];
+      for (const n of nodes || []) {
+        if (n.type === 'file') lines.push(prefix + n.path);
+        else lines.push(...flattenTree(n.children, prefix));
+      }
+      return lines;
+    }
+    const fileList = flattenTree(tree);
+    if (fileList.length === 0) {
+      _projectPromptCache = { folder: projectFolder, at: now, prompt: '' };
+      return '';
+    }
+    const prompt = `\n\n---\nPROJECT FOLDER: ${projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join('\n')}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ''}`;
+    _projectPromptCache = { folder: projectFolder, at: now, prompt };
+    return prompt;
+  } catch {
+    return '';
+  }
+}
 const { scaffoldProject } = require('./lib/icm-scaffolder');
 const { scaffoldBuildProject } = require('./lib/build-scaffolder');
 const GsdBridge = require('./lib/gsd-bridge');
@@ -739,35 +775,58 @@ app.post('/api/chat', async (req, res) => {
 
   const config = getConfig();
 
+  let memoryPrompt = '';
+  let memoryMeta = null;
+
+  const totalCharsEstimate = messages.reduce(
+    (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
+    0
+  );
+  const estimatedTokensPre = Math.ceil(totalCharsEstimate / 3.5);
+  const hasImages = images && images.length > 0;
+  // Check if user uploaded images earlier in this conversation (not MCP-generated ones)
+  const historyHasUserImages = !hasImages && messages.some(m =>
+    m.role === 'user' && Array.isArray(m.images) && m.images.length > 0
+  );
+
+  const embModel = config.memory?.embeddingModel || 'nomic-embed-text';
+  const memoryPromise = config.memory?.enabled
+    ? buildMemoryContext(config.ollamaUrl, embModel, messages, config).catch((err) => {
+        log('WARN', 'Memory retrieval failed, proceeding without', { error: err.message });
+        return { prompt: '', memories: null };
+      })
+    : Promise.resolve({ prompt: '', memories: null });
+
   if (model === 'auto') {
     try {
-      const totalCharsEstimate = messages.reduce(
-        (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
-        0
-      );
-      const estimatedTokens = Math.ceil(totalCharsEstimate / 3.5);
-      const hasImages = images && images.length > 0;
-      // Check if user uploaded images earlier in this conversation (not MCP-generated ones)
-      // MCP-generated images don't need vision models — the AI just called a tool to make them
-      const historyHasUserImages = !hasImages && messages.some(m =>
-        m.role === 'user' && Array.isArray(m.images) && m.images.length > 0
-      );
-      const r = await resolveAutoModel({
-        requestedModel: model,
-        mode,
-        estimatedTokens,
-        config,
-        ollamaUrl: config.ollamaUrl,
-        ollamaOpts: ollamaAuthOpts(config),
-        preferVision: hasImages || historyHasUserImages,
-      });
+      const [r, memCtx] = await Promise.all([
+        resolveAutoModel({
+          requestedModel: model,
+          mode,
+          estimatedTokens: estimatedTokensPre,
+          config,
+          ollamaUrl: config.ollamaUrl,
+          ollamaOpts: ollamaAuthOpts(config),
+          preferVision: hasImages,
+        }),
+        memoryPromise,
+      ]);
       model = r.resolved;
+      memoryPrompt = memCtx.prompt || '';
+      memoryMeta = memCtx.memories;
       log('INFO', `Auto-model resolved: mode=${mode} → ${model}`);
     } catch (err) {
       log('WARN', 'Auto-model resolution failed', { error: err.message });
       const m = mergeAutoModelMap(config.autoModelMap);
       model = m[mode] || m.chat || 'llama3.2';
+      const memCtx = await memoryPromise;
+      memoryPrompt = memCtx.prompt || '';
+      memoryMeta = memCtx.memories;
     }
+  } else {
+    const memCtx = await memoryPromise;
+    memoryPrompt = memCtx.prompt || '';
+    memoryMeta = memCtx.memories;
   }
 
   // Append brand assets context if configured
@@ -776,25 +835,8 @@ app.post('/api/chat', async (req, res) => {
     ? `\n\n---\nBRAND ASSETS: The user has configured these brand/logo/image files. Use them when creating, building, generating reports, or producing diagrams that need branding:\n${brandAssets.map(a => `- ${a.label || 'Asset'}: ${a.path}${a.description ? ' — ' + a.description : ''}`).join('\n')}`
     : '';
 
-  // Inject project folder context so the AI knows what files exist
-  let projectPrompt = '';
-  if (config.projectFolder && fs.existsSync(config.projectFolder)) {
-    try {
-      const { tree } = buildFileTree(config.projectFolder, 3);
-      function flattenTree(nodes, prefix = '') {
-        let lines = [];
-        for (const n of nodes || []) {
-          if (n.type === 'file') lines.push(prefix + n.path);
-          else lines.push(...flattenTree(n.children, prefix));
-        }
-        return lines;
-      }
-      const fileList = flattenTree(tree);
-      if (fileList.length > 0) {
-        projectPrompt = `\n\n---\nPROJECT FOLDER: ${config.projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join('\n')}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ''}`;
-      }
-    } catch {}
-  }
+  // Inject project folder context (cached — large repos were slow on every message)
+  const projectPrompt = getCachedProjectPrompt(config.projectFolder);
 
   // Set client key for intra-request terminal rate limiting
   toolCallHandler.clientKey = req.ip || req.connection?.remoteAddress || 'unknown';
@@ -802,20 +844,6 @@ app.post('/api/chat', async (req, res) => {
   // Append agent tool descriptions (MCP clients + builtin tools)
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
   const hasAgentTools = toolsPrompt.length > 0;
-
-  // ── Memory injection (Phase 3) ──
-  let memoryPrompt = '';
-  let memoryMeta = null;
-  if (config.memory?.enabled) {
-    try {
-      const embModel = config.memory.embeddingModel || 'nomic-embed-text';
-      const ctx = await buildMemoryContext(config.ollamaUrl, embModel, messages, config);
-      memoryPrompt = ctx.prompt;
-      memoryMeta = ctx.memories;
-    } catch (err) {
-      log('WARN', 'Memory retrieval failed, proceeding without', { error: err.message });
-    }
-  }
 
   // Inject vision-specific prompt when images are present
   const visionPrompt = (images && images.length > 0)
@@ -831,11 +859,21 @@ app.post('/api/chat', async (req, res) => {
   // Strip base64 image data from message history — prevents 400 errors on cloud models
   // Images were already rendered client-side; AI doesn't need megabytes of base64 in follow-ups
   const BASE64_IMG_RE = /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
-  const cleanedMessages = messages.map(m => {
+  const currentMsgHasImages = images && images.length > 0;
+  const cleanedMessages = messages.map((m, i) => {
+    const isLastUserMsg = (i === messages.length - 1) && m.role === 'user';
+    let cleaned = m;
+    // Strip base64 markdown images
     if (m.content && typeof m.content === 'string' && BASE64_IMG_RE.test(m.content)) {
-      return { ...m, content: m.content.replace(BASE64_IMG_RE, '![$1](image was displayed to user)') };
+      cleaned = { ...cleaned, content: cleaned.content.replace(BASE64_IMG_RE, '![$1](image was displayed to user)') };
     }
-    return m;
+    // Strip images arrays from historical messages — only keep on current message
+    // so non-vision models don't get 400 errors from Ollama
+    if (Array.isArray(m.images) && m.images.length > 0 && !isLastUserMsg) {
+      const { images: _dropped, ...rest } = cleaned;
+      cleaned = { ...rest, content: (rest.content || '') + '\n[User previously shared an image here]' };
+    }
+    return cleaned;
   });
 
   // If client already sent a system message (e.g. review deep-dive), use it instead of the default
