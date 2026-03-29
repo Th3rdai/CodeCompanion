@@ -316,9 +316,9 @@ $ curl -I -H "Origin: https://evil.com" http://HOST_IP:3000/api/config
 **OWASP:** A05 Security Misconfiguration  
 
 **Disclosed Information:**
-- Full filesystem paths: `/Users/james/AI_Dev/ICM_FW/ICM-Framework-Template`
+- Full filesystem paths: `/path/to/icm-template` (example)
 - Internal service URLs: `http://localhost:11434`, `http://HOST_IP:8051`
-- OS type and developer username: `james` (macOS)
+- OS type and local username (example disclosure)
 - MCP server configurations and client IDs
 - All installed AI model names and versions
 - GitHub account identifiers (`github-3rdaai-admin`, `github-3rdai-bill`)
@@ -379,11 +379,11 @@ Multiple API responses disclose full host filesystem paths, revealing the OS typ
 
 **Disclosed Paths:**
 ```
-/Users/james/AI_Dev/ICM_FW/ICM-Framework-Template
-/Users/james/AI_Dev/tests/codecomp
-/Users/james/AI_Dev/...
+/path/to/icm-template
+/path/to/project
+/path/to/...
 ```
-Reveals: macOS host, username `james`, full project tree structure.
+Reveals: OS host layout, local username, and project directory structure.
 
 **Recommendation:** Strip all absolute filesystem paths from API responses. Use relative paths or abstract project identifiers instead.
 
