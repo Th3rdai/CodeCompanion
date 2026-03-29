@@ -1013,8 +1013,10 @@ app.post('/api/chat', async (req, res) => {
         // fake results after the call pattern, which confuses subsequent rounds.
         const firstToolIdx = responseText.indexOf('TOOL_CALL:');
         const cleanedResponse = firstToolIdx >= 0 ? responseText.slice(0, firstToolIdx).trim() : responseText;
-        loopMessages.push({ role: 'assistant', content: cleanedResponse || '(called tools)' });
-        loopMessages.push({ role: 'user', content: `Tool results:${toolResults}\n\nPlease continue your response using these results.` });
+        if (cleanedResponse) {
+          loopMessages.push({ role: 'assistant', content: cleanedResponse });
+        }
+        loopMessages.push({ role: 'user', content: `Tool results:\n${toolResults}\n\nPresent these results to the user. Do NOT repeat any internal markers or placeholders.` });
       }
 
       // Stream the final text as SSE tokens (word by word for UX)
