@@ -118,7 +118,8 @@ body {
 .prose code { background: #334155; padding: 0.15rem 0.4rem; border-radius: 0.25rem; font-size: 0.85em; }
 .prose pre { background: #0c0f1a; border-radius: 0.5rem; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; border: 1px solid rgba(var(--color-neon-rgb), 0.15); }
 .prose pre code { background: none; padding: 0; font-size: 0.85em; }
-.prose img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.75rem 0; border: 1px solid rgba(var(--color-neon-rgb), 0.15); }
+.prose img { max-width: 100%; min-width: min(1080px, 100%); height: auto; border-radius: 0.5rem; margin: 0.75rem 0; border: 1px solid rgba(var(--color-neon-rgb), 0.15); cursor: pointer; transition: opacity 0.15s; }
+.prose img:hover { opacity: 0.85; }
 
 /* ── Mermaid Diagrams ────────────────── */
 .mermaid-container {

@@ -112,7 +112,8 @@ npm run audit:security  # npm audit — fails on critical advisories (same gate 
 | [SECURITY.md](SECURITY.md) | How to report vulnerabilities; security and privacy design |
 | [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md) | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc. |
 | [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md) | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing |
-| [docs/TESTING.md](docs/TESTING.md) | Unit vs Playwright, folder layout, `BASE_URL` tips |
+| [docs/TESTING.md](docs/TESTING.md) | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | “Failed to fetch”, MCP clients / `.cc-config.json` paths, log files, Ollama errors in logs |
 | [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md) | What `IDE_COMMANDS/` is and pointer to full README there |
 | [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf)) | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater |
 | [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations) |

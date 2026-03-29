@@ -12,16 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Auto model per mode** — Toolbar option **Auto (best per mode)**; server resolves via **`lib/auto-model.js`** + **`autoModelMap`** in **`.cc-config.json`**; Settings → **Auto model map**; SSE **`resolvedModel`** on chat. Applies to review, pentest, score, validate, build APIs, git review, tutorial suggestions, memory extraction.
 - **`scripts/clean-artifacts.sh`** — Removes **`release/`**, **`dist/`**, and Playwright output dirs; optional **`--with-gitnexus`** to drop **`.gitnexus/`** before re-indexing. Documented in **[BUILD.md](BUILD.md)**.
+- **`npm run test:integration`** — Runs **`tests/integration/api-with-images.test.js`** (spawned server; chat/review/pentest/remediate). Documented in **[docs/TESTING.md](docs/TESTING.md)**.
+
+### Changed
+- **Chat latency (server + client)** — **`listModels`** short-TTL cache (**`lib/ollama-client.js`**); parallel **auto-model** + **memory** embedding on **`POST /api/chat`**; cached project file-list snippet for system prompt (**`server.js`**); **`requestAnimationFrame`** batching for streaming tokens (**`src/App.jsx`**).
 
 ### Fixed
+- **Integration tests (`tests/integration/api-with-images.test.js`)** — Bodies aligned with current API (`model`, `messages`, `mode` for chat; **`/api/pentest/remediate`** uses `code` + `findings`); responses parsed as **JSON or SSE** by `Content-Type` (no `res.json()` on event streams).
 - **MCP image generation (Nano Banana)** — Three fixes for tool-call image handling:
   - **Hallucination stripping** — AI models sometimes fabricate fake JSON results after `TOOL_CALL:` patterns; now truncated before feeding back to the message loop (`server.js`).
   - **Base64 context bloat** — Stop embedding full base64 image data (3-7 MB) in AI context for subsequent rounds; images are still streamed to the frontend via SSE `toolImage` events, but the AI only sees `[Image generated successfully]`.
   - **`const` reassignment crash** — `messages` was declared `const` but the base64-stripping `.map()` tried to reassign it; renamed to `cleanedMessages` and wired through `fullMessages` construction.
 - **Tool-call system prompt** — Explicitly instructs models to STOP after `TOOL_CALL:` lines and never fabricate results (`lib/tool-call-handler.js`).
+- **Tool-call placeholder leak** — `(called tools)` fallback text was parroted back by models; now skips empty assistant messages entirely and instructs model to present results without internal markers.
+- **Auto-model vision fallback** — `preferVision` was triggered by **historical** images in conversation, locking all follow-up messages to `llava:7b` (which can't do tool calls). Now only triggers when the **current** message has images.
+- **Historical image arrays causing 400 errors** — Conversations with prior image uploads sent `images` arrays to non-vision cloud models (kimi-k2, minimax), causing Ollama 400 errors. Now strips `images` from older messages and adds `[User previously shared an image here]` placeholder.
 - **Playwright (UI/E2E)** — Avoid **missing `/api/models` after `reload()`** by registering `waitForResponse` before `reload()`, then waiting for `#model-select`. Applied in privacy banner, onboarding wizard, report-card, create-mode, and image-upload specs. **Onboarding:** focus wizard via dialog click (not `focus()`). **Report card tests:** wait for `mode-tab-chat` before `mode-tab-review`. **Privacy:** stable dismiss via `data-testid="privacy-banner-dismiss"` on `PrivacyBanner`.
 
 ### Documentation
+- **`docs/TESTING.md`** — **`npm run test:integration`**, **`tests/integration/`** layout, when to run API integration tests.
 - **`docs/INSTALL-WINDOWS.md`** / **`docs/INSTALL-MAC.md`** — Aligned with **`package.json`** version **1.5.14** and **`artifactName`** release filenames (`code-companion-${version}-${arch}.*`).
 - **`.planning/codebase/TESTING.md`** — New subsection: reload + `/api/models` pattern, report-card tab hydration, onboarding focus, privacy test id.
 - **`.planning/codebase/TESTING-AND-RISKS.md`** — E2E stability cross-reference.

@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Menu, systemPreferences } = 
 const { fork } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+// Repo-root .env — loaded before fork(server) so secrets apply to MCP, Ollama, Docling, etc.
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const net = require('net');
 
 // Create emergency log file for debugging startup issues
@@ -381,6 +383,12 @@ async function startApp() {
     emergencyLog('Resolving data directory...');
     dataDir = resolveDataDirectory();
     emergencyLog(`Data directory: ${dataDir}`);
+
+    const dataEnvPath = path.join(dataDir, '.env');
+    if (fs.existsSync(dataEnvPath)) {
+      require('dotenv').config({ path: dataEnvPath, override: true });
+      emergencyLog(`Loaded data-dir .env (overrides repo .env): ${dataEnvPath}`);
+    }
 
     const appRoot = path.join(__dirname, '..');
     emergencyLog(`App root: ${appRoot}`);

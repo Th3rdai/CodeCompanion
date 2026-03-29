@@ -239,6 +239,7 @@ function splitAtMermaid(html) {
 export default function MarkdownContent({ content, enableJargon = true, streaming = false }) {
   const containerRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
   const dismissedAt = useRef(0);
 
   // Memoize the rendered HTML to avoid re-parsing on every render
@@ -289,6 +290,15 @@ export default function MarkdownContent({ content, enableJargon = true, streamin
     if (e.defaultPrevented || e.button !== 0) return;
     const t = e.target;
     const el = t?.nodeType === Node.TEXT_NODE ? t.parentElement : t;
+
+    // Image click → lightbox preview
+    if (el?.tagName === 'IMG' && el.src) {
+      e.preventDefault();
+      e.stopPropagation();
+      setLightbox({ src: el.src, alt: el.alt || 'Image preview' });
+      return;
+    }
+
     const a = el?.closest?.('a');
     if (!a || !containerRef.current?.contains(a)) return;
     const href = a.getAttribute('href');
@@ -321,6 +331,27 @@ export default function MarkdownContent({ content, enableJargon = true, streamin
           <div dangerouslySetInnerHTML={{ __html: html }} />
         )}
       </div>
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+          onClick={() => setLightbox(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setLightbox(null)}
+          tabIndex={0}
+          role="dialog"
+        >
+          <img
+            src={lightbox.src}
+            alt={lightbox.alt}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl font-bold bg-black/40 rounded-full w-10 h-10 flex items-center justify-center"
+            onClick={() => setLightbox(null)}
+            title="Close"
+          >&times;</button>
+        </div>
+      )}
       {tooltip && (
         <div
           className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in cursor-pointer"

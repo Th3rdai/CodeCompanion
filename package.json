@@ -41,6 +41,7 @@
     "test:ui": "npx playwright test tests/ui --project=chromium",
     "test:e2e": "npx playwright test tests/e2e --project=chromium",
     "test:unit": "node --test tests/unit/*.test.js tests/rate-limit.test.js tests/mcp-security.test.js tests/tone-validation.test.js tests/ui-labels.test.js",
+    "test:integration": "node --test tests/integration/api-with-images.test.js",
     "audit:security": "npm audit --audit-level=critical",
     "mcp": "node mcp-server.js",
     "mcp:test": "node scripts/mcp-stdio-smoke.js",

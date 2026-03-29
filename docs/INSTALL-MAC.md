@@ -224,6 +224,8 @@ open -a "Code Companion" --args --debug
 tail -f ~/Library/Application\ Support/code-companion/logs/app.log
 ```
 
+More log locations (repo vs Electron dev) and connection issues: **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**.
+
 ---
 
 ## 🆘 Need Help?

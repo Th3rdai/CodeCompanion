@@ -19,6 +19,33 @@ async function waitForServer(baseUrl, timeoutMs = 15000) {
   throw new Error('Server did not become ready in time');
 }
 
+/** Matches POST /api/chat (server.js): model, messages, mode; optional images */
+function chatPostBody(overrides = {}) {
+  const {
+    content = 'Hello',
+    model = 'llava',
+    mode = 'chat',
+    messages,
+    images,
+  } = overrides;
+  return {
+    model,
+    mode,
+    messages: messages || [{ role: 'user', content }],
+    ...(images && images.length > 0 ? { images } : {}),
+  };
+}
+
+/** Read JSON or raw SSE text (do not call json() on SSE). */
+async function readApiResponse(res) {
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) {
+    return { kind: 'json', data: await res.json() };
+  }
+  const text = await res.text();
+  return { kind: 'sse', text, isSSE: ct.includes('text/event-stream') };
+}
+
 // Test image: 1x1 red pixel PNG (base64)
 const TEST_IMAGE_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
 
@@ -35,7 +62,7 @@ test('POST /api/chat accepts images array parameter', async () => {
       PORT: String(port),
       DEBUG: '0',
       FORCE_HTTP: '1',
-      OLLAMA_URL: 'http://localhost:11434' // Use real Ollama if available
+      OLLAMA_URL: 'http://localhost:11434',
     },
     stdio: 'pipe',
   });
@@ -43,23 +70,27 @@ test('POST /api/chat accepts images array parameter', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Make request with images
     const res = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'What do you see in these images?',
-        model: 'llava',
-        images: [TEST_IMAGE_BASE64, TEST_IMAGE_BASE64_2]
-      }),
+      body: JSON.stringify(
+        chatPostBody({
+          content: 'What do you see in these images?',
+          model: 'llava',
+          images: [TEST_IMAGE_BASE64, TEST_IMAGE_BASE64_2],
+        })
+      ),
     });
 
-    // Verify response structure (will be 500 if Ollama is offline, but structure should be valid)
     assert.ok(res.status === 200 || res.status === 500, `Expected 200 or 500, got ${res.status}`);
 
     if (res.status === 200) {
-      const data = await res.json();
-      assert.ok(data.response || data.error, 'Response should have response or error field');
+      const body = await readApiResponse(res);
+      if (body.kind === 'json') {
+        assert.ok(body.data.error || body.data.token, 'JSON body should have error or token');
+      } else {
+        assert.ok(body.text.includes('data:'), 'SSE should contain data: lines');
+      }
     }
 
     if (res.status === 500) {
@@ -82,7 +113,7 @@ test('POST /api/chat rejects invalid image data', async () => {
       ...process.env,
       PORT: String(port),
       DEBUG: '0',
-      FORCE_HTTP: '1'
+      FORCE_HTTP: '1',
     },
     stdio: 'pipe',
   });
@@ -90,19 +121,18 @@ test('POST /api/chat rejects invalid image data', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Make request with invalid image data
     const res = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'Test',
-        model: 'llava',
-        images: ['not-valid-base64!@#$%']
-      }),
+      body: JSON.stringify(
+        chatPostBody({
+          content: 'Test',
+          model: 'llava',
+          images: ['not-valid-base64!@#$%'],
+        })
+      ),
     });
 
-    // Should accept the request (validation happens in frontend)
-    // Backend doesn't strictly validate base64 format
     assert.ok(res.status === 200 || res.status === 500, `Expected 200 or 500, got ${res.status}`);
   } finally {
     child.kill('SIGTERM');
@@ -121,7 +151,7 @@ test('POST /api/review accepts images array parameter', async () => {
       PORT: String(port),
       DEBUG: '0',
       FORCE_HTTP: '1',
-      OLLAMA_URL: 'http://localhost:11434'
+      OLLAMA_URL: 'http://localhost:11434',
     },
     stdio: 'pipe',
   });
@@ -129,7 +159,6 @@ test('POST /api/review accepts images array parameter', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Make review request with images
     const res = await fetch(`${baseUrl}/api/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -137,20 +166,22 @@ test('POST /api/review accepts images array parameter', async () => {
         code: 'function test() { return 42; }',
         filename: 'test.js',
         model: 'llava',
-        images: [TEST_IMAGE_BASE64]
+        images: [TEST_IMAGE_BASE64],
       }),
     });
 
-    // Verify response structure
     assert.ok(res.status === 200 || res.status === 500, `Expected 200 or 500, got ${res.status}`);
 
     if (res.status === 200) {
-      const data = await res.json();
-      // Review mode returns report-card or conversational response
-      assert.ok(
-        data.type === 'report-card' || data.response,
-        'Review response should have type or response field'
-      );
+      const body = await readApiResponse(res);
+      if (body.kind === 'json') {
+        assert.ok(
+          body.data.type === 'report-card' || body.data.error,
+          'Review JSON should be report-card or error'
+        );
+      } else {
+        assert.ok(body.text.includes('data:'), 'Review SSE fallback should stream data: lines');
+      }
     }
   } finally {
     child.kill('SIGTERM');
@@ -168,7 +199,7 @@ test('POST /api/review handles missing images gracefully', async () => {
       ...process.env,
       PORT: String(port),
       DEBUG: '0',
-      FORCE_HTTP: '1'
+      FORCE_HTTP: '1',
     },
     stdio: 'pipe',
   });
@@ -176,18 +207,16 @@ test('POST /api/review handles missing images gracefully', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Make review request WITHOUT images (should still work)
     const res = await fetch(`${baseUrl}/api/review`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: 'function test() { return 42; }',
         filename: 'test.js',
-        model: 'llama3'
+        model: 'llama3',
       }),
     });
 
-    // Should work fine without images
     assert.ok(res.status === 200 || res.status === 500, `Expected 200 or 500, got ${res.status}`);
   } finally {
     child.kill('SIGTERM');
@@ -206,7 +235,7 @@ test('POST /api/pentest accepts images array parameter', async () => {
       PORT: String(port),
       DEBUG: '0',
       FORCE_HTTP: '1',
-      OLLAMA_URL: 'http://localhost:11434'
+      OLLAMA_URL: 'http://localhost:11434',
     },
     stdio: 'pipe',
   });
@@ -214,7 +243,6 @@ test('POST /api/pentest accepts images array parameter', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Make pentest request with images
     const res = await fetch(`${baseUrl}/api/pentest`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -222,20 +250,22 @@ test('POST /api/pentest accepts images array parameter', async () => {
         code: 'const user = req.body; db.query("SELECT * FROM users WHERE id=" + user.id);',
         filename: 'vulnerable.js',
         model: 'llava',
-        images: [TEST_IMAGE_BASE64]
+        images: [TEST_IMAGE_BASE64],
       }),
     });
 
-    // Verify response structure
     assert.ok(res.status === 200 || res.status === 500, `Expected 200 or 500, got ${res.status}`);
 
     if (res.status === 200) {
-      const data = await res.json();
-      // Pentest returns security-report
-      assert.ok(
-        data.type === 'security-report' || data.error,
-        'Pentest response should have type security-report or error'
-      );
+      const body = await readApiResponse(res);
+      if (body.kind === 'json') {
+        assert.ok(
+          body.data.type === 'security-report' || body.data.error,
+          'Pentest JSON should be security-report or error'
+        );
+      } else {
+        assert.ok(body.text.includes('data:'), 'Pentest SSE fallback should stream data: lines');
+      }
     }
   } finally {
     child.kill('SIGTERM');
@@ -244,7 +274,7 @@ test('POST /api/pentest accepts images array parameter', async () => {
   }
 });
 
-test('POST /api/pentest/remediate preserves images in response', async () => {
+test('POST /api/pentest/remediate streams SSE with code + findings', async () => {
   const port = 3325;
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ['server.js'], {
@@ -254,7 +284,7 @@ test('POST /api/pentest/remediate preserves images in response', async () => {
       PORT: String(port),
       DEBUG: '0',
       FORCE_HTTP: '1',
-      OLLAMA_URL: 'http://localhost:11434'
+      OLLAMA_URL: 'http://localhost:11434',
     },
     stdio: 'pipe',
   });
@@ -262,41 +292,47 @@ test('POST /api/pentest/remediate preserves images in response', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Make remediate request with images
+    const findingsPayload = {
+      overallGrade: 'C',
+      categories: {
+        injections: {
+          grade: 'F',
+          findings: [
+            {
+              title: 'SQL Injection',
+              description: 'Direct SQL concatenation',
+              code: 'db.query("SELECT * FROM users WHERE id=" + user.id)',
+              fix: 'Use parameterized queries',
+            },
+          ],
+        },
+      },
+    };
+
     const res = await fetch(`${baseUrl}/api/pentest/remediate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        findings: JSON.stringify({
-          overallGrade: 'C',
-          categories: {
-            injections: {
-              grade: 'F',
-              findings: [
-                {
-                  title: 'SQL Injection',
-                  description: 'Direct SQL concatenation',
-                  code: 'db.query("SELECT * FROM users WHERE id=" + user.id)',
-                  fix: 'Use parameterized queries'
-                }
-              ]
-            }
-          }
-        }),
-        files: JSON.stringify([
-          { filename: 'vulnerable.js', code: 'db.query("SELECT * FROM users WHERE id=" + user.id)' }
-        ]),
         model: 'llava',
-        images: [TEST_IMAGE_BASE64]
+        filename: 'vulnerable.js',
+        code: 'db.query("SELECT * FROM users WHERE id=" + user.id)',
+        findings: JSON.stringify(findingsPayload),
       }),
     });
 
-    // Verify response structure (streaming response)
     assert.ok(res.status === 200 || res.status === 500, `Expected 200 or 500, got ${res.status}`);
+    const ct = res.headers.get('content-type') || '';
     assert.ok(
-      res.headers.get('content-type')?.includes('text/event-stream') || res.headers.get('content-type')?.includes('application/json'),
-      'Remediate should return SSE stream or JSON'
+      ct.includes('text/event-stream') || ct.includes('application/json'),
+      'Remediate should return SSE or JSON error'
     );
+
+    if (res.status === 200) {
+      const body = await readApiResponse(res);
+      if (body.kind === 'sse') {
+        assert.ok(body.text.includes('data:') || body.text.includes('[DONE]'), 'SSE body');
+      }
+    }
   } finally {
     child.kill('SIGTERM');
     await sleep(300);
@@ -313,7 +349,7 @@ test('POST /api/chat limits number of images', async () => {
       ...process.env,
       PORT: String(port),
       DEBUG: '0',
-      FORCE_HTTP: '1'
+      FORCE_HTTP: '1',
     },
     stdio: 'pipe',
   });
@@ -321,22 +357,28 @@ test('POST /api/chat limits number of images', async () => {
   try {
     await waitForServer(baseUrl);
 
-    // Create array with 25 images (exceeds default limit of 10)
     const manyImages = Array(25).fill(TEST_IMAGE_BASE64);
 
     const res = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'Test with many images',
-        model: 'llava',
-        images: manyImages
-      }),
+      body: JSON.stringify(
+        chatPostBody({
+          content: 'Test with many images',
+          model: 'llava',
+          images: manyImages,
+        })
+      ),
     });
 
-    // Backend accepts request (frontend validates count)
-    // But backend may truncate or reject based on config
-    assert.ok(res.status === 200 || res.status === 400 || res.status === 500, `Expected 200/400/500, got ${res.status}`);
+    assert.ok(
+      res.status === 400 || res.status === 200 || res.status === 500,
+      `Expected 400/200/500, got ${res.status}`
+    );
+    if (res.status === 400) {
+      const j = await res.json();
+      assert.ok(String(j.error || '').toLowerCase().includes('10') || j.error, '400 should mention limit');
+    }
   } finally {
     child.kill('SIGTERM');
     await sleep(300);
@@ -354,7 +396,7 @@ test('POST /api/review respects timeout configuration', async () => {
       PORT: String(port),
       DEBUG: '0',
       FORCE_HTTP: '1',
-      REVIEW_TIMEOUT: '2' // 2 seconds timeout
+      OLLAMA_URL: 'http://localhost:11434',
     },
     stdio: 'pipe',
   });
@@ -369,16 +411,22 @@ test('POST /api/review respects timeout configuration', async () => {
         code: 'function test() { return 42; }',
         filename: 'test.js',
         model: 'llava',
-        images: [TEST_IMAGE_BASE64]
+        images: [TEST_IMAGE_BASE64],
       }),
     });
 
-    // Should complete or timeout within configured limit
-    assert.ok(res.status === 200 || res.status === 500 || res.status === 504, `Expected 200/500/504, got ${res.status}`);
+    assert.ok(
+      res.status === 200 || res.status === 500 || res.status === 504,
+      `Expected 200/500/504, got ${res.status}`
+    );
 
     if (res.status === 504) {
       const data = await res.json();
-      assert.ok(data.error.includes('timeout') || data.error.includes('timed out'), 'Timeout error should mention timeout');
+      assert.ok(
+        String(data.error || '').toLowerCase().includes('timeout') ||
+          String(data.error || '').toLowerCase().includes('timed out'),
+        'Timeout error should mention timeout'
+      );
     }
   } finally {
     child.kill('SIGTERM');

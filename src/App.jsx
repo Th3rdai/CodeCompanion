@@ -192,6 +192,8 @@ export default function App() {
   const builderAttachRef = useRef(null);
   /** AbortController for POST /api/chat — Stop button */
   const chatAbortRef = useRef(null);
+  /** Batches streaming tokens to one React update per animation frame (reduces main-thread jank). */
+  const chatTokenRafRef = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
   const [savedPentest, setSavedPentest] = useState(null);
   const [savedBuilderData, setSavedBuilderData] = useState(null);
@@ -676,6 +678,21 @@ export default function App() {
     chatAbortRef.current = ac;
 
     let assistantContent = '';
+    const flushChatAssistantUi = () => {
+      if (chatTokenRafRef.current) {
+        cancelAnimationFrame(chatTokenRafRef.current);
+        chatTokenRafRef.current = null;
+      }
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant') {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+          return updated;
+        }
+        return [...prev, { role: 'assistant', content: assistantContent }];
+      });
+    };
     try {
       const res = await apiFetch('/api/chat', {
         method: 'POST',
@@ -714,28 +731,30 @@ export default function App() {
             if (parsed.resolvedModel) setAutoResolvedLabel(parsed.resolvedModel);
             if (parsed.token) {
               assistantContent += parsed.token;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === 'assistant') {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
-                  return updated;
-                }
-                return [...prev, { role: 'assistant', content: assistantContent }];
-              });
+              if (!chatTokenRafRef.current) {
+                chatTokenRafRef.current = requestAnimationFrame(() => {
+                  chatTokenRafRef.current = null;
+                  setMessages((prev) => {
+                    const last = prev[prev.length - 1];
+                    if (last?.role === 'assistant') {
+                      const updated = [...prev];
+                      updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+                      return updated;
+                    }
+                    return [...prev, { role: 'assistant', content: assistantContent }];
+                  });
+                });
+              }
             }
-            if (parsed.done) { const dur = Number(parsed.total_duration); setStats({ tokens: parsed.eval_count, duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null }); setTerminalOutput(null); }
+            if (parsed.done) {
+              flushChatAssistantUi();
+              const dur = Number(parsed.total_duration);
+              setStats({ tokens: parsed.eval_count, duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null });
+              setTerminalOutput(null);
+            }
             if (parsed.error) {
               assistantContent += `\n\nError: ${parsed.error}`;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === 'assistant') {
-                  const updated = [...prev];
-                  updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
-                  return updated;
-                }
-                return [...prev, { role: 'assistant', content: assistantContent }];
-              });
+              flushChatAssistantUi();
             }
             if (parsed.toolCallRound !== undefined) {
               // Show tool execution progress in terminal output indicator
@@ -753,15 +772,7 @@ export default function App() {
               const { mimeType, data, tool } = parsed.toolImage;
               if (data) {
                 assistantContent += `\n\n![${tool || 'Tool Result'}](data:${mimeType};base64,${data})\n`;
-                setMessages(prev => {
-                  const last = prev[prev.length - 1];
-                  if (last?.role === 'assistant') {
-                    const updated = [...prev];
-                    updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
-                    return updated;
-                  }
-                  return [...prev, { role: 'assistant', content: assistantContent }];
-                });
+                flushChatAssistantUi();
               }
             }
           } catch {}
@@ -772,10 +783,14 @@ export default function App() {
           saveConversation([...newMessages, { role: 'assistant', content: assistantContent }], mode);
         }
       }
-      const finalMessages = [...newMessages, { role: 'assistant', content: assistantContent }];
-      setMessages(finalMessages); saveConversation(finalMessages, mode);
+      flushChatAssistantUi();
+      saveConversation([...newMessages, { role: 'assistant', content: assistantContent }], mode);
     } catch (err) {
       if (err.name === 'AbortError') {
+        if (chatTokenRafRef.current) {
+          cancelAnimationFrame(chatTokenRafRef.current);
+          chatTokenRafRef.current = null;
+        }
         setTerminalOutput(null);
         if (assistantContent.trim()) {
           const stoppedMessages = [...newMessages, { role: 'assistant', content: assistantContent.trimEnd() }];
@@ -784,12 +799,24 @@ export default function App() {
         }
         return;
       }
-      // Phase 6: Vision-specific error messages
+      // "Failed to fetch" / TypeError = browser never got a response from *this* app (wrong URL, server down, SSL blocked).
+      // That is different from Ollama being offline (server usually returns JSON with an error body).
       const hasImages = images && images.length > 0;
       const detailLower = String(err.message || '').toLowerCase();
+      const msg = String(err.message || '');
+      const isAppUnreachable =
+        msg === 'Failed to fetch' ||
+        msg === 'Load failed' ||
+        (err.name === 'TypeError' && /fetch|network|load failed/i.test(msg));
+
       let errorMsg = `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!`;
 
-      if (hasImages) {
+      if (isAppUnreachable) {
+        errorMsg =
+          `The browser could not connect to the Code Companion server (the request never reached the app). ` +
+          `Start or restart the server, use the same URL you used to open this page (try http://127.0.0.1 with your port), ` +
+          `and if you see a certificate warning for HTTPS, accept it once so requests are allowed.`;
+      } else if (hasImages) {
         if (detailLower.includes('413') || detailLower.includes('too large') || detailLower.includes('payload')) {
           errorMsg = `The request was too large (often base64 images in JSON). Try a smaller image, fewer images, or compress the file.`;
         } else {

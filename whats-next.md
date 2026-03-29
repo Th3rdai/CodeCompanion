@@ -65,12 +65,17 @@ ALL tasks 1-9 are complete and committed. Key commits:
 - `src/lib/auto-model-modes.js` — mode labels for Settings (keep aligned with `lib/auto-model.js`).  
 - Tests: `tests/unit/auto-model.test.js`. Docs: **CLAUDE.md**, **docs/ENVIRONMENT_VARIABLES.md**, **CHANGELOG [Unreleased]**.
 
-**Task 11 — MCP image generation fixes (2026-03-28)**
+**Task 11 — MCP image generation + tool-call fixes (2026-03-28/29)**
 - `server.js` — Strip hallucinated content after `TOOL_CALL:` before feeding back to message loop; replace base64 image embedding in AI context with `[Image generated successfully]` placeholder (images still stream to frontend via SSE `toolImage`); fix `const` reassignment crash on `messages` variable (renamed to `cleanedMessages`).
+- `server.js` — Remove `(called tools)` placeholder that models parroted back; skip empty assistant messages.
+- `server.js` — Fix `preferVision` triggered by historical images (locked follow-ups to llava:7b); strip `images` arrays from older messages so cloud models don't get 400 errors.
 - `lib/tool-call-handler.js` — Updated system prompt: explicit instruction to STOP after TOOL_CALL lines, never fabricate results.
 - Diagnosed Nano Banana `gemini-2.5-flash-image` Gemini API quota (429 RESOURCE_EXHAUSTED) as external issue.
 
-**Test Status:** 136+ unit tests (includes auto-model); E2E as before; build clean.
+**Test Status:** 136+ unit tests; **`npm run test:integration`** (spawned server, chat/review/pentest/remediate + images); E2E as before; build clean.
+
+**Docs (2026-03-29):** **docs/TESTING.md** — `test:integration` + `tests/integration/`; **CHANGELOG [Unreleased]** — chat latency + integration test fix; **.planning/STATE.md** updated.
+**Commits (2026-03-28/29):** `b78c0fe` (auto-model + MCP image fixes), `6092e83` (placeholder leak), `afd4da8` (vision fallback + historical images).
 **Releases:** v1.5.3 through v1.5.14 pushed during prior sessions; next release should include Tasks 10-11 + doc updates.
 
 </work_completed>

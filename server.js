@@ -109,7 +109,7 @@ const { reviewCode } = require('./lib/review');
 const { pentestCode, pentestFolder } = require('./lib/pentest');
 const { scanProjectForValidation, generateValidateCommand } = require('./lib/validate');
 const { scoreContent } = require('./lib/builder-score');
-const { checkConnection: checkDocling, convertDocument: convertDoc } = require('./lib/docling-client');
+const { checkConnection: checkDocling, convertDocument: convertDoc, effectiveDoclingApiKey } = require('./lib/docling-client');
 const { canConvertBuiltin, convertBuiltin } = require('./lib/builtin-doc-converter');
 const { startDocling, stopDocling } = require('./lib/docling-starter');
 
@@ -164,9 +164,12 @@ function sanitizeConfigForClient(config) {
     safe.mcpServers = clonedServers;
   }
 
-  // Mask docling API key
+  // Mask docling API key (includes DOCLING_API_KEY from .env)
   if (safe.docling) {
-    safe.docling = { ...safe.docling, apiKey: safe.docling.apiKey ? '••••••••' : '' };
+    safe.docling = {
+      ...safe.docling,
+      apiKey: effectiveDoclingApiKey(config) ? '••••••••' : '',
+    };
   }
 
   if (safe.ollamaApiKey) {
@@ -584,7 +587,7 @@ app.get('/api/models', async (req, res) => {
 app.get('/api/docling/health', async (req, res) => {
   const config = getConfig();
   const url = config.docling?.url || 'http://127.0.0.1:5002';
-  const apiKey = config.docling?.apiKey || '';
+  const apiKey = effectiveDoclingApiKey(config);
 
   try {
     const result = await checkDocling(url, apiKey);
@@ -647,7 +650,7 @@ app.post('/api/convert-document',
     if (config.docling?.enabled) {
       try {
         const result = await convertDoc(
-          config.docling.url, config.docling.apiKey, buffer, filename,
+          config.docling.url, effectiveDoclingApiKey(config), buffer, filename,
           {
             outputFormat: config.docling.outputFormat || 'md',
             ocr: config.docling.ocr !== false,
@@ -865,7 +868,7 @@ app.post('/api/chat', async (req, res) => {
     let cleaned = m;
     // Strip base64 markdown images
     if (m.content && typeof m.content === 'string' && BASE64_IMG_RE.test(m.content)) {
-      cleaned = { ...cleaned, content: cleaned.content.replace(BASE64_IMG_RE, '![$1](image was displayed to user)') };
+      cleaned = { ...cleaned, content: cleaned.content.replace(BASE64_IMG_RE, '[earlier image was shown to user]') };
     }
     // Strip images arrays from historical messages — only keep on current message
     // so non-vision models don't get 400 errors from Ollama
@@ -1037,7 +1040,7 @@ app.post('/api/chat', async (req, res) => {
               if (data) {
                 // Send image to client for immediate rendering
                 sendEvent({ toolImage: { mimeType, data, tool: `${call.serverId}.${call.toolName}` } });
-                content += `\n[Image generated successfully (${mimeType}, sent to user)]`;
+                content += `\n[IMAGE_DELIVERED: image was rendered in the chat for the user. Describe what was generated. If the user asks for changes, call generate_image again with a revised prompt.]`;
               }
             }
             toolResults += `\nTool ${call.serverId}.${call.toolName} returned:\n${content}\n`;
@@ -1054,7 +1057,7 @@ app.post('/api/chat', async (req, res) => {
         if (cleanedResponse) {
           loopMessages.push({ role: 'assistant', content: cleanedResponse });
         }
-        loopMessages.push({ role: 'user', content: `Tool results:\n${toolResults}\n\nPresent these results to the user. Do NOT repeat any internal markers or placeholders.` });
+        loopMessages.push({ role: 'user', content: `Tool results:\n${toolResults}\n\nPresent these results to the user. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.` });
       }
 
       // Stream the final text as SSE tokens (word by word for UX)

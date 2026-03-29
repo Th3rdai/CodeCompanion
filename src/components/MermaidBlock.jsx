@@ -109,24 +109,38 @@ function exportSvg(svgHtml) {
   downloadBlob(blob, 'diagram.svg');
 }
 
-function exportPng(svgHtml) {
+function exportPng(svgHtml, { onError } = {}) {
   const svgBlob = new Blob([svgHtml], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(svgBlob);
   const img = new window.Image();
+  const fail = (reason) => {
+    URL.revokeObjectURL(url);
+    onError?.(reason);
+  };
   img.onload = () => {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (!w || !h) {
+      fail('Diagram has no size — try SVG export instead.');
+      return;
+    }
     const canvas = document.createElement('canvas');
     const scale = 2;
-    canvas.width = img.naturalWidth * scale;
-    canvas.height = img.naturalHeight * scale;
+    canvas.width = w * scale;
+    canvas.height = h * scale;
     const ctx = canvas.getContext('2d');
     ctx.scale(scale, scale);
     ctx.drawImage(img, 0, 0);
     canvas.toBlob(blob => {
-      if (blob) downloadBlob(blob, 'diagram.png');
       URL.revokeObjectURL(url);
+      if (blob) {
+        downloadBlob(blob, 'diagram.png');
+      } else {
+        fail('Could not create PNG (browser blocked canvas export — try SVG).');
+      }
     }, 'image/png');
   };
-  img.onerror = () => URL.revokeObjectURL(url);
+  img.onerror = () => fail('Could not load diagram for PNG export.');
   img.src = url;
 }
 
@@ -176,8 +190,20 @@ export default function MermaidBlock({ code }) {
   const [copied, setCopied] = useState(false);
   const [showSource, setShowSource] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [exportError, setExportError] = useState(null);
   const containerRef = useRef(null);
   const diagramRef = useRef(null);
+
+  const handleExportPng = useCallback(() => {
+    if (!svg) return;
+    setExportError(null);
+    exportPng(svg, {
+      onError: msg => {
+        setExportError(msg);
+        window.setTimeout(() => setExportError(null), 6000);
+      },
+    });
+  }, [svg]);
 
   // Sanitize mermaid source to remove style directives that cause parse errors
   const cleanCode = sanitizeMermaid(code);
@@ -284,9 +310,19 @@ export default function MermaidBlock({ code }) {
           <ToolbarButton onClick={() => setShowSource(!showSource)} icon={Code2} label="Source" active={showSource} />
           <ToolbarButton onClick={handleCopySource} icon={copied ? Check : Copy} label={copied ? 'Copied' : 'Copy'} active={copied} />
           <ToolbarButton onClick={() => svg && exportSvg(svg)} icon={Download} label="SVG" />
-          <ToolbarButton onClick={() => svg && exportPng(svg)} icon={Image} label="PNG" />
+          <ToolbarButton onClick={handleExportPng} icon={Image} label="PNG" disabled={!svg} />
         </div>
       </div>
+
+      {exportError && (
+        <div className="mb-2 px-1 text-[11px] text-amber-300/90 flex items-center gap-1" role="status">
+          <AlertTriangle size={12} className="shrink-0" />
+          <span>{exportError}</span>
+          <button type="button" className="ml-1 underline text-slate-400 hover:text-slate-200" onClick={() => setExportError(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Diagram */}
       <div

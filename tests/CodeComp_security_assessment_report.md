@@ -99,16 +99,16 @@ The `/api/config` endpoint returns the full application configuration as plainte
   "mcpClients": [
     {
       "id": "github-3rdaai-admin",
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "github_pat_11B4IT67I0eDRvX5obcuHE_...[FULL TOKEN EXPOSED]" }
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "<redacted>" }
     },
     {
       "id": "github-3rdai-bill",
-      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "github_pat_11B4IT67I02A59GUhmxbII_...[FULL TOKEN EXPOSED]" }
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "<redacted>" }
     }
   ],
   "ollamaUrl": "http://localhost:11434",
-  "icmTemplatePath": "/Users/james/AI_Dev/ICM_FW/ICM-Framework-Template",
-  "projectFolder": "/Users/james/AI_Dev/tests/codecomp"
+  "icmTemplatePath": "/path/to/icm-template",
+  "projectFolder": "/path/to/project"
 }
 ```
 
@@ -173,7 +173,7 @@ Endpoints that trigger IDE tools and code execution environments on the host OS 
 ```bash
 $ curl -X POST http://HOST_IP:3000/api/launch-claude-code \
   -H "Content-Type: application/json" -d "{}"
-{"success":true,"folder":"/Users/james/AI_Dev/tests/codecomp"}
+{"success":true,"folder":"/path/to/project"}
 ```
 
 **Attack Chain:**

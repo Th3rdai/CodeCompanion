@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-28T22:00:00.000Z"
-last_activity: 2026-03-28 — **Auto model per mode** shipped (`lib/auto-model.js`, Settings **Auto model map**, `whats-next.md` + **CLAUDE.md** + **docs/ENVIRONMENT_VARIABLES.md**); prior: **Docs + QA** (TESTING.md, Playwright patterns); **CHANGELOG**; **Archon** Playwright task. **Next:** pre-release checklist in `whats-next.md` (version bump, signed build, Drive, remotes).
+last_updated: "2026-03-29T12:00:00.000Z"
+last_activity: 2026-03-29 — **MCP image generation fixes** (hallucination stripping, base64 context bloat, const crash, placeholder leak, vision fallback, historical image arrays); **auto-model per mode**; **chat latency** optimizations; **integration tests** fixed. 3 commits pushed (`b78c0fe`, `6092e83`, `afd4da8`). **Next:** pre-release checklist.
 progress:
   total_phases: 24
   completed_phases: 15
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit and security).
-Last activity: 2026-03-28 — **Auto model** (toolbar + `autoModelMap` + server resolution); documentation + **whats-next** task list updated. Prior: Playwright stability docs + CHANGELOG. Next: **whats-next** pre-release checklist; optional CLIPLAN Phase 4 (confirm-before-run), streaming terminal SSE (§4.7).
+All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit, **`npm run test:integration`** for API+images).
+Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucination stripping, base64 bloat, const crash, placeholder leak, vision fallback locked to llava:7b, historical image arrays causing 400s); **auto-model per mode** (`lib/auto-model.js`); **chat latency** optimizations; **integration tests** aligned with current API. 3 commits: `b78c0fe`, `6092e83`, `afd4da8`. Next: pre-release checklist; optional CLIPLAN Phase 4.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

@@ -1,16 +1,30 @@
 # Environment variables
 
-Code Companion reads **environment variables** for the Node server, tests, and tooling. Most day-to-day settings (Ollama URL, project folder, MCP clients) live in **`.cc-config.json`**, not in `.env`.
+Code Companion reads **environment variables** for the Node server, tests, and tooling. Most day-to-day settings (Ollama URL, project folder, MCP client definitions) live in **`.cc-config.json`**. **Secrets** should live in **`.env`**: when a variable is set in both places, **`.env` wins** for Ollama (`OLLAMA_API_KEY`), Docling (`DOCLING_API_KEY`), GitHub (`GITHUB_TOKEN` / `GH_TOKEN`), and MCP stdio child env (e.g. `GEMINI_API_KEY` overlapping a client’s `env` block).
+
+**Electron** loads **repo-root** `.env` first, then **`${CC_DATA_DIR}/.env`** if present (**`override: true`**). On macOS packaged builds, **`CC_DATA_DIR`** is **`~/Library/Application Support/code-companion`**, so you can keep **`GEMINI_API_KEY`**, **`STITCH_API_KEY`**, **`GITHUB_TOKEN`**, etc. only in **`~/Library/Application Support/code-companion/.env`**. Dev mode often uses **`./CodeCompanion-Data/.env`** the same way.
+
+**Two stdio MCP servers** that both need `GITHUB_PERSONAL_ACCESS_TOKEN` with **different** values: use **`MCP_{clientId}__SECRETNAME`** where **`clientId`** is the MCP client **`id`** with non-alphanumeric characters replaced by **`_`** (e.g. `github-3rdaai-admin` → **`MCP_github_3rdaai_admin__GITHUB_PERSONAL_ACCESS_TOKEN`**). See **`lib/mcp-client-manager.js`** (`buildStdioMcpEnv`).
 
 ## `.cc-config.json` (selected keys)
 
 | Key | Purpose |
 |-----|---------|
 | `ollamaUrl` | Ollama API base URL (default `http://localhost:11434`). |
-| `ollamaApiKey` | Optional Bearer token for Ollama Cloud; empty uses **`OLLAMA_API_KEY`** from `.env` when set. |
+| `ollamaApiKey` | Optional Bearer token for Ollama Cloud. **`OLLAMA_API_KEY` in `.env` overrides** this when set. |
 | `autoModelMap` | Per-mode preferred model names when the UI sends **`model: "auto"`** (toolbar **Auto (best per mode)**). Merged with built-in defaults from **`lib/auto-model.js`**. |
 | `selectedModel` | Optional default model name for server-side fallbacks (e.g. MCP). |
 | `reviewTimeoutSec` / `chatTimeoutSec` | AI timeouts (see Settings). |
+| `mcpClients` | Array of external MCP server definitions (Settings → **MCP Clients**). Persisted by the server; see **`docs/TROUBLESHOOTING.md`** if the list is empty (Electron **`CC_DATA_DIR`** vs repo root). |
+
+### Where `.cc-config.json` is loaded from
+
+The server uses **`path.join(dataRoot, '.cc-config.json')`** with **`dataRoot = process.env.CC_DATA_DIR || __dirname`**. So:
+
+- **CLI from the repo:** config is **`./.cc-config.json`** next to **`server.js`**.
+- **Electron:** **`CC_DATA_DIR`** points at the app data directory (e.g. **`CodeCompanion-Data/`** in dev); that copy is the one the running server reads.
+
+For empty MCP clients or “wrong” settings in Electron dev, see **`docs/TROUBLESHOOTING.md`**.
 
 ## Server (`server.js`)
 
@@ -26,7 +40,11 @@ Code Companion reads **environment variables** for the Node server, tests, and t
 | `FORCE_HTTP` | unset | Set to `1` to **disable HTTPS** even if `cert/server.crt` and `cert/server.key` exist (e.g. Playwright, rate-limit tests). |
 | `DEBUG` | unset | Set to `1` or `true` for verbose server logging. |
 | `CC_DATA_DIR` | app directory | Data root for config, history, logs (Electron sets this). |
-| `OLLAMA_API_KEY` | unset | **Ollama Cloud** — Bearer token for `https://ollama.com` (or any Ollama endpoint that requires auth). Used when **`ollamaApiKey`** in **`.cc-config.json`** is empty; otherwise **Settings → General** / config file takes precedence. On startup, **`server.js`** loads **`.env`** from the app/repo root (via **dotenv**), so you can set this key there without exporting it in the shell (do not commit secrets). |
+| `OLLAMA_API_KEY` | unset | **Ollama Cloud** — Bearer token for `https://ollama.com` (or any Ollama endpoint that requires auth). **Takes precedence over** **`ollamaApiKey`** in **`.cc-config.json`** when set. **`server.js`** and **`electron/main.js`** load **`.env`** from the app/repo root (via **dotenv**) before the server runs (do not commit secrets). |
+| `DOCLING_API_KEY` | unset | **Docling-serve** — optional `X-Api-Key` header. **Takes precedence over** **`docling.apiKey`** in **`.cc-config.json`** when set. |
+| `GITHUB_TOKEN` / `GH_TOKEN` | unset | **GitHub API / clone** when legacy **`githubToken`** in config is empty. |
+| `GITHUB_TOKEN_0`, `GITHUB_TOKEN_1`, … | unset | **Multi-account PATs** — when **`githubTokens[n].token`** in config is empty, the server uses **`GITHUB_TOKEN_n`** (same order as the array). |
+| `MCP_{id}__…` | unset | **Per–stdio-MCP secrets** — e.g. **`MCP_github_3rdaai_admin__GITHUB_PERSONAL_ACCESS_TOKEN`** so two GitHub MCP clients can use different PATs (see intro above). |
 
 **Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, and **`POST /mcp`** (HTTP MCP). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
 
@@ -56,7 +74,7 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 
 | Variable | Purpose |
 |----------|---------|
-| `BASE_URL` | Base URL for tests (default **`http://127.0.0.1:4173`**, matches `webServer` + `FORCE_HTTP=1`). Set to `https://127.0.0.1:4173` only when the test server is actually serving HTTPS. |
+| `BASE_URL` | Base URL for tests (default **`http://127.0.0.1:4173`**, matches `webServer` + `FORCE_HTTP=1`). If **`server.js`** serves **HTTPS** (certs present, **`FORCE_HTTP` unset**), set **`BASE_URL=https://127.0.0.1:PORT`** and use **`PW_REUSE_SERVER=1`** to attach to an already-running server. Playwright enables **`ignoreHTTPSErrors`** when **`BASE_URL`** starts with **`https://`**. |
 
 ## Electron packager (`electron-builder.config.js`)
 
@@ -98,3 +116,7 @@ These are **repository secrets**, not shell env files. When **`MAC_CERTS`** + **
 
 - **`.cc-config.json`** (or path under `CC_DATA_DIR`): Ollama URL, optional **`ollamaApiKey`** (Ollama Cloud), project folder, review timeouts, MCP client definitions, GitHub token (stored on disk — protect file permissions).
 - **`.env`** in the repo root is optional and **not required** for normal runs; use it only if you inject secrets locally without committing them. Prefer UI **Settings** or editing `.cc-config.json` for persistent app configuration.
+
+## See also
+
+- **`docs/TROUBLESHOOTING.md`** — “Failed to fetch”, MCP clients vs config path, log file locations, Ollama **`fetch failed`** in **`logs/app.log`**.
