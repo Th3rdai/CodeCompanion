@@ -697,6 +697,19 @@ ipcMain.handle("open-external-url", async (event, url) => {
   }
 });
 
+/** Quit the app (triggers `before-quit` for server/docling cleanup). */
+ipcMain.handle("quit-app", () => {
+  app.quit();
+  return { success: true };
+});
+
+/** Relaunch the same executable after graceful shutdown. */
+ipcMain.handle("restart-app", () => {
+  app.relaunch();
+  app.quit();
+  return { success: true };
+});
+
 ipcMain.handle("export-data", async () => {
   try {
     const zipPath = await exportData(dataDir);

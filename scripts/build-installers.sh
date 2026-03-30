@@ -3,6 +3,9 @@
 # Run from project root: ./scripts/build-installers.sh
 # Output: release/ (see BUILD.md for artifact names).
 #
+# This is LOCAL ONLY (--publish never). Public releases and updater feeds must come from
+# GitHub Actions (.github/workflows/build.yml) via tag push — not from this script.
+#
 # Distribution signing (optional, slower than unsigned local builds):
 #   macOS: export MAC_DISTRIBUTION_SIGN=1 and MAC_CODESIGN_IDENTITY
 #   Windows: export WIN_DISTRIBUTION_SIGN=1 and WIN_CSC_LINK (or CSC_LINK) + WIN_CSC_KEY_PASSWORD / CSC_KEY_PASSWORD

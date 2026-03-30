@@ -5,7 +5,14 @@ import McpClientPanel from "./McpClientPanel";
 import { use3DEffects, THEME_PRESETS } from "../contexts/Effects3DContext";
 import { resetOnboarding } from "./OnboardingWizard";
 import { resetPrivacyBanner } from "./PrivacyBanner";
-import { Download, Upload, Settings, ExternalLink } from "lucide-react";
+import {
+  Download,
+  Upload,
+  Settings,
+  ExternalLink,
+  Power,
+  RefreshCw,
+} from "lucide-react";
 import { OFFICIAL_RELEASES_LATEST_URL } from "../lib/release-urls";
 import { AUTO_MODEL_MODE_ROWS } from "../lib/auto-model-modes";
 
@@ -1787,6 +1794,57 @@ export default function SettingsPanel({
                         </code>
                       </p>
                     )}
+                  </div>
+                </div>
+
+                {/* Quit / Restart — desktop only */}
+                <div
+                  className="glass rounded-lg p-4"
+                  role="region"
+                  aria-label="Quit or restart app"
+                >
+                  <p className="text-sm font-medium text-slate-200 mb-1">
+                    Quit &amp; restart
+                  </p>
+                  <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                    Close the app completely, or restart it if something feels
+                    stuck or after changing system settings.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          typeof window !== "undefined" &&
+                          window.confirm(
+                            "Quit Code Companion? The local server will stop until you open the app again.",
+                          )
+                        ) {
+                          window.electronAPI?.quitApp?.();
+                        }
+                      }}
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg glass text-slate-300 hover:text-rose-300 hover:bg-rose-500/10 transition-colors border border-slate-600 text-sm"
+                    >
+                      <Power className="w-4 h-4 shrink-0" aria-hidden />
+                      Quit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          typeof window !== "undefined" &&
+                          window.confirm(
+                            "Restart Code Companion? The app will close and open again.",
+                          )
+                        ) {
+                          window.electronAPI?.restartApp?.();
+                        }
+                      }}
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-600 text-sm"
+                    >
+                      <RefreshCw className="w-4 h-4 shrink-0" aria-hidden />
+                      Restart
+                    </button>
                   </div>
                 </div>
 

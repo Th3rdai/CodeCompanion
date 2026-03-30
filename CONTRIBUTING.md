@@ -23,7 +23,9 @@ Thanks for your interest in contributing! Code Companion is an open-source proje
 
 ## Desktop (Electron)
 
-Installer builds use **electron-builder** (`npm run electron:build`, per-platform scripts in `package.json`). **Release signing:** **`electron:*:release`** scripts set distribution flags — **macOS** (`MAC_CODESIGN_IDENTITY`), **Windows** (`WIN_CSC_LINK` / `CSC_LINK` or `CSC_NAME`), **Linux** optional GPG (`LINUX_GPG_KEY_ID` with `LINUX_GPG_SIGN`) — see **[BUILD.md](BUILD.md)** and **[docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)**. Release process for GitHub + in-app updates: **[docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md)**.
+**Shipping installers** (what users download and what drives in-app updates) is done by **[GitHub Actions](.github/workflows/build.yml)** when you push a **`v*`** tag that matches **`package.json`** — see **[docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md)**. Do **not** use local `electron:publish:*` for routine releases unless CI is broken (emergency path in that doc).
+
+Local **electron-builder** (`npm run electron:build`, per-platform scripts) is for **development and packaging smoke tests** only. **Release signing:** **`electron:*:release`** scripts set distribution flags — **macOS** (`MAC_CODESIGN_IDENTITY`), **Windows** (`WIN_CSC_LINK` / `CSC_LINK` or `CSC_NAME`), **Linux** optional GPG (`LINUX_GPG_KEY_ID` with `LINUX_GPG_SIGN`) — see **[BUILD.md](BUILD.md)** and **[docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)**.
 
 ## Testing
 

@@ -33,6 +33,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   /** Open https URLs in the system browser (installers page, docs). */
   openExternalUrl: (url) => ipcRenderer.invoke("open-external-url", url),
 
+  /** Close the app (Settings UI). */
+  quitApp: () => ipcRenderer.invoke("quit-app"),
+
+  /** Restart the app process (Settings UI). */
+  restartApp: () => ipcRenderer.invoke("restart-app"),
+
   // Auto-update
   checkForUpdates: () => ipcRenderer.invoke("check-for-updates"),
   getUpdateState: () => ipcRenderer.invoke("get-update-state"),

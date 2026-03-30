@@ -5,9 +5,17 @@
 - Node.js 18+
 - npm
 
-## Quick Build
+## Shipping desktop releases (maintainers)
 
-Builds are **local only** (no GitHub publish) unless you pass `--publish` explicitly.
+**Public installers and in-app auto-updates are built and published by [GitHub Actions](.github/workflows/build.yml)** when you push a version tag (`v*`) that matches `package.json`. That is the **default and required path** for releases users download from GitHub and for `latest-*.yml` feeds.
+
+Do **not** rely on one-off local `electron:publish:*` runs for normal releases unless CI is broken and you are following [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) **emergency publish** steps.
+
+---
+
+## Quick Build (local — development and smoke tests)
+
+Local `electron:build*` commands produce **`release/`** artifacts with **`--publish never`**. Use them to **verify packaging** on your machine before tagging, or for **internal testing**. They do **not** replace CI for shipping.
 
 ```bash
 # Install dependencies
@@ -16,7 +24,7 @@ npm install
 # Build for current platform (output in release/)
 npm run electron:build
 
-# Build all platforms (macOS + Windows + Linux) in one go
+# Build all platforms (macOS + Windows + Linux) in one go — still local only; not the release pipeline
 ./scripts/build-installers.sh
 ```
 
@@ -137,37 +145,25 @@ A manual copy of installers may live under **Google Drive → My Drive → `_TH3
 
 ### Publishing releases (so in-app **Software Updates** works)
 
-**Maintainer guide:** [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) — versioning, CI vs manual publish, checklists, and prerelease behavior.
+**Maintainer guide:** [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) — versioning, CI vs emergency publish, checklists, and prerelease behavior.
 
 `electron-updater` loads **`latest-mac.yml`** (and DMG/ZIP URLs) from **GitHub Releases** for `publish.owner` / `publish.repo` in `electron-builder.config.js` (`th3rdai` / `CodeCompanion`). If a release **tag** exists but those files were **never uploaded**, users see **404** on `latest-mac.yml` when using **Check for updates** / **Download update** in Settings.
 
-**Fix (maintainers):**
+**Primary path (maintainers): CI — tag push**
 
-1. Build mac artifacts: `npm run electron:build:mac` — produces `release/latest-mac.yml`, DMG, ZIP, blockmaps (ad-hoc signing; fast). For **Developer ID** builds: `MAC_CODESIGN_IDENTITY="Developer ID Application: …" npm run electron:build:mac:release` — see [macOS code signing](#macos-code-signing-local-vs-distribution) below.
-2. **Publish** to GitHub, e.g. with a token:  
-   `npm run electron:publish:mac` (ad-hoc) or `MAC_CODESIGN_IDENTITY="…" npm run electron:publish:mac:release` (distribution).  
-   Or: `npx electron-builder --mac --config electron-builder.config.js --publish always`  
-   Or manually attach **`release/latest-mac.yml`**, **`*.dmg`**, **`*-mac.zip`**, and blockmaps to the matching **GitHub release** for that version.
-3. **`allowPrerelease`** is `true` in `electron/updater.js` — the updater may follow a **prerelease** (e.g. `v1.0.0-beta.1`). If that tag has **no** mac updater assets, mac updates fail until the release is fixed or a **newer** release with full assets is published.
+1. Bump and commit **`package.json`** `version`.
+2. Push to the **publish repo** remote, then: **`git tag vX.Y.Z`** and **`git push <publish-remote> vX.Y.Z`** (see [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) for `th3rdai/CodeCompanion`).
+3. [`.github/workflows/build.yml`](.github/workflows/build.yml) builds **macOS, Windows, and Linux** and uploads **one** GitHub Release with all **`latest-*.yml`** files and binaries. **Workflow dispatch** without a tag only produces **workflow artifacts** — it does **not** create a user-facing release.
+
+**Emergency path only:** local `electron:publish:*` or manual asset upload — documented in [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) **Alternative: publish from one machine**. Use when CI is unavailable or for a targeted hotfix; still upload complete updater metadata per platform.
+
+**If a release is incomplete:** Build mac artifacts locally for debugging: `npm run electron:build:mac` — produces `release/latest-mac.yml`, DMG, ZIP, blockmaps. For **Developer ID** local builds: `MAC_CODESIGN_IDENTITY="Developer ID Application: …" npm run electron:build:mac:release` — see [macOS code signing](#macos-code-signing-local-vs-distribution). Do not treat this as the default ship path.
+
+**`allowPrerelease`** is `true` in `electron/updater.js` — the updater may follow a **prerelease** (e.g. `v1.0.0-beta.1`). If that tag has **no** mac updater assets, mac updates fail until the release is fixed or a **newer** release with full assets is published.
 
 **Workaround (users):** Download the DMG/ZIP from [Releases](https://github.com/th3rdai/CodeCompanion/releases) and install manually until the release assets are complete.
 
-### CI (tag push)
-
-Pushing a tag **`v*`** whose suffix matches **`package.json`** `version` (e.g. tag `v1.5.14` and `"version": "1.5.14"`) runs [`.github/workflows/build.yml`](.github/workflows/build.yml): it builds macOS, Windows, and Linux, then creates a **GitHub Release** and uploads **all** `release/` outputs (including **`latest-mac.yml`** and blockmaps) into **one** release. **Manual dispatch** only runs the build matrix and uploads **workflow artifacts** — it does **not** create a release.
-
-### Manual publish (one machine)
-
-With `GH_TOKEN` set to a token that can upload release assets:
-
-```bash
-npm run electron:publish:mac              # macOS (ad-hoc; fast)
-npm run electron:publish:mac:release      # macOS + Developer ID (set MAC_CODESIGN_IDENTITY)
-npm run electron:publish:win              # Windows (unsigned by default)
-npm run electron:publish:win:release      # Windows + Authenticode (set WIN_CSC_LINK / CSC_LINK or CSC_NAME)
-npm run electron:publish:linux            # Linux
-npm run electron:publish:linux:release    # Linux + optional GPG signatures for AppImage (set LINUX_GPG_KEY_ID)
-```
+Typical **artifact filenames** (same from **GitHub Actions** or local `electron:build*`; see **`artifactName`** in `electron-builder.config.js`):
 
 | Platform | Files                                                                                                                                  |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -213,11 +209,11 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 
 `electron-builder.config.js` picks a **signing mode** from environment variables:
 
-| Goal                            | Command                                                                                           | Notes                                                                     |
-| ------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Fast local DMG/ZIP** (ad-hoc) | `npm run electron:build:mac`                                                                      | `identity: '-'`, no hardened runtime — quickest iteration.                |
-| **Signed for distribution**     | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain. |
-| **Publish to GitHub (signed)**  | Same identity in env + `npm run electron:publish:mac:release`                                     | Use when shipping a release users will download.                          |
+| Goal                            | Command                                                                                           | Notes                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Fast local DMG/ZIP** (ad-hoc) | `npm run electron:build:mac`                                                                      | `identity: '-'`, no hardened runtime — quickest iteration.                                  |
+| **Signed for distribution**     | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain.                   |
+| **Publish to GitHub (signed)**  | Same identity in env + `npm run electron:publish:mac:release`                                     | **Emergency only** if CI cannot publish; normal releases use **tag push → GitHub Actions**. |
 
 **Required for distribution builds:** `MAC_CODESIGN_IDENTITY` must match a **Developer ID Application** certificate in your login keychain. The `:release` scripts set `MAC_DISTRIBUTION_SIGN=1`, which enables **hardened runtime** and uses that identity.
 
@@ -248,17 +244,17 @@ When **`MAC_CERTS`**, **`MAC_CERTS_PASSWORD`**, and **`MAC_CODESIGN_IDENTITY`** 
 
 **Required when using `WIN_DISTRIBUTION_SIGN=1`:** either **`WIN_CSC_LINK` or `CSC_LINK`** (path to `.pfx`), **or** **`CSC_NAME` / `WIN_CSC_NAME`**. Password: **`WIN_CSC_KEY_PASSWORD`** or **`CSC_KEY_PASSWORD`**. Do **not** commit `.pfx` files (see `.gitignore`).
 
-**Publish (signed):** `npm run electron:publish:win:release` with the same variables.
+**Publish (signed):** `npm run electron:publish:win:release` with the same variables — **emergency only**; prefer **CI** for releases users download.
 
 ## Linux (AppImage + GPG signature)
 
 electron-builder does not use an X.509 cert for AppImages the way Windows/macOS do. Optional **detached GPG signatures** are produced after the build:
 
-| Goal                            | Command                                                             | Notes                                                                                              |
-| ------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Build only**                  | `npm run electron:build:linux`                                      | Unsigned AppImage + ZIP.                                                                           |
-| **Build + `.asc` for AppImage** | `LINUX_GPG_KEY_ID=0xYOURKEYID npm run electron:build:linux:release` | Sets `LINUX_GPG_SIGN=1`; runs `gpg --detach-sign` on each `*.AppImage` (requires `gpg` on `PATH`). |
-| **Publish + signatures**        | Same key env + `npm run electron:publish:linux:release`             | Upload `*.AppImage` and matching **`*.AppImage.asc`** if you ship signatures.                      |
+| Goal                            | Command                                                             | Notes                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Build only**                  | `npm run electron:build:linux`                                      | Unsigned AppImage + ZIP.                                                                                         |
+| **Build + `.asc` for AppImage** | `LINUX_GPG_KEY_ID=0xYOURKEYID npm run electron:build:linux:release` | Sets `LINUX_GPG_SIGN=1`; runs `gpg --detach-sign` on each `*.AppImage` (requires `gpg` on `PATH`).               |
+| **Publish + signatures**        | Same key env + `npm run electron:publish:linux:release`             | **Emergency only**; prefer **CI**. Upload `*.AppImage` and matching **`*.AppImage.asc`** if you ship signatures. |
 
 **Required for signatures:** `LINUX_GPG_KEY_ID` (or full fingerprint) for a **secret** key available to `gpg`. Implementation: `scripts/linux-gpg-after-artifact.js` (`afterAllArtifactBuild`).
 

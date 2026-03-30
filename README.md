@@ -73,7 +73,7 @@ npm run build
 
 Open [http://localhost:8900](http://localhost:8900) in your browser. **SSL errors on localhost?** Use [http://127.0.0.1:8900](http://127.0.0.1:8900) or clear HSTS for `localhost` (Chrome: `chrome://net-internals/#hsts`). **Optional HTTPS:** Add `cert/server.crt` and `cert/server.key` (see `cert/README.txt`) and restart; then use `https://localhost:8900` and accept the self-signed cert in the browser.
 
-**Desktop installers:** For a packaged app (no Node/npm required), use the [downloads page](https://th3rdai.com/downloads/) or build from source: `npm run electron:build` (see [BUILD.md](BUILD.md)). Produces DMG (macOS), EXE (Windows), and AppImage (Linux). **Release signing** (optional): macOS Developer ID, Windows Authenticode (`.pfx` / store), Linux GPG signatures for AppImage — see [BUILD.md](BUILD.md) and [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md).
+**Desktop installers:** For a packaged app (no Node/npm required), use the [downloads page](https://th3rdai.com/downloads/) or install from [GitHub Releases](https://github.com/th3rdai/CodeCompanion/releases). **Maintainers:** ship new versions via CI — see **[Releasing](#releasing-maintainers)** below. To build installers locally for testing only: `npm run electron:build` (see [BUILD.md](BUILD.md)) — DMG (macOS), EXE (Windows), AppImage (Linux). **Release signing** (optional): macOS Developer ID, Windows Authenticode (`.pfx` / store), Linux GPG signatures for AppImage — see [BUILD.md](BUILD.md) and [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md).
 
 **Network binding (security default):** The server **defaults to `127.0.0.1`** (localhost-only). To accept connections from other devices on the LAN, set **`CC_BIND_ALL=1`** or **`HOST=0.0.0.0`** before starting (see [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)). On startup, when bound to all interfaces, the server logs a **Remote access:** URL (e.g. `http://192.168.1.5:8900`). Sensitive Settings/API routes accept requests from **loopback** only unless you set **`CC_API_SECRET`** on the server and (for browser UIs opened by IP) **`VITE_CC_API_KEY`** at build time to match — see [SECURITY.md](SECURITY.md) and [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md). Use **http** (not https) unless you added `cert/` files — otherwise `https://` will cause SSL errors. Clear HSTS for the host if the browser forces HTTPS (Chrome: `chrome://net-internals/#hsts`). Ensure the host firewall allows inbound TCP on your chosen port (default **8900** unless overridden).
 
@@ -108,6 +108,16 @@ npm run test:ui       # Playwright UI tests
 npm run test:unit       # Node unit tests (node:test — builder, pentest, rate-limit, etc.)
 npm run audit:security  # npm audit — fails on critical advisories (same gate as CI)
 ```
+
+### Releasing (maintainers)
+
+**Official desktop installers** (GitHub Releases + in-app **Software Updates**) are built and published by **[GitHub Actions](.github/workflows/build.yml)** when you push a **version tag** `v*` that matches **`package.json`** on the **publish** repository (`th3rdai` / `CodeCompanion` — see `electron-builder.config.js`).
+
+1. Bump **`version`** in `package.json`, commit, and push to the branch you release from.
+2. Create and push the tag: `git tag vX.Y.Z` → `git push <remote> vX.Y.Z` (use the remote that points at the publish repo).
+3. Watch **Actions** until **Build Desktop Installers** finishes; confirm `latest-mac.yml` and other feeds on the release.
+
+Full checklist, fork vs canonical repo, and **emergency** local `electron:publish:*` (CI broken only): **[docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md)**. Local **`npm run electron:build`** / per-platform scripts are for **development and packaging smoke tests** — see **[BUILD.md](BUILD.md)**.
 
 ### More documentation
 
