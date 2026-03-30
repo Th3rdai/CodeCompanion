@@ -1357,58 +1357,8 @@ app.post("/api/chat", async (req, res) => {
   res.flushHeaders();
 
   const chatAbortController = new AbortController();
-  let streamCompleted = false;
   req.on("close", () => {
     chatAbortController.abort();
-    // Generate and store a conversation summary after stream closes (fire-and-forget)
-    if (streamCompleted && messages.length >= 4) {
-      (async () => {
-        try {
-          const last6 = messages.slice(-6).map((m) => ({
-            role: m.role,
-            content:
-              typeof m.content === "string"
-                ? m.content.slice(0, 500)
-                : String(m.content).slice(0, 500),
-          }));
-          const summaryMessages = [
-            {
-              role: "system",
-              content:
-                "Summarize the following conversation in 2-3 sentences. Focus on what was discussed and any decisions made. Reply with ONLY the summary, no preamble.",
-            },
-            {
-              role: "user",
-              content: last6
-                .map((m) => `${m.role}: ${m.content}`)
-                .join("\n"),
-            },
-          ];
-          const summary = await chatComplete(
-            config.ollamaUrl,
-            model,
-            summaryMessages,
-            15000,
-          );
-          if (summary && summary.trim()) {
-            // Find and update the most recent conversation with this summary
-            const convos = listConversations();
-            if (convos.length > 0) {
-              const latest = getConversation(convos[0].id);
-              if (latest) {
-                latest.summary = summary.trim().slice(0, 500);
-                saveConversation(latest);
-                log("INFO", `Conversation summary stored for ${convos[0].id}`);
-              }
-            }
-          }
-        } catch (err) {
-          debug("Summary generation failed (non-blocking)", {
-            error: err.message,
-          });
-        }
-      })();
-    }
   });
 
   // Helper: send SSE event
@@ -1631,7 +1581,6 @@ app.post("/api/chat", async (req, res) => {
         res.write("data: [DONE]\n\n");
         res.end();
       }
-      streamCompleted = true;
       log("INFO", `Chat complete (tool-call mode): ${finalText.length} chars`);
       return;
     }
@@ -1715,7 +1664,6 @@ app.post("/api/chat", async (req, res) => {
               res.write("data: [DONE]\n\n");
               res.end();
             }
-            streamCompleted = true;
             log("INFO", `Chat complete: ${tokenCount} tokens streamed`);
             break;
           }
@@ -3209,6 +3157,60 @@ app.post("/api/history", async (req, res) => {
       })().catch((err) =>
         log("WARN", "Memory extraction failed", { error: err.message }),
       );
+    }
+
+    // Fire-and-forget conversation summary generation
+    if (req.body.messages?.length >= 4 && !req.body.summary) {
+      const config2 = getConfig();
+      (async () => {
+        try {
+          const msgs = req.body.messages;
+          const last6 = msgs.slice(-6).map((m) => ({
+            role: m.role,
+            content:
+              typeof m.content === "string"
+                ? m.content.slice(0, 500)
+                : String(m.content).slice(0, 500),
+          }));
+          let sumModel = req.body.model;
+          if (sumModel === "auto") {
+            const m = mergeAutoModelMap(config2.autoModelMap);
+            sumModel = m[req.body.mode || "chat"] || m.chat || "llama3.2";
+          }
+          const summary = await chatComplete(
+            config2.ollamaUrl,
+            sumModel,
+            [
+              {
+                role: "system",
+                content:
+                  "Summarize the following conversation in 2-3 sentences. Focus on what was discussed and any decisions made. Reply with ONLY the summary, no preamble.",
+              },
+              {
+                role: "user",
+                content: last6
+                  .map((m) => `${m.role}: ${m.content}`)
+                  .join("\n"),
+              },
+            ],
+            15000,
+            [],
+            ollamaAuthOpts(config2),
+          );
+          if (summary && summary.trim()) {
+            const conv = getConversation(id);
+            if (conv) {
+              conv.summary = summary.trim().slice(0, 500);
+              saveConversation(conv);
+              log("INFO", `Conversation summary stored for ${id}`);
+            }
+          }
+        } catch (err) {
+          debug("Summary generation failed (non-blocking)", {
+            error: err.message,
+          });
+        }
+      })();
     }
   } catch (err) {
     const status = err.message.includes("Invalid conversation id") ? 400 : 500;
