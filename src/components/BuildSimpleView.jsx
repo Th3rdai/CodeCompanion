@@ -1,8 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiFetch } from '../lib/api-fetch';
-import { Lightbulb, RefreshCw, FolderOpen, Layers, Search, FileText, Save, AlertTriangle } from 'lucide-react';
-import MarkdownContent from './MarkdownContent';
-import ClaudeCodeHandoff from './ClaudeCodeHandoff';
+import { useState, useEffect, useCallback } from "react";
+import { apiFetch } from "../lib/api-fetch";
+import {
+  Lightbulb,
+  RefreshCw,
+  FolderOpen,
+  Layers,
+  Search,
+  FileText,
+  Save,
+  AlertTriangle,
+} from "lucide-react";
+import MarkdownContent from "./MarkdownContent";
+import ClaudeCodeHandoff from "./ClaudeCodeHandoff";
 
 /**
  * Parse SSE stream from a fetch Response.
@@ -11,7 +20,7 @@ import ClaudeCodeHandoff from './ClaudeCodeHandoff';
 async function readSSEStream(response, { onToken, onDone, onError }) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let buffer = '';
+  let buffer = "";
 
   try {
     while (true) {
@@ -19,12 +28,12 @@ async function readSSEStream(response, { onToken, onDone, onError }) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
+        if (!trimmed.startsWith("data: ")) continue;
         try {
           const data = JSON.parse(trimmed.slice(6));
           if (data.error) {
@@ -46,24 +55,32 @@ async function readSSEStream(response, { onToken, onDone, onError }) {
     // Stream ended without done event
     onDone({});
   } catch (err) {
-    onError(err.message || 'Stream read failed');
+    onError(err.message || "Stream read failed");
   }
 }
 
 /**
  * BuildSimpleView — "What's Next" AI card, research/plan streaming, and quick actions.
  */
-export default function BuildSimpleView({ project, projectData, selectedModel, ollamaConnected, onToast, onViewFiles, onViewPhases }) {
+export default function BuildSimpleView({
+  project,
+  projectData,
+  selectedModel,
+  ollamaConnected,
+  onToast,
+  onViewFiles,
+  onViewPhases,
+}) {
   const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [timestamp, setTimestamp] = useState(null);
 
   // Research and Plan state
-  const [researchText, setResearchText] = useState('');
-  const [planText, setPlanText] = useState('');
+  const [researchText, setResearchText] = useState("");
+  const [planText, setPlanText] = useState("");
   const [streaming, setStreaming] = useState(null); // 'research' | 'plan' | null
-  const [streamedContent, setStreamedContent] = useState('');
+  const [streamedContent, setStreamedContent] = useState("");
   const [streamError, setStreamError] = useState(null);
   const [planValidated, setPlanValidated] = useState(false);
   const [planWritten, setPlanWritten] = useState(false);
@@ -73,7 +90,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
   const getNextPhaseNumber = useCallback(() => {
     const phases = projectData?.roadmap?.phases;
     if (!phases || !Array.isArray(phases)) return 1;
-    const incomplete = phases.find(p => p.status !== 'complete' && p.status !== 'completed');
+    const incomplete = phases.find(
+      (p) => p.status !== "complete" && p.status !== "completed",
+    );
     return incomplete?.number || incomplete?.phase || 1;
   }, [projectData]);
 
@@ -89,11 +108,14 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(`/api/build/projects/${project.id}/next-action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: selectedModel }),
-      });
+      const res = await apiFetch(
+        `/api/build/projects/${project.id}/next-action`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: selectedModel }),
+        },
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Request failed (${res.status})`);
@@ -102,7 +124,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
       setRecommendation(data.action);
       setTimestamp(data.timestamp);
     } catch (err) {
-      setError(err.message || 'Failed to get recommendation');
+      setError(err.message || "Failed to get recommendation");
     }
     setLoading(false);
   }
@@ -111,20 +133,20 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
     if (!project?.id || streaming) return;
     const phaseNumber = getNextPhaseNumber();
 
-    setStreaming('research');
-    setStreamedContent('');
+    setStreaming("research");
+    setStreamedContent("");
     setStreamError(null);
-    setResearchText('');
-    setPlanText('');
+    setResearchText("");
+    setPlanText("");
     setPlanValidated(false);
     setPlanWritten(false);
 
-    let accumulated = '';
+    let accumulated = "";
 
     try {
       const res = await apiFetch(`/api/build/projects/${project.id}/research`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: selectedModel, phaseNumber }),
       });
 
@@ -148,7 +170,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
         },
       });
     } catch (err) {
-      setStreamError(err.message || 'Research failed');
+      setStreamError(err.message || "Research failed");
       setStreaming(null);
     }
   }
@@ -162,9 +184,14 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
       setSaving(true);
       try {
         const res = await apiFetch(`/api/build/projects/${project.id}/plan`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model: selectedModel, phaseNumber, researchContext: researchText, writeToFile: true }),
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: selectedModel,
+            phaseNumber,
+            researchContext: researchText,
+            writeToFile: true,
+          }),
         });
         // Read to completion (we already have the plan text, just need the write result)
         await readSSEStream(res, {
@@ -172,9 +199,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
           onDone: (data) => {
             if (data.written) {
               setPlanWritten(true);
-              onToast?.('Plan saved to project files');
+              onToast?.("Plan saved to project files");
             } else {
-              onToast?.('Plan validation failed - not saved');
+              onToast?.("Plan validation failed - not saved");
             }
             setSaving(false);
           },
@@ -184,26 +211,30 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
           },
         });
       } catch (err) {
-        setStreamError(err.message || 'Save failed');
+        setStreamError(err.message || "Save failed");
         setSaving(false);
       }
       return;
     }
 
-    setStreaming('plan');
-    setStreamedContent('');
+    setStreaming("plan");
+    setStreamedContent("");
     setStreamError(null);
-    setPlanText('');
+    setPlanText("");
     setPlanValidated(false);
     setPlanWritten(false);
 
-    let accumulated = '';
+    let accumulated = "";
 
     try {
       const res = await apiFetch(`/api/build/projects/${project.id}/plan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: selectedModel, phaseNumber, researchContext: researchText }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: selectedModel,
+          phaseNumber,
+          researchContext: researchText,
+        }),
       });
 
       if (!res.ok) {
@@ -227,7 +258,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
         },
       });
     } catch (err) {
-      setStreamError(err.message || 'Planning failed');
+      setStreamError(err.message || "Planning failed");
       setStreaming(null);
     }
   }
@@ -239,7 +270,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
   if (!projectData && project?.id) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map(i => (
+        {[1, 2, 3].map((i) => (
           <div key={i} className="glass rounded-xl p-5 space-y-3 animate-pulse">
             <div className="h-4 bg-slate-700/40 rounded w-1/3" />
             <div className="h-3 bg-slate-700/30 rounded w-2/3" />
@@ -256,8 +287,12 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
       <div className="glass-neon rounded-xl p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Lightbulb className={`w-5 h-5 ${ollamaConnected ? 'text-amber-400' : 'text-slate-500'}`} />
-            <h3 className="text-sm font-semibold text-slate-200">What's Next</h3>
+            <Lightbulb
+              className={`w-5 h-5 ${ollamaConnected ? "text-amber-400" : "text-slate-500"}`}
+            />
+            <h3 className="text-sm font-semibold text-slate-200">
+              What's Next
+            </h3>
           </div>
           {ollamaConnected && !loading && (
             <button
@@ -274,14 +309,19 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
         {!ollamaConnected && (
           <div className="text-sm text-slate-400 py-2">
             <p>Start Ollama to get AI-powered suggestions for your project.</p>
-            <p className="text-xs text-slate-500 mt-1">The AI will analyze your project state and recommend the most impactful next step.</p>
+            <p className="text-xs text-slate-500 mt-1">
+              The AI will analyze your project state and recommend the most
+              impactful next step.
+            </p>
           </div>
         )}
 
         {/* Loading state */}
         {ollamaConnected && loading && (
           <div className="flex items-center gap-2 py-3">
-            <span className="inline-block animate-pulse text-indigo-400 text-sm">Thinking about your next step...</span>
+            <span className="inline-block animate-pulse text-indigo-400 text-sm">
+              Thinking about your next step...
+            </span>
           </div>
         )}
 
@@ -291,8 +331,10 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
               <p className="text-xs text-red-400">
-                {error.includes('fetch') || error.includes('network') || error.includes('Failed to fetch')
-                  ? 'Could not reach the server. Is it running?'
+                {error.includes("fetch") ||
+                error.includes("network") ||
+                error.includes("Failed to fetch")
+                  ? "Could not reach the server. Is it running?"
                   : error}
               </p>
             </div>
@@ -309,7 +351,14 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
         {ollamaConnected && !loading && !error && recommendation && (
           <div className="space-y-2">
             <div className="prose prose-sm prose-invert max-w-none text-sm text-slate-300">
-              <MarkdownContent content={typeof recommendation === 'string' ? recommendation : recommendation?.message?.content || JSON.stringify(recommendation)} />
+              <MarkdownContent
+                content={
+                  typeof recommendation === "string"
+                    ? recommendation
+                    : recommendation?.message?.content ||
+                      JSON.stringify(recommendation)
+                }
+              />
             </div>
             {timestamp && (
               <p className="text-[10px] text-slate-500">
@@ -322,7 +371,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
         {/* No recommendation yet (connected but not fetched) */}
         {ollamaConnected && !loading && !error && !recommendation && (
           <div className="text-sm text-slate-400 py-2">
-            <p>Click "Ask AI" to get a recommendation for what to work on next.</p>
+            <p>
+              Click "Ask AI" to get a recommendation for what to work on next.
+            </p>
           </div>
         )}
       </div>
@@ -330,9 +381,15 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
       {/* AI Research and Planning */}
       <div className="glass-neon rounded-xl p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Search className={`w-5 h-5 ${ollamaConnected ? 'text-cyan-400' : 'text-slate-500'}`} />
-          <h3 className="text-sm font-semibold text-slate-200">AI Research and Planning</h3>
-          <span className="text-[10px] text-slate-500 ml-auto">Phase {phaseNumber}</span>
+          <Search
+            className={`w-5 h-5 ${ollamaConnected ? "text-cyan-400" : "text-slate-500"}`}
+          />
+          <h3 className="text-sm font-semibold text-slate-200">
+            AI Research and Planning
+          </h3>
+          <span className="text-[10px] text-slate-500 ml-auto">
+            Phase {phaseNumber}
+          </span>
         </div>
 
         {!ollamaConnected && (
@@ -349,7 +406,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
                 onClick={handleResearch}
                 disabled={isStreaming || !ollamaConnected}
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-cyan-500/15 text-cyan-300 hover:bg-cyan-500/25 border border-cyan-500/20 hover:border-cyan-500/40"
-                title={!ollamaConnected ? 'Start Ollama to use AI features' : ''}
+                title={
+                  !ollamaConnected ? "Start Ollama to use AI features" : ""
+                }
               >
                 <Search className="w-3.5 h-3.5" />
                 Research Phase
@@ -358,7 +417,13 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
                 onClick={() => handlePlan(false)}
                 disabled={isStreaming || !ollamaConnected || !researchText}
                 className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/25 border border-indigo-500/20 hover:border-indigo-500/40"
-                title={!researchText ? 'Run research first' : !ollamaConnected ? 'Start Ollama to use AI features' : ''}
+                title={
+                  !researchText
+                    ? "Run research first"
+                    : !ollamaConnected
+                      ? "Start Ollama to use AI features"
+                      : ""
+                }
               >
                 <FileText className="w-3.5 h-3.5" />
                 Generate Plan
@@ -370,7 +435,7 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
                   className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/20 hover:border-emerald-500/40"
                 >
                   <Save className="w-3.5 h-3.5" />
-                  {saving ? 'Saving...' : 'Save to Project'}
+                  {saving ? "Saving..." : "Save to Project"}
                 </button>
               )}
               {planWritten && (
@@ -386,7 +451,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
                   <p className="text-xs text-red-400">{streamError}</p>
                 </div>
                 <button
-                  onClick={() => { setStreamError(null); }}
+                  onClick={() => {
+                    setStreamError(null);
+                  }}
                   className="text-xs text-indigo-300 hover:text-indigo-200 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors cursor-pointer"
                 >
                   Try Again
@@ -395,35 +462,55 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
             )}
 
             {/* Streaming status */}
-            {streaming === 'research' && (
-              <div className="text-xs text-cyan-400 animate-pulse">Researching phase {phaseNumber}...</div>
+            {streaming === "research" && (
+              <div className="text-xs text-cyan-400 animate-pulse">
+                Researching phase {phaseNumber}...
+              </div>
             )}
-            {streaming === 'plan' && (
-              <div className="text-xs text-indigo-400 animate-pulse">Generating plan for phase {phaseNumber}...</div>
+            {streaming === "plan" && (
+              <div className="text-xs text-indigo-400 animate-pulse">
+                Generating plan for phase {phaseNumber}...
+              </div>
             )}
 
             {/* Streamed content display */}
             {(streaming || researchText || planText) && (
               <div className="space-y-3">
                 {/* Research output */}
-                {(streaming === 'research' || researchText) && (
+                {(streaming === "research" || researchText) && (
                   <div className="glass rounded-lg p-4 max-h-64 overflow-y-auto">
-                    <div className="text-[10px] text-cyan-400/60 uppercase tracking-wider mb-2 font-semibold">Research</div>
+                    <div className="text-[10px] text-cyan-400/60 uppercase tracking-wider mb-2 font-semibold">
+                      Research
+                    </div>
                     <div className="prose prose-sm prose-invert max-w-none text-sm text-slate-300">
-                      <MarkdownContent content={streaming === 'research' ? streamedContent : researchText} />
+                      <MarkdownContent
+                        content={
+                          streaming === "research"
+                            ? streamedContent
+                            : researchText
+                        }
+                      />
                     </div>
                   </div>
                 )}
 
                 {/* Plan output */}
-                {(streaming === 'plan' || planText) && (
+                {(streaming === "plan" || planText) && (
                   <div className="glass rounded-lg p-4 max-h-64 overflow-y-auto">
-                    <div className="text-[10px] text-indigo-400/60 uppercase tracking-wider mb-2 font-semibold">Plan</div>
+                    <div className="text-[10px] text-indigo-400/60 uppercase tracking-wider mb-2 font-semibold">
+                      Plan
+                    </div>
                     <div className="prose prose-sm prose-invert max-w-none text-sm text-slate-300">
-                      <MarkdownContent content={streaming === 'plan' ? streamedContent : planText} />
+                      <MarkdownContent
+                        content={
+                          streaming === "plan" ? streamedContent : planText
+                        }
+                      />
                     </div>
                     {planText && !planValidated && (
-                      <div className="text-[10px] text-amber-400 mt-2">Plan did not pass validation checks. Try regenerating.</div>
+                      <div className="text-[10px] text-amber-400 mt-2">
+                        Plan did not pass validation checks. Try regenerating.
+                      </div>
                     )}
                   </div>
                 )}
@@ -435,7 +522,9 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
 
       {/* Quick Actions */}
       <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick Actions</h3>
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          Quick Actions
+        </h3>
         <div className="flex items-center gap-2">
           {onViewFiles && (
             <button
@@ -459,7 +548,11 @@ export default function BuildSimpleView({ project, projectData, selectedModel, o
       </div>
 
       {/* Claude Code Handoff */}
-      <ClaudeCodeHandoff project={project} projectData={projectData} onToast={onToast} />
+      <ClaudeCodeHandoff
+        project={project}
+        projectData={projectData}
+        onToast={onToast}
+      />
     </div>
   );
 }

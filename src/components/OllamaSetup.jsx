@@ -1,20 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../lib/api-fetch';
-import { Wifi, WifiOff, Download, CheckCircle, AlertCircle, Settings } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { apiFetch } from "../lib/api-fetch";
+import {
+  Wifi,
+  WifiOff,
+  Download,
+  CheckCircle,
+  AlertCircle,
+  Settings,
+} from "lucide-react";
 
 /**
  * Ollama setup wizard component
  * Guides users through installing Ollama and pulling models
  */
 export default function OllamaSetup({ onComplete }) {
-  const [state, setState] = useState('not-connected'); // not-connected | installing | no-models | pulling-model | complete
-  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
-  const [ollamaApiKey, setOllamaApiKey] = useState('');
+  const [state, setState] = useState("not-connected"); // not-connected | installing | no-models | pulling-model | complete
+  const [ollamaUrl, setOllamaUrl] = useState("http://localhost:11434");
+  const [ollamaApiKey, setOllamaApiKey] = useState("");
   const [showUrlInput, setShowUrlInput] = useState(false);
-  const [installProgress, setInstallProgress] = useState('');
-  const [pullProgress, setPullProgress] = useState({ status: '', percent: 0, completed: 0, total: 0 });
+  const [installProgress, setInstallProgress] = useState("");
+  const [pullProgress, setPullProgress] = useState({
+    status: "",
+    percent: 0,
+    completed: 0,
+    total: 0,
+  });
   const [error, setError] = useState(null);
-  const [recommendedModel, setRecommendedModel] = useState('qwen2.5-coder:3b');
+  const [recommendedModel, setRecommendedModel] = useState("qwen2.5-coder:3b");
 
   // Check Ollama connection on mount
   useEffect(() => {
@@ -38,92 +50,101 @@ export default function OllamaSetup({ onComplete }) {
     try {
       if (window.electronAPI?.checkOllama) {
         // Electron mode
-        const result = await window.electronAPI.checkOllama(ollamaUrl, ollamaApiKey);
+        const result = await window.electronAPI.checkOllama(
+          ollamaUrl,
+          ollamaApiKey,
+        );
         if (result.running) {
           try {
-            const body = { ollamaUrl: ollamaUrl.replace(/\/+$/, '') };
+            const body = { ollamaUrl: ollamaUrl.replace(/\/+$/, "") };
             if (ollamaApiKey.trim()) body.ollamaApiKey = ollamaApiKey.trim();
-            await apiFetch('/api/config', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+            await apiFetch("/api/config", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify(body),
             });
-          } catch (_) { /* persist is best-effort */ }
+          } catch (_) {
+            /* persist is best-effort */
+          }
           if (result.models.length === 0) {
-            setState('no-models');
+            setState("no-models");
           } else {
-            setState('complete');
+            setState("complete");
             onComplete?.();
           }
         } else {
-          setState('not-connected');
+          setState("not-connected");
         }
       } else {
         // Browser mode - check via API endpoint
-        const response = await apiFetch('/api/health');
+        const response = await apiFetch("/api/health");
         const data = await response.json();
         if (data.ollamaConnected) {
-          setState('complete');
+          setState("complete");
           onComplete?.();
         } else {
-          setState('not-connected');
+          setState("not-connected");
         }
       }
     } catch (err) {
-      console.error('[OllamaSetup] Check failed:', err);
-      setState('not-connected');
+      console.error("[OllamaSetup] Check failed:", err);
+      setState("not-connected");
     }
   }
 
   async function handleInstall() {
     if (!window.electronAPI?.installOllama) {
-      setError('Auto-install is only available in the desktop app');
+      setError("Auto-install is only available in the desktop app");
       return;
     }
 
-    setState('installing');
-    setInstallProgress('Downloading Ollama...');
+    setState("installing");
+    setInstallProgress("Downloading Ollama...");
     setError(null);
 
     try {
       const result = await window.electronAPI.installOllama();
       if (result.success) {
-        setInstallProgress('Ollama installed! Checking connection...');
+        setInstallProgress("Ollama installed! Checking connection...");
         setTimeout(() => {
           checkConnection();
         }, 2000);
       } else {
-        setError(result.error || 'Installation failed');
-        setState('not-connected');
+        setError(result.error || "Installation failed");
+        setState("not-connected");
       }
     } catch (err) {
       setError(err.message);
-      setState('not-connected');
+      setState("not-connected");
     }
   }
 
   async function handlePullModel() {
     if (!window.electronAPI?.pullModel) {
-      setError('Model pulling is only available in the desktop app');
+      setError("Model pulling is only available in the desktop app");
       return;
     }
 
-    setState('pulling-model');
-    setPullProgress({ status: 'starting', percent: 0, completed: 0, total: 0 });
+    setState("pulling-model");
+    setPullProgress({ status: "starting", percent: 0, completed: 0, total: 0 });
     setError(null);
 
     try {
-      const result = await window.electronAPI.pullModel(ollamaUrl, recommendedModel, ollamaApiKey);
+      const result = await window.electronAPI.pullModel(
+        ollamaUrl,
+        recommendedModel,
+        ollamaApiKey,
+      );
       if (result.success) {
-        setState('complete');
+        setState("complete");
         onComplete?.();
       } else {
-        setError(result.error || 'Model pull failed');
-        setState('no-models');
+        setError(result.error || "Model pull failed");
+        setState("no-models");
       }
     } catch (err) {
       setError(err.message);
-      setState('no-models');
+      setState("no-models");
     }
   }
 
@@ -135,15 +156,17 @@ export default function OllamaSetup({ onComplete }) {
   return (
     <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-slate-700">
-
         {/* Not Connected State */}
-        {state === 'not-connected' && (
+        {state === "not-connected" && (
           <>
             <div className="text-center mb-6">
               <WifiOff className="w-16 h-16 mx-auto mb-4 text-red-400" />
-              <h2 className="text-2xl font-bold text-white mb-2">Let's Connect to Ollama</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Let's Connect to Ollama
+              </h2>
               <p className="text-slate-300 text-sm leading-relaxed">
-                Ollama is the AI engine that powers Code Companion. It runs on your computer so your code stays private.
+                Ollama is the AI engine that powers Code Companion. It runs on
+                your computer so your code stays private.
               </p>
             </div>
 
@@ -184,12 +207,19 @@ export default function OllamaSetup({ onComplete }) {
             {showUrlInput && (
               <div className="mt-4 space-y-3 rounded-xl border border-indigo-500/30 bg-slate-900/50 p-4">
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  <strong className="text-slate-300">Local:</strong> default URL below.{' '}
-                  <strong className="text-slate-300">Ollama Cloud:</strong> use{' '}
-                  <code className="text-[11px] bg-slate-800 px-1 rounded">https://ollama.com</code> and paste your API key.
+                  <strong className="text-slate-300">Local:</strong> default URL
+                  below.{" "}
+                  <strong className="text-slate-300">Ollama Cloud:</strong> use{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    https://ollama.com
+                  </code>{" "}
+                  and paste your API key.
                 </p>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2" htmlFor="ollama-setup-url">
+                  <label
+                    className="block text-sm font-medium text-slate-300 mb-2"
+                    htmlFor="ollama-setup-url"
+                  >
                     Ollama URL
                   </label>
                   <input
@@ -202,8 +232,14 @@ export default function OllamaSetup({ onComplete }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2" htmlFor="ollama-setup-api-key">
-                    API key <span className="text-slate-500 font-normal">(Cloud only)</span>
+                  <label
+                    className="block text-sm font-medium text-slate-300 mb-2"
+                    htmlFor="ollama-setup-api-key"
+                  >
+                    API key{" "}
+                    <span className="text-slate-500 font-normal">
+                      (Cloud only)
+                    </span>
                   </label>
                   <input
                     id="ollama-setup-api-key"
@@ -216,7 +252,11 @@ export default function OllamaSetup({ onComplete }) {
                   />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  You can also change these anytime in the main app: <strong className="text-slate-400">Settings → General → Ollama connection</strong>.
+                  You can also change these anytime in the main app:{" "}
+                  <strong className="text-slate-400">
+                    Settings → General → Ollama connection
+                  </strong>
+                  .
                 </p>
               </div>
             )}
@@ -224,26 +264,32 @@ export default function OllamaSetup({ onComplete }) {
         )}
 
         {/* Installing State */}
-        {state === 'installing' && (
+        {state === "installing" && (
           <>
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
                 <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Installing Ollama...</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Installing Ollama...
+              </h2>
               <p className="text-slate-300 text-sm">{installProgress}</p>
             </div>
           </>
         )}
 
         {/* No Models State */}
-        {state === 'no-models' && (
+        {state === "no-models" && (
           <>
             <div className="text-center mb-6">
               <Wifi className="w-16 h-16 mx-auto mb-4 text-green-400" />
-              <h2 className="text-2xl font-bold text-white mb-2">Ollama is running!</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Ollama is running!
+              </h2>
               <p className="text-slate-300 text-sm mb-4">
-                Now let's get a model. We recommend <strong>{recommendedModel}</strong> — a smart, fast model that works great for code review.
+                Now let's get a model. We recommend{" "}
+                <strong>{recommendedModel}</strong> — a smart, fast model that
+                works great for code review.
               </p>
             </div>
 
@@ -280,12 +326,16 @@ export default function OllamaSetup({ onComplete }) {
         )}
 
         {/* Pulling Model State */}
-        {state === 'pulling-model' && (
+        {state === "pulling-model" && (
           <>
             <div className="text-center mb-6">
               <Download className="w-16 h-16 mx-auto mb-4 text-blue-400 animate-bounce" />
-              <h2 className="text-2xl font-bold text-white mb-2">Downloading {recommendedModel}...</h2>
-              <p className="text-slate-300 text-sm mb-4">{pullProgress.status}</p>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Downloading {recommendedModel}...
+              </h2>
+              <p className="text-slate-300 text-sm mb-4">
+                {pullProgress.status}
+              </p>
             </div>
 
             <div className="mb-6">
@@ -299,7 +349,8 @@ export default function OllamaSetup({ onComplete }) {
                 <span>{pullProgress.percent}%</span>
                 {pullProgress.total > 0 && (
                   <span>
-                    {formatBytes(pullProgress.completed)} GB / {formatBytes(pullProgress.total)} GB
+                    {formatBytes(pullProgress.completed)} GB /{" "}
+                    {formatBytes(pullProgress.total)} GB
                   </span>
                 )}
               </div>
@@ -308,11 +359,13 @@ export default function OllamaSetup({ onComplete }) {
         )}
 
         {/* Complete State */}
-        {state === 'complete' && (
+        {state === "complete" && (
           <>
             <div className="text-center">
               <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-400" />
-              <h2 className="text-2xl font-bold text-white mb-2">You're all set!</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                You're all set!
+              </h2>
               <p className="text-slate-300 text-sm mb-6">
                 Ollama is running and ready to help you review code.
               </p>

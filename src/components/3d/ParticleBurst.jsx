@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import { useEffect, useRef, useState } from "react";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
-export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
+export default function ParticleBurst({ trigger = false, color = "#6366f1" }) {
   const { enabled } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
@@ -9,12 +9,15 @@ export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
-    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      !enabled ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       return;
     }
 
     const initBurst = async () => {
-      const THREE = await import('three');
+      const THREE = await import("three");
 
       if (!containerRef.current) return;
 
@@ -54,7 +57,7 @@ export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
           particle.position.set(0, 0, 0);
 
           // Random velocity
-          const angle = (Math.random() * Math.PI * 2);
+          const angle = Math.random() * Math.PI * 2;
           const elevation = Math.random() * Math.PI;
           const speed = 0.02 + Math.random() * 0.02;
 
@@ -128,7 +131,7 @@ export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
     const cleanup = initBurst().then((fn) => fn);
 
     return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
+      if (cleanup && typeof cleanup.then === "function") {
         cleanup.then((fn) => fn?.());
       }
     };
@@ -152,11 +155,11 @@ export default function ParticleBurst({ trigger = false, color = '#6366f1' }) {
     <div
       ref={containerRef}
       style={{
-        position: 'absolute',
-        top: '-60px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        pointerEvents: 'none',
+        position: "absolute",
+        top: "-60px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        pointerEvents: "none",
         zIndex: 10,
       }}
     />

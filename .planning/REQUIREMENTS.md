@@ -78,62 +78,63 @@
 
 ## Out of Scope
 
-| Feature | Reason |
-|---------|--------|
-| Auto-fix / code rewriting | Bypasses vibe coder workflow — they tell their AI to fix, not this tool |
-| Line-by-line annotations | Vibe coders don't read code line-by-line; line numbers are meaningless |
-| Numeric scores (0-100) | False precision — LLMs can't reliably distinguish 72 from 75; letter grades are the right granularity |
-| Linter/static-analysis integration | "Expected semicolon" means nothing to a vibe coder; adds setup complexity |
-| IDE/editor embedding | Vibe coders use Cursor/Replit, not VS Code; standalone web app is more accessible |
-| Multi-user auth | Local-only tool for single user |
-| Non-Ollama LLM providers | Ollama-only for now |
+| Feature                            | Reason                                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Auto-fix / code rewriting          | Bypasses vibe coder workflow — they tell their AI to fix, not this tool                               |
+| Line-by-line annotations           | Vibe coders don't read code line-by-line; line numbers are meaningless                                |
+| Numeric scores (0-100)             | False precision — LLMs can't reliably distinguish 72 from 75; letter grades are the right granularity |
+| Linter/static-analysis integration | "Expected semicolon" means nothing to a vibe coder; adds setup complexity                             |
+| IDE/editor embedding               | Vibe coders use Cursor/Replit, not VS Code; standalone web app is more accessible                     |
+| Multi-user auth                    | Local-only tool for single user                                                                       |
+| Non-Ollama LLM providers           | Ollama-only for now                                                                                   |
 
 ## Traceability
 
 Which phases cover which requirements. Updated during roadmap creation.
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| REVW-01 | Phase 1 | Complete |
-| REVW-02 | Phase 1 | Complete |
-| REVW-03 | Phase 1 | Complete |
-| REVW-04 | Phase 1 | Complete |
-| REVW-05 | Phase 3 | Complete |
-| REVW-06 | Phase 4 | Complete |
-| REVW-07 | Phase 3 | Complete |
-| REVW-08 | Phase 3 | Complete |
-| REVW-09 | Phase 3 | Complete |
-| REVW-10 | Phase 4 | Complete |
-| TONE-01 | Phase 2 | Complete |
-| TONE-02 | Phase 2 | Complete |
-| TONE-03 | Phase 2 | Complete |
-| TONE-04 | Phase 2 | Complete |
-| TONE-05 | Phase 2 | Complete |
-| UX-01 | Phase 5 | Complete |
-| UX-02 | Phase 2 | Complete |
-| UX-03 | Phase 5 | Complete |
-| UX-04 | Phase 5 | Complete |
-| UX-05 | Phase 4 | Complete |
-| LIC-01 | Phase 7 | Complete |
-| LIC-02 | Phase 7 | Complete |
-| LIC-03 | Phase 7 | Complete |
-| BUILD-01 | Phase 15 | Complete |
-| BUILD-02 | Phase 15 | Complete |
-| BUILD-03 | Phase 15 | Complete |
-| BDASH-P2-01 | Phase 16 | Planned |
-| BDASH-P2-02 | Phase 16 | Planned |
-| BDASH-P2-03 | Phase 16 | Planned |
-| BDASH-P3-01 | Phase 16 | Planned |
-| BDASH-P4-01 | Phase 16 | Planned |
-| BDASH-P4-02 | Phase 16 | Planned |
-| BDASH-P5-01 | Phase 16 | Planned |
-| SEC-01 | Phase 18 | Planned |
-| SEC-02 | Phase 18 | Planned |
-| SEC-03 | Phase 18 | Planned |
-| SEC-04 | Phase 18 | Planned |
-| SEC-05 | Phase 18 | Planned |
+| Requirement | Phase    | Status   |
+| ----------- | -------- | -------- |
+| REVW-01     | Phase 1  | Complete |
+| REVW-02     | Phase 1  | Complete |
+| REVW-03     | Phase 1  | Complete |
+| REVW-04     | Phase 1  | Complete |
+| REVW-05     | Phase 3  | Complete |
+| REVW-06     | Phase 4  | Complete |
+| REVW-07     | Phase 3  | Complete |
+| REVW-08     | Phase 3  | Complete |
+| REVW-09     | Phase 3  | Complete |
+| REVW-10     | Phase 4  | Complete |
+| TONE-01     | Phase 2  | Complete |
+| TONE-02     | Phase 2  | Complete |
+| TONE-03     | Phase 2  | Complete |
+| TONE-04     | Phase 2  | Complete |
+| TONE-05     | Phase 2  | Complete |
+| UX-01       | Phase 5  | Complete |
+| UX-02       | Phase 2  | Complete |
+| UX-03       | Phase 5  | Complete |
+| UX-04       | Phase 5  | Complete |
+| UX-05       | Phase 4  | Complete |
+| LIC-01      | Phase 7  | Complete |
+| LIC-02      | Phase 7  | Complete |
+| LIC-03      | Phase 7  | Complete |
+| BUILD-01    | Phase 15 | Complete |
+| BUILD-02    | Phase 15 | Complete |
+| BUILD-03    | Phase 15 | Complete |
+| BDASH-P2-01 | Phase 16 | Planned  |
+| BDASH-P2-02 | Phase 16 | Planned  |
+| BDASH-P2-03 | Phase 16 | Planned  |
+| BDASH-P3-01 | Phase 16 | Planned  |
+| BDASH-P4-01 | Phase 16 | Planned  |
+| BDASH-P4-02 | Phase 16 | Planned  |
+| BDASH-P5-01 | Phase 16 | Planned  |
+| SEC-01      | Phase 18 | Planned  |
+| SEC-02      | Phase 18 | Planned  |
+| SEC-03      | Phase 18 | Planned  |
+| SEC-04      | Phase 18 | Planned  |
+| SEC-05      | Phase 18 | Planned  |
 
 **Coverage:**
+
 - v1 requirements: 20 total
 - License (Phase 7): 3 total
 - Build Mode (Phase 15): 3 total
@@ -143,5 +144,6 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-03-13*
-*Last updated: 2026-03-15 — Added Security Pen Test Mode (Phase 18) requirements SEC-01 through SEC-05*
+
+_Requirements defined: 2026-03-13_
+_Last updated: 2026-03-15 — Added Security Pen Test Mode (Phase 18) requirements SEC-01 through SEC-05_

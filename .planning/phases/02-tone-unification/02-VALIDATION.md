@@ -15,13 +15,13 @@ created: 2026-03-13
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | Node.js native `node:test` |
-| **Config file** | None (native framework) |
-| **Quick run command** | `node --test tests/tone-validation.test.js` |
-| **Full suite command** | `node --test tests/*.test.js` |
-| **Estimated runtime** | ~5 seconds |
+| Property               | Value                                       |
+| ---------------------- | ------------------------------------------- |
+| **Framework**          | Node.js native `node:test`                  |
+| **Config file**        | None (native framework)                     |
+| **Quick run command**  | `node --test tests/tone-validation.test.js` |
+| **Full suite command** | `node --test tests/*.test.js`               |
+| **Estimated runtime**  | ~5 seconds                                  |
 
 ---
 
@@ -36,14 +36,14 @@ created: 2026-03-13
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 02-01 Task 0 | 01 | 0 | TONE-01 | unit | `node --test tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
-| 02-01 Task 1 | 01 | 1 | TONE-02,03,04,05 | unit | `node --test tests/tone-validation.test.js` | ❌ W0 | ⬜ pending |
-| 02-02 Task 0 | 02 | 0 | UX-02 | unit | `node --test tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
-| 02-02 Task 1 | 02 | 2 | UX-02 | unit | `node --test tests/ui-labels.test.js` | ❌ W0 | ⬜ pending |
+| Task ID      | Plan | Wave | Requirement      | Test Type | Automated Command                           | File Exists | Status     |
+| ------------ | ---- | ---- | ---------------- | --------- | ------------------------------------------- | ----------- | ---------- |
+| 02-01 Task 0 | 01   | 0    | TONE-01          | unit      | `node --test tests/tone-validation.test.js` | ❌ W0       | ⬜ pending |
+| 02-01 Task 1 | 01   | 1    | TONE-02,03,04,05 | unit      | `node --test tests/tone-validation.test.js` | ❌ W0       | ⬜ pending |
+| 02-02 Task 0 | 02   | 0    | UX-02            | unit      | `node --test tests/ui-labels.test.js`       | ❌ W0       | ⬜ pending |
+| 02-02 Task 1 | 02   | 2    | UX-02            | unit      | `node --test tests/ui-labels.test.js`       | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -52,18 +52,18 @@ created: 2026-03-13
 - [ ] `tests/tone-validation.test.js` — validates no PM language in prompts
 - [ ] `tests/ui-labels.test.js` — validates mode labels are jargon-free
 
-*Wave 0 creates test infrastructure for automated tone validation*
+_Wave 0 creates test infrastructure for automated tone validation_
 
 ---
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Vibe-coder comprehension | TONE-02,03,04 | Subjective understanding check | Paste sample output to non-technical user, ask "what does this mean?" |
-| Friendly-teacher tone consistency | TONE-01 | Qualitative tone assessment | Read 3 mode outputs, verify consistent warmth/patience |
+| Behavior                          | Requirement   | Why Manual                     | Test Instructions                                                     |
+| --------------------------------- | ------------- | ------------------------------ | --------------------------------------------------------------------- |
+| Vibe-coder comprehension          | TONE-02,03,04 | Subjective understanding check | Paste sample output to non-technical user, ask "what does this mean?" |
+| Friendly-teacher tone consistency | TONE-01       | Qualitative tone assessment    | Read 3 mode outputs, verify consistent warmth/patience                |
 
-*Some aspects require human judgment beyond regex validation*
+_Some aspects require human judgment beyond regex validation_
 
 ---
 

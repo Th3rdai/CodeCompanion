@@ -9,11 +9,13 @@
 ### Option 1: NSIS Installer (Recommended)
 
 **x64 (Intel/AMD - Most Windows PCs):**
+
 - **File:** `code-companion-<version>-x64.exe` (size varies by build; often ~180 MB+)
 - **Installation:** Run the installer, follow prompts
 - ⭐ **Recommended for most users**
 
 **ARM64 (ARM-based Windows):**
+
 - **File:** `code-companion-<version>-arm64.exe` (size varies by build)
 - **Installation:** Run the installer, follow prompts
 - For Windows on ARM (Surface Pro X, etc.)
@@ -21,10 +23,12 @@
 ### Option 2: ZIP Archive (Portable)
 
 **x64 (Intel/AMD):**
+
 - **File:** `code-companion-<version>-x64.zip`
 - Extract and run `Code Companion.exe`
 
 **ARM64 (ARM-based Windows):**
+
 - **File:** `code-companion-<version>-arm64.zip`
 - Extract and run `Code Companion.exe`
 
@@ -48,6 +52,7 @@
 **Not sure?** Most Windows PCs use **x64 (Intel/AMD)**.
 
 Check your system:
+
 1. Press `Win + Pause/Break` or `Win + I` → System → About
 2. Look at **System type:**
    - `x64-based processor` → Use **x64** installer
@@ -58,6 +63,7 @@ Check your system:
 ## 📁 Data Storage Location
 
 **Windows uses the portable approach:**
+
 ```
 C:\Users\YourName\AppData\Local\Programs\Code Companion\CodeCompanion-Data\
 ```
@@ -65,6 +71,7 @@ C:\Users\YourName\AppData\Local\Programs\Code Companion\CodeCompanion-Data\
 Or next to the executable if using the portable ZIP version.
 
 **Contains:**
+
 - Configuration files (`.cc-config.json`)
 - Conversation history
 - Memory data
@@ -85,6 +92,7 @@ Or next to the executable if using the portable ZIP version.
 ## What's New in v1.5.14
 
 ### Desktop & release
+
 - **CI + release checks** — Workflow verifies **`latest-*.yml`** artifacts and that **`GITHUB_REPOSITORY`** matches the app’s publish target before upload.
 - **Software Updates** — Plain-language status; **Open download page** always available; external links open in the system browser.
 - **Electron** — **View → Go to app home** (Ctrl+Shift+H) if navigation gets stuck; stricter in-window vs external URL handling.
@@ -92,21 +100,25 @@ Or next to the executable if using the portable ZIP version.
 ### Also in recent releases (v1.5.3 and earlier)
 
 #### 🔒 Security & release alignment
+
 - **CSP nonces** for production HTML; **generic** server error messages to clients; **CI** dependency audit (`npm audit` critical gate).
 - **GitHub token** validation cached briefly to reduce API calls.
 - **Releases** — Installers from **th3rdai/CodeCompanion** Releases (in-app Software Updates when assets are published).
 
 #### 🚀 Docling Auto-Start
+
 - Automatic document conversion (PDF, DOCX, PPTX, Excel, PowerPoint)
 - Auto-starts docling-serve on app launch
 - No manual setup required
 
 #### 🎨 UI Improvements
+
 - **Prominent project folder path display** with gradient background
 - Larger, clearer text in File Browser
 - Better visibility and contrast
 
 #### 🔧 Technical Enhancements
+
 - Graceful shutdown handling
 - Improved startup scripts
 - Comprehensive documentation
@@ -119,6 +131,7 @@ Or next to the executable if using the portable ZIP version.
 ### Standard Installation (NSIS)
 
 **Features:**
+
 - ✅ Guided installer
 - ✅ Automatic updates
 - ✅ Start Menu integration
@@ -127,18 +140,21 @@ Or next to the executable if using the portable ZIP version.
 - ✅ File associations (optional)
 
 **Location:**
+
 - Default: `C:\Users\YourName\AppData\Local\Programs\Code Companion\`
 - Customizable during installation
 
 ### Portable Installation (ZIP)
 
 **Features:**
+
 - ✅ No installation required
 - ✅ Run from any folder (USB drive, network share)
 - ✅ Self-contained data folder
 - ✅ No registry changes
 
 **How to use:**
+
 1. Extract ZIP to desired location
 2. Run `Code Companion.exe`
 3. Data saves in `CodeCompanion-Data` folder next to exe
@@ -152,6 +168,7 @@ Or next to the executable if using the portable ZIP version.
 **This is normal for unsigned apps.** Code Companion is safe but not code-signed (requires expensive certificate).
 
 **To run:**
+
 1. Click **"More info"**
 2. Click **"Run anyway"**
 
@@ -162,36 +179,46 @@ After first run, Windows remembers and won't show the warning again.
 ## Troubleshooting
 
 ### "Windows protected your PC" Warning
+
 1. Click "More info"
 2. Click "Run anyway"
 3. Windows will remember your choice
 
 ### Installer Won't Run
+
 **Right-click** → **Run as Administrator**
 
 ### "Missing .dll" Errors
+
 Install Visual C++ Redistributables:
+
 - Download from: https://aka.ms/vs/17/release/vc_redist.x64.exe
 - Run installer
 - Restart Code Companion
 
 ### Firewall Blocks Connection
+
 **Allow through firewall:**
+
 1. Windows Security → Firewall & network protection
 2. Allow an app through firewall
 3. Find "Code Companion" → Check Private and Public
 4. Click OK
 
 ### Ollama Not Found
+
 Install Ollama for Windows: https://ollama.ai
+
 ```cmd
 ollama --version
 ```
 
 ### Port 8900 Already in Use
+
 Another app is using the default port.
 
 **Change port in settings:**
+
 1. Open Code Companion
 2. Settings (⚙️) → General
 3. Change port to 8901 or another free port
@@ -204,10 +231,12 @@ Another app is using the default port.
 ### NSIS Installation
 
 **Method 1 - Start Menu:**
+
 1. Start Menu → Code Companion → Uninstall
 2. Follow prompts
 
 **Method 2 - Settings:**
+
 1. Windows Settings → Apps → Installed apps
 2. Find "Code Companion"
 3. Click **Uninstall**

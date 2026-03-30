@@ -11,16 +11,19 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ## MAKER Framework Components
 
 ### 1. Maximal Agentic Decomposition
+
 - **Principle**: Extreme decomposition of tasks into the smallest possible subtasks
 - **Implementation**: Each microagent handles a single, focused subtask
 - **Benefit**: Reduces complexity and error propagation
 
 ### 2. Error Correction (First-to-Ahead-by-K)
+
 - **Principle**: Multi-agent voting scheme at each subtask level
 - **Implementation**: Multiple agents vote on subtask solutions
 - **Benefit**: Catches and corrects errors before they propagate
 
 ### 3. Red-flagging
+
 - **Principle**: Proactive identification of potentially problematic outputs
 - **Implementation**: Filter mechanism to reduce correlated errors
 - **Benefit**: Prevents systematic failure modes
@@ -30,6 +33,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ### Phase 1: Task Analysis and Decomposition
 
 #### Step 1.1: Task Mapping
+
 ```
 1. Identify the complete task workflow
 2. Map all dependencies between steps
@@ -38,6 +42,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ```
 
 #### Step 1.2: Microagent Design
+
 ```
 1. Create single-purpose agents for each subtask
 2. Define clear input/output specifications
@@ -48,6 +53,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ### Phase 2: Agent Architecture Setup
 
 #### Step 2.1: Agent Pool Creation
+
 ```
 1. Deploy multiple instances of each agent type
 2. Implement load balancing across agent instances
@@ -56,6 +62,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ```
 
 #### Step 2.2: Voting Infrastructure
+
 ```
 1. Design consensus mechanisms for each subtask type
 2. Implement majority voting algorithms
@@ -66,6 +73,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ### Phase 3: Error Detection and Correction
 
 #### Step 3.1: Multi-Agent Voting Implementation
+
 ```
 1. Route each subtask to multiple agents
 2. Collect and compare outputs
@@ -74,6 +82,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ```
 
 #### Step 3.2: Red-flagging System
+
 ```
 1. Define patterns that indicate potential errors
 2. Implement automated flagging rules
@@ -84,6 +93,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ### Phase 4: Orchestration and Coordination
 
 #### Step 4.1: Workflow Engine
+
 ```
 1. Implement task scheduling and dependency management
 2. Create progress tracking mechanisms
@@ -92,6 +102,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ```
 
 #### Step 4.2: Monitoring and Observability
+
 ```
 1. Implement real-time progress monitoring
 2. Track error rates at each decomposition level
@@ -102,17 +113,20 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ## Technical Implementation Guidelines
 
 ### Model Selection Strategy
+
 - **Recommendation**: Use smaller, cost-effective models (e.g., gpt-4.1-mini)
 - **Rationale**: Better reliability-per-dollar than large reasoning models
 - **Consideration**: Focus on consistency over individual capability
 
 ### Decomposition Best Practices
+
 - **Granularity**: Decompose to the finest reasonable level
 - **Independence**: Ensure subtasks can be validated independently
 - **Clarity**: Define precise success criteria for each subtask
 - **Testability**: Make each subtask easily verifiable
 
 ### Voting Mechanism Design
+
 - **Odd Numbers**: Use odd numbers of voters to avoid ties
 - **Confidence Scoring**: Weight votes by agent confidence levels
 - **Timeout Handling**: Set reasonable timeouts for voting rounds
@@ -121,12 +135,14 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ## Scaling Considerations
 
 ### Performance Optimization
+
 - Parallel execution of independent subtasks
 - Efficient agent pool management
 - Optimized communication protocols
 - Caching of common subtask results
 
 ### Cost Management
+
 - Strategic use of smaller models for reliability
 - Efficient resource allocation across agent pools
 - Monitoring and optimization of API usage
@@ -135,12 +151,14 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ## Validation and Testing
 
 ### Testing Framework
+
 1. **Unit Testing**: Validate individual agent performance
 2. **Integration Testing**: Test multi-agent voting mechanisms
 3. **End-to-End Testing**: Validate complete workflow execution
 4. **Stress Testing**: Test system behavior under load
 
 ### Success Metrics
+
 - Zero-error completion rate for long chains
 - Cost per successfully completed task
 - Time to completion for various task sizes
@@ -149,6 +167,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ## Real-World Applications
 
 ### Suitable Use Cases
+
 - Complex data processing pipelines
 - Multi-step verification processes
 - Long-form content generation with accuracy requirements
@@ -156,6 +175,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 - Complex calculation chains
 
 ### Implementation Considerations
+
 - Start with simpler tasks to validate the framework
 - Gradually increase task complexity
 - Monitor and optimize based on real-world performance
@@ -164,6 +184,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 ## Getting Started
 
 ### Minimum Viable Implementation
+
 1. Choose a simple, multi-step task (10-100 steps)
 2. Implement basic decomposition with 3-agent voting
 3. Add simple red-flagging for obvious errors
@@ -171,6 +192,7 @@ Traditional LLMs suffer from accumulated error rates that make long-chain reason
 5. Gradually scale up complexity and step count
 
 ### Technology Stack Recommendations
+
 - **Orchestration**: Workflow engines (e.g., Temporal, Apache Airflow)
 - **Agent Communication**: Message queues (e.g., RabbitMQ, Apache Kafka)
 - **Monitoring**: Observability platforms (e.g., Grafana, DataDog)

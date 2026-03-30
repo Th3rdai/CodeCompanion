@@ -1,89 +1,89 @@
-import { useEffect, useRef, useState } from 'react';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import { useEffect, useRef, useState } from "react";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
 // ── Humorous mode-aware messages ─────────────────────
 const MODE_QUIPS = {
   diagram: [
-    'Sharpening my crayons...',
-    'Connecting the dots... literally',
-    'Arguing with the flowchart gods',
-    'Making boxes talk to each other',
-    'Drawing lines with purpose',
-    'Untangling the spaghetti',
-    'Aligning nodes... almost there',
-    'Consulting the diagram oracle',
+    "Sharpening my crayons...",
+    "Connecting the dots... literally",
+    "Arguing with the flowchart gods",
+    "Making boxes talk to each other",
+    "Drawing lines with purpose",
+    "Untangling the spaghetti",
+    "Aligning nodes... almost there",
+    "Consulting the diagram oracle",
   ],
   review: [
-    'Putting on my reading glasses...',
-    'Grading with a generous curve',
-    'Looking for bugs with a magnifying glass',
-    'Checking under the hood...',
-    'Counting red flags... hopefully zero',
-    'Being honest but gentle...',
+    "Putting on my reading glasses...",
+    "Grading with a generous curve",
+    "Looking for bugs with a magnifying glass",
+    "Checking under the hood...",
+    "Counting red flags... hopefully zero",
+    "Being honest but gentle...",
   ],
   explain: [
-    'Translating nerd to human...',
-    'Finding the perfect analogy',
-    'Simplifying the complicated bits',
-    'Channeling my inner teacher',
-    'Brewing an explanation...',
+    "Translating nerd to human...",
+    "Finding the perfect analogy",
+    "Simplifying the complicated bits",
+    "Channeling my inner teacher",
+    "Brewing an explanation...",
   ],
   bugs: [
-    'Hunting bugs with a flashlight...',
-    'Checking for monsters under the code',
-    'Poking things to see what breaks',
-    'Sniffing out trouble...',
-    'Looking for the gotchas...',
+    "Hunting bugs with a flashlight...",
+    "Checking for monsters under the code",
+    "Poking things to see what breaks",
+    "Sniffing out trouble...",
+    "Looking for the gotchas...",
   ],
   refactor: [
-    'Tidying up the code closet...',
-    'Marie Kondo-ing your functions',
-    'Folding the code neatly...',
-    'Sparking joy in your codebase',
+    "Tidying up the code closet...",
+    "Marie Kondo-ing your functions",
+    "Folding the code neatly...",
+    "Sparking joy in your codebase",
   ],
-  'translate-tech': [
-    'Translating geek speak...',
-    'Removing all the jargon...',
-    'Making this make sense...',
+  "translate-tech": [
+    "Translating geek speak...",
+    "Removing all the jargon...",
+    "Making this make sense...",
   ],
-  'translate-biz': [
-    'Turning ideas into blueprints...',
-    'Building your spec sheet...',
-    'Drafting the game plan...',
+  "translate-biz": [
+    "Turning ideas into blueprints...",
+    "Building your spec sheet...",
+    "Drafting the game plan...",
   ],
   create: [
-    'Scaffolding something awesome...',
-    'Setting the stage...',
-    'Preparing the canvas...',
+    "Scaffolding something awesome...",
+    "Setting the stage...",
+    "Preparing the canvas...",
   ],
   prompting: [
-    'Prompt-ception in progress...',
-    'Engineering the prompt engineer...',
-    'Meta-thinking intensifies...',
+    "Prompt-ception in progress...",
+    "Engineering the prompt engineer...",
+    "Meta-thinking intensifies...",
   ],
   skillz: [
-    'Teaching AI to teach AI...',
-    'Skill-crafting in progress...',
-    'Building brains for robots...',
+    "Teaching AI to teach AI...",
+    "Skill-crafting in progress...",
+    "Building brains for robots...",
   ],
   agentic: [
-    'Designing an AI overlord... safely',
-    'Adding guardrails and safety nets',
-    'Training the agent apprentice...',
+    "Designing an AI overlord... safely",
+    "Adding guardrails and safety nets",
+    "Training the agent apprentice...",
   ],
 };
 
 const DEFAULT_QUIPS = [
-  'Thinking really hard...',
-  'Consulting my neural networks...',
-  'Summoning the right words...',
-  'Processing at the speed of thought',
-  'Rummaging through my brain...',
-  'Almost there... probably',
-  'Assembling a thoughtful response...',
-  'Loading wisdom...',
-  'Crunching the knowledge base...',
-  'Brewing up something good...',
+  "Thinking really hard...",
+  "Consulting my neural networks...",
+  "Summoning the right words...",
+  "Processing at the speed of thought",
+  "Rummaging through my brain...",
+  "Almost there... probably",
+  "Assembling a thoughtful response...",
+  "Loading wisdom...",
+  "Crunching the knowledge base...",
+  "Brewing up something good...",
 ];
 
 function getQuips(mode) {
@@ -104,7 +104,7 @@ export default function TypingIndicator3D({ mode }) {
     setQuipIndex(Math.floor(Math.random() * quips.length));
 
     const interval = setInterval(() => {
-      setQuipIndex(prev => (prev + 1) % quips.length);
+      setQuipIndex((prev) => (prev + 1) % quips.length);
     }, 3000);
 
     return () => clearInterval(interval);
@@ -113,12 +113,15 @@ export default function TypingIndicator3D({ mode }) {
   const colors = [theme.primary, theme.secondary, theme.tertiary];
 
   useEffect(() => {
-    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      !enabled ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       return;
     }
 
     const initIndicator = async () => {
-      const THREE = await import('three');
+      const THREE = await import("three");
 
       if (!containerRef.current) return;
 
@@ -193,7 +196,7 @@ export default function TypingIndicator3D({ mode }) {
     const cleanup = initIndicator().then((fn) => fn);
 
     return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
+      if (cleanup && typeof cleanup.then === "function") {
         cleanup.then((fn) => fn?.());
       }
     };
@@ -203,7 +206,7 @@ export default function TypingIndicator3D({ mode }) {
     <span
       key={quipIndex}
       className="text-xs text-slate-400 italic fade-in ml-2"
-      style={{ display: 'inline-block', minWidth: '200px' }}
+      style={{ display: "inline-block", minWidth: "200px" }}
     >
       {quips[quipIndex % quips.length]}
     </span>
@@ -225,7 +228,7 @@ export default function TypingIndicator3D({ mode }) {
       <div
         ref={containerRef}
         style={{
-          display: 'inline-block',
+          display: "inline-block",
         }}
       />
       {quipText}

@@ -5,10 +5,21 @@ subsystem: desktop-shell
 tags: [cross-platform, ide-launcher, ollama-setup, ux]
 requires: [06-01]
 provides: [platform-ide-launch, ollama-wizard, connection-health]
-affects: [electron/ide-launcher.js, electron/ollama-setup.js, electron/main.js, electron/preload.js, server.js, src/components/OllamaSetup.jsx, src/components/ConnectionDot.jsx, src/App.jsx]
+affects:
+  [
+    electron/ide-launcher.js,
+    electron/ollama-setup.js,
+    electron/main.js,
+    electron/preload.js,
+    server.js,
+    src/components/OllamaSetup.jsx,
+    src/components/ConnectionDot.jsx,
+    src/App.jsx,
+  ]
 tech_stack:
   added: []
-  patterns: [platform-detection, ipc-streaming, download-progress, friendly-wizard]
+  patterns:
+    [platform-detection, ipc-streaming, download-progress, friendly-wizard]
 key_files:
   created:
     - electron/ide-launcher.js
@@ -48,10 +59,12 @@ Add cross-platform IDE launchers and the Ollama setup wizard with auto-install, 
 ## Completed Tasks
 
 ### Task 1: Cross-platform IDE launcher and server.js migration
+
 **Status:** ✅ Complete
 **Commit:** 03acd82
 
 **What was built:**
+
 - Created `electron/ide-launcher.js` with `launchIDE(ideName, folder)` function
 - Platform detection via `process.platform` for darwin, win32, linux
 - IDE support: Cursor, Windsurf, Claude Code (with `--dangerously-skip-permissions`), OpenCode
@@ -61,11 +74,13 @@ Add cross-platform IDE launchers and the Ollama setup wizard with auto-install, 
 - Exposed `launchIDE` via preload.js electronAPI
 
 **Platform-specific commands:**
+
 - Cursor: darwin uses `open -a`, win32 uses `cmd /c start`, linux uses direct command
 - Claude Code & OpenCode: darwin uses osascript Terminal, win32 uses cmd, linux uses x-terminal-emulator
 - All include proper path escaping and Claude Code includes permission flag
 
 **Files:**
+
 - electron/ide-launcher.js (85 lines)
 - electron/main.js (+7 lines)
 - electron/preload.js (+3 lines)
@@ -74,10 +89,12 @@ Add cross-platform IDE launchers and the Ollama setup wizard with auto-install, 
 **Verification:** ✅ `node -e "const l = require('./electron/ide-launcher.js'); console.log(typeof l.launchIDE)"` returns `function`
 
 ### Task 2: Ollama setup wizard with auto-install, model pull progress, and connection health dot
+
 **Status:** ✅ Complete
 **Commit:** fc81e0b
 
 **What was built:**
+
 - Created `electron/ollama-setup.js` with 3 functions:
   - `checkOllamaRunning(url)`: Fetch `/api/tags` with 3s timeout, return `{running, models}`
   - `installOllama()`: Platform-specific auto-install (macOS: download .zip, Windows: .exe, Linux: curl script), then poll localhost:11434 for 2 minutes
@@ -116,6 +133,7 @@ Add cross-platform IDE launchers and the Ollama setup wizard with auto-install, 
   - OllamaSetup as overlay: `{showOllamaSetup && <OllamaSetup onComplete={() => { setShowOllamaSetup(false); fetchModels(); }} />}`
 
 **Files:**
+
 - electron/ollama-setup.js (226 lines)
 - electron/main.js (+32 lines)
 - electron/preload.js (+6 lines)
@@ -141,6 +159,7 @@ None - plan executed exactly as written.
 ## Must-Haves Satisfied
 
 **Truths:**
+
 - ✅ IDE launcher buttons work on macOS, Linux, and Windows using platform-detected commands
 - ✅ Ollama connection status visible as green/red dot near model dropdown
 - ✅ If Ollama not running, friendly setup screen guides user (not error state)
@@ -149,12 +168,14 @@ None - plan executed exactly as written.
 - ✅ Model pull shows real progress bar with download percentage and size
 
 **Artifacts:**
+
 - ✅ `electron/ide-launcher.js`: 85 lines (min 40), provides cross-platform launch commands
 - ✅ `electron/ollama-setup.js`: 226 lines (min 60), provides detection, auto-install, model pull with progress
 - ✅ `src/components/OllamaSetup.jsx`: 319 lines (min 80), friendly wizard UI
 - ✅ `src/components/ConnectionDot.jsx`: 22 lines (min 15), connection status indicator
 
 **Key-links:**
+
 - ✅ `electron/ide-launcher.js` → `server.js`: IPC handler delegates to platform-specific exec commands (pattern: `process.platform|darwin|win32|linux`)
 - ✅ `src/components/OllamaSetup.jsx` → `electron/ollama-setup.js`: window.electronAPI IPC calls for install and pull (pattern: `electronAPI.installOllama|electronAPI.pullModel`)
 - ✅ `src/components/ConnectionDot.jsx` → `/api/health`: Fetch Ollama connection status (pattern: `fetch.*health|ollamaConnected` — implemented via `fetchModels()` which calls `/api/models` and sets `connected` state)
@@ -201,6 +222,7 @@ src/App.jsx (+15 lines)
 ## Self-Check: PASSED
 
 **Created files exist:**
+
 ```
 FOUND: electron/ide-launcher.js
 FOUND: electron/ollama-setup.js
@@ -209,6 +231,7 @@ FOUND: src/components/ConnectionDot.jsx
 ```
 
 **Commits exist:**
+
 ```
 FOUND: 03acd82
 FOUND: fc81e0b

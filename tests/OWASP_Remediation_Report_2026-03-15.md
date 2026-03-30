@@ -12,13 +12,13 @@
 
 All 8 actionable findings from the OWASP Top 10 penetration test have been remediated. Two positive findings and two informational findings required no action.
 
-| Severity | Original | Remediated | Remaining |
-|----------|----------|------------|-----------|
-| Critical | 2 | 2 | 0 |
-| High | 4 | 4 | 0 |
-| Medium | 4 | 4 | 0 |
-| Low (positive) | 2 | — | N/A |
-| Info | 2 | — | N/A |
+| Severity       | Original | Remediated | Remaining |
+| -------------- | -------- | ---------- | --------- |
+| Critical       | 2        | 2          | 0         |
+| High           | 4        | 4          | 0         |
+| Medium         | 4        | 4          | 0         |
+| Low (positive) | 2        | —          | N/A       |
+| Info           | 2        | —          | N/A       |
 
 ---
 
@@ -33,6 +33,7 @@ All 8 actionable findings from the OWASP Top 10 penetration test have been remed
 **File:** `server.js` (POST /api/config handler)
 
 **Verification:**
+
 ```bash
 curl -X POST http://localhost:3000/api/config \
   -H 'Content-Type: application/json' \
@@ -47,16 +48,19 @@ curl -X POST http://localhost:3000/api/config \
 **Finding:** `req.params.id` passed directly to `path.join(_historyDir, id + '.json')` with no validation.
 
 **Fix:** Added ID validation at the top of `getConversation()`, `deleteConversation()`, and `saveConversation()` in `lib/history.js`:
+
 ```js
-if (!id || typeof id !== 'string' || /[\/\\]|\.\./.test(id)) {
-  throw new Error('Invalid conversation id');
+if (!id || typeof id !== "string" || /[\/\\]|\.\./.test(id)) {
+  throw new Error("Invalid conversation id");
 }
 ```
+
 Rejects any ID containing `/`, `\`, or `..` sequences.
 
 **File:** `lib/history.js`
 
 **Verification:**
+
 ```bash
 curl http://localhost:3000/api/history/..%2F..%2F.cc-config
 # Returns: 400 {"error":"Invalid conversation id"}
@@ -73,6 +77,7 @@ curl http://localhost:3000/api/history/..%2F..%2F.cc-config
 **File:** `server.js` (POST /api/build/projects handler)
 
 **Verification:**
+
 ```bash
 curl -X POST http://localhost:3000/api/build/projects \
   -H 'Content-Type: application/json' \
@@ -107,6 +112,7 @@ curl -X POST http://localhost:3000/api/build/projects \
 **Finding:** IDE launch endpoints interpolated `folder` into shell strings (`osascript`, `execSync`).
 
 **Fix:**
+
 1. Added `_validateIDEFolder()` — rejects paths containing newlines, semicolons, pipes, backticks, `$` (shell metacharacters). Returns 400.
 2. Replaced `osascript` shell string interpolation in Claude Code and OpenCode launchers with `execFile('open', ['-a', 'Terminal', folder])` — no shell invocation.
 3. Cursor and Windsurf launchers already used `execFile` (linter fix); added `_validateIDEFolder()` check.
@@ -115,6 +121,7 @@ curl -X POST http://localhost:3000/api/build/projects \
 **File:** `server.js` (all `/api/launch-*` handlers)
 
 **Verification:**
+
 ```bash
 curl -X POST http://localhost:3000/api/launch-claude-code \
   -H 'Content-Type: application/json' \
@@ -129,6 +136,7 @@ curl -X POST http://localhost:3000/api/launch-claude-code \
 **Finding:** No `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, etc.
 
 **Fix:** Added `helmet` middleware with restrictive Content-Security-Policy:
+
 - `default-src: 'self'`
 - `script-src: 'self' 'unsafe-inline'` (required for Vite/React)
 - `style-src: 'self' 'unsafe-inline' fonts.googleapis.com`
@@ -141,6 +149,7 @@ Also sets: `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `X-
 **File:** `server.js` (helmet middleware), `package.json` (added `helmet` dependency)
 
 **Verification:**
+
 ```bash
 curl -sI http://localhost:3000/ | grep -i "x-content-type\|x-frame\|content-security"
 # All 3 headers present
@@ -163,13 +172,18 @@ curl -sI http://localhost:3000/ | grep -i "x-content-type\|x-frame\|content-secu
 **Finding:** `deleteClonedRepo` used `fullPath.startsWith(reposDir)` which could be bypassed with prefix-matching paths.
 
 **Fix:** Replaced string prefix check with `path.resolve()` comparison:
+
 ```js
 const resolvedFull = path.resolve(fullPath);
 const resolvedRepos = path.resolve(reposDir);
-if (resolvedFull === resolvedRepos || !resolvedFull.startsWith(resolvedRepos + path.sep)) {
-  return { success: false, error: 'Invalid path' };
+if (
+  resolvedFull === resolvedRepos ||
+  !resolvedFull.startsWith(resolvedRepos + path.sep)
+) {
+  return { success: false, error: "Invalid path" };
 }
 ```
+
 Uses resolved absolute paths and requires `path.sep` separator, preventing prefix-matching bypass.
 
 **File:** `lib/github.js` (deleteClonedRepo)
@@ -185,6 +199,7 @@ Uses resolved absolute paths and requires `path.sep` separator, preventing prefi
 **File:** `server.js` (logSecurity function)
 
 **Example output:**
+
 ```
 [SECURITY] [BLOCKED_CONFIG] {"path":"/etc","ip":"127.0.0.1","ts":"2026-03-15T07:57:26.193Z"}
 ```
@@ -217,23 +232,23 @@ Uses resolved absolute paths and requires `path.sep` separator, preventing prefi
 
 ## Files Modified
 
-| File | Changes |
-|------|---------|
-| `server.js` | Added helmet + cors middleware, projectFolder allowlist (F-01), build import allowlist (F-03), `_validateIDEFolder` + `execFile` for all IDE launchers (F-06), `logSecurity()` (F-10) |
-| `lib/history.js` | Added ID validation in getConversation, deleteConversation, saveConversation (F-02) |
-| `lib/github.js` | Fixed deleteClonedRepo path check with path.resolve (F-09) |
-| `package.json` | Added `helmet`, `cors` dependencies (F-07, F-08) |
+| File             | Changes                                                                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server.js`      | Added helmet + cors middleware, projectFolder allowlist (F-01), build import allowlist (F-03), `_validateIDEFolder` + `execFile` for all IDE launchers (F-06), `logSecurity()` (F-10) |
+| `lib/history.js` | Added ID validation in getConversation, deleteConversation, saveConversation (F-02)                                                                                                   |
+| `lib/github.js`  | Fixed deleteClonedRepo path check with path.resolve (F-09)                                                                                                                            |
+| `package.json`   | Added `helmet`, `cors` dependencies (F-07, F-08)                                                                                                                                      |
 
 ## Test Results (Post-Remediation)
 
-| Suite | Tests | Result |
-|-------|-------|--------|
-| Unit (MCP security, tone, UI, builder, scaffolder) | 27 | 27/27 PASS |
-| Rate limiting | 1 | 1/1 PASS |
-| UI (Playwright) | 27 | 27/27 PASS |
-| E2E (Review workflow) | 4 | 4/4 PASS |
-| Security verification (manual) | 5 | 5/5 PASS |
-| **Total** | **64** | **64/64 PASS** |
+| Suite                                              | Tests  | Result         |
+| -------------------------------------------------- | ------ | -------------- |
+| Unit (MCP security, tone, UI, builder, scaffolder) | 27     | 27/27 PASS     |
+| Rate limiting                                      | 1      | 1/1 PASS       |
+| UI (Playwright)                                    | 27     | 27/27 PASS     |
+| E2E (Review workflow)                              | 4      | 4/4 PASS       |
+| Security verification (manual)                     | 5      | 5/5 PASS       |
+| **Total**                                          | **64** | **64/64 PASS** |
 
 ## Recommendations for Future Work
 
@@ -245,4 +260,4 @@ Uses resolved absolute paths and requires `path.sep` separator, preventing prefi
 
 ---
 
-*End of remediation report.*
+_End of remediation report._

@@ -53,6 +53,7 @@ metrics:
 ## What Was Built
 
 ### LoadingAnimation Component
+
 - Created standalone component with bouncing dots animation (3 dots with staggered delays: 0ms, 150ms, 300ms)
 - Rotating encouraging messages every 3.5 seconds from array of 4 phrases:
   - "Looking for ways to make your code even better!"
@@ -65,6 +66,7 @@ metrics:
 - Integrated into ReviewPanel to replace inline loading state
 
 ### Progressive Disclosure in ReportCard
+
 - Added `showAllFindings` state toggle (defaults to false)
 - "Show all findings" button with ChevronDown/ChevronUp icons from lucide-react
 - Button appears below grade summary grid
@@ -73,6 +75,7 @@ metrics:
 - Preserves existing functionality: color-coded grades, severity pills, deep-dive buttons
 
 ### Component Tests
+
 - Created tests/ui/loading-animation.spec.js with 4 test cases:
   - Bouncing dots animation presence
   - Rotating encouraging messages
@@ -88,18 +91,21 @@ metrics:
 ## Technical Highlights
 
 ### Accessibility
+
 - **aria-live region:** Always in DOM (not conditionally rendered), only content updates
 - **sr-only class:** Screen reader announcement hidden visually
 - **Icon + text labels:** Color-coded grades paired with text labels (WCAG 1.4.1 compliance)
 - **Clear button labels:** "Show all findings" / "Hide detailed findings" with chevron icons
 
 ### Animation Pattern
+
 - **Tailwind animate-bounce:** Zero runtime cost, built-in utility
 - **Staggered delays:** Inline style animationDelay (0ms, 150ms, 300ms)
 - **Message rotation:** useEffect with setInterval, cleanup on unmount
 - **Transition opacity:** Smooth fade for message changes (duration-300)
 
 ### Progressive Disclosure Pattern
+
 - **Minimal by default:** Shows overall grade, top priority, grade summary grid
 - **Expand on demand:** "Show all findings" button reveals detailed CategorySection components
 - **Conditional rendering:** `{showAllFindings && <div>...</div>}`
@@ -111,24 +117,28 @@ None - plan executed exactly as written. All 3 tasks completed without requiring
 
 ## Requirements Met
 
-| ID | Description | Implementation |
-|----|-------------|----------------|
-| REVW-07 | Color-coded grades (A=green through F=red) | Existing GRADE_COLORS mapping preserved; progressive disclosure added without modifying grade colors |
-| REVW-08 | Friendly loading state with encouragement | LoadingAnimation component with 4 rotating encouraging messages, bouncing dots, aria-live accessibility |
+| ID      | Description                                | Implementation                                                                                          |
+| ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| REVW-07 | Color-coded grades (A=green through F=red) | Existing GRADE_COLORS mapping preserved; progressive disclosure added without modifying grade colors    |
+| REVW-08 | Friendly loading state with encouragement  | LoadingAnimation component with 4 rotating encouraging messages, bouncing dots, aria-live accessibility |
 
 ## Testing Status
 
 ### Tests Created
+
 - ✅ tests/ui/loading-animation.spec.js (4 test cases)
 - ✅ tests/ui/report-card-interactions.spec.js (4 test cases)
 
 ### Test Infrastructure
+
 - ✅ Added test:ui script to package.json
 - ✅ Updated playwright.config.js testDir to include tests/
 - ⚠️ Tests will fail until server mocking is configured (tests depend on /api/review endpoint)
 
 ### Manual Verification
+
 To verify manually:
+
 1. `npm run dev`
 2. Navigate to Review mode
 3. Submit code for review
@@ -138,26 +148,29 @@ To verify manually:
 
 ## Commits
 
-| Hash | Message | Files |
-|------|---------|-------|
-| 9e30ade | test(03-01): add component test scaffolds | tests/ui/loading-animation.spec.js, tests/ui/report-card-interactions.spec.js, package.json, playwright.config.js |
-| a76b605 | feat(03-01): create LoadingAnimation component | src/components/LoadingAnimation.jsx, src/components/ReviewPanel.jsx |
-| c37c7eb | feat(03-01): add progressive disclosure toggle | src/components/ReportCard.jsx |
+| Hash    | Message                                        | Files                                                                                                             |
+| ------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 9e30ade | test(03-01): add component test scaffolds      | tests/ui/loading-animation.spec.js, tests/ui/report-card-interactions.spec.js, package.json, playwright.config.js |
+| a76b605 | feat(03-01): create LoadingAnimation component | src/components/LoadingAnimation.jsx, src/components/ReviewPanel.jsx                                               |
+| c37c7eb | feat(03-01): add progressive disclosure toggle | src/components/ReportCard.jsx                                                                                     |
 
 ## Self-Check: PASSED
 
 **Files created (expected 4, found 4):**
+
 - ✅ src/components/LoadingAnimation.jsx
 - ✅ tests/ui/loading-animation.spec.js
 - ✅ tests/ui/report-card-interactions.spec.js
 - ✅ package.json (modified to add test:ui script)
 
 **Commits exist (expected 3, found 3):**
+
 - ✅ 9e30ade (test scaffolds)
 - ✅ a76b605 (LoadingAnimation)
 - ✅ c37c7eb (progressive disclosure)
 
 **Key features verified:**
+
 - ✅ LoadingAnimation uses Tailwind animate-bounce
 - ✅ LoadingAnimation has aria-live region
 - ✅ LoadingAnimation rotates 4 encouraging messages

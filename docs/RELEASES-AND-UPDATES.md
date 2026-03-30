@@ -16,13 +16,13 @@ For **how to build** installers locally, see **[BUILD.md](../BUILD.md)**.
 
 ## Concepts
 
-| Piece | Role |
-|--------|------|
-| **`package.json` → `version`** | Semver string shipped inside the app; must match the release tag (without leading `v`). |
-| **Git tag `v*`** | Triggers CI and names the GitHub Release (e.g. `v1.6.0` → version `1.6.0`). |
-| **`electron-builder.config.js` → `publish`** | Points electron-updater at **GitHub** `owner` / `repo` (currently `th3rdai` / `CodeCompanion`). |
-| **`release/` outputs** | Per-platform artifacts plus **updater YAML** (e.g. macOS `latest-mac.yml`). These must be **attached to the same GitHub Release** the app resolves. |
-| **`electron/updater.js`** | Configures `autoUpdater` (including **`allowPrerelease`**). Unpackaged dev (`electron .`) registers stub IPC only — **in-app updates run for packaged installs only** (matches `electron-updater`’s internal `app.isPackaged` check). |
+| Piece                                        | Role                                                                                                                                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`package.json` → `version`**               | Semver string shipped inside the app; must match the release tag (without leading `v`).                                                                                                                                               |
+| **Git tag `v*`**                             | Triggers CI and names the GitHub Release (e.g. `v1.6.0` → version `1.6.0`).                                                                                                                                                           |
+| **`electron-builder.config.js` → `publish`** | Points electron-updater at **GitHub** `owner` / `repo` (currently `th3rdai` / `CodeCompanion`).                                                                                                                                       |
+| **`release/` outputs**                       | Per-platform artifacts plus **updater YAML** (e.g. macOS `latest-mac.yml`). These must be **attached to the same GitHub Release** the app resolves.                                                                                   |
+| **`electron/updater.js`**                    | Configures `autoUpdater` (including **`allowPrerelease`**). Unpackaged dev (`electron .`) registers stub IPC only — **in-app updates run for packaged installs only** (matches `electron-updater`’s internal `app.isPackaged` check). |
 
 ### In-app **Upgrade** / **Check for updates** (what users need)
 
@@ -165,13 +165,13 @@ Keep **Electron**, **Node** (for the embedded server), and **security-related** 
 
 ## Related files
 
-| File | Purpose |
-|------|---------|
-| [`package.json`](../package.json) | App `version`; npm scripts including `electron:publish:*` |
-| [`electron-builder.config.js`](../electron-builder.config.js) | `publish` target, artifact layout |
-| [`electron/updater.js`](../electron/updater.js) | Auto-updater behavior and `allowPrerelease` |
-| [`BUILD.md`](../BUILD.md) | Local builds, artifact names, signing notes |
-| [`.github/workflows/build.yml`](../.github/workflows/build.yml) | Tag-triggered multi-platform build + release upload |
+| File                                                            | Purpose                                                   |
+| --------------------------------------------------------------- | --------------------------------------------------------- |
+| [`package.json`](../package.json)                               | App `version`; npm scripts including `electron:publish:*` |
+| [`electron-builder.config.js`](../electron-builder.config.js)   | `publish` target, artifact layout                         |
+| [`electron/updater.js`](../electron/updater.js)                 | Auto-updater behavior and `allowPrerelease`               |
+| [`BUILD.md`](../BUILD.md)                                       | Local builds, artifact names, signing notes               |
+| [`.github/workflows/build.yml`](../.github/workflows/build.yml) | Tag-triggered multi-platform build + release upload       |
 
 ---
 
@@ -181,4 +181,4 @@ If a release is broken or incomplete, users can always **download the DMG/ZIP/Ap
 
 ---
 
-*Printable export: [`RELEASES-AND-UPDATES.pdf`](./RELEASES-AND-UPDATES.pdf). Regenerate after editing this page: `npm run docs:pdf:releases`.*
+_Printable export: [`RELEASES-AND-UPDATES.pdf`](./RELEASES-AND-UPDATES.pdf). Regenerate after editing this page: `npm run docs:pdf:releases`._

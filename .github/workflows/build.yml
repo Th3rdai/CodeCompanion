@@ -13,7 +13,7 @@ name: Build Desktop Installers
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 permissions:

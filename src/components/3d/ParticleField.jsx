@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import { useEffect, useRef } from "react";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
 export default function ParticleField({
   particleCount = 600,
   speed = 0.3,
-  color = '#6366f1',
+  color = "#6366f1",
 }) {
   const { enabled } = use3DEffects();
   const containerRef = useRef(null);
@@ -12,12 +12,15 @@ export default function ParticleField({
   const rendererRef = useRef(null);
 
   useEffect(() => {
-    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      !enabled ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       return;
     }
 
     const initParticles = async () => {
-      const THREE = await import('three');
+      const THREE = await import("three");
 
       if (!containerRef.current) return;
 
@@ -60,8 +63,14 @@ export default function ParticleField({
         velocities[i + 2] = (Math.random() - 0.5) * speed * 0.5;
       }
 
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(positions, 3),
+      );
+      geometry.setAttribute(
+        "velocity",
+        new THREE.BufferAttribute(velocities, 3),
+      );
 
       // Create material
       const material = new THREE.PointsMaterial({
@@ -81,9 +90,9 @@ export default function ParticleField({
 
         if (document.hidden) return;
 
-        const posAttr = geometry.getAttribute('position');
+        const posAttr = geometry.getAttribute("position");
         const posArray = posAttr.array;
-        const velArray = geometry.getAttribute('velocity').array;
+        const velArray = geometry.getAttribute("velocity").array;
 
         for (let i = 0; i < adjustedCount * 3; i += 3) {
           posArray[i] += velArray[i];
@@ -115,10 +124,10 @@ export default function ParticleField({
         renderer.setSize(newWidth, newHeight);
       };
 
-      window.addEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
 
       return () => {
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener("resize", handleResize);
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current);
         }
@@ -134,7 +143,7 @@ export default function ParticleField({
     const cleanup = initParticles().then((fn) => fn);
 
     return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
+      if (cleanup && typeof cleanup.then === "function") {
         cleanup.then((fn) => fn?.());
       }
     };
@@ -146,12 +155,12 @@ export default function ParticleField({
     <div
       ref={containerRef}
       style={{
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        pointerEvents: 'none',
+        pointerEvents: "none",
         zIndex: 0,
       }}
     />

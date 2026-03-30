@@ -4,31 +4,43 @@
  * Documents are converted to markdown by docling-serve (proxied through Express).
  */
 
-import { apiFetch } from './api-fetch';
+import { apiFetch } from "./api-fetch";
 
 // Supported document extensions for conversion via docling-serve
 export const DOCUMENT_EXTENSIONS = new Set([
-  '.pdf', '.pptx', '.docx', '.xlsx', '.xls', '.csv',
-  '.doc', '.ppt', '.odt', '.ods', '.odp',
-  '.rtf', '.latex', '.tex', '.epub',
+  ".pdf",
+  ".pptx",
+  ".docx",
+  ".xlsx",
+  ".xls",
+  ".csv",
+  ".doc",
+  ".ppt",
+  ".odt",
+  ".ods",
+  ".odp",
+  ".rtf",
+  ".latex",
+  ".tex",
+  ".epub",
 ]);
 
 // MIME types for convertible documents
 export const DOCUMENT_MIMES = new Set([
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-excel',
-  'application/vnd.ms-powerpoint',
-  'application/msword',
-  'application/vnd.oasis.opendocument.text',
-  'application/vnd.oasis.opendocument.spreadsheet',
-  'application/vnd.oasis.opendocument.presentation',
-  'application/rtf',
-  'text/csv',
-  'application/epub+zip',
-  'application/x-latex',
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.ms-powerpoint",
+  "application/msword",
+  "application/vnd.oasis.opendocument.text",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "application/vnd.oasis.opendocument.presentation",
+  "application/rtf",
+  "text/csv",
+  "application/epub+zip",
+  "application/x-latex",
 ]);
 
 /**
@@ -38,8 +50,8 @@ export const DOCUMENT_MIMES = new Set([
  * @returns {boolean}
  */
 export function isConvertibleDocument(file) {
-  const name = file.name || '';
-  const dotIdx = name.lastIndexOf('.');
+  const name = file.name || "";
+  const dotIdx = name.lastIndexOf(".");
   if (dotIdx >= 0) {
     const ext = name.slice(dotIdx).toLowerCase();
     if (DOCUMENT_EXTENSIONS.has(ext)) return true;
@@ -53,7 +65,7 @@ export function isConvertibleDocument(file) {
  * @returns {boolean}
  */
 export function isConvertibleFilename(filename) {
-  const dotIdx = (filename || '').lastIndexOf('.');
+  const dotIdx = (filename || "").lastIndexOf(".");
   if (dotIdx < 0) return false;
   return DOCUMENT_EXTENSIONS.has(filename.slice(dotIdx).toLowerCase());
 }
@@ -64,7 +76,7 @@ export function isConvertibleFilename(filename) {
  * @returns {string}
  */
 export function getDocumentAcceptString() {
-  return '.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub';
+  return ".pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub";
 }
 
 /**
@@ -78,10 +90,11 @@ export function readFileAsBase64(file) {
     reader.onload = () => {
       const result = reader.result;
       // Strip data URI prefix: "data:application/pdf;base64,..."
-      const commaIdx = result.indexOf(',');
+      const commaIdx = result.indexOf(",");
       resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result);
     };
-    reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
+    reader.onerror = () =>
+      reject(new Error(`Failed to read file: ${file.name}`));
     reader.readAsDataURL(file);
   });
 }
@@ -97,9 +110,9 @@ export function readFileAsBase64(file) {
 export async function convertDocument(file) {
   const base64 = await readFileAsBase64(file);
 
-  const res = await apiFetch('/api/convert-document', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await apiFetch("/api/convert-document", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ content: base64, filename: file.name }),
   });
 
@@ -107,17 +120,21 @@ export async function convertDocument(file) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     // Provide helpful messages for common errors
     if (res.status === 503) {
-      throw new Error(err.setupHint
-        ? `${err.error}. ${err.detail}`
-        : err.error || 'Document conversion service unavailable');
+      throw new Error(
+        err.setupHint
+          ? `${err.error}. ${err.detail}`
+          : err.error || "Document conversion service unavailable",
+      );
     }
     if (res.status === 413) {
-      throw new Error(err.error || 'File too large for conversion');
+      throw new Error(err.error || "File too large for conversion");
     }
     if (res.status === 400) {
-      throw new Error(err.error || 'Unsupported file type');
+      throw new Error(err.error || "Unsupported file type");
     }
-    throw new Error(err.detail || err.error || `Conversion failed (HTTP ${res.status})`);
+    throw new Error(
+      err.detail || err.error || `Conversion failed (HTTP ${res.status})`,
+    );
   }
 
   return await res.json();
@@ -142,11 +159,14 @@ export function validateDocument(file, options = {}) {
 
   if (file.size > maxSizeBytes) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-    return { valid: false, error: `File too large: ${sizeMB}MB (max ${maxSizeMB}MB)` };
+    return {
+      valid: false,
+      error: `File too large: ${sizeMB}MB (max ${maxSizeMB}MB)`,
+    };
   }
 
   if (file.size === 0) {
-    return { valid: false, error: 'File is empty' };
+    return { valid: false, error: "File is empty" };
   }
 
   return { valid: true };
@@ -162,11 +182,11 @@ export function formatAsAttachment(result, originalFile) {
   return {
     name: `${originalFile.name} (converted)`,
     content: result.markdown,
-    lines: result.markdown.split('\n').length,
+    lines: result.markdown.split("\n").length,
     size: result.markdownSize,
     convertedFrom: originalFile.name,
     originalSize: result.originalSize,
     truncated: result.truncated || false,
-    type: 'converted-document',
+    type: "converted-document",
   };
 }

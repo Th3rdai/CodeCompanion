@@ -58,6 +58,7 @@ completed: 2026-03-14
 - **Files modified:** 4
 
 ## Accomplishments
+
 - Extended FindingSchema with optional fixPrompt field, auto-included in JSON schema for Ollama structured output
 - Updated review system prompt to instruct LLM to generate context-aware, natural-language fix prompts referencing the filename
 - Added FixPromptBlock UI in each FindingCard with "What to ask your AI to fix" label and per-finding copy button
@@ -73,12 +74,14 @@ Each task was committed atomically:
 2. **Task 2: Add fix prompt blocks, bulk copy, and configurable Toast** - `d9b74e9` (feat)
 
 ## Files Created/Modified
+
 - `lib/review-schema.js` - Added optional fixPrompt field to FindingSchema
 - `lib/prompts.js` - Updated review system prompt with fixPrompt generation instructions
 - `src/components/ReportCard.jsx` - FixPromptBlock UI, buildBulkFixPrompts, Copy All button, updated CopyFixButton
 - `src/components/Toast.jsx` - Configurable duration prop (default 3000ms)
 
 ## Decisions Made
+
 - Fallback fix prompts generated from finding title+explanation when LLM omits fixPrompt field
 - Bulk copy sorts prompts by severity (critical first) so user addresses most important issues first
 - Replaced emoji icons (clipboard emoji) with Lucide Clipboard/ClipboardCopy SVG icons per UI skill no-emoji-icons rule
@@ -88,6 +91,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 2 - Missing Critical] Added cursor-pointer to interactive buttons**
+
 - **Found during:** Task 2 (ReportCard UI)
 - **Issue:** Interactive buttons missing cursor-pointer class per UI skill rules
 - **Fix:** Added cursor-pointer to CopyFixButton, Copy All button, and deep-dive button
@@ -96,6 +100,7 @@ Each task was committed atomically:
 - **Committed in:** d9b74e9 (Task 2 commit)
 
 **2. [Rule 1 - Bug] Removed emoji from "Ask about this finding" button**
+
 - **Found during:** Task 2 (ReportCard UI)
 - **Issue:** Deep-dive button used magnifying glass emoji, violates no-emoji-icons UI rule
 - **Fix:** Removed emoji prefix from button text
@@ -109,16 +114,20 @@ Each task was committed atomically:
 **Impact on plan:** Minor UI quality improvements aligned with project skill rules. No scope creep.
 
 ## Issues Encountered
+
 None
 
 ## User Setup Required
+
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Fix prompts fully wired end-to-end: schema -> LLM prompt -> UI display -> clipboard copy
 - Ready for Plan 02 (if applicable) or next phase work
 - Existing reviews without fixPrompt field will show fallback prompts from explanation text
 
 ---
-*Phase: 04-actionable-guidance*
-*Completed: 2026-03-14*
+
+_Phase: 04-actionable-guidance_
+_Completed: 2026-03-14_

@@ -5,6 +5,12 @@
  */
 const registry = new Set();
 
-export function registerAbort(fn)   { registry.add(fn); }
-export function unregisterAbort(fn) { registry.delete(fn); }
-export function abortAll()          { registry.forEach(fn => fn()); }
+export function registerAbort(fn) {
+  registry.add(fn);
+}
+export function unregisterAbort(fn) {
+  registry.delete(fn);
+}
+export function abortAll() {
+  registry.forEach((fn) => fn());
+}

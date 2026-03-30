@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
 last_updated: "2026-03-29T12:00:00.000Z"
-last_activity: 2026-03-29 — **MCP image generation** (hallucination stripping, vision fallback, revision flow, IMAGE_DELIVERED markers); **image lightbox** (click to preview); **tool param schemas** (compact, 8.5KB); **batch conversation delete** (single-request, no rate limit); **auto-model per mode**; **chat latency**. 5 commits: `b78c0fe`, `6092e83`, `afd4da8`, `6b34e00`, pending. **Next:** pre-release checklist.
+last_activity: 2026-03-29 — **MCP image generation** (hallucination stripping, vision fallback, revision flow, IMAGE_DELIVERED markers); **image lightbox** (click to preview); **tool param schemas** (compact, 8.5KB); **batch conversation delete** (single-request, no rate limit); **GitHub clone destination picker**; **auto-model per mode**; **chat latency**. 6 commits: `b78c0fe`, `6092e83`, `afd4da8`, `6b34e00`, `8693e84`, pending. **Next:** pre-release checklist.
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit, **`npm run test:integration`** for API+images).
-Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucination stripping, base64 bloat, const crash, placeholder leak, vision fallback locked to llava:7b, historical image arrays causing 400s); **auto-model per mode** (`lib/auto-model.js`); **chat latency** optimizations; **integration tests** aligned with current API. 3 commits: `b78c0fe`, `6092e83`, `afd4da8`. Next: pre-release checklist; optional CLIPLAN Phase 4.
+Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues); **image lightbox**; **tool param schemas** (compact); **batch delete**; **GitHub clone destination picker**; **auto-model per mode**; **chat latency**. 6 commits. Next: pre-release checklist; optional CLIPLAN Phase 4.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 
@@ -43,6 +43,7 @@ Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucin
 **Multi-tool convention files:** Build scaffolder now generates identical project instructions in all four AI coding tool convention files: `CLAUDE.md` (Claude Code), `.cursorrules` (Cursor), `.windsurfrules` (Windsurf), `.opencode/instructions.md` (OpenCode). Users open the project in any supported tool and get GSD + ICM context automatically.
 
 **Discovery:** Full Build dashboard infrastructure already existed from prior session:
+
 - `lib/build-registry.js` — project registry with atomic writes and path validation
 - `lib/gsd-bridge.js` — GSD CLI bridge using `gsd-tools.cjs` (execFileSync, no shell)
 - `src/components/BuildPanel.jsx` — full dashboard with project list, phase list, plan viewer, auto-refresh
@@ -52,12 +53,14 @@ Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucin
 ## Post-v1.0 Enhancements (completed 2026-03-14)
 
 ### Builder Mode Implementation
+
 - Three builder modes added: Prompting, Skillz, Agentic
 - Shared BaseBuilderPanel with config-driven lifecycle (input → loading → scored → revising)
 - `/api/score` endpoint with Zod schema validation and SSE fallback
 - Save/download with mode-aware filename and title extraction
 
 ### Builder Bug Fixes
+
 - Fixed download filename using wrong field (added `nameField` config)
 - Fixed save title always "Untitled" (extract from `formData.skillName|agentName|purpose`)
 - Fixed auto-save creating duplicates (removed auto-save on score)
@@ -66,11 +69,13 @@ Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucin
 - Fixed mode tabs cut off on small screens (flex-wrap with responsive sizing)
 
 ### Scoring Prompt Engineering
+
 - **Prompting**: Rewritten using TÂCHES meta-prompting methodology (clarity Golden Rule, specificity, structure, effectiveness)
 - **Skillz**: Rewritten using Agent Skills Specification from agentskills.io (completeness, format compliance, instruction quality, reusability)
 - **Agentic**: Rewritten using CrewAI role patterns + LangGraph state machine workflows (purpose clarity, tool design, workflow logic, safety guardrails)
 
 ### Revision Flow
+
 - AI generates improved content in `<revised_prompt>` tags
 - `applyRevision()` extracts and updates formData via `formDataRef` (synchronous) + `setFormData` (re-render)
 - "Apply Revision & Re-Score" button for one-click improvement cycle
@@ -106,6 +111,7 @@ Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucin
 ### Pro Upgrade Module (completed 2026-03-15)
 
 **Session 1 — Backend License System:**
+
 - `lib/license-manager.js` — declarative `FEATURE_TIERS` registry, Ed25519 offline key validation, 14-day trial, app store purchase support
 - `lib/license-middleware.js` — `requireTier()` and `requireTierForMode` Express middleware
 - `scripts/generate-license-key.js` — Ed25519 keypair generation and license key signing utility
@@ -113,6 +119,7 @@ Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucin
 - `.gitignore` — added `scripts/.license-private-key` and `scripts/.license-public-key`
 
 **Session 2 — Frontend Integration:**
+
 - `src/constants/tiers.js` — frontend `MODE_TIERS` registry mirroring backend
 - `src/components/UpgradePrompt.jsx` — friendly upgrade modal with key activation, 14-day trial, purchase links
 - `src/App.jsx` — `tier` property on all MODES, `licenseInfo` state, locked-mode UI with PRO badges, UpgradePrompt modal
@@ -124,6 +131,7 @@ Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues: hallucin
 - `tests/ui/builder-prompting.spec.js` — license API mock for Pro tier in tests
 
 **Design Decisions:**
+
 - Ed25519 asymmetric keys — public key in app, private key stays on signing server, offline-verifiable
 - Declarative FEATURE_TIERS — adding a premium feature = 1 line in backend + 1 line in frontend
 - 14-day full-access trial — one-time, tracked by `trialStartedAt`, no data loss on expiry
@@ -135,6 +143,7 @@ Progress: [██████████] 100%
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 4
 - Average duration: 110 seconds
 - Total execution time: 0.12 hours
@@ -142,37 +151,38 @@ Progress: [██████████] 100%
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 02 | 2 | 220s | 110s |
+| ----- | ----- | ----- | -------- |
+| 02    | 2     | 220s  | 110s     |
 
 **Recent Trend:**
+
 - Last 5 plans: 137s, 83s
 - Trend: Improving (faster execution)
 
-*Updated after each plan completion*
+_Updated after each plan completion_
 
-| Plan | Duration (s) | Tasks | Files |
-|------|--------------|-------|-------|
-| Phase 02 P01 | 137 | 2 tasks | 2 files |
-| Phase 02 P02 | 83 | 2 tasks | 2 files |
-| Phase 03 P01 | 172 | 3 tasks | 4 files |
-| Phase 03 P02 | 439 | 4 tasks | 5 files |
-| Phase 04 P01 | 141 | 2 tasks | 4 files |
-| Phase 04 P02 | 217 | 2 tasks | 4 files |
-| Phase 05 P01 | 121 | 2 tasks | 1 files |
-| Phase 05 P02 | 136 | 3 tasks | 7 files |
-| Phase 06 P01 | 344 | 2 tasks | 11 files |
-| Phase 06 P03 | 209 | 2 tasks | 11 files |
-| Phase 06 P02 | 389 | 2 tasks | 8 files |
-| Phase 06 P04 | 132 | 2 tasks | 0 files |
-| Phase 16 P00 | 44 | 1 tasks | 5 files |
-| Phase 16 P01 | 141 | 2 tasks | 4 files |
-| Phase 16 P03 | 147 | 2 tasks | 4 files |
-| Phase 16 P02 | 159 | 2 tasks | 2 files |
-| Phase 16 P04 | 116 | 2 tasks | 3 files |
-| Phase 18 P01 | 208 | 2 tasks | 5 files |
-| Phase 18 P02 | 237 | 1 tasks | 2 files |
-| Phase 18 P03 | 535 | 2 tasks | 5 files |
+| Plan         | Duration (s) | Tasks   | Files    |
+| ------------ | ------------ | ------- | -------- |
+| Phase 02 P01 | 137          | 2 tasks | 2 files  |
+| Phase 02 P02 | 83           | 2 tasks | 2 files  |
+| Phase 03 P01 | 172          | 3 tasks | 4 files  |
+| Phase 03 P02 | 439          | 4 tasks | 5 files  |
+| Phase 04 P01 | 141          | 2 tasks | 4 files  |
+| Phase 04 P02 | 217          | 2 tasks | 4 files  |
+| Phase 05 P01 | 121          | 2 tasks | 1 files  |
+| Phase 05 P02 | 136          | 3 tasks | 7 files  |
+| Phase 06 P01 | 344          | 2 tasks | 11 files |
+| Phase 06 P03 | 209          | 2 tasks | 11 files |
+| Phase 06 P02 | 389          | 2 tasks | 8 files  |
+| Phase 06 P04 | 132          | 2 tasks | 0 files  |
+| Phase 16 P00 | 44           | 1 tasks | 5 files  |
+| Phase 16 P01 | 141          | 2 tasks | 4 files  |
+| Phase 16 P03 | 147          | 2 tasks | 4 files  |
+| Phase 16 P02 | 159          | 2 tasks | 2 files  |
+| Phase 16 P04 | 116          | 2 tasks | 3 files  |
+| Phase 18 P01 | 208          | 2 tasks | 5 files  |
+| Phase 18 P02 | 237          | 1 tasks | 2 files  |
+| Phase 18 P03 | 535          | 2 tasks | 5 files  |
 
 ## Accumulated Context
 

@@ -7,7 +7,7 @@
 ## Supported Versions
 
 | Version | Supported |
-|---------|-----------|
+| ------- | --------- |
 | 1.x     | Yes       |
 
 ## Reporting a Vulnerability
@@ -21,7 +21,7 @@ If you discover a security vulnerability in **Code Companion**, please report it
 
 2. **GitHub** (if you have a GitHub account and the button is enabled for the repo)  
    Open the repository’s **Security** tab and use **Report a vulnerability** / private security advisory:  
-   **[github.com/th3rdai/CodeCompanion/security](https://github.com/th3rdai/CodeCompanion/security)**  
+   **[github.com/th3rdai/CodeCompanion/security](https://github.com/th3rdai/CodeCompanion/security)**
 
    If private reporting is not enabled or the link does not apply to your fork, use email instead.
 

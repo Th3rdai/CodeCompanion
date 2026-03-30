@@ -24,17 +24,18 @@ export async function copyText(text) {
 
   // Fallback: temporary textarea + execCommand
   // Must be visible and in-viewport for execCommand to work reliably
-  const ta = document.createElement('textarea');
+  const ta = document.createElement("textarea");
   ta.value = text;
-  ta.setAttribute('readonly', '');
-  ta.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;padding:0;border:none;outline:none;box-shadow:none;opacity:0.01;';
+  ta.setAttribute("readonly", "");
+  ta.style.cssText =
+    "position:fixed;left:0;top:0;width:1px;height:1px;padding:0;border:none;outline:none;box-shadow:none;opacity:0.01;";
   document.body.appendChild(ta);
   ta.focus();
   ta.select();
   // Also set selection range for iOS
   ta.setSelectionRange(0, text.length);
   try {
-    const ok = document.execCommand('copy');
+    const ok = document.execCommand("copy");
     return ok;
   } catch {
     return false;

@@ -1,355 +1,407 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Code Companion - Your AI code reviewer that speaks your language. Built for vibe coders who generate code with AI tools.">
-  <title>Code Companion - AI Code Reviewer for Vibe Coders</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Code Companion - Your AI code reviewer that speaks your language. Built for vibe coders who generate code with AI tools."
+    />
+    <title>Code Companion - AI Code Reviewer for Vibe Coders</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      line-height: 1.6;
-      color: #0f172a;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-    }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        line-height: 1.6;
+        color: #0f172a;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+      }
 
-    /* Hero Section */
-    .hero {
-      text-align: center;
-      padding: 60px 20px;
-      background: white;
-      border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      margin-bottom: 60px;
-    }
+      /* Hero Section */
+      .hero {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        margin-bottom: 60px;
+      }
 
-    .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 20px;
-    }
-
-    .hero .tagline {
-      font-size: 1.5rem;
-      color: #64748b;
-      font-weight: 500;
-      margin-bottom: 24px;
-    }
-
-    .hero .description {
-      font-size: 1.125rem;
-      color: #475569;
-      max-width: 700px;
-      margin: 0 auto 48px;
-      line-height: 1.8;
-    }
-
-    /* Screenshot */
-    .screenshot {
-      margin: 48px auto;
-      max-width: 900px;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-      background: #f1f5f9;
-      padding: 12px;
-      text-align: center;
-      color: #94a3b8;
-      font-style: italic;
-    }
-
-    /* Download Section */
-    .download-section {
-      background: white;
-      padding: 48px;
-      border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      margin-bottom: 60px;
-    }
-
-    .download-section h2 {
-      text-align: center;
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 48px;
-    }
-
-    .download-buttons {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 24px;
-      margin-bottom: 32px;
-    }
-
-    .download-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-decoration: none;
-      border-radius: 16px;
-      font-size: 1.125rem;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-    }
-
-    .download-btn:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
-    }
-
-    .download-btn .platform {
-      font-size: 1.5rem;
-      margin-bottom: 8px;
-    }
-
-    .download-btn .file-type {
-      font-size: 0.875rem;
-      opacity: 0.9;
-      font-weight: 400;
-    }
-
-    .portable-note {
-      text-align: center;
-      color: #64748b;
-      font-size: 0.9375rem;
-      margin-top: 24px;
-    }
-
-    .portable-note a {
-      color: #667eea;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .portable-note a:hover {
-      text-decoration: underline;
-    }
-
-    /* Features Grid */
-    .features {
-      background: white;
-      padding: 48px;
-      border-radius: 24px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      margin-bottom: 60px;
-    }
-
-    .features h2 {
-      text-align: center;
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 48px;
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 32px;
-    }
-
-    .feature-card {
-      padding: 32px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-      border: 2px solid #e2e8f0;
-      transition: all 0.3s ease;
-    }
-
-    .feature-card:hover {
-      border-color: #667eea;
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
-    }
-
-    .feature-card h3 {
-      font-size: 1.375rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin-bottom: 12px;
-    }
-
-    .feature-card p {
-      color: #475569;
-      font-size: 1rem;
-      line-height: 1.7;
-    }
-
-    /* Unsigned App Notice */
-    .notice {
-      background: #fef3c7;
-      border: 2px solid #fbbf24;
-      border-radius: 16px;
-      padding: 24px 32px;
-      margin-bottom: 60px;
-      text-align: center;
-    }
-
-    .notice h3 {
-      color: #92400e;
-      font-size: 1.125rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .notice p {
-      color: #78350f;
-      font-size: 0.9375rem;
-      line-height: 1.7;
-    }
-
-    /* Footer */
-    .footer {
-      text-align: center;
-      color: white;
-      padding: 32px 20px;
-      font-size: 1rem;
-    }
-
-    .footer a {
-      color: white;
-      text-decoration: none;
-      font-weight: 600;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.5);
-      transition: border-color 0.3s ease;
-    }
-
-    .footer a:hover {
-      border-color: white;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
       .hero h1 {
-        font-size: 2.5rem;
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 20px;
       }
 
       .hero .tagline {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-bottom: 24px;
       }
 
       .hero .description {
-        font-size: 1rem;
+        font-size: 1.125rem;
+        color: #475569;
+        max-width: 700px;
+        margin: 0 auto 48px;
+        line-height: 1.8;
+      }
+
+      /* Screenshot */
+      .screenshot {
+        margin: 48px auto;
+        max-width: 900px;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        background: #f1f5f9;
+        padding: 12px;
+        text-align: center;
+        color: #94a3b8;
+        font-style: italic;
+      }
+
+      /* Download Section */
+      .download-section {
+        background: white;
+        padding: 48px;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        margin-bottom: 60px;
+      }
+
+      .download-section h2 {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 48px;
       }
 
       .download-buttons {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+      }
+
+      .download-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 24px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 16px;
+        font-size: 1.125rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .download-btn:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+      }
+
+      .download-btn .platform {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+      }
+
+      .download-btn .file-type {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        font-weight: 400;
+      }
+
+      .portable-note {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.9375rem;
+        margin-top: 24px;
+      }
+
+      .portable-note a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .portable-note a:hover {
+        text-decoration: underline;
+      }
+
+      /* Features Grid */
+      .features {
+        background: white;
+        padding: 48px;
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        margin-bottom: 60px;
+      }
+
+      .features h2 {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 48px;
       }
 
       .features-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 32px;
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Hero Section -->
-    <section class="hero">
-      <img src="../resources/th3rdai-logo-sm.png" alt="Th3rdAI" style="width: 120px; margin-bottom: 1rem;" />
-      <h1>Code Companion</h1>
-      <div class="tagline">Your AI code reviewer that speaks your language</div>
-      <p class="description">
-        Built for vibe coders who generate code with AI tools. Get honest, friendly assessments of your AI-generated code — explained in plain English, with copy-paste fix prompts for your favorite AI coding assistant.
-      </p>
-    </section>
 
-    <!-- Screenshot Placeholder -->
-    <div class="screenshot">
-      <img src="screenshot.png" alt="Code Companion App Screenshot" style="max-width: 100%; height: auto; display: none;" onerror="this.parentElement.innerHTML = 'Screenshot coming soon...'">
-      Screenshot coming soon...
-    </div>
+      .feature-card {
+        padding: 32px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s ease;
+      }
 
-    <!-- Download Section -->
-    <section class="download-section">
-      <h2>Download Code Companion</h2>
-      <div class="download-buttons">
-        <a href="https://th3rdai.com/downloads/Code-Companion-1.0.0-arm64.dmg" class="download-btn">
-          <div class="platform">macOS (Apple Silicon)</div>
-          <div class="file-type">DMG Installer</div>
-        </a>
-        <a href="https://th3rdai.com/downloads/Code-Companion-1.0.0-Setup.exe" class="download-btn">
-          <div class="platform">Windows</div>
-          <div class="file-type">EXE Installer</div>
-        </a>
-        <a href="https://th3rdai.com/downloads/Code-Companion-1.0.0.AppImage" class="download-btn">
-          <div class="platform">Linux</div>
-          <div class="file-type">AppImage</div>
-        </a>
+      .feature-card:hover {
+        border-color: #667eea;
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+      }
+
+      .feature-card h3 {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 12px;
+      }
+
+      .feature-card p {
+        color: #475569;
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      /* Unsigned App Notice */
+      .notice {
+        background: #fef3c7;
+        border: 2px solid #fbbf24;
+        border-radius: 16px;
+        padding: 24px 32px;
+        margin-bottom: 60px;
+        text-align: center;
+      }
+
+      .notice h3 {
+        color: #92400e;
+        font-size: 1.125rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+
+      .notice p {
+        color: #78350f;
+        font-size: 0.9375rem;
+        line-height: 1.7;
+      }
+
+      /* Footer */
+      .footer {
+        text-align: center;
+        color: white;
+        padding: 32px 20px;
+        font-size: 1rem;
+      }
+
+      .footer a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+        transition: border-color 0.3s ease;
+      }
+
+      .footer a:hover {
+        border-color: white;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+
+        .hero .tagline {
+          font-size: 1.25rem;
+        }
+
+        .hero .description {
+          font-size: 1rem;
+        }
+
+        .download-buttons {
+          grid-template-columns: 1fr;
+        }
+
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Hero Section -->
+      <section class="hero">
+        <img
+          src="../resources/th3rdai-logo-sm.png"
+          alt="Th3rdAI"
+          style="width: 120px; margin-bottom: 1rem"
+        />
+        <h1>Code Companion</h1>
+        <div class="tagline">
+          Your AI code reviewer that speaks your language
+        </div>
+        <p class="description">
+          Built for vibe coders who generate code with AI tools. Get honest,
+          friendly assessments of your AI-generated code — explained in plain
+          English, with copy-paste fix prompts for your favorite AI coding
+          assistant.
+        </p>
+      </section>
+
+      <!-- Screenshot Placeholder -->
+      <div class="screenshot">
+        <img
+          src="screenshot.png"
+          alt="Code Companion App Screenshot"
+          style="max-width: 100%; height: auto; display: none"
+          onerror="this.parentElement.innerHTML = 'Screenshot coming soon...'"
+        />
+        Screenshot coming soon...
       </div>
-      <p class="portable-note">
-        Prefer a portable version? Download the <a href="https://th3rdai.com/downloads/">portable ZIP</a> for any platform.
-      </p>
-    </section>
 
-    <!-- Features -->
-    <section class="features">
-      <h2>Features</h2>
-      <div class="features-grid">
-        <div class="feature-card">
-          <h3>Code Report Cards</h3>
-          <p>Get an honest, graded assessment of your code — security, bugs, performance, and maintainability all scored and explained clearly.</p>
+      <!-- Download Section -->
+      <section class="download-section">
+        <h2>Download Code Companion</h2>
+        <div class="download-buttons">
+          <a
+            href="https://th3rdai.com/downloads/Code-Companion-1.0.0-arm64.dmg"
+            class="download-btn"
+          >
+            <div class="platform">macOS (Apple Silicon)</div>
+            <div class="file-type">DMG Installer</div>
+          </a>
+          <a
+            href="https://th3rdai.com/downloads/Code-Companion-1.0.0-Setup.exe"
+            class="download-btn"
+          >
+            <div class="platform">Windows</div>
+            <div class="file-type">EXE Installer</div>
+          </a>
+          <a
+            href="https://th3rdai.com/downloads/Code-Companion-1.0.0.AppImage"
+            class="download-btn"
+          >
+            <div class="platform">Linux</div>
+            <div class="file-type">AppImage</div>
+          </a>
         </div>
-        <div class="feature-card">
-          <h3>Plain English Explanations</h3>
-          <p>No jargon, no condescension. Just friendly, clear explanations with helpful analogies when you need them.</p>
+        <p class="portable-note">
+          Prefer a portable version? Download the
+          <a href="https://th3rdai.com/downloads/">portable ZIP</a> for any
+          platform.
+        </p>
+      </section>
+
+      <!-- Features -->
+      <section class="features">
+        <h2>Features</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h3>Code Report Cards</h3>
+            <p>
+              Get an honest, graded assessment of your code — security, bugs,
+              performance, and maintainability all scored and explained clearly.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>Plain English Explanations</h3>
+            <p>
+              No jargon, no condescension. Just friendly, clear explanations
+              with helpful analogies when you need them.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>Copy-Paste Fix Prompts</h3>
+            <p>
+              Every issue comes with a ready-to-use prompt you can paste into
+              your AI coding tool for instant fixes.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>Local AI — Your Code Stays Private</h3>
+            <p>
+              Powered by Ollama running on your machine. Your code never leaves
+              your computer. No cloud, no tracking, no subscriptions.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>11 Modes for Every Task</h3>
+            <p>
+              Chat, Explain, Safety Check, Clean Up, Code to Plain English, Idea
+              to Spec, Review, Create, Prompting, Skillz, and Agentic modes
+              cover every workflow.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3>Built for Non-Technical Users</h3>
+            <p>
+              Designed from the ground up for people who use AI to build things
+              — not for developers. Friendly, patient, and helpful.
+            </p>
+          </div>
         </div>
-        <div class="feature-card">
-          <h3>Copy-Paste Fix Prompts</h3>
-          <p>Every issue comes with a ready-to-use prompt you can paste into your AI coding tool for instant fixes.</p>
-        </div>
-        <div class="feature-card">
-          <h3>Local AI — Your Code Stays Private</h3>
-          <p>Powered by Ollama running on your machine. Your code never leaves your computer. No cloud, no tracking, no subscriptions.</p>
-        </div>
-        <div class="feature-card">
-          <h3>11 Modes for Every Task</h3>
-          <p>Chat, Explain, Safety Check, Clean Up, Code to Plain English, Idea to Spec, Review, Create, Prompting, Skillz, and Agentic modes cover every workflow.</p>
-        </div>
-        <div class="feature-card">
-          <h3>Built for Non-Technical Users</h3>
-          <p>Designed from the ground up for people who use AI to build things — not for developers. Friendly, patient, and helpful.</p>
-        </div>
+      </section>
+
+      <!-- Unsigned App Notice -->
+      <div class="notice">
+        <h3>First Launch Instructions</h3>
+        <p>
+          <strong>macOS:</strong> Right-click the app and select "Open" (not
+          double-click). Click "Open" in the warning dialog.<br />
+          <strong>Windows:</strong> Click "More info" in the SmartScreen
+          warning, then click "Run anyway".<br />
+          <strong>Linux:</strong> Make the AppImage executable:
+          <code>chmod +x Code-Companion.AppImage</code>
+        </p>
       </div>
-    </section>
 
-    <!-- Unsigned App Notice -->
-    <div class="notice">
-      <h3>First Launch Instructions</h3>
-      <p>
-        <strong>macOS:</strong> Right-click the app and select "Open" (not double-click). Click "Open" in the warning dialog.<br>
-        <strong>Windows:</strong> Click "More info" in the SmartScreen warning, then click "Run anyway".<br>
-        <strong>Linux:</strong> Make the AppImage executable: <code>chmod +x Code-Companion.AppImage</code>
-      </p>
+      <!-- Footer -->
+      <footer class="footer">
+        Built by <a href="https://github.com/th3rdai">th3rdai</a> |
+        <a href="https://github.com/th3rdai/code-companion">View on GitHub</a>
+      </footer>
     </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-      Built by <a href="https://github.com/th3rdai">th3rdai</a> |
-      <a href="https://github.com/th3rdai/code-companion">View on GitHub</a>
-    </footer>
-  </div>
-</body>
+  </body>
 </html>

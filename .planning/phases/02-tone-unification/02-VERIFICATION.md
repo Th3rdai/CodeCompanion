@@ -20,45 +20,45 @@ re_verification: false
 
 ### Observable Truths
 
-| # | Truth | Status | Evidence |
-|---|-------|--------|----------|
-| 1 | All mode prompts use friendly-teacher persona with zero PM-specific language | ✓ VERIFIED | Tests confirm no PM terms ("dev team", "stakeholder", "manager") in any prompt. All modes establish personality archetypes (patient teacher, protective friend, helpful coach, bridge translator) |
-| 2 | Explain mode uses everyday analogies understandable by non-coders | ✓ VERIFIED | Prompt includes "recipe, playlist, organizing a kitchen" and "library where each book has a specific place" analogies. Test validates analogy keywords present |
-| 3 | Bugs mode describes issues in plain-English "what will break" framing | ✓ VERIFIED | Prompt uses protective friend identity with examples like "this could let someone access data they shouldn't see" instead of jargon. Analogy requirement met with "front door unlocked" example |
-| 4 | Refactor mode includes "what to ask your AI" prompts that are copy-pasteable | ✓ VERIFIED | Prompt contains "## Here's What to Tell Your AI" section with copy-pasteable examples like "Refactor this code to use more descriptive variable names" |
-| 5 | Translate modes bridge vibe-coder understanding, not PM-developer gap | ✓ VERIFIED | translate-tech changed from stakeholder framing to "friendly translator" for plain English. translate-biz changed to "## What to Tell Your AI Coding Tool" instead of PM/engineering team references |
-| 6 | Mode labels in UI navigation use clear non-jargon language | ✓ VERIFIED | Tests confirm no jargon ("tech", "biz", "api") in labels. All labels pass verb-led or transformation-clear validation |
-| 7 | Translation mode labels describe the transformation clearly (not "Tech/Biz") | ✓ VERIFIED | Labels changed to "Code → Plain English" and "Idea → Code Spec" — transformation is explicit and jargon-free |
-| 8 | Placeholder text matches vibe-coder audience (no "your dev team" references) | ✓ VERIFIED | Tests confirm no PM language in placeholders. translate-biz now references "your AI coding tool" instead of "dev team" |
+| #   | Truth                                                                        | Status     | Evidence                                                                                                                                                                                             |
+| --- | ---------------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | All mode prompts use friendly-teacher persona with zero PM-specific language | ✓ VERIFIED | Tests confirm no PM terms ("dev team", "stakeholder", "manager") in any prompt. All modes establish personality archetypes (patient teacher, protective friend, helpful coach, bridge translator)    |
+| 2   | Explain mode uses everyday analogies understandable by non-coders            | ✓ VERIFIED | Prompt includes "recipe, playlist, organizing a kitchen" and "library where each book has a specific place" analogies. Test validates analogy keywords present                                       |
+| 3   | Bugs mode describes issues in plain-English "what will break" framing        | ✓ VERIFIED | Prompt uses protective friend identity with examples like "this could let someone access data they shouldn't see" instead of jargon. Analogy requirement met with "front door unlocked" example      |
+| 4   | Refactor mode includes "what to ask your AI" prompts that are copy-pasteable | ✓ VERIFIED | Prompt contains "## Here's What to Tell Your AI" section with copy-pasteable examples like "Refactor this code to use more descriptive variable names"                                               |
+| 5   | Translate modes bridge vibe-coder understanding, not PM-developer gap        | ✓ VERIFIED | translate-tech changed from stakeholder framing to "friendly translator" for plain English. translate-biz changed to "## What to Tell Your AI Coding Tool" instead of PM/engineering team references |
+| 6   | Mode labels in UI navigation use clear non-jargon language                   | ✓ VERIFIED | Tests confirm no jargon ("tech", "biz", "api") in labels. All labels pass verb-led or transformation-clear validation                                                                                |
+| 7   | Translation mode labels describe the transformation clearly (not "Tech/Biz") | ✓ VERIFIED | Labels changed to "Code → Plain English" and "Idea → Code Spec" — transformation is explicit and jargon-free                                                                                         |
+| 8   | Placeholder text matches vibe-coder audience (no "your dev team" references) | ✓ VERIFIED | Tests confirm no PM language in placeholders. translate-biz now references "your AI coding tool" instead of "dev team"                                                                               |
 
 **Score:** 8/8 truths verified (100%)
 
 ### Required Artifacts
 
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| tests/tone-validation.test.js | Validation tests for prompt tone consistency | ✓ VERIFIED | File exists with 5 test cases: no PM language, inline jargon definitions, analogies, personality archetypes, MODE_GUARDRAIL. All tests passing |
-| lib/prompts.js | Rewritten system prompts with vibe-coder audience | ✓ VERIFIED | 7 mode prompts rewritten (chat, explain, bugs, refactor, translate-tech, translate-biz, create). Review prompts minimally adjusted. All use MODE_GUARDRAIL. 160 lines of substantive content |
-| tests/ui-labels.test.js | Validation tests for UI label clarity | ✓ VERIFIED | File exists with 5 test cases: parses MODES from App.jsx, no jargon in labels, no PM language in placeholders, verb-led labels, vibe-coder placeholders. All tests passing |
-| src/App.jsx | Updated MODES array with vibe-coder labels and placeholders | ✓ VERIFIED | MODES array modified with new labels ("Code → Plain English", "Idea → Code Spec") and vibe-coder placeholders. 594 lines total, substantive changes to lines 26-35 |
+| Artifact                      | Expected                                                    | Status     | Details                                                                                                                                                                                      |
+| ----------------------------- | ----------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| tests/tone-validation.test.js | Validation tests for prompt tone consistency                | ✓ VERIFIED | File exists with 5 test cases: no PM language, inline jargon definitions, analogies, personality archetypes, MODE_GUARDRAIL. All tests passing                                               |
+| lib/prompts.js                | Rewritten system prompts with vibe-coder audience           | ✓ VERIFIED | 7 mode prompts rewritten (chat, explain, bugs, refactor, translate-tech, translate-biz, create). Review prompts minimally adjusted. All use MODE_GUARDRAIL. 160 lines of substantive content |
+| tests/ui-labels.test.js       | Validation tests for UI label clarity                       | ✓ VERIFIED | File exists with 5 test cases: parses MODES from App.jsx, no jargon in labels, no PM language in placeholders, verb-led labels, vibe-coder placeholders. All tests passing                   |
+| src/App.jsx                   | Updated MODES array with vibe-coder labels and placeholders | ✓ VERIFIED | MODES array modified with new labels ("Code → Plain English", "Idea → Code Spec") and vibe-coder placeholders. 594 lines total, substantive changes to lines 26-35                           |
 
 ### Key Link Verification
 
-| From | To | Via | Status | Details |
-|------|----|----|--------|---------|
-| tests/tone-validation.test.js | lib/prompts.js | imports and validates SYSTEM_PROMPTS | ✓ WIRED | Found `const { SYSTEM_PROMPTS } = require('../lib/prompts')` and usage in 5 test assertions |
-| tests/ui-labels.test.js | src/App.jsx | validates MODES array structure | ✓ WIRED | Found `fs.readFileSync(path.join(__dirname, '../src/App.jsx'))` and regex parsing of MODES array with validation across 5 tests |
+| From                          | To             | Via                                  | Status  | Details                                                                                                                         |
+| ----------------------------- | -------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| tests/tone-validation.test.js | lib/prompts.js | imports and validates SYSTEM_PROMPTS | ✓ WIRED | Found `const { SYSTEM_PROMPTS } = require('../lib/prompts')` and usage in 5 test assertions                                     |
+| tests/ui-labels.test.js       | src/App.jsx    | validates MODES array structure      | ✓ WIRED | Found `fs.readFileSync(path.join(__dirname, '../src/App.jsx'))` and regex parsing of MODES array with validation across 5 tests |
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|-------------|-------------|--------|----------|
-| TONE-01 | 02-01 | All system prompts rewritten with friendly-teacher persona using analogies and zero jargon | ✓ SATISFIED | All 7 mode prompts in lib/prompts.js rewritten. Automated tests confirm no PM language, personality archetypes established, MODE_GUARDRAIL present |
-| TONE-02 | 02-01 | Explain mode reworked for users who have never coded — uses everyday analogies | ✓ SATISFIED | Explain prompt includes "never written code" framing and everyday analogies (recipe, playlist, kitchen, library). Test confirms analogy keywords present |
-| TONE-03 | 02-01 | Bugs mode reworked with plain-English severity and "what will actually break" framing | ✓ SATISFIED | Bugs prompt uses protective friend identity with plain-English examples and "what could users actually experience" framing. Analogy example validated |
-| TONE-04 | 02-01 | Refactor mode reworked as "what to ask your AI to change" with copy-pasteable prompts | ✓ SATISFIED | Refactor prompt contains "## Here's What to Tell Your AI" section with copy-pasteable prompts for Cursor/ChatGPT/AI tools |
-| TONE-05 | 02-01 | Translate modes reworked to bridge vibe-coder understanding, not PM-developer gap | ✓ SATISFIED | translate-tech changed to plain English framing. translate-biz changed to "AI coding tool" from "dev team". Both use translator/bridge personality |
-| UX-02 | 02-02 | Simplified mode labels and UI language throughout (no technical jargon in navigation) | ✓ SATISFIED | MODES array updated with jargon-free labels ("Code → Plain English", "Idea → Code Spec"). Tests confirm no jargon in labels, no PM language in placeholders |
+| Requirement | Source Plan | Description                                                                                | Status      | Evidence                                                                                                                                                    |
+| ----------- | ----------- | ------------------------------------------------------------------------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TONE-01     | 02-01       | All system prompts rewritten with friendly-teacher persona using analogies and zero jargon | ✓ SATISFIED | All 7 mode prompts in lib/prompts.js rewritten. Automated tests confirm no PM language, personality archetypes established, MODE_GUARDRAIL present          |
+| TONE-02     | 02-01       | Explain mode reworked for users who have never coded — uses everyday analogies             | ✓ SATISFIED | Explain prompt includes "never written code" framing and everyday analogies (recipe, playlist, kitchen, library). Test confirms analogy keywords present    |
+| TONE-03     | 02-01       | Bugs mode reworked with plain-English severity and "what will actually break" framing      | ✓ SATISFIED | Bugs prompt uses protective friend identity with plain-English examples and "what could users actually experience" framing. Analogy example validated       |
+| TONE-04     | 02-01       | Refactor mode reworked as "what to ask your AI to change" with copy-pasteable prompts      | ✓ SATISFIED | Refactor prompt contains "## Here's What to Tell Your AI" section with copy-pasteable prompts for Cursor/ChatGPT/AI tools                                   |
+| TONE-05     | 02-01       | Translate modes reworked to bridge vibe-coder understanding, not PM-developer gap          | ✓ SATISFIED | translate-tech changed to plain English framing. translate-biz changed to "AI coding tool" from "dev team". Both use translator/bridge personality          |
+| UX-02       | 02-02       | Simplified mode labels and UI language throughout (no technical jargon in navigation)      | ✓ SATISFIED | MODES array updated with jargon-free labels ("Code → Plain English", "Idea → Code Spec"). Tests confirm no jargon in labels, no PM language in placeholders |
 
 **Coverage:** 6/6 requirements satisfied (100%)
 
@@ -67,6 +67,7 @@ re_verification: false
 ### Anti-Patterns Found
 
 None detected. Scanned files:
+
 - lib/prompts.js: No TODO/FIXME/placeholder comments. No empty implementations. All prompts substantive with personality and structure
 - src/App.jsx: No TODO/FIXME/placeholder comments. MODES array fully populated with meaningful labels and placeholders
 - tests/tone-validation.test.js: Test implementation complete with 5 passing assertions
@@ -111,6 +112,7 @@ None detected. Scanned files:
 ### Automated Test Results
 
 **Tone Validation Tests** (`node --test tests/tone-validation.test.js`):
+
 ```
 ✔ should not contain PM-specific language (0.34ms)
 ✔ should include inline jargon definitions for common technical terms (0.38ms)
@@ -124,6 +126,7 @@ None detected. Scanned files:
 ```
 
 **UI Label Tests** (`node --test tests/ui-labels.test.js`):
+
 ```
 ✔ should parse MODES from App.jsx (0.63ms)
 ✔ should not contain jargon in labels (0.40ms)
@@ -150,20 +153,24 @@ c787a1c feat(02-01): rewrite mode prompts for vibe-coder audience
 ### File Verification
 
 **Created:**
+
 - tests/tone-validation.test.js (121 lines) — ✓ EXISTS, substantive
 - tests/ui-labels.test.js (88 lines) — ✓ EXISTS, substantive
 
 **Modified:**
+
 - lib/prompts.js (160 lines) — ✓ EXISTS, substantive changes to 7 mode prompts
 - src/App.jsx (594 lines) — ✓ EXISTS, substantive changes to MODES array (lines 26-35)
 
 ### Wiring Verification
 
 **tests/tone-validation.test.js → lib/prompts.js:**
+
 - Import: `const { SYSTEM_PROMPTS } = require('../lib/prompts')` ✓ FOUND
 - Usage: 5 tests iterate over SYSTEM_PROMPTS entries ✓ WIRED
 
 **tests/ui-labels.test.js → src/App.jsx:**
+
 - Read file: `fs.readFileSync(path.join(__dirname, '../src/App.jsx'))` ✓ FOUND
 - Parse MODES: Regex extraction with validation ✓ WIRED
 - Usage: 5 tests validate parsed modes array ✓ WIRED
@@ -171,29 +178,34 @@ c787a1c feat(02-01): rewrite mode prompts for vibe-coder audience
 ### Mode-Specific Verification
 
 **Chat mode:**
+
 - Personality: "patient, encouraging teacher" ✓ VERIFIED
 - Audience: "building with AI coding tools" (not PM) ✓ VERIFIED
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Explain mode:**
+
 - Personality: "friendly, patient teacher" ✓ VERIFIED
 - Analogies: recipe, playlist, kitchen, library ✓ VERIFIED
 - Framing: "never written code" ✓ VERIFIED
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Bugs mode:**
+
 - Personality: "thoughtful, supportive safety inspector", "protective friend" ✓ VERIFIED
 - Plain-English: "this could let someone access data they shouldn't see" example ✓ VERIFIED
 - Analogy: "front door unlocked" example for critical/high ✓ VERIFIED
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Refactor mode:**
+
 - Personality: "supportive coding coach", "helpful mentor" ✓ VERIFIED
 - AI prompts section: "## Here's What to Tell Your AI" ✓ VERIFIED
 - Copy-pasteable prompts: Multiple examples present ✓ VERIFIED
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Translate-tech mode:**
+
 - Personality: "friendly translator", "bridge" ✓ VERIFIED
 - Label: "Code → Plain English" ✓ VERIFIED
 - Placeholder: "in plain English" (not "anyone can understand") ✓ VERIFIED
@@ -201,6 +213,7 @@ c787a1c feat(02-01): rewrite mode prompts for vibe-coder audience
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Translate-biz mode:**
+
 - Personality: "friendly translator", "thoughtful bridge" ✓ VERIFIED
 - Label: "Idea → Code Spec" ✓ VERIFIED
 - Placeholder: "your AI coding tool" (not "dev team") ✓ VERIFIED
@@ -208,11 +221,13 @@ c787a1c feat(02-01): rewrite mode prompts for vibe-coder audience
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Create mode:**
+
 - Personality: "friendly project-setup guide" ✓ VERIFIED
 - Framing: Vibe-coder friendly (no PM language) ✓ VERIFIED
 - MODE_GUARDRAIL: Present ✓ VERIFIED
 
 **Review mode:**
+
 - Personality: "caring, thorough code reviewer", "friendly safety inspector" ✓ VERIFIED
 - Note: Minimally adjusted (already vibe-coder friendly from Phase 1) ✓ VERIFIED
 - Own guardrail: Distinct from MODE_GUARDRAIL ✓ VERIFIED
@@ -224,6 +239,7 @@ c787a1c feat(02-01): rewrite mode prompts for vibe-coder audience
 Phase 02 goal **ACHIEVED**. Every mode in the application now speaks with a consistent friendly-teacher persona using analogies and zero jargon. Mode labels are simplified and transformation-clear for non-technical users.
 
 **Strengths:**
+
 - 100% automated test coverage preventing regression
 - All 6 requirements (TONE-01 through TONE-05, UX-02) satisfied with evidence
 - Mode-specific personalities preserved while sharing friendly-teacher baseline
@@ -233,6 +249,7 @@ Phase 02 goal **ACHIEVED**. Every mode in the application now speaks with a cons
 - All commits verified, all files substantive, all key links wired
 
 **Items for human verification:**
+
 - Prompt comprehension by non-coders (read aloud test)
 - Label clarity without context (show to target user)
 - AI prompt copy-paste workflow (test with real AI tools)

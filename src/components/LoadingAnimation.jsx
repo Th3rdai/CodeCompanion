@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 // Encouraging messages that rotate during loading
 const ENCOURAGING_MESSAGES = [
   "Looking for ways to make your code even better!",
   "Checking for any gotchas...",
   "Making sure everything's ship-shape!",
-  "Scanning for those sneaky edge cases..."
+  "Scanning for those sneaky edge cases...",
 ];
 
 /**
@@ -19,7 +19,7 @@ export default function LoadingAnimation({ filename }) {
   // Rotate messages every 3.5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setMessageIndex(i => (i + 1) % ENCOURAGING_MESSAGES.length);
+      setMessageIndex((i) => (i + 1) % ENCOURAGING_MESSAGES.length);
     }, 3500);
 
     // Cleanup interval on unmount
@@ -33,18 +33,21 @@ export default function LoadingAnimation({ filename }) {
     >
       <div className="text-center space-y-4 max-w-md">
         {/* Bouncing dots animation with staggered delays */}
-        <div className="flex items-center justify-center gap-2" aria-hidden="true">
+        <div
+          className="flex items-center justify-center gap-2"
+          aria-hidden="true"
+        >
           <div
             className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce"
-            style={{ animationDelay: '0ms' }}
+            style={{ animationDelay: "0ms" }}
           />
           <div
             className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce"
-            style={{ animationDelay: '150ms' }}
+            style={{ animationDelay: "150ms" }}
           />
           <div
             className="w-3 h-3 bg-indigo-400 rounded-full animate-bounce"
-            style={{ animationDelay: '300ms' }}
+            style={{ animationDelay: "300ms" }}
           />
         </div>
 
@@ -66,7 +69,8 @@ export default function LoadingAnimation({ filename }) {
         {/* Filename display (if provided) */}
         {filename && (
           <p className="text-xs text-slate-500">
-            Analyzing <span className="font-mono text-indigo-300">{filename}</span>
+            Analyzing{" "}
+            <span className="font-mono text-indigo-300">{filename}</span>
           </p>
         )}
 

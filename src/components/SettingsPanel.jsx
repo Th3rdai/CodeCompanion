@@ -1,27 +1,32 @@
-import { useState, useEffect } from 'react';
-import { apiFetch } from '../lib/api-fetch';
-import McpServerPanel from './McpServerPanel';
-import McpClientPanel from './McpClientPanel';
-import { use3DEffects, THEME_PRESETS } from '../contexts/Effects3DContext';
-import { resetOnboarding } from './OnboardingWizard';
-import { resetPrivacyBanner } from './PrivacyBanner';
-import { Download, Upload, Settings, ExternalLink } from 'lucide-react';
-import { OFFICIAL_RELEASES_LATEST_URL } from '../lib/release-urls';
-import { AUTO_MODEL_MODE_ROWS } from '../lib/auto-model-modes';
+import { useState, useEffect } from "react";
+import { apiFetch } from "../lib/api-fetch";
+import McpServerPanel from "./McpServerPanel";
+import McpClientPanel from "./McpClientPanel";
+import { use3DEffects, THEME_PRESETS } from "../contexts/Effects3DContext";
+import { resetOnboarding } from "./OnboardingWizard";
+import { resetPrivacyBanner } from "./PrivacyBanner";
+import { Download, Upload, Settings, ExternalLink } from "lucide-react";
+import { OFFICIAL_RELEASES_LATEST_URL } from "../lib/release-urls";
+import { AUTO_MODEL_MODE_ROWS } from "../lib/auto-model-modes";
 
 /** Friendly copy for updater failures — avoid jargon; full technical text is often huge. */
 function formatSoftwareUpdateError(raw) {
-  if (raw == null || typeof raw !== 'string') {
+  if (raw == null || typeof raw !== "string") {
     return "We couldn't check for updates. Try again in a moment.";
   }
   const r = raw;
   if (
-    (r.includes('latest-mac.yml') || r.includes('latest.yml') || r.includes('latest-linux')) &&
-    (r.includes('404') || r.includes('Not Found') || r.includes('not find'))
+    (r.includes("latest-mac.yml") ||
+      r.includes("latest.yml") ||
+      r.includes("latest-linux")) &&
+    (r.includes("404") || r.includes("Not Found") || r.includes("not find"))
   ) {
     return "We couldn't reach the update files on GitHub (they may still be uploading after a new release, or the release isn't published yet). Wait a few minutes and tap Check for updates again, or use Open download page to install the latest build manually.";
   }
-  if (/HttpError:.*404/i.test(r) || (r.includes('404') && r.includes('github.com'))) {
+  if (
+    /HttpError:.*404/i.test(r) ||
+    (r.includes("404") && r.includes("github.com"))
+  ) {
     return "We couldn't find the update file online. Click Open download page below to download and install the latest version.";
   }
   if (/network|ENOTFOUND|ETIMEDOUT|ECONNRESET|getaddrinfo/i.test(r)) {
@@ -35,24 +40,33 @@ function formatSoftwareUpdateError(raw) {
 
 /** True when GitHub has not published updater YAML yet (common while CI uploads a new release). */
 function isTransientGithubYaml404(raw) {
-  if (raw == null || typeof raw !== 'string') return false;
+  if (raw == null || typeof raw !== "string") return false;
   const r = raw;
   return (
-    (r.includes('latest-mac.yml') || r.includes('latest.yml') || r.includes('latest-linux')) &&
-    (r.includes('404') || r.includes('Not Found') || r.includes('not find'))
+    (r.includes("latest-mac.yml") ||
+      r.includes("latest.yml") ||
+      r.includes("latest-linux")) &&
+    (r.includes("404") || r.includes("Not Found") || r.includes("not find"))
   );
 }
 
 const UPDATER_YAML_404_RETRIES = 2;
 const UPDATER_YAML_404_RETRY_MS = 12_000;
 
-export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePath, onSave, onClose, onOpenMemoryPanel }) {
-  const [activeTab, setActiveTab] = useState('general');
+export default function SettingsPanel({
+  ollamaUrl,
+  projectFolder,
+  icmTemplatePath,
+  onSave,
+  onClose,
+  onOpenMemoryPanel,
+}) {
+  const [activeTab, setActiveTab] = useState("general");
   const [url, setUrl] = useState(ollamaUrl);
-  const [ollamaApiKey, setOllamaApiKey] = useState('');
-  const [folder, setFolder] = useState(projectFolder || '');
-  const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || '');
-  useEffect(() => setIcmTemplate(icmTemplatePath || ''), [icmTemplatePath]);
+  const [ollamaApiKey, setOllamaApiKey] = useState("");
+  const [folder, setFolder] = useState(projectFolder || "");
+  const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || "");
+  useEffect(() => setIcmTemplate(icmTemplatePath || ""), [icmTemplatePath]);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [folderResult, setFolderResult] = useState(null);
@@ -80,8 +94,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   const [showAutoModelMap, setShowAutoModelMap] = useState(false);
 
   // Docling (document conversion) state
-  const [doclingUrl, setDoclingUrl] = useState('http://127.0.0.1:5002');
-  const [doclingApiKey, setDoclingApiKey] = useState('');
+  const [doclingUrl, setDoclingUrl] = useState("http://127.0.0.1:5002");
+  const [doclingApiKey, setDoclingApiKey] = useState("");
   const [doclingEnabled, setDoclingEnabled] = useState(true);
   const [doclingOcr, setDoclingOcr] = useState(true);
   const [doclingTesting, setDoclingTesting] = useState(false);
@@ -89,28 +103,36 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   // Agent Terminal state
   const [terminalEnabled, setTerminalEnabled] = useState(false);
-  const [terminalAllowlist, setTerminalAllowlist] = useState('');
+  const [terminalAllowlist, setTerminalAllowlist] = useState("");
   const [terminalTimeout, setTerminalTimeout] = useState(60);
 
   // GitHub token state (multi-PAT)
-  const [ghToken, setGhToken] = useState('');
-  const [ghTokenLabel, setGhTokenLabel] = useState('');
+  const [ghToken, setGhToken] = useState("");
+  const [ghTokenLabel, setGhTokenLabel] = useState("");
   const [ghTokenStatus, setGhTokenStatus] = useState(null);
   const [ghValidating, setGhValidating] = useState(false);
   const [ghResult, setGhResult] = useState(null);
-  const { enabled: effects3D, setEnabled: setEffects3D, theme, setThemeId, customHue, setCustomHue } = use3DEffects();
+  const {
+    enabled: effects3D,
+    setEnabled: setEffects3D,
+    theme,
+    setThemeId,
+    customHue,
+    setCustomHue,
+  } = use3DEffects();
 
   // Electron state
-  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+  const isElectron =
+    typeof window !== "undefined" && window.electronAPI?.isElectron;
   const [appVersion, setAppVersion] = useState(null);
   const [dataDir, setDataDir] = useState(null);
   const [preferredPort, setPreferredPort] = useState(3000);
   const [actualPort, setActualPort] = useState(null);
-  const [portError, setPortError] = useState('');
+  const [portError, setPortError] = useState("");
 
   // Memory state
   const [memoryEnabled, setMemoryEnabled] = useState(false);
-  const [embeddingModel, setEmbeddingModel] = useState('');
+  const [embeddingModel, setEmbeddingModel] = useState("");
   const [maxContextTokens, setMaxContextTokens] = useState(500);
   const [autoExtract, setAutoExtract] = useState(true);
   const [memoryStats, setMemoryStats] = useState(null);
@@ -128,53 +150,73 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   // Load brand assets, timeout, port, and image support from config
   useEffect(() => {
     if (!brandLoaded) {
-      apiFetch('/api/config').then(r => r.json()).then(data => {
-        if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
-        if (data.reviewTimeoutSec != null) setReviewTimeoutSec(data.reviewTimeoutSec);
-        if (data.chatTimeoutSec != null) setChatTimeoutSec(data.chatTimeoutSec);
-        if (data.numCtx != null) setNumCtx(data.numCtx);
-        if (data.autoAdjustContext != null) setAutoAdjustContext(data.autoAdjustContext);
-        if (data.preferredPort != null) setPreferredPort(data.preferredPort);
-        if (data.imageSupport) {
-          setImageSupport({
-            enabled: data.imageSupport.enabled ?? true,
-            maxSizeMB: data.imageSupport.maxSizeMB ?? 25,
-            maxImagesPerMessage: data.imageSupport.maxImagesPerMessage ?? 10,
-            compressionQuality: data.imageSupport.compressionQuality ?? 0.9,
-          });
-        }
-        if (data.ollamaApiKey != null) setOllamaApiKey(data.ollamaApiKey || '');
-        if (data.docling) {
-          setDoclingUrl(data.docling.url || 'http://127.0.0.1:5002');
-          setDoclingApiKey(data.docling.apiKey || '');
-          setDoclingEnabled(data.docling.enabled ?? true);
-          setDoclingOcr(data.docling.ocr ?? true);
-        }
-        if (data.agentTerminal) {
-          setTerminalEnabled(data.agentTerminal.enabled ?? false);
-          setTerminalAllowlist((data.agentTerminal.allowlist || []).join(', '));
-          setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
-        }
-        if (data.autoModelMap && typeof data.autoModelMap === 'object') setAutoModelMap(data.autoModelMap);
-        if (data.autoModelMapDefaults && typeof data.autoModelMapDefaults === 'object') {
-          setAutoModelMapDefaults(data.autoModelMapDefaults);
-        }
-        setBrandLoaded(true);
-      }).catch(() => setBrandLoaded(true));
+      apiFetch("/api/config")
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data.brandAssets)) setBrandAssets(data.brandAssets);
+          if (data.reviewTimeoutSec != null)
+            setReviewTimeoutSec(data.reviewTimeoutSec);
+          if (data.chatTimeoutSec != null)
+            setChatTimeoutSec(data.chatTimeoutSec);
+          if (data.numCtx != null) setNumCtx(data.numCtx);
+          if (data.autoAdjustContext != null)
+            setAutoAdjustContext(data.autoAdjustContext);
+          if (data.preferredPort != null) setPreferredPort(data.preferredPort);
+          if (data.imageSupport) {
+            setImageSupport({
+              enabled: data.imageSupport.enabled ?? true,
+              maxSizeMB: data.imageSupport.maxSizeMB ?? 25,
+              maxImagesPerMessage: data.imageSupport.maxImagesPerMessage ?? 10,
+              compressionQuality: data.imageSupport.compressionQuality ?? 0.9,
+            });
+          }
+          if (data.ollamaApiKey != null)
+            setOllamaApiKey(data.ollamaApiKey || "");
+          if (data.docling) {
+            setDoclingUrl(data.docling.url || "http://127.0.0.1:5002");
+            setDoclingApiKey(data.docling.apiKey || "");
+            setDoclingEnabled(data.docling.enabled ?? true);
+            setDoclingOcr(data.docling.ocr ?? true);
+          }
+          if (data.agentTerminal) {
+            setTerminalEnabled(data.agentTerminal.enabled ?? false);
+            setTerminalAllowlist(
+              (data.agentTerminal.allowlist || []).join(", "),
+            );
+            setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
+          }
+          if (data.autoModelMap && typeof data.autoModelMap === "object")
+            setAutoModelMap(data.autoModelMap);
+          if (
+            data.autoModelMapDefaults &&
+            typeof data.autoModelMapDefaults === "object"
+          ) {
+            setAutoModelMapDefaults(data.autoModelMapDefaults);
+          }
+          setBrandLoaded(true);
+        })
+        .catch(() => setBrandLoaded(true));
     }
   }, [brandLoaded]);
 
   // Load available models for vision detection
   useEffect(() => {
-    apiFetch('/api/models').then(r => r.json()).then(data => {
-      if (data.models) setModels(data.models);
-    }).catch(() => {});
+    apiFetch("/api/models")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.models) setModels(data.models);
+      })
+      .catch(() => {});
   }, []);
 
   async function saveBrandAssets(assets) {
     setBrandAssets(assets);
     try {
-      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandAssets: assets }) });
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brandAssets: assets }),
+      });
     } catch {}
   }
 
@@ -182,16 +224,22 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     const updatedSupport = { ...imageSupport, ...updates };
     setImageSupport(updatedSupport);
     try {
-      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageSupport: updatedSupport }) });
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageSupport: updatedSupport }),
+      });
     } catch {}
   }
 
   function addBrandAsset() {
-    saveBrandAssets([...brandAssets, { label: '', path: '', description: '' }]);
+    saveBrandAssets([...brandAssets, { label: "", path: "", description: "" }]);
   }
 
   function updateBrandAsset(index, field, value) {
-    const updated = brandAssets.map((a, i) => i === index ? { ...a, [field]: value } : a);
+    const updated = brandAssets.map((a, i) =>
+      i === index ? { ...a, [field]: value } : a,
+    );
     saveBrandAssets(updated);
   }
 
@@ -201,20 +249,29 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   // Fetch memory config and data on mount
   useEffect(() => {
-    apiFetch('/api/config').then(r => r.json()).then(data => {
-      if (data.memory) {
-        setMemoryEnabled(!!data.memory.enabled);
-        setEmbeddingModel(data.memory.embeddingModel || '');
-        setMaxContextTokens(data.memory.maxContextTokens || 500);
-        setAutoExtract(data.memory.autoExtract !== false);
-      }
-    }).catch(() => {});
-    apiFetch('/api/memory/models').then(r => r.json()).then(data => {
-      setEmbeddingModels(Array.isArray(data) ? data : (data.models || []));
-    }).catch(() => setEmbeddingModels([]));
-    apiFetch('/api/memory/stats').then(r => r.json()).then(data => {
-      setMemoryStats(data);
-    }).catch(() => {});
+    apiFetch("/api/config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.memory) {
+          setMemoryEnabled(!!data.memory.enabled);
+          setEmbeddingModel(data.memory.embeddingModel || "");
+          setMaxContextTokens(data.memory.maxContextTokens || 500);
+          setAutoExtract(data.memory.autoExtract !== false);
+        }
+      })
+      .catch(() => {});
+    apiFetch("/api/memory/models")
+      .then((r) => r.json())
+      .then((data) => {
+        setEmbeddingModels(Array.isArray(data) ? data : data.models || []);
+      })
+      .catch(() => setEmbeddingModels([]));
+    apiFetch("/api/memory/stats")
+      .then((r) => r.json())
+      .then((data) => {
+        setMemoryStats(data);
+      })
+      .catch(() => {});
   }, []);
 
   async function saveMemoryConfig(updates) {
@@ -226,19 +283,24 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       ...updates,
     };
     try {
-      await apiFetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memory: memConfig }),
       });
     } catch {}
   }
 
   async function handleReembed() {
-    if (!confirm('Re-embed all memories with the current embedding model? This may take a while.')) return;
+    if (
+      !confirm(
+        "Re-embed all memories with the current embedding model? This may take a while.",
+      )
+    )
+      return;
     setReembedding(true);
     try {
-      await apiFetch('/api/memory/reembed', { method: 'POST' });
+      await apiFetch("/api/memory/reembed", { method: "POST" });
     } catch {}
     setReembedding(false);
   }
@@ -250,15 +312,15 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
       // Listen for update events
       window.electronAPI.onUpdateAvailable((info) => {
-        setUpdateStatus('available');
+        setUpdateStatus("available");
         setUpdateInfo(info);
       });
       window.electronAPI.onUpdateDownloadProgress?.((progress) => {
-        setUpdateStatus('downloading');
+        setUpdateStatus("downloading");
         setDownloadProgress(Math.round(progress.percent));
       });
       window.electronAPI.onUpdateDownloaded((info) => {
-        setUpdateStatus('ready');
+        setUpdateStatus("ready");
         setUpdateInfo(info);
       });
     }
@@ -274,7 +336,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       setDataDir(dir);
       setPreferredPort(port);
       setActualPort(actual);
-      if (typeof window.electronAPI.getIsPackaged === 'function') {
+      if (typeof window.electronAPI.getIsPackaged === "function") {
         try {
           setIsPackaged(await window.electronAPI.getIsPackaged());
         } catch {
@@ -283,11 +345,11 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       } else {
         setIsPackaged(false);
       }
-      if (typeof window.electronAPI.getUpdateState === 'function') {
+      if (typeof window.electronAPI.getUpdateState === "function") {
         try {
           const st = await window.electronAPI.getUpdateState();
           if (st?.success && st.updateDownloaded && st.updateInfo) {
-            setUpdateStatus('ready');
+            setUpdateStatus("ready");
             setUpdateInfo(st.updateInfo);
           }
         } catch {
@@ -295,7 +357,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         }
       }
     } catch (err) {
-      console.error('Failed to fetch Electron data:', err);
+      console.error("Failed to fetch Electron data:", err);
     }
   }
 
@@ -303,9 +365,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     try {
       const result = await window.electronAPI.exportData();
       if (result.success) {
-        showToast('Data exported successfully');
+        showToast("Data exported successfully");
       } else if (!result.cancelled) {
-        showToast(`Export failed: ${result.error || 'Unknown error'}`);
+        showToast(`Export failed: ${result.error || "Unknown error"}`);
       }
     } catch (err) {
       showToast(`Export failed: ${err.message}`);
@@ -316,10 +378,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     try {
       const result = await window.electronAPI.importData();
       if (result.success) {
-        showToast('Data imported successfully. Reloading app...');
+        showToast("Data imported successfully. Reloading app...");
         setTimeout(() => window.location.reload(), 1500);
       } else if (!result.cancelled) {
-        showToast(`Import failed: ${result.error || 'Unknown error'}`);
+        showToast(`Import failed: ${result.error || "Unknown error"}`);
       }
     } catch (err) {
       showToast(`Import failed: ${err.message}`);
@@ -329,30 +391,30 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   async function handleSavePort() {
     const portNum = parseInt(preferredPort, 10);
     if (portNum < 1024 || portNum > 65535) {
-      setPortError('Port must be between 1024 and 65535');
+      setPortError("Port must be between 1024 and 65535");
       return;
     }
-    setPortError('');
+    setPortError("");
     try {
       if (isElectron) {
         // Electron mode: use IPC
         const result = await window.electronAPI.setPortConfig(portNum);
         if (result.success) {
-          showToast('Port preference saved. Takes effect on next launch.');
+          showToast("Port preference saved. Takes effect on next launch.");
         } else {
-          setPortError(result.error || 'Failed to save port');
+          setPortError(result.error || "Failed to save port");
         }
       } else {
         // Non-Electron mode: use API
-        const response = await apiFetch('/api/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ preferredPort: portNum })
+        const response = await apiFetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ preferredPort: portNum }),
         });
         if (response.ok) {
-          showToast('Port preference saved. Restart server to apply.');
+          showToast("Port preference saved. Restart server to apply.");
         } else {
-          setPortError('Failed to save port');
+          setPortError("Failed to save port");
         }
       }
     } catch (err) {
@@ -361,26 +423,29 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   }
 
   async function handleCheckForUpdates(attempt = 0) {
-    setUpdateStatus('checking');
+    setUpdateStatus("checking");
     setUpdateError(null);
     try {
       const result = await window.electronAPI.checkForUpdates();
       if (!result.success) {
-        const raw = result.error || 'Check failed';
-        if (attempt < UPDATER_YAML_404_RETRIES && isTransientGithubYaml404(raw)) {
+        const raw = result.error || "Check failed";
+        if (
+          attempt < UPDATER_YAML_404_RETRIES &&
+          isTransientGithubYaml404(raw)
+        ) {
           await new Promise((r) => setTimeout(r, UPDATER_YAML_404_RETRY_MS));
           return handleCheckForUpdates(attempt + 1);
         }
-        setUpdateStatus('error');
+        setUpdateStatus("error");
         setUpdateError(formatSoftwareUpdateError(raw));
         return;
       }
       // updateInfo is present even when already latest; rely on isUpdateAvailable from main process.
       if (result.isUpdateAvailable) {
-        setUpdateStatus('available');
+        setUpdateStatus("available");
         if (result.updateInfo) setUpdateInfo(result.updateInfo);
       } else {
-        setUpdateStatus('up-to-date');
+        setUpdateStatus("up-to-date");
       }
     } catch (err) {
       const raw = err.message;
@@ -388,7 +453,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
         await new Promise((r) => setTimeout(r, UPDATER_YAML_404_RETRY_MS));
         return handleCheckForUpdates(attempt + 1);
       }
-      setUpdateStatus('error');
+      setUpdateStatus("error");
       setUpdateError(formatSoftwareUpdateError(raw));
     }
   }
@@ -398,26 +463,26 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     if (isPackaged !== true) return;
     setUpdateError(null);
 
-    if (updateStatus === 'available') {
-      setUpdateStatus('downloading');
+    if (updateStatus === "available") {
+      setUpdateStatus("downloading");
       setDownloadProgress(0);
       try {
         const dl = await window.electronAPI.downloadUpdate();
         if (dl.success) {
           if (dl.updateInfo) setUpdateInfo(dl.updateInfo);
-          setUpdateStatus('ready');
+          setUpdateStatus("ready");
           return;
         }
-        const errMsg = dl.error || '';
-        if (String(errMsg).includes('check update first')) {
-          setUpdateStatus('available');
+        const errMsg = dl.error || "";
+        if (String(errMsg).includes("check update first")) {
+          setUpdateStatus("available");
           await handleCheckForUpdates();
           return;
         }
-        setUpdateStatus('error');
+        setUpdateStatus("error");
         setUpdateError(formatSoftwareUpdateError(errMsg));
       } catch (err) {
-        setUpdateStatus('error');
+        setUpdateStatus("error");
         setUpdateError(formatSoftwareUpdateError(err.message));
       }
       return;
@@ -443,18 +508,18 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
       }
       return;
     }
-    window.open(OFFICIAL_RELEASES_LATEST_URL, '_blank', 'noopener,noreferrer');
+    window.open(OFFICIAL_RELEASES_LATEST_URL, "_blank", "noopener,noreferrer");
   }
 
   function showToast(msg) {
     // This would need to be passed as a prop or accessed via context
     // For now, using console.log as placeholder
-    console.log('[Toast]', msg);
+    console.log("[Toast]", msg);
   }
 
   async function fetchGhTokenStatus() {
     try {
-      const res = await apiFetch('/api/github/token/status');
+      const res = await apiFetch("/api/github/token/status");
       const data = await res.json();
       setGhTokenStatus(data);
     } catch {}
@@ -465,16 +530,19 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setGhValidating(true);
     setGhResult(null);
     try {
-      const res = await apiFetch('/api/github/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: ghToken, label: ghTokenLabel.trim() || undefined }),
+      const res = await apiFetch("/api/github/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: ghToken,
+          label: ghTokenLabel.trim() || undefined,
+        }),
       });
       const data = await res.json();
       setGhResult(data);
       if (data.valid) {
-        setGhToken('');
-        setGhTokenLabel('');
+        setGhToken("");
+        setGhTokenLabel("");
         fetchGhTokenStatus();
       }
     } catch (err) {
@@ -485,9 +553,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   async function handleRemoveGhTokenByName(name) {
     try {
-      await apiFetch('/api/github/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await apiFetch("/api/github/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ remove: name }),
       });
       fetchGhTokenStatus();
@@ -496,10 +564,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   async function handleRemoveGhToken() {
     try {
-      await apiFetch('/api/github/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: '' }),
+      await apiFetch("/api/github/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: "" }),
       });
       setGhTokenStatus(null);
       setGhResult(null);
@@ -507,21 +575,32 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
   }
 
   function ollamaApiKeyPayload() {
-    const t = (ollamaApiKey || '').trim();
-    if (t === '') return { ollamaApiKey: '' };
+    const t = (ollamaApiKey || "").trim();
+    if (t === "") return { ollamaApiKey: "" };
     if (/^•+$/.test(t)) return {};
     return { ollamaApiKey: t };
   }
 
   async function handleTest() {
-    setTesting(true); setTestResult(null);
+    setTesting(true);
+    setTestResult(null);
     try {
       const body = { ollamaUrl: url, ...ollamaApiKeyPayload() };
-      await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      const res = await apiFetch('/api/models');
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const res = await apiFetch("/api/models");
       const data = await res.json();
-      setTestResult(data.connected ? { ok: true, count: data.models.length } : { ok: false, error: data.detail || 'Cannot connect' });
-    } catch (err) { setTestResult({ ok: false, error: err.message }); }
+      setTestResult(
+        data.connected
+          ? { ok: true, count: data.models.length }
+          : { ok: false, error: data.detail || "Cannot connect" },
+      );
+    } catch (err) {
+      setTestResult({ ok: false, error: err.message });
+    }
     setTesting(false);
   }
 
@@ -529,16 +608,24 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
     setDoclingTesting(true);
     setDoclingTestResult(null);
     try {
-      await apiFetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docling: { url: doclingUrl, apiKey: doclingApiKey } }),
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          docling: { url: doclingUrl, apiKey: doclingApiKey },
+        }),
       });
-      const res = await apiFetch('/api/docling/health');
+      const res = await apiFetch("/api/docling/health");
       const data = await res.json();
-      setDoclingTestResult(data.connected
-        ? { ok: true, message: data.version ? `Connected (v${data.version})` : 'Connected to docling-serve' }
-        : { ok: false, error: data.detail || 'Cannot connect' }
+      setDoclingTestResult(
+        data.connected
+          ? {
+              ok: true,
+              message: data.version
+                ? `Connected (v${data.version})`
+                : "Connected to docling-serve",
+            }
+          : { ok: false, error: data.detail || "Cannot connect" },
       );
     } catch (err) {
       setDoclingTestResult({ ok: false, error: err.message });
@@ -548,64 +635,124 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
   async function handleTestFolder() {
     setFolderResult(null);
-    if (!folder.trim()) { setFolderResult({ ok: false, error: 'Enter a folder path' }); return; }
+    if (!folder.trim()) {
+      setFolderResult({ ok: false, error: "Enter a folder path" });
+      return;
+    }
     try {
-      const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectFolder: folder }) });
+      const res = await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectFolder: folder }),
+      });
       const data = await res.json();
-      if (data.error) { setFolderResult({ ok: false, error: data.error }); }
-      else {
-        const treeRes = await apiFetch(`/api/files/tree?path=${encodeURIComponent(folder)}&depth=1`);
+      if (data.error) {
+        setFolderResult({ ok: false, error: data.error });
+      } else {
+        const treeRes = await apiFetch(
+          `/api/files/tree?path=${encodeURIComponent(folder)}&depth=1`,
+        );
         const treeData = await treeRes.json();
-        if (treeData.tree) { setFolderResult({ ok: true, count: treeData.tree.length }); }
-        else { setFolderResult({ ok: false, error: treeData.error || 'Cannot read folder' }); }
+        if (treeData.tree) {
+          setFolderResult({ ok: true, count: treeData.tree.length });
+        } else {
+          setFolderResult({
+            ok: false,
+            error: treeData.error || "Cannot read folder",
+          });
+        }
       }
-    } catch (err) { setFolderResult({ ok: false, error: err.message }); }
+    } catch (err) {
+      setFolderResult({ ok: false, error: err.message });
+    }
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose} role="presentation">
-      <div className="glass-heavy rounded-2xl w-full max-w-lg p-6 neon-border max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} role="dialog" aria-label="Settings" aria-modal="true">
+    <div
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="glass-heavy rounded-2xl w-full max-w-lg p-6 neon-border max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Settings"
+        aria-modal="true"
+      >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-slate-100 neon-text">Settings</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white text-xl transition-colors" aria-label="Close settings">✕</button>
+          <h2 className="text-lg font-bold text-slate-100 neon-text">
+            Settings
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-white text-xl transition-colors"
+            aria-label="Close settings"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Tab bar */}
         <div className="flex gap-1 mb-6 p-1 glass rounded-lg">
           {[
-            { id: 'general', label: 'General' },
-            { id: 'github', label: 'GitHub' },
-            { id: 'mcp-server', label: 'MCP Server' },
-            { id: 'mcp-clients', label: 'MCP Clients' },
-            { id: 'memory', label: 'Memory' },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            { id: "general", label: "General" },
+            { id: "github", label: "GitHub" },
+            { id: "mcp-server", label: "MCP Server" },
+            { id: "mcp-clients", label: "MCP Clients" },
+            { id: "memory", label: "Memory" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id ? 'btn-neon text-white' : 'text-slate-400 hover:text-white'
-              }`}>
+                activeTab === tab.id
+                  ? "btn-neon text-white"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
               {tab.label}
             </button>
           ))}
         </div>
 
         {/* Tab content */}
-        {activeTab === 'general' && (
+        {activeTab === "general" && (
           <div className="space-y-5">
             {/* Ollama — local or Cloud (card so URL + API key are easy to find) */}
-            <section className="rounded-xl border border-indigo-500/25 bg-slate-900/40 p-4 space-y-4" aria-labelledby="settings-ollama-heading">
+            <section
+              className="rounded-xl border border-indigo-500/25 bg-slate-900/40 p-4 space-y-4"
+              aria-labelledby="settings-ollama-heading"
+            >
               <div className="flex flex-col gap-0.5">
-                <h3 id="settings-ollama-heading" className="text-sm font-semibold text-slate-100 tracking-tight">
+                <h3
+                  id="settings-ollama-heading"
+                  className="text-sm font-semibold text-slate-100 tracking-tight"
+                >
                   Ollama connection
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Use your computer (<code className="text-[11px] bg-slate-800 px-1 rounded">localhost:11434</code>) or{' '}
-                  <strong className="text-slate-400 font-medium">Ollama Cloud</strong> — set URL to{' '}
-                  <code className="text-[11px] bg-slate-800 px-1 rounded">https://ollama.com</code> and add your API key below.
+                  Use your computer (
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    localhost:11434
+                  </code>
+                  ) or{" "}
+                  <strong className="text-slate-400 font-medium">
+                    Ollama Cloud
+                  </strong>{" "}
+                  — set URL to{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    https://ollama.com
+                  </code>{" "}
+                  and add your API key below.
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2 font-medium" htmlFor="settings-ollama-url">
+                <label
+                  className="block text-sm text-slate-300 mb-2 font-medium"
+                  htmlFor="settings-ollama-url"
+                >
                   Server URL
                 </label>
                 <div className="flex gap-2">
@@ -613,41 +760,71 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     id="settings-ollama-url"
                     type="text"
                     value={url}
-                    onChange={e => setUrl(e.target.value)}
+                    onChange={(e) => setUrl(e.target.value)}
                     placeholder="http://localhost:11434 or https://ollama.com"
                     className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                   />
-                  <button type="button" onClick={handleTest} disabled={testing}
-                    className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap shrink-0">
-                    {testing ? <span className="inline-block spin">&#x27F3;</span> : 'Test'}
+                  <button
+                    type="button"
+                    onClick={handleTest}
+                    disabled={testing}
+                    className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap shrink-0"
+                  >
+                    {testing ? (
+                      <span className="inline-block spin">&#x27F3;</span>
+                    ) : (
+                      "Test"
+                    )}
                   </button>
                 </div>
                 {testResult && (
-                  <div className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                    {testResult.ok ? `Connected — ${testResult.count} model${testResult.count !== 1 ? 's' : ''} found.` : `Failed: ${testResult.error}`}
+                  <div
+                    className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}
+                  >
+                    {testResult.ok
+                      ? `Connected — ${testResult.count} model${testResult.count !== 1 ? "s" : ""} found.`
+                      : `Failed: ${testResult.error}`}
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2 font-medium" htmlFor="settings-ollama-api-key">
-                  Ollama Cloud API key <span className="text-slate-500 font-normal">(only if you use cloud)</span>
+                <label
+                  className="block text-sm text-slate-300 mb-2 font-medium"
+                  htmlFor="settings-ollama-api-key"
+                >
+                  Ollama Cloud API key{" "}
+                  <span className="text-slate-500 font-normal">
+                    (only if you use cloud)
+                  </span>
                 </label>
                 <input
                   id="settings-ollama-api-key"
                   type="password"
                   value={ollamaApiKey}
-                  onChange={e => setOllamaApiKey(e.target.value)}
+                  onChange={(e) => setOllamaApiKey(e.target.value)}
                   placeholder="Paste key from ollama.com/settings/keys — leave empty for local Ollama only"
                   autoComplete="off"
                   className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                 />
                 <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  <a href="https://ollama.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline inline-flex items-center gap-0.5">
-                    Open Ollama API keys <ExternalLink className="w-3 h-3 inline" aria-hidden />
+                  <a
+                    href="https://ollama.com/settings/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    Open Ollama API keys{" "}
+                    <ExternalLink className="w-3 h-3 inline" aria-hidden />
                   </a>
                   <span className="text-slate-600 mx-1">·</span>
-                  Or set env <code className="text-[11px] bg-slate-800 px-1 rounded">OLLAMA_API_KEY</code> (see docs). Tap <strong className="text-slate-400">Save &amp; Close</strong> to store the key.
+                  Or set env{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    OLLAMA_API_KEY
+                  </code>{" "}
+                  (see docs). Tap{" "}
+                  <strong className="text-slate-400">Save &amp; Close</strong>{" "}
+                  to store the key.
                 </p>
               </div>
             </section>
@@ -655,36 +832,56 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             {/* Document Conversion (Docling) */}
             <div className="border-t border-slate-700/40 pt-4 mt-4">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm text-slate-300 font-medium">Document Conversion (Docling)</label>
+                <label className="text-sm text-slate-300 font-medium">
+                  Document Conversion (Docling)
+                </label>
                 <button
                   onClick={() => {
                     const next = !doclingEnabled;
                     setDoclingEnabled(next);
-                    apiFetch('/api/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ docling: { enabled: next } }),
                     });
                   }}
-                  className={`relative w-9 h-5 rounded-full transition-colors ${doclingEnabled ? 'bg-indigo-500' : 'bg-slate-600'}`}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${doclingEnabled ? "bg-indigo-500" : "bg-slate-600"}`}
                   aria-label="Toggle document conversion"
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${doclingEnabled ? 'translate-x-4' : ''}`} />
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${doclingEnabled ? "translate-x-4" : ""}`}
+                  />
                 </button>
               </div>
               <p className="text-xs text-slate-500 mb-3">
-                Read PDF, PPTX, DOCX, XLSX and more via{' '}
-                <a href="https://github.com/docling-project/docling-serve" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">docling-serve</a>.
-                Install: <code className="text-[11px] bg-slate-800 px-1 rounded">pip install "docling-serve[ui]"</code> then <code className="text-[11px] bg-slate-800 px-1 rounded">docling-serve run --host 127.0.0.1 --port 5002</code>
+                Read PDF, PPTX, DOCX, XLSX and more via{" "}
+                <a
+                  href="https://github.com/docling-project/docling-serve"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:underline"
+                >
+                  docling-serve
+                </a>
+                . Install:{" "}
+                <code className="text-[11px] bg-slate-800 px-1 rounded">
+                  pip install "docling-serve[ui]"
+                </code>{" "}
+                then{" "}
+                <code className="text-[11px] bg-slate-800 px-1 rounded">
+                  docling-serve run --host 127.0.0.1 --port 5002
+                </code>
               </p>
               {doclingEnabled && (
                 <>
-                  <label className="block text-sm text-slate-300 mb-2 font-medium">Docling Server URL</label>
+                  <label className="block text-sm text-slate-300 mb-2 font-medium">
+                    Docling Server URL
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={doclingUrl}
-                      onChange={e => setDoclingUrl(e.target.value)}
+                      onChange={(e) => setDoclingUrl(e.target.value)}
                       placeholder="http://127.0.0.1:5002"
                       className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                     />
@@ -693,22 +890,33 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       disabled={doclingTesting}
                       className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
                     >
-                      {doclingTesting ? <span className="inline-block spin">&#x27F3;</span> : 'Test Connection'}
+                      {doclingTesting ? (
+                        <span className="inline-block spin">&#x27F3;</span>
+                      ) : (
+                        "Test Connection"
+                      )}
                     </button>
                   </div>
                   {doclingTestResult && (
-                    <div className={`mt-2 p-2.5 rounded-lg text-xs ${doclingTestResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                      {doclingTestResult.ok ? doclingTestResult.message : `Failed: ${doclingTestResult.error}`}
+                    <div
+                      className={`mt-2 p-2.5 rounded-lg text-xs ${doclingTestResult.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}
+                    >
+                      {doclingTestResult.ok
+                        ? doclingTestResult.message
+                        : `Failed: ${doclingTestResult.error}`}
                     </div>
                   )}
 
                   <label className="block text-sm text-slate-300 mb-2 mt-3 font-medium">
-                    API Key <span className="text-slate-500 font-normal">(optional)</span>
+                    API Key{" "}
+                    <span className="text-slate-500 font-normal">
+                      (optional)
+                    </span>
                   </label>
                   <input
                     type="password"
                     value={doclingApiKey}
-                    onChange={e => setDoclingApiKey(e.target.value)}
+                    onChange={(e) => setDoclingApiKey(e.target.value)}
                     placeholder="Leave blank if not required"
                     className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                   />
@@ -717,11 +925,14 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     <input
                       type="checkbox"
                       checked={doclingOcr}
-                      onChange={e => setDoclingOcr(e.target.checked)}
+                      onChange={(e) => setDoclingOcr(e.target.checked)}
                       id="docling-ocr"
                       className="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500"
                     />
-                    <label htmlFor="docling-ocr" className="text-sm text-slate-300 cursor-pointer">
+                    <label
+                      htmlFor="docling-ocr"
+                      className="text-sm text-slate-300 cursor-pointer"
+                    >
                       Enable OCR for scanned documents
                     </label>
                   </div>
@@ -732,38 +943,48 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             {/* Agent Terminal */}
             <div className="border-t border-slate-700/40 pt-4 mt-4">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm text-slate-300 font-medium">Agent Terminal</label>
+                <label className="text-sm text-slate-300 font-medium">
+                  Agent Terminal
+                </label>
                 <button
                   onClick={() => {
                     const next = !terminalEnabled;
                     setTerminalEnabled(next);
-                    apiFetch('/api/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ agentTerminal: { enabled: next } }),
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        agentTerminal: { enabled: next },
+                      }),
                     });
                   }}
-                  className={`relative w-9 h-5 rounded-full transition-colors ${terminalEnabled ? 'bg-indigo-500' : 'bg-slate-600'}`}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${terminalEnabled ? "bg-indigo-500" : "bg-slate-600"}`}
                   aria-label="Toggle agent terminal"
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${terminalEnabled ? 'translate-x-4' : ''}`} />
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${terminalEnabled ? "translate-x-4" : ""}`}
+                  />
                 </button>
               </div>
               <p className="text-xs text-slate-500 mb-3">
-                Allow the AI agent to run terminal commands in your project folder. Commands are restricted to the allowlist below.
+                Allow the AI agent to run terminal commands in your project
+                folder. Commands are restricted to the allowlist below.
               </p>
               {terminalEnabled && (
                 <>
-                  <label className="block text-sm text-slate-300 mb-2 font-medium">Allowed Commands</label>
+                  <label className="block text-sm text-slate-300 mb-2 font-medium">
+                    Allowed Commands
+                  </label>
                   <input
                     type="text"
                     value={terminalAllowlist}
-                    onChange={e => setTerminalAllowlist(e.target.value)}
+                    onChange={(e) => setTerminalAllowlist(e.target.value)}
                     placeholder="npm, npx, node, git, python (comma-separated)"
                     className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                   />
                   <p className="text-xs text-slate-500 mt-1 mb-3">
-                    Comma-separated list of allowed command names. Leave empty to deny all commands.
+                    Comma-separated list of allowed command names. Leave empty
+                    to deny all commands.
                   </p>
 
                   <label className="block text-sm text-slate-300 mb-2 font-medium">
@@ -775,7 +996,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     max={300}
                     step={10}
                     value={terminalTimeout}
-                    onChange={e => setTerminalTimeout(Number(e.target.value))}
+                    onChange={(e) => setTerminalTimeout(Number(e.target.value))}
                     className="w-full accent-indigo-500"
                   />
                   <div className="flex justify-between text-[10px] text-slate-600 mt-1">
@@ -788,36 +1009,69 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
             {/* Project Folder */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">Project Folder</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Project Folder
+              </label>
               <div className="flex gap-2">
-                <input type="text" value={folder} onChange={e => setFolder(e.target.value)} placeholder="Paste the path to your project folder"
-                  className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
-                <button onClick={handleTestFolder}
-                  className="btn-neon text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
+                <input
+                  type="text"
+                  value={folder}
+                  onChange={(e) => setFolder(e.target.value)}
+                  placeholder="Paste the path to your project folder"
+                  className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                />
+                <button
+                  onClick={handleTestFolder}
+                  className="btn-neon text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+                >
                   Set Folder
                 </button>
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">Defaults to your user (home) folder until you set another path. Point me to your project and I&apos;ll open the file browser for you.</p>
+              <p className="text-xs text-slate-400 mt-1.5">
+                Defaults to your user (home) folder until you set another path.
+                Point me to your project and I&apos;ll open the file browser for
+                you.
+              </p>
               {folderResult && (
-                <div className={`mt-2 p-2.5 rounded-lg text-xs ${folderResult.ok ? 'bg-green-500/10 border border-green-500/30 text-green-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                  {folderResult.ok ? `Found ${folderResult.count} items in folder.` : `Error: ${folderResult.error}`}
+                <div
+                  className={`mt-2 p-2.5 rounded-lg text-xs ${folderResult.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}
+                >
+                  {folderResult.ok
+                    ? `Found ${folderResult.count} items in folder.`
+                    : `Error: ${folderResult.error}`}
                 </div>
               )}
             </div>
 
             {/* Create template (Commands + ICM-fw) */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">Create template path</label>
-              <input type="text" value={icmTemplate} onChange={e => setIcmTemplate(e.target.value)}
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Create template path
+              </label>
+              <input
+                type="text"
+                value={icmTemplate}
+                onChange={(e) => setIcmTemplate(e.target.value)}
                 placeholder="e.g. /Users/you/AI_Dev/_AI-IDEs (contains Commands and ICM-fw)"
-                className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
-              <p className="text-xs text-slate-400 mt-1.5">Folder that contains <code className="bg-slate-700/50 px-1 rounded">Commands</code> and <code className="bg-slate-700/50 px-1 rounded">ICM-fw</code>. New Create projects will copy these into the project.</p>
+                className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1.5">
+                Folder that contains{" "}
+                <code className="bg-slate-700/50 px-1 rounded">Commands</code>{" "}
+                and <code className="bg-slate-700/50 px-1 rounded">ICM-fw</code>
+                . New Create projects will copy these into the project.
+              </p>
             </div>
 
             {/* Brand Assets */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">Brand Assets</label>
-              <p className="text-xs text-slate-500 mb-3">Logo and image files the AI will use for branding in diagrams, reports, and builds.</p>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Brand Assets
+              </label>
+              <p className="text-xs text-slate-500 mb-3">
+                Logo and image files the AI will use for branding in diagrams,
+                reports, and builds.
+              </p>
               <div className="space-y-2">
                 {brandAssets.map((asset, i) => (
                   <div key={i} className="glass rounded-lg p-3 space-y-2">
@@ -825,14 +1079,18 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       <input
                         type="text"
                         value={asset.label}
-                        onChange={e => updateBrandAsset(i, 'label', e.target.value)}
+                        onChange={(e) =>
+                          updateBrandAsset(i, "label", e.target.value)
+                        }
                         placeholder="Label (e.g., Logo, Icon, Banner)"
                         className="w-1/3 input-glow text-slate-100 rounded-lg px-3 py-1.5 text-xs"
                       />
                       <input
                         type="text"
                         value={asset.path}
-                        onChange={e => updateBrandAsset(i, 'path', e.target.value)}
+                        onChange={(e) =>
+                          updateBrandAsset(i, "path", e.target.value)
+                        }
                         placeholder="/path/to/logo.png"
                         className="flex-1 input-glow text-slate-100 rounded-lg px-3 py-1.5 font-mono text-xs"
                       />
@@ -846,8 +1104,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     </div>
                     <input
                       type="text"
-                      value={asset.description || ''}
-                      onChange={e => updateBrandAsset(i, 'description', e.target.value)}
+                      value={asset.description || ""}
+                      onChange={(e) =>
+                        updateBrandAsset(i, "description", e.target.value)
+                      }
                       placeholder="Description (e.g., Primary logo for light backgrounds, 512x512 PNG)"
                       className="w-full input-glow text-slate-100 rounded-lg px-3 py-1.5 text-xs"
                     />
@@ -865,7 +1125,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             {/* Review Timeout */}
             <div>
               <label className="block text-sm text-slate-300 mb-2 font-medium">
-                Review Timeout <span className="text-slate-500 font-normal">({reviewTimeoutSec}s)</span>
+                Review Timeout{" "}
+                <span className="text-slate-500 font-normal">
+                  ({reviewTimeoutSec}s)
+                </span>
               </label>
               <input
                 type="range"
@@ -873,12 +1136,22 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 max="600"
                 step="30"
                 value={reviewTimeoutSec}
-                onChange={e => setReviewTimeoutSec(parseInt(e.target.value, 10))}
+                onChange={(e) =>
+                  setReviewTimeoutSec(parseInt(e.target.value, 10))
+                }
                 onMouseUp={() => {
-                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
+                  apiFetch("/api/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reviewTimeoutSec }),
+                  }).catch(() => {});
                 }}
                 onTouchEnd={() => {
-                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewTimeoutSec }) }).catch(() => {});
+                  apiFetch("/api/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reviewTimeoutSec }),
+                  }).catch(() => {});
                 }}
                 className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
                 aria-label="Review timeout seconds"
@@ -888,13 +1161,19 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 <span>5 min</span>
                 <span>10 min</span>
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">How long to wait for AI code reviews before timing out. Larger models need more time.</p>
+              <p className="text-xs text-slate-400 mt-1.5">
+                How long to wait for AI code reviews before timing out. Larger
+                models need more time.
+              </p>
             </div>
 
             {/* Chat Timeout */}
             <div>
               <label className="block text-sm text-slate-300 mb-2 font-medium">
-                Chat Timeout <span className="text-slate-500 font-normal">({chatTimeoutSec}s)</span>
+                Chat Timeout{" "}
+                <span className="text-slate-500 font-normal">
+                  ({chatTimeoutSec}s)
+                </span>
               </label>
               <input
                 type="range"
@@ -902,12 +1181,22 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 max="600"
                 step="30"
                 value={chatTimeoutSec}
-                onChange={e => setChatTimeoutSec(parseInt(e.target.value, 10))}
+                onChange={(e) =>
+                  setChatTimeoutSec(parseInt(e.target.value, 10))
+                }
                 onMouseUp={() => {
-                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
+                  apiFetch("/api/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chatTimeoutSec }),
+                  }).catch(() => {});
                 }}
                 onTouchEnd={() => {
-                  apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatTimeoutSec }) }).catch(() => {});
+                  apiFetch("/api/config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chatTimeoutSec }),
+                  }).catch(() => {});
                 }}
                 className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
                 aria-label="Chat timeout seconds"
@@ -917,15 +1206,22 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 <span>5 min</span>
                 <span>10 min</span>
               </div>
-              <p className="text-xs text-slate-400 mt-1.5">How long to wait for chat responses. Increase for large documents or slow models.</p>
+              <p className="text-xs text-slate-400 mt-1.5">
+                How long to wait for chat responses. Increase for large
+                documents or slow models.
+              </p>
             </div>
 
             {/* Context Window & Auto-Adjust */}
             <div className="glass rounded-lg p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-200">Context Window (num_ctx)</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Controls how much text the model can process at once</p>
+                  <p className="text-sm font-medium text-slate-200">
+                    Context Window (num_ctx)
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Controls how much text the model can process at once
+                  </p>
                 </div>
               </div>
 
@@ -933,14 +1229,25 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 {/* num_ctx input */}
                 <div>
                   <label className="block text-xs text-slate-400 mb-2">
-                    Context Size <span className="text-slate-300 font-medium">({numCtx === 0 ? 'Model Default' : numCtx.toLocaleString() + ' tokens'})</span>
+                    Context Size{" "}
+                    <span className="text-slate-300 font-medium">
+                      (
+                      {numCtx === 0
+                        ? "Model Default"
+                        : numCtx.toLocaleString() + " tokens"}
+                      )
+                    </span>
                   </label>
                   <select
                     value={numCtx}
-                    onChange={e => {
+                    onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       setNumCtx(val);
-                      apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ numCtx: val }) }).catch(() => {});
+                      apiFetch("/api/config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ numCtx: val }),
+                      }).catch(() => {});
                     }}
                     className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                   >
@@ -954,31 +1261,45 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     <option value={262144}>256K (very large docs)</option>
                     <option value={524288}>512K (maximum)</option>
                   </select>
-                  <p className="text-xs text-slate-400 mt-1.5">Higher values use more VRAM/RAM. Set to 128K+ for large PDFs.</p>
+                  <p className="text-xs text-slate-400 mt-1.5">
+                    Higher values use more VRAM/RAM. Set to 128K+ for large
+                    PDFs.
+                  </p>
                 </div>
 
                 {/* Auto-adjust toggle */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-slate-300 font-medium">Auto-Adjust Context</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Automatically increase num_ctx and timeout when large files are attached</p>
+                    <p className="text-xs text-slate-300 font-medium">
+                      Auto-Adjust Context
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Automatically increase num_ctx and timeout when large
+                      files are attached
+                    </p>
                   </div>
                   <button
                     onClick={() => {
                       const next = !autoAdjustContext;
                       setAutoAdjustContext(next);
-                      apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ autoAdjustContext: next }) }).catch(() => {});
+                      apiFetch("/api/config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ autoAdjustContext: next }),
+                      }).catch(() => {});
                     }}
                     className={`relative w-9 h-5 rounded-full transition-colors ${
-                      autoAdjustContext ? 'bg-indigo-500' : 'bg-slate-600'
+                      autoAdjustContext ? "bg-indigo-500" : "bg-slate-600"
                     }`}
                     role="switch"
                     aria-checked={autoAdjustContext}
                     aria-label="Toggle auto-adjust context"
                   >
-                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                      autoAdjustContext ? 'translate-x-4' : ''
-                    }`} />
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                        autoAdjustContext ? "translate-x-4" : ""
+                      }`}
+                    />
                   </button>
                 </div>
               </div>
@@ -993,17 +1314,27 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 aria-expanded={showAutoModelMap}
               >
                 <div>
-                  <p className="text-sm font-medium text-slate-200">Auto model map</p>
+                  <p className="text-sm font-medium text-slate-200">
+                    Auto model map
+                  </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Per-mode defaults when you select <strong className="text-slate-400">Auto (best per mode)</strong> in the toolbar
+                    Per-mode defaults when you select{" "}
+                    <strong className="text-slate-400">
+                      Auto (best per mode)
+                    </strong>{" "}
+                    in the toolbar
                   </p>
                 </div>
-                <span className="text-slate-500 text-sm">{showAutoModelMap ? '▼' : '▶'}</span>
+                <span className="text-slate-500 text-sm">
+                  {showAutoModelMap ? "▼" : "▶"}
+                </span>
               </button>
               {showAutoModelMap && (
                 <div className="mt-4 space-y-3 border-t border-slate-600/40 pt-4">
                   <p className="text-xs text-slate-400">
-                    Large requests may prefer cloud models; small ones may prefer local — the server also checks your Ollama model list.
+                    Large requests may prefer cloud models; small ones may
+                    prefer local — the server also checks your Ollama model
+                    list.
                   </p>
                   <div className="overflow-x-auto max-h-[min(60vh,480px)] overflow-y-auto pr-1">
                     <table className="w-full text-xs text-left">
@@ -1015,26 +1346,41 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       </thead>
                       <tbody>
                         {AUTO_MODEL_MODE_ROWS.map((row) => (
-                          <tr key={row.id} className="border-b border-slate-700/40">
-                            <td className="py-2 pr-3 text-slate-300 whitespace-nowrap">{row.label}</td>
+                          <tr
+                            key={row.id}
+                            className="border-b border-slate-700/40"
+                          >
+                            <td className="py-2 pr-3 text-slate-300 whitespace-nowrap">
+                              {row.label}
+                            </td>
                             <td className="py-2">
                               <select
-                                value={autoModelMap[row.id] ?? autoModelMapDefaults[row.id] ?? ''}
+                                value={
+                                  autoModelMap[row.id] ??
+                                  autoModelMapDefaults[row.id] ??
+                                  ""
+                                }
                                 onChange={async (e) => {
                                   const v = e.target.value;
                                   const next = { ...autoModelMap, [row.id]: v };
                                   setAutoModelMap(next);
                                   try {
-                                    await apiFetch('/api/config', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ autoModelMap: next }),
+                                    await apiFetch("/api/config", {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        autoModelMap: next,
+                                      }),
                                     });
                                   } catch {}
                                 }}
                                 className="w-full max-w-[min(100%,280px)] bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-slate-200"
                               >
-                                {models.length === 0 && <option value="">Load models…</option>}
+                                {models.length === 0 && (
+                                  <option value="">Load models…</option>
+                                )}
                                 {models.map((m) => (
                                   <option key={m.name} value={m.name}>
                                     {m.name}
@@ -1053,9 +1399,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       const next = { ...autoModelMapDefaults };
                       setAutoModelMap(next);
                       try {
-                        await apiFetch('/api/config', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                        await apiFetch("/api/config", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ autoModelMap: next }),
                         });
                       } catch {}
@@ -1072,20 +1418,29 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             <div className="glass rounded-lg p-4">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-200">Image Support (Beta)</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Upload images for analysis with vision models</p>
+                  <p className="text-sm font-medium text-slate-200">
+                    Image Support (Beta)
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Upload images for analysis with vision models
+                  </p>
                 </div>
                 <button
-                  onClick={() => saveImageSupport({ enabled: !imageSupport.enabled })}
+                  onClick={() =>
+                    saveImageSupport({ enabled: !imageSupport.enabled })
+                  }
                   className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
-                    imageSupport.enabled ? 'bg-indigo-600' : 'bg-slate-600'
+                    imageSupport.enabled ? "bg-indigo-600" : "bg-slate-600"
                   }`}
                   role="switch"
                   aria-checked={imageSupport.enabled}
-                  aria-label="Toggle image support">
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                    imageSupport.enabled ? 'translate-x-6' : 'translate-x-0'
-                  }`} />
+                  aria-label="Toggle image support"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                      imageSupport.enabled ? "translate-x-6" : "translate-x-0"
+                    }`}
+                  />
                 </button>
               </div>
 
@@ -1094,7 +1449,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   {/* Max Image Size */}
                   <div>
                     <label className="block text-xs text-slate-400 mb-2">
-                      Max Image Size <span className="text-slate-300 font-medium">({imageSupport.maxSizeMB} MB)</span>
+                      Max Image Size{" "}
+                      <span className="text-slate-300 font-medium">
+                        ({imageSupport.maxSizeMB} MB)
+                      </span>
                     </label>
                     <input
                       type="range"
@@ -1102,12 +1460,19 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       max="50"
                       step="1"
                       value={imageSupport.maxSizeMB}
-                      onChange={e => {
+                      onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
-                        setImageSupport(prev => ({ ...prev, maxSizeMB: val }));
+                        setImageSupport((prev) => ({
+                          ...prev,
+                          maxSizeMB: val,
+                        }));
                       }}
-                      onMouseUp={() => saveImageSupport({ maxSizeMB: imageSupport.maxSizeMB })}
-                      onTouchEnd={() => saveImageSupport({ maxSizeMB: imageSupport.maxSizeMB })}
+                      onMouseUp={() =>
+                        saveImageSupport({ maxSizeMB: imageSupport.maxSizeMB })
+                      }
+                      onTouchEnd={() =>
+                        saveImageSupport({ maxSizeMB: imageSupport.maxSizeMB })
+                      }
                       className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
                       aria-label="Max image size in MB"
                     />
@@ -1120,13 +1485,15 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
                   {/* Max Images Per Message */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-2">Max Images Per Message</label>
+                    <label className="block text-xs text-slate-400 mb-2">
+                      Max Images Per Message
+                    </label>
                     <input
                       type="number"
                       min="1"
                       max="20"
                       value={imageSupport.maxImagesPerMessage}
-                      onChange={e => {
+                      onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
                         if (val >= 1 && val <= 20) {
                           saveImageSupport({ maxImagesPerMessage: val });
@@ -1139,7 +1506,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   {/* Image Quality */}
                   <div>
                     <label className="block text-xs text-slate-400 mb-2">
-                      Image Quality <span className="text-slate-300 font-medium">({Math.round(imageSupport.compressionQuality * 100)}%)</span>
+                      Image Quality{" "}
+                      <span className="text-slate-300 font-medium">
+                        ({Math.round(imageSupport.compressionQuality * 100)}%)
+                      </span>
                     </label>
                     <input
                       type="range"
@@ -1147,12 +1517,23 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       max="1.0"
                       step="0.1"
                       value={imageSupport.compressionQuality}
-                      onChange={e => {
+                      onChange={(e) => {
                         const val = parseFloat(e.target.value);
-                        setImageSupport(prev => ({ ...prev, compressionQuality: val }));
+                        setImageSupport((prev) => ({
+                          ...prev,
+                          compressionQuality: val,
+                        }));
                       }}
-                      onMouseUp={() => saveImageSupport({ compressionQuality: imageSupport.compressionQuality })}
-                      onTouchEnd={() => saveImageSupport({ compressionQuality: imageSupport.compressionQuality })}
+                      onMouseUp={() =>
+                        saveImageSupport({
+                          compressionQuality: imageSupport.compressionQuality,
+                        })
+                      }
+                      onTouchEnd={() =>
+                        saveImageSupport({
+                          compressionQuality: imageSupport.compressionQuality,
+                        })
+                      }
                       className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
                       aria-label="Image compression quality"
                     />
@@ -1165,11 +1546,14 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
                   {/* Available Vision Models */}
                   <div className="mt-4 pt-4 border-t border-slate-600/30">
-                    <p className="text-xs font-medium text-slate-300 mb-2">Available Vision Models</p>
-                    {models.filter(m => m.supportsVision).length === 0 ? (
+                    <p className="text-xs font-medium text-slate-300 mb-2">
+                      Available Vision Models
+                    </p>
+                    {models.filter((m) => m.supportsVision).length === 0 ? (
                       <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
                         <p className="text-xs text-amber-400/90 mb-2">
-                          No vision models installed. Install one to use image features:
+                          No vision models installed. Install one to use image
+                          features:
                         </p>
                         <code className="block bg-slate-800/50 px-3 py-2 rounded text-xs text-indigo-300 font-mono">
                           ollama pull llava
@@ -1177,13 +1561,22 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       </div>
                     ) : (
                       <div className="space-y-1.5">
-                        {models.filter(m => m.supportsVision).map(m => (
-                          <div key={m.name} className="flex items-center gap-2 text-xs bg-slate-700/30 rounded px-3 py-2">
-                            <span className="text-lg">👁️</span>
-                            <span className="text-slate-200 font-medium">{m.name}</span>
-                            <span className="text-slate-500 text-[10px]">({m.size} GB)</span>
-                          </div>
-                        ))}
+                        {models
+                          .filter((m) => m.supportsVision)
+                          .map((m) => (
+                            <div
+                              key={m.name}
+                              className="flex items-center gap-2 text-xs bg-slate-700/30 rounded px-3 py-2"
+                            >
+                              <span className="text-lg">👁️</span>
+                              <span className="text-slate-200 font-medium">
+                                {m.name}
+                              </span>
+                              <span className="text-slate-500 text-[10px]">
+                                ({m.size} GB)
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     )}
                   </div>
@@ -1195,10 +1588,14 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             <div className="glass rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Settings className="w-4 h-4 text-slate-400" />
-                <p className="text-sm font-medium text-slate-200">Server Port</p>
+                <p className="text-sm font-medium text-slate-200">
+                  Server Port
+                </p>
               </div>
               <div className="space-y-2">
-                <label className="block text-xs text-slate-400">Preferred Port</label>
+                <label className="block text-xs text-slate-400">
+                  Preferred Port
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="number"
@@ -1220,37 +1617,56 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 )}
                 {actualPort && (
                   <p className="text-xs text-slate-500">
-                    Currently running on port <span className="text-indigo-300 font-medium">{actualPort}</span>
+                    Currently running on port{" "}
+                    <span className="text-indigo-300 font-medium">
+                      {actualPort}
+                    </span>
                   </p>
                 )}
-                <p className="text-xs text-slate-400">Takes effect on next {isElectron ? 'launch' : 'server restart'}. Port must be between 1024-65535.</p>
+                <p className="text-xs text-slate-400">
+                  Takes effect on next{" "}
+                  {isElectron ? "launch" : "server restart"}. Port must be
+                  between 1024-65535.
+                </p>
               </div>
             </div>
 
             {/* 3D Effects Toggle */}
             <div className="glass rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-200">3D Visual Effects</p>
-                <p className="text-xs text-slate-500 mt-0.5">Animated backgrounds, particle effects, and holographic elements</p>
+                <p className="text-sm font-medium text-slate-200">
+                  3D Visual Effects
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Animated backgrounds, particle effects, and holographic
+                  elements
+                </p>
               </div>
               <button
                 onClick={() => setEffects3D(!effects3D)}
                 className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
-                  effects3D ? 'bg-indigo-600' : 'bg-slate-600'
+                  effects3D ? "bg-indigo-600" : "bg-slate-600"
                 }`}
                 role="switch"
                 aria-checked={effects3D}
-                aria-label="Toggle 3D effects">
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                  effects3D ? 'translate-x-6' : 'translate-x-0'
-                }`} />
+                aria-label="Toggle 3D effects"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                    effects3D ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
               </button>
             </div>
 
             {/* Theme Picker — Hue Slider + Preset Quick Picks */}
             <div className="glass rounded-lg p-4">
-              <p className="text-sm font-medium text-slate-200 mb-1">Color Theme</p>
-              <p className="text-xs text-slate-500 mb-3">Slide to pick any color, or tap a preset</p>
+              <p className="text-sm font-medium text-slate-200 mb-1">
+                Color Theme
+              </p>
+              <p className="text-xs text-slate-500 mb-3">
+                Slide to pick any color, or tap a preset
+              </p>
 
               {/* Hue Slider */}
               <div className="mb-3">
@@ -1262,9 +1678,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   onChange={(e) => setCustomHue(parseInt(e.target.value, 10))}
                   className="w-full h-3 rounded-full outline-none cursor-pointer"
                   style={{
-                    background: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)',
-                    WebkitAppearance: 'none',
-                    appearance: 'none',
+                    background:
+                      "linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)",
+                    WebkitAppearance: "none",
+                    appearance: "none",
                   }}
                   aria-label="Theme hue slider"
                 />
@@ -1295,30 +1712,42 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
               {/* Preset Quick Picks */}
               <div className="flex items-center gap-2">
-                {THEME_PRESETS.map(t => (
+                {THEME_PRESETS.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setThemeId(t.id)}
                     className={`w-6 h-6 rounded-full transition-all ${
-                      theme.id === t.id ? 'ring-2 ring-white ring-offset-1 ring-offset-[#141829] scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'
+                      theme.id === t.id
+                        ? "ring-2 ring-white ring-offset-1 ring-offset-[#141829] scale-110"
+                        : "hover:scale-110 opacity-70 hover:opacity-100"
                     }`}
                     style={{ background: t.primary }}
                     title={t.label}
                     aria-label={`Select ${t.label} theme`}
                   />
                 ))}
-                <span className="text-xs text-slate-500 ml-2">{theme.label}</span>
+                <span className="text-xs text-slate-500 ml-2">
+                  {theme.label}
+                </span>
               </div>
             </div>
 
             {/* Restart Tour / Reset Privacy */}
             <div className="glass rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-200">Welcome Tour</p>
-                <p className="text-xs text-slate-500 mt-0.5">Re-show the onboarding walkthrough and privacy banner</p>
+                <p className="text-sm font-medium text-slate-200">
+                  Welcome Tour
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Re-show the onboarding walkthrough and privacy banner
+                </p>
               </div>
               <button
-                onClick={() => { resetOnboarding(); resetPrivacyBanner(); window.location.reload(); }}
+                onClick={() => {
+                  resetOnboarding();
+                  resetPrivacyBanner();
+                  window.location.reload();
+                }}
                 className="text-xs px-3 py-1.5 rounded-lg glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors border border-slate-600"
               >
                 Restart Tour
@@ -1330,7 +1759,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               <>
                 {/* Data Management */}
                 <div className="glass rounded-lg p-4">
-                  <p className="text-sm font-medium text-slate-200 mb-3">Data Management</p>
+                  <p className="text-sm font-medium text-slate-200 mb-3">
+                    Data Management
+                  </p>
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <button
@@ -1350,45 +1781,60 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     </div>
                     {dataDir && (
                       <p className="text-xs text-slate-500">
-                        Data location: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300 text-[10px]">{dataDir}</code>
+                        Data location:{" "}
+                        <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300 text-[10px]">
+                          {dataDir}
+                        </code>
                       </p>
                     )}
                   </div>
                 </div>
 
                 {/* Software Updates — releases from GitHub (electron-updater); not local git */}
-                <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
+                <div
+                  className="glass rounded-lg p-4"
+                  role="region"
+                  aria-label="Software updates"
+                >
                   <div className="mb-3">
-                    <p className="text-sm font-medium text-slate-200">Software Updates</p>
+                    <p className="text-sm font-medium text-slate-200">
+                      Software Updates
+                    </p>
                     <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                      We&apos;ll let you know when a newer version is ready. After it downloads, you&apos;ll restart once to
-                      finish installing. If anything goes wrong, use Open download page to grab the installer directly —
-                      no command line needed.
+                      We&apos;ll let you know when a newer version is ready.
+                      After it downloads, you&apos;ll restart once to finish
+                      installing. If anything goes wrong, use Open download page
+                      to grab the installer directly — no command line needed.
                     </p>
                   </div>
 
                   <div
                     className={`text-xs mt-1 mb-3 min-h-[1.25rem] ${
-                      updateStatus === 'up-to-date'
-                        ? 'text-emerald-400/90'
-                        : updateStatus === 'error'
-                          ? 'text-red-400'
-                          : 'text-slate-400'
+                      updateStatus === "up-to-date"
+                        ? "text-emerald-400/90"
+                        : updateStatus === "error"
+                          ? "text-red-400"
+                          : "text-slate-400"
                     }`}
                     aria-live="polite"
                   >
-                    {updateStatus === 'up-to-date' && "You're up to date."}
-                    {updateStatus === 'available' &&
+                    {updateStatus === "up-to-date" && "You're up to date."}
+                    {updateStatus === "available" &&
                       `Version ${updateInfo?.version} is ready. Click Download update, or wait if it already started in the background.`}
-                    {updateStatus === 'downloading' && `Downloading… ${downloadProgress}%`}
-                    {updateStatus === 'ready' && `Version ${updateInfo?.version} is ready. Click Restart to upgrade to finish.`}
-                    {updateStatus === 'checking' && 'Checking for updates…'}
-                    {updateStatus === 'error' && (updateError || "We couldn't check for updates right now.")}
-                    {!updateStatus && 'Click Check for updates to see if a newer version is available.'}
+                    {updateStatus === "downloading" &&
+                      `Downloading… ${downloadProgress}%`}
+                    {updateStatus === "ready" &&
+                      `Version ${updateInfo?.version} is ready. Click Restart to upgrade to finish.`}
+                    {updateStatus === "checking" && "Checking for updates…"}
+                    {updateStatus === "error" &&
+                      (updateError ||
+                        "We couldn't check for updates right now.")}
+                    {!updateStatus &&
+                      "Click Check for updates to see if a newer version is available."}
                   </div>
 
                   {/* Download progress bar */}
-                  {updateStatus === 'downloading' && (
+                  {updateStatus === "downloading" && (
                     <div className="mb-3">
                       <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
                         <div
@@ -1401,12 +1847,13 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
                   {isPackaged === false && (
                     <p className="text-xs text-amber-400/90 mb-3">
-                      Installed app only: run a packaged build to upgrade from here. For dev, pull and rebuild from the repo.
+                      Installed app only: run a packaged build to upgrade from
+                      here. For dev, pull and rebuild from the repo.
                     </p>
                   )}
 
                   <div className="flex flex-wrap gap-2 items-center">
-                    {updateStatus === 'ready' ? (
+                    {updateStatus === "ready" ? (
                       <button
                         type="button"
                         onClick={handleRestartForUpdate}
@@ -1420,19 +1867,19 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                         onClick={handleUpgradeClick}
                         disabled={
                           isPackaged !== true ||
-                          updateStatus === 'checking' ||
-                          updateStatus === 'downloading'
+                          updateStatus === "checking" ||
+                          updateStatus === "downloading"
                         }
                         className="glass cursor-pointer text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 disabled:cursor-not-allowed disabled:opacity-50 rounded-lg px-4 py-2 text-sm font-medium transition-colors duration-200 border border-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#141829] disabled:focus-visible:ring-0"
                       >
-                        {updateStatus === 'checking' ? (
+                        {updateStatus === "checking" ? (
                           <span className="inline-block spin" aria-hidden>
                             &#x27F3;
                           </span>
-                        ) : updateStatus === 'available' ? (
-                          'Download update'
+                        ) : updateStatus === "available" ? (
+                          "Download update"
                         ) : (
-                          'Check for updates'
+                          "Check for updates"
                         )}
                       </button>
                     )}
@@ -1442,7 +1889,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                       className="inline-flex items-center gap-1.5 glass cursor-pointer text-slate-400 hover:text-slate-200 hover:bg-slate-600/20 rounded-lg px-3 py-2 text-xs font-medium transition-colors border border-slate-600/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
                       title="Opens the official downloads page in your browser"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-80" aria-hidden />
+                      <ExternalLink
+                        className="w-3.5 h-3.5 shrink-0 opacity-80"
+                        aria-hidden
+                      />
                       Open download page
                     </button>
                   </div>
@@ -1461,12 +1911,20 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
             {/* Browser / dev server: explain why there is no updater button (Electron-only) */}
             {!isElectron && (
-              <div className="glass rounded-lg p-4" role="region" aria-label="Software updates">
-                <p className="text-sm font-medium text-slate-200">Software Updates</p>
+              <div
+                className="glass rounded-lg p-4"
+                role="region"
+                aria-label="Software updates"
+              >
+                <p className="text-sm font-medium text-slate-200">
+                  Software Updates
+                </p>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  Automatic updates run in the <span className="text-slate-300">desktop app</span> only. In the browser
-                  you&apos;re using the web version — refresh the page or ask your host for a new build. For the
-                  installed app, download updates from the{' '}
+                  Automatic updates run in the{" "}
+                  <span className="text-slate-300">desktop app</span> only. In
+                  the browser you&apos;re using the web version — refresh the
+                  page or ask your host for a new build. For the installed app,
+                  download updates from the{" "}
                   <a
                     className="text-indigo-300/90 hover:text-indigo-200 underline underline-offset-2"
                     href={OFFICIAL_RELEASES_LATEST_URL}
@@ -1483,35 +1941,73 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             <div className="mb-5 p-3 glass rounded-lg text-xs text-slate-400">
               <strong className="text-slate-300">Need a hand?</strong>
               <ul className="mt-1.5 space-y-1">
-                <li>Ollama on this machine: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code></li>
-                <li>Ollama on your network: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://192.168.x.x:11434</code></li>
-                <li>Project folder: paste the full path to your code, e.g. <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">/home/yourname/my-project</code></li>
+                <li>
+                  Ollama on this machine:{" "}
+                  <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+                    http://localhost:11434
+                  </code>
+                </li>
+                <li>
+                  Ollama on your network:{" "}
+                  <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+                    http://192.168.x.x:11434
+                  </code>
+                </li>
+                <li>
+                  Project folder: paste the full path to your code, e.g.{" "}
+                  <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+                    /home/yourname/my-project
+                  </code>
+                </li>
               </ul>
             </div>
           </div>
         )}
 
-        {activeTab === 'github' && (
+        {activeTab === "github" && (
           <div className="space-y-5">
             {/* Connected tokens list */}
             {ghTokenStatus?.tokens?.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs text-slate-400 font-medium">Connected Accounts</p>
+                <p className="text-xs text-slate-400 font-medium">
+                  Connected Accounts
+                </p>
                 {ghTokenStatus.tokens.map((t, i) => (
-                  <div key={t.username || t.label || i} className="glass rounded-lg p-3 flex items-center justify-between">
+                  <div
+                    key={t.username || t.label || i}
+                    className="glass rounded-lg p-3 flex items-center justify-between"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 bg-green-400 rounded-full glow-pulse" />
-                      {t.avatar && <img src={t.avatar} alt="" className="w-6 h-6 rounded-full" />}
+                      {t.avatar && (
+                        <img
+                          src={t.avatar}
+                          alt=""
+                          className="w-6 h-6 rounded-full"
+                        />
+                      )}
                       <div>
                         <p className="text-sm font-medium text-slate-200">
-                          <span className="text-indigo-300">{t.username || t.label}</span>
-                          {t.label && t.label !== t.username && <span className="text-slate-500 text-xs ml-1.5">({t.label})</span>}
+                          <span className="text-indigo-300">
+                            {t.username || t.label}
+                          </span>
+                          {t.label && t.label !== t.username && (
+                            <span className="text-slate-500 text-xs ml-1.5">
+                              ({t.label})
+                            </span>
+                          )}
                         </p>
-                        {i === 0 && <p className="text-[10px] text-slate-500">Primary</p>}
+                        {i === 0 && (
+                          <p className="text-[10px] text-slate-500">Primary</p>
+                        )}
                       </div>
                     </div>
-                    <button onClick={() => handleRemoveGhTokenByName(t.username || t.label)}
-                      className="text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors">
+                    <button
+                      onClick={() =>
+                        handleRemoveGhTokenByName(t.username || t.label)
+                      }
+                      className="text-xs text-red-400/70 hover:text-red-400 border border-red-500/20 px-2 py-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                    >
                       Remove
                     </button>
                   </div>
@@ -1519,60 +2015,108 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               </div>
             ) : (
               <div className="glass rounded-lg p-4 text-center">
-                <p className="text-sm text-slate-300 mb-1">Let's connect your GitHub!</p>
-                <p className="text-xs text-slate-500">Add one or more tokens below to clone private repos and browse your accounts.</p>
+                <p className="text-sm text-slate-300 mb-1">
+                  Let's connect your GitHub!
+                </p>
+                <p className="text-xs text-slate-500">
+                  Add one or more tokens below to clone private repos and browse
+                  your accounts.
+                </p>
               </div>
             )}
 
             {/* Add token input */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">Add Personal Access Token</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Add Personal Access Token
+              </label>
               <div className="flex gap-2 mb-2">
-                <input type="text" value={ghTokenLabel} onChange={e => setGhTokenLabel(e.target.value)}
+                <input
+                  type="text"
+                  value={ghTokenLabel}
+                  onChange={(e) => setGhTokenLabel(e.target.value)}
                   placeholder="Label (optional, e.g. work)"
-                  className="w-1/3 input-glow text-slate-100 rounded-lg px-3 py-2.5 outline-none text-sm" />
-                <input type="password" value={ghToken} onChange={e => setGhToken(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleValidateGhToken()}
+                  className="w-1/3 input-glow text-slate-100 rounded-lg px-3 py-2.5 outline-none text-sm"
+                />
+                <input
+                  type="password"
+                  value={ghToken}
+                  onChange={(e) => setGhToken(e.target.value)}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && handleValidateGhToken()
+                  }
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm" />
-                <button onClick={handleValidateGhToken} disabled={ghValidating || !ghToken.trim()}
-                  className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap">
-                  {ghValidating ? <span className="inline-block spin">&#x27F3;</span> : 'Add'}
+                  className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                />
+                <button
+                  onClick={handleValidateGhToken}
+                  disabled={ghValidating || !ghToken.trim()}
+                  className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap"
+                >
+                  {ghValidating ? (
+                    <span className="inline-block spin">&#x27F3;</span>
+                  ) : (
+                    "Add"
+                  )}
                 </button>
               </div>
               {ghResult && (
-                <div className={`mt-2 p-2.5 rounded-lg text-xs ${ghResult.valid
-                  ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-                  : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-                  {ghResult.valid ? `Token valid! Connected as ${ghResult.username}.` : `Invalid: ${ghResult.error}`}
+                <div
+                  className={`mt-2 p-2.5 rounded-lg text-xs ${
+                    ghResult.valid
+                      ? "bg-green-500/10 border border-green-500/30 text-green-400"
+                      : "bg-red-500/10 border border-red-500/30 text-red-400"
+                  }`}
+                >
+                  {ghResult.valid
+                    ? `Token valid! Connected as ${ghResult.username}.`
+                    : `Invalid: ${ghResult.error}`}
                 </div>
               )}
             </div>
 
             {/* Help */}
             <div className="glass rounded-lg p-3 text-xs text-slate-500">
-              <p className="font-medium text-slate-400 mb-1.5">Here's how to get a token (it's quick!):</p>
+              <p className="font-medium text-slate-400 mb-1.5">
+                Here's how to get a token (it's quick!):
+              </p>
               <ol className="space-y-1 list-decimal list-inside">
-                <li>Go to GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)</li>
+                <li>
+                  Go to GitHub → Settings → Developer settings → Personal access
+                  tokens → Tokens (classic)
+                </li>
                 <li>Click "Generate new token (classic)"</li>
-                <li>Select the <code className="bg-slate-700/50 px-1 py-0.5 rounded text-indigo-300">repo</code> scope (full control of private repos)</li>
+                <li>
+                  Select the{" "}
+                  <code className="bg-slate-700/50 px-1 py-0.5 rounded text-indigo-300">
+                    repo
+                  </code>{" "}
+                  scope (full control of private repos)
+                </li>
                 <li>Copy the token and paste it above</li>
               </ol>
-              <p className="mt-2 text-amber-400/70">Don't worry — your token stays on your machine and is never shared with anyone.</p>
+              <p className="mt-2 text-amber-400/70">
+                Don't worry — your token stays on your machine and is never
+                shared with anyone.
+              </p>
             </div>
           </div>
         )}
 
-        {activeTab === 'mcp-server' && <McpServerPanel />}
-        {activeTab === 'mcp-clients' && <McpClientPanel />}
+        {activeTab === "mcp-server" && <McpServerPanel />}
+        {activeTab === "mcp-clients" && <McpClientPanel />}
 
-        {activeTab === 'memory' && (
+        {activeTab === "memory" && (
           <div className="space-y-5">
             {/* Enable/Disable toggle */}
             <div className="glass rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-200">Memory System</p>
-                <p className="text-xs text-slate-500 mt-0.5">Remember context from past conversations</p>
+                <p className="text-sm font-medium text-slate-200">
+                  Memory System
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Remember context from past conversations
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -1581,36 +2125,47 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   saveMemoryConfig({ enabled: next });
                 }}
                 className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
-                  memoryEnabled ? 'bg-indigo-600' : 'bg-slate-600'
+                  memoryEnabled ? "bg-indigo-600" : "bg-slate-600"
                 }`}
                 role="switch"
                 aria-checked={memoryEnabled}
-                aria-label="Toggle memory system">
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                  memoryEnabled ? 'translate-x-6' : 'translate-x-0'
-                }`} />
+                aria-label="Toggle memory system"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                    memoryEnabled ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
               </button>
             </div>
 
             {/* Embedding Model dropdown */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2 font-medium">Embedding Model</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Embedding Model
+              </label>
               {embeddingModels.length === 0 ? (
                 <div className="glass rounded-lg p-3 text-xs text-amber-400/80 border border-amber-500/20">
-                  No embedding models found. Run <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">ollama pull nomic-embed-text</code> to enable memory.
+                  No embedding models found. Run{" "}
+                  <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+                    ollama pull nomic-embed-text
+                  </code>{" "}
+                  to enable memory.
                 </div>
               ) : (
                 <select
                   value={embeddingModel}
-                  onChange={e => {
+                  onChange={(e) => {
                     setEmbeddingModel(e.target.value);
                     saveMemoryConfig({ embeddingModel: e.target.value });
                   }}
                   className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2"
                 >
                   <option value="">Auto-detect</option>
-                  {embeddingModels.map(m => (
-                    <option key={m.name || m} value={m.name || m}>{m.name || m}</option>
+                  {embeddingModels.map((m) => (
+                    <option key={m.name || m} value={m.name || m}>
+                      {m.name || m}
+                    </option>
                   ))}
                 </select>
               )}
@@ -1619,7 +2174,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             {/* Max Context Tokens slider */}
             <div>
               <label className="block text-sm text-slate-300 mb-2 font-medium">
-                Max Context Tokens <span className="text-slate-500 font-normal">({maxContextTokens})</span>
+                Max Context Tokens{" "}
+                <span className="text-slate-500 font-normal">
+                  ({maxContextTokens})
+                </span>
               </label>
               <input
                 type="range"
@@ -1627,7 +2185,7 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 max="2000"
                 step="50"
                 value={maxContextTokens}
-                onChange={e => {
+                onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
                   setMaxContextTokens(val);
                 }}
@@ -1645,8 +2203,12 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             {/* Auto-Extract toggle */}
             <div className="glass rounded-lg p-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-200">Auto-Extract</p>
-                <p className="text-xs text-slate-500 mt-0.5">Extract memories after each conversation</p>
+                <p className="text-sm font-medium text-slate-200">
+                  Auto-Extract
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Extract memories after each conversation
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -1655,40 +2217,55 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                   saveMemoryConfig({ autoExtract: next });
                 }}
                 className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
-                  autoExtract ? 'bg-indigo-600' : 'bg-slate-600'
+                  autoExtract ? "bg-indigo-600" : "bg-slate-600"
                 }`}
                 role="switch"
                 aria-checked={autoExtract}
-                aria-label="Toggle auto-extract">
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                  autoExtract ? 'translate-x-6' : 'translate-x-0'
-                }`} />
+                aria-label="Toggle auto-extract"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                    autoExtract ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
               </button>
             </div>
 
             {/* Memory Stats card */}
             {memoryStats && (
               <div className="glass rounded-lg p-4">
-                <p className="text-sm font-medium text-slate-200 mb-3">Memory Stats</p>
+                <p className="text-sm font-medium text-slate-200 mb-3">
+                  Memory Stats
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="glass rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-indigo-300">{memoryStats.total ?? 0}</p>
+                    <p className="text-lg font-bold text-indigo-300">
+                      {memoryStats.total ?? 0}
+                    </p>
                     <p className="text-slate-500">Total</p>
                   </div>
                   <div className="glass rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-blue-300">{memoryStats.byType?.fact ?? 0}</p>
+                    <p className="text-lg font-bold text-blue-300">
+                      {memoryStats.byType?.fact ?? 0}
+                    </p>
                     <p className="text-slate-500">Facts</p>
                   </div>
                   <div className="glass rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-green-300">{memoryStats.byType?.project ?? 0}</p>
+                    <p className="text-lg font-bold text-green-300">
+                      {memoryStats.byType?.project ?? 0}
+                    </p>
                     <p className="text-slate-500">Projects</p>
                   </div>
                   <div className="glass rounded-lg p-2 text-center">
-                    <p className="text-lg font-bold text-orange-300">{memoryStats.byType?.pattern ?? 0}</p>
+                    <p className="text-lg font-bold text-orange-300">
+                      {memoryStats.byType?.pattern ?? 0}
+                    </p>
                     <p className="text-slate-500">Patterns</p>
                   </div>
                   <div className="glass rounded-lg p-2 text-center col-span-2">
-                    <p className="text-lg font-bold text-purple-300">{memoryStats.byType?.summary ?? 0}</p>
+                    <p className="text-lg font-bold text-purple-300">
+                      {memoryStats.byType?.summary ?? 0}
+                    </p>
                     <p className="text-slate-500">Summaries</p>
                   </div>
                 </div>
@@ -1698,7 +2275,9 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
             {/* Action buttons */}
             <div className="flex gap-2">
               <button
-                onClick={() => { if (onOpenMemoryPanel) onOpenMemoryPanel(); }}
+                onClick={() => {
+                  if (onOpenMemoryPanel) onOpenMemoryPanel();
+                }}
                 className="flex-1 glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border border-slate-600"
               >
                 Manage Memories
@@ -1708,7 +2287,11 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                 disabled={reembedding}
                 className="flex-1 glass text-slate-300 hover:text-indigo-300 hover:bg-indigo-500/10 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors border border-slate-600 disabled:opacity-50"
               >
-                {reembedding ? <span className="inline-block spin">&#x27F3;</span> : 'Re-embed All'}
+                {reembedding ? (
+                  <span className="inline-block spin">&#x27F3;</span>
+                ) : (
+                  "Re-embed All"
+                )}
               </button>
             </div>
           </div>
@@ -1716,13 +2299,19 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
 
         {/* Buttons always visible */}
         <div className="flex gap-2 justify-end mt-6">
-          <button onClick={onClose} className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors">Cancel</button>
-          <button onClick={async () => {
+          <button
+            onClick={onClose}
+            className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
               await onSave(url, folder, icmTemplate, ollamaApiKeyPayload());
               try {
-                await apiFetch('/api/config', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                await apiFetch("/api/config", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     docling: {
                       url: doclingUrl,
@@ -1732,7 +2321,10 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
                     },
                     agentTerminal: {
                       enabled: terminalEnabled,
-                      allowlist: terminalAllowlist.split(',').map(s => s.trim()).filter(Boolean),
+                      allowlist: terminalAllowlist
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
                       maxTimeoutSec: terminalTimeout,
                     },
                   }),
@@ -1740,7 +2332,8 @@ export default function SettingsPanel({ ollamaUrl, projectFolder, icmTemplatePat
               } catch {}
               onClose();
             }}
-            className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium">
+            className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium"
+          >
             Save &amp; Close
           </button>
         </div>

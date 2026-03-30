@@ -1,75 +1,199 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { apiFetch } from './lib/api-fetch';
-import { abortAll } from './hooks/useAbortRegistry';
-import { copyText, readText } from './lib/clipboard';
-import MarkdownContent from './components/MarkdownContent';
-import MessageBubble from './components/MessageBubble';
-import Toast from './components/Toast';
-import RenameModal from './components/RenameModal';
-import SettingsPanel from './components/SettingsPanel';
-import FileBrowser from './components/FileBrowser';
-import GitHubPanel from './components/GitHubPanel';
-import Sidebar from './components/Sidebar';
-import Splite from './components/ui/Splite';
-import SplashScreen from './components/3d/SplashScreen';
-import HeaderScene from './components/3d/HeaderScene';
-import EmptyStateScene from './components/3d/EmptyStateScene';
-import CreateWizard from './components/CreateWizard';
-import BuildWizard from './components/BuildWizard';
-import BuildPanel from './components/BuildPanel';
-import TutorialPanel from './components/TutorialPanel';
-import { BUILD_TUTORIAL_STEPS, CREATE_TUTORIAL_STEPS } from './data/tutorialSteps';
-import ReviewPanel from './components/ReviewPanel';
-import SecurityPanel from './components/SecurityPanel';
-import ValidatePanel from './components/ValidatePanel';
-import PromptingPanel from './components/builders/PromptingPanel';
-import SkillzPanel from './components/builders/SkillzPanel';
-import AgenticPanel from './components/builders/AgenticPanel';
-import PlannerPanel from './components/builders/PlannerPanel';
-import OnboardingWizard, { isOnboardingComplete } from './components/OnboardingWizard';
-import { GlossaryPanel } from './components/JargonGlossary';
-import PrivacyBanner from './components/PrivacyBanner';
-import ParticleField from './components/3d/ParticleField';
-import FloatingGeometry from './components/3d/FloatingGeometry';
-import TypingIndicator3D from './components/3d/TypingIndicator3D';
-import ParticleBurst from './components/3d/ParticleBurst';
-import TokenCounter from './components/3d/TokenCounter';
-import OrbitingBadge from './components/3d/OrbitingBadge';
-import OllamaSetup from './components/OllamaSetup';
-import ConnectionDot from './components/ConnectionDot';
-import MemoryPanel from './components/MemoryPanel';
-import ImageThumbnail from './components/ImageThumbnail';
-import ImageLightbox from './components/ImageLightbox';
-import ImagePrivacyWarning from './components/ImagePrivacyWarning';
-import DictateButton from './components/DictateButton';
-import ExportPanel from './components/ExportPanel';
-import { joinAppend } from './lib/dictationAppend';
-import { MAX_CHAT_POST_BYTES, estimateChatPostBodyBytes } from './lib/chat-payload';
-import { validateImage, processImage, hashImage } from './lib/image-processor';
-import { isConvertibleDocument, convertDocument, validateDocument, formatAsAttachment, getDocumentAcceptString } from './lib/document-processor';
-import { ChevronLeft, ChevronRight, PanelLeft, Brain, BookOpen } from 'lucide-react';
-import { use3DEffects } from './contexts/Effects3DContext';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { apiFetch } from "./lib/api-fetch";
+import { abortAll } from "./hooks/useAbortRegistry";
+import { copyText, readText } from "./lib/clipboard";
+import MarkdownContent from "./components/MarkdownContent";
+import MessageBubble from "./components/MessageBubble";
+import Toast from "./components/Toast";
+import RenameModal from "./components/RenameModal";
+import SettingsPanel from "./components/SettingsPanel";
+import FileBrowser from "./components/FileBrowser";
+import GitHubPanel from "./components/GitHubPanel";
+import Sidebar from "./components/Sidebar";
+import Splite from "./components/ui/Splite";
+import SplashScreen from "./components/3d/SplashScreen";
+import HeaderScene from "./components/3d/HeaderScene";
+import EmptyStateScene from "./components/3d/EmptyStateScene";
+import CreateWizard from "./components/CreateWizard";
+import BuildWizard from "./components/BuildWizard";
+import BuildPanel from "./components/BuildPanel";
+import TutorialPanel from "./components/TutorialPanel";
+import {
+  BUILD_TUTORIAL_STEPS,
+  CREATE_TUTORIAL_STEPS,
+} from "./data/tutorialSteps";
+import ReviewPanel from "./components/ReviewPanel";
+import SecurityPanel from "./components/SecurityPanel";
+import ValidatePanel from "./components/ValidatePanel";
+import PromptingPanel from "./components/builders/PromptingPanel";
+import SkillzPanel from "./components/builders/SkillzPanel";
+import AgenticPanel from "./components/builders/AgenticPanel";
+import PlannerPanel from "./components/builders/PlannerPanel";
+import OnboardingWizard, {
+  isOnboardingComplete,
+} from "./components/OnboardingWizard";
+import { GlossaryPanel } from "./components/JargonGlossary";
+import PrivacyBanner from "./components/PrivacyBanner";
+import ParticleField from "./components/3d/ParticleField";
+import FloatingGeometry from "./components/3d/FloatingGeometry";
+import TypingIndicator3D from "./components/3d/TypingIndicator3D";
+import ParticleBurst from "./components/3d/ParticleBurst";
+import TokenCounter from "./components/3d/TokenCounter";
+import OrbitingBadge from "./components/3d/OrbitingBadge";
+import OllamaSetup from "./components/OllamaSetup";
+import ConnectionDot from "./components/ConnectionDot";
+import MemoryPanel from "./components/MemoryPanel";
+import ImageThumbnail from "./components/ImageThumbnail";
+import ImageLightbox from "./components/ImageLightbox";
+import ImagePrivacyWarning from "./components/ImagePrivacyWarning";
+import DictateButton from "./components/DictateButton";
+import ExportPanel from "./components/ExportPanel";
+import { joinAppend } from "./lib/dictationAppend";
+import {
+  MAX_CHAT_POST_BYTES,
+  estimateChatPostBodyBytes,
+} from "./lib/chat-payload";
+import { validateImage, processImage, hashImage } from "./lib/image-processor";
+import {
+  isConvertibleDocument,
+  convertDocument,
+  validateDocument,
+  formatAsAttachment,
+  getDocumentAcceptString,
+} from "./lib/document-processor";
+import {
+  ChevronLeft,
+  ChevronRight,
+  PanelLeft,
+  Brain,
+  BookOpen,
+} from "lucide-react";
+import { use3DEffects } from "./contexts/Effects3DContext";
 
 const MODES = [
-  { id: 'chat',           label: 'Chat',                    icon: '💬', desc: 'Let\'s talk about anything',         placeholder: "What's on your mind? Ask about code, building with AI, or just say hey..." },
-  { id: 'explain',        label: 'Explain This',            icon: '💡', desc: 'Walk me through this code',         placeholder: "Paste some code and I'll walk you through it step by step..." },
-  { id: 'bugs',           label: 'Safety Check',            icon: '🐛', desc: 'Spot issues before they bite',      placeholder: "Drop your code here — I'll look for anything that could cause trouble..." },
-  { id: 'refactor',       label: 'Clean Up',                icon: '✨', desc: 'Help me make this better',          placeholder: "Paste code you'd like to improve — I'll show you what I'd change and why..." },
-  { id: 'translate-tech', label: 'Code → Plain English',    icon: '📋', desc: 'Make this make sense to everyone',  placeholder: "Paste code or a technical description...\nI'll explain it in plain English." },
-  { id: 'translate-biz',  label: 'Idea → Code Spec',        icon: '🔧', desc: 'Turn ideas into buildable specs',   placeholder: "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool." },
-  { id: 'diagram',        label: 'Diagram',                 icon: '📊', desc: 'Visualize systems and processes',  placeholder: "Describe a system, process, or relationship and I'll create a diagram..." },
-  { id: 'pentest',        label: 'Security',                icon: '🛡️', desc: 'OWASP security assessment',        placeholder: '' },
-  { id: 'validate',       label: 'Validate',                icon: '✅', desc: 'Generate project validation',      placeholder: '' },
-  { id: 'review',         label: 'Review',                  icon: '📝', desc: 'Get a code report card',           placeholder: "Submit code for a structured review with color-coded grades..." },
-  { id: 'prompting',      label: 'Prompting',               icon: '🎯', desc: 'Craft and score AI prompts',       placeholder: '' },
-  { id: 'skillz',         label: 'Skillz',                  icon: '⚡', desc: 'Build Claude Code skills',         placeholder: '' },
-  { id: 'agentic',        label: 'Agentic',                 icon: '🤖', desc: 'Design AI agents',                 placeholder: '' },
-  { id: 'planner',        label: 'Planner',                 icon: '📋', desc: 'Design and score plans',            placeholder: '' },
-  { id: 'create',         label: 'Create',                  icon: '🛠️', desc: 'Start something new',              placeholder: "Tell me what you want to build and I'll help you get started..." },
-  { id: 'build',          label: 'Build',                   icon: '🏗️', desc: 'Start a GSD+ICM project to build apps and tools', placeholder: 'Scaffold a project with planning and stages...' },
+  {
+    id: "chat",
+    label: "Chat",
+    icon: "💬",
+    desc: "Let's talk about anything",
+    placeholder:
+      "What's on your mind? Ask about code, building with AI, or just say hey...",
+  },
+  {
+    id: "explain",
+    label: "Explain This",
+    icon: "💡",
+    desc: "Walk me through this code",
+    placeholder: "Paste some code and I'll walk you through it step by step...",
+  },
+  {
+    id: "bugs",
+    label: "Safety Check",
+    icon: "🐛",
+    desc: "Spot issues before they bite",
+    placeholder:
+      "Drop your code here — I'll look for anything that could cause trouble...",
+  },
+  {
+    id: "refactor",
+    label: "Clean Up",
+    icon: "✨",
+    desc: "Help me make this better",
+    placeholder:
+      "Paste code you'd like to improve — I'll show you what I'd change and why...",
+  },
+  {
+    id: "translate-tech",
+    label: "Code → Plain English",
+    icon: "📋",
+    desc: "Make this make sense to everyone",
+    placeholder:
+      "Paste code or a technical description...\nI'll explain it in plain English.",
+  },
+  {
+    id: "translate-biz",
+    label: "Idea → Code Spec",
+    icon: "🔧",
+    desc: "Turn ideas into buildable specs",
+    placeholder:
+      "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool.",
+  },
+  {
+    id: "diagram",
+    label: "Diagram",
+    icon: "📊",
+    desc: "Visualize systems and processes",
+    placeholder:
+      "Describe a system, process, or relationship and I'll create a diagram...",
+  },
+  {
+    id: "pentest",
+    label: "Security",
+    icon: "🛡️",
+    desc: "OWASP security assessment",
+    placeholder: "",
+  },
+  {
+    id: "validate",
+    label: "Validate",
+    icon: "✅",
+    desc: "Generate project validation",
+    placeholder: "",
+  },
+  {
+    id: "review",
+    label: "Review",
+    icon: "📝",
+    desc: "Get a code report card",
+    placeholder:
+      "Submit code for a structured review with color-coded grades...",
+  },
+  {
+    id: "prompting",
+    label: "Prompting",
+    icon: "🎯",
+    desc: "Craft and score AI prompts",
+    placeholder: "",
+  },
+  {
+    id: "skillz",
+    label: "Skillz",
+    icon: "⚡",
+    desc: "Build Claude Code skills",
+    placeholder: "",
+  },
+  {
+    id: "agentic",
+    label: "Agentic",
+    icon: "🤖",
+    desc: "Design AI agents",
+    placeholder: "",
+  },
+  {
+    id: "planner",
+    label: "Planner",
+    icon: "📋",
+    desc: "Design and score plans",
+    placeholder: "",
+  },
+  {
+    id: "create",
+    label: "Create",
+    icon: "🛠️",
+    desc: "Start something new",
+    placeholder:
+      "Tell me what you want to build and I'll help you get started...",
+  },
+  {
+    id: "build",
+    label: "Build",
+    icon: "🏗️",
+    desc: "Start a GSD+ICM project to build apps and tools",
+    placeholder: "Scaffold a project with planning and stages...",
+  },
 ];
 
-const BUILDER_MODES = ['prompting', 'skillz', 'agentic', 'planner'];
+const BUILDER_MODES = ["prompting", "skillz", "agentic", "planner"];
 
 function TypingIndicator() {
   return (
@@ -85,8 +209,8 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
   if (files.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2 mb-2">
-      {files.map((f, i) => (
-        f.isImage || f.type === 'image' ? (
+      {files.map((f, i) =>
+        f.isImage || f.type === "image" ? (
           <ImageThumbnail
             key={i}
             src={f.thumbnail}
@@ -98,14 +222,27 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
             onClick={() => onImageClick && onImageClick(i)}
           />
         ) : (
-          <div key={i} className="flex items-center gap-1.5 bg-indigo-600/15 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-xs">
+          <div
+            key={i}
+            className="flex items-center gap-1.5 bg-indigo-600/15 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-xs"
+          >
             <span className="text-indigo-400">📄</span>
-            <span className="text-slate-300 max-w-[120px] truncate">{f.name}</span>
-            <span className="text-slate-600">{f.lines ? `${f.lines}L` : ''}</span>
-            <button onClick={() => onRemove(i)} className="text-slate-500 hover:text-red-400 ml-0.5" aria-label={`Remove ${f.name}`}>✕</button>
+            <span className="text-slate-300 max-w-[120px] truncate">
+              {f.name}
+            </span>
+            <span className="text-slate-600">
+              {f.lines ? `${f.lines}L` : ""}
+            </span>
+            <button
+              onClick={() => onRemove(i)}
+              className="text-slate-500 hover:text-red-400 ml-0.5"
+              aria-label={`Remove ${f.name}`}
+            >
+              ✕
+            </button>
           </div>
-        )
-      ))}
+        ),
+      )}
     </div>
   );
 }
@@ -114,61 +251,89 @@ function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={async () => { const ok = await copyText(text); if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); } }}
+      onClick={async () => {
+        const ok = await copyText(text);
+        if (ok) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }
+      }}
       className="glass text-xs text-slate-400 hover:text-indigo-300 px-2 py-1 rounded-lg transition-colors"
-      aria-label="Copy to clipboard">
-      {copied ? '✓ Copied' : '📋 Copy'}
+      aria-label="Copy to clipboard"
+    >
+      {copied ? "✓ Copied" : "📋 Copy"}
     </button>
   );
 }
 
 export default function App() {
   // Electron detection
-  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+  const isElectron =
+    typeof window !== "undefined" && window.electronAPI?.isElectron;
   const { theme } = use3DEffects();
 
   const [splashDismissed, setSplashDismissed] = useState(
-    () => sessionStorage.getItem('th3rdai_splash_dismissed') === 'true'
+    () => sessionStorage.getItem("th3rdai_splash_dismissed") === "true",
   );
   const [models, setModels] = useState([]);
-  const [selectedModel, _setSelectedModel] = useState(() => localStorage.getItem('cc-selected-model') || '');
-  const setSelectedModel = (m) => { _setSelectedModel(m); if (m) localStorage.setItem('cc-selected-model', m); };
+  const [selectedModel, _setSelectedModel] = useState(
+    () => localStorage.getItem("cc-selected-model") || "",
+  );
+  const setSelectedModel = (m) => {
+    _setSelectedModel(m);
+    if (m) localStorage.setItem("cc-selected-model", m);
+  };
   const [connected, setConnected] = useState(false);
-  const [ollamaUrl, setOllamaUrl] = useState('');
-  const [projectFolder, setProjectFolder] = useState('');
-  const [icmTemplatePath, setIcmTemplatePath] = useState('');
-  const [mode, _setMode] = useState('chat');
+  const [ollamaUrl, setOllamaUrl] = useState("");
+  const [projectFolder, setProjectFolder] = useState("");
+  const [icmTemplatePath, setIcmTemplatePath] = useState("");
+  const [mode, _setMode] = useState("chat");
 
   // Wrap setMode to persist last active mode in Electron
-  const setMode = useCallback((newMode) => {
-    _setMode(newMode);
-    if (isElectron && window.electronAPI?.setLastMode) {
-      window.electronAPI.setLastMode(newMode);
-    }
-  }, [isElectron]);
-  const [input, setInput] = useState('');
+  const setMode = useCallback(
+    (newMode) => {
+      _setMode(newMode);
+      if (isElectron && window.electronAPI?.setLastMode) {
+        window.electronAPI.setLastMode(newMode);
+      }
+    },
+    [isElectron],
+  );
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [streaming, setStreaming] = useState(false);
   const [history, setHistory] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    try { return localStorage.getItem('cc-sidebar-collapsed') === 'true'; } catch { return false; }
+    try {
+      return localStorage.getItem("cc-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
   });
   function toggleSidebarCollapsed() {
-    setSidebarCollapsed(prev => {
+    setSidebarCollapsed((prev) => {
       const next = !prev;
-      try { localStorage.setItem('cc-sidebar-collapsed', String(next)); } catch {}
+      try {
+        localStorage.setItem("cc-sidebar-collapsed", String(next));
+      } catch {}
       return next;
     });
   }
   const [showSettings, setShowSettings] = useState(false);
   const [showFileBrowser, _setShowFileBrowser] = useState(() => {
-    try { return localStorage.getItem('cc-file-browser-open') === 'true'; } catch { return false; }
+    try {
+      return localStorage.getItem("cc-file-browser-open") === "true";
+    } catch {
+      return false;
+    }
   });
   const setShowFileBrowser = (v) => {
     _setShowFileBrowser(v);
-    try { localStorage.setItem('cc-file-browser-open', String(v)); } catch {}
+    try {
+      localStorage.setItem("cc-file-browser-open", String(v));
+    } catch {}
   };
   const [showGitHub, setShowGitHub] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -179,7 +344,9 @@ export default function App() {
   const [attachedFiles, setAttachedFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [sendBurst, setSendBurst] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(() => !isOnboardingComplete());
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !isOnboardingComplete(),
+  );
   const [showGlossary, setShowGlossary] = useState(false);
   const [showOllamaSetup, setShowOllamaSetup] = useState(false);
   const [showImagePrivacyWarning, setShowImagePrivacyWarning] = useState(false);
@@ -194,6 +361,8 @@ export default function App() {
   const chatAbortRef = useRef(null);
   /** Batches streaming tokens to one React update per animation frame (reduces main-thread jank). */
   const chatTokenRafRef = useRef(null);
+  /** Pending prompt to auto-send after mode change settles (CRE8 PRP flow). */
+  const pendingAutoSend = useRef(null);
   const [savedReview, setSavedReview] = useState(null);
   const [savedPentest, setSavedPentest] = useState(null);
   const [savedBuilderData, setSavedBuilderData] = useState(null);
@@ -229,26 +398,31 @@ export default function App() {
   const [terminalOutput, setTerminalOutput] = useState(null); // {command, output, exitCode, status}
 
   // Vision model detection (Phase 4: Image Support)
-  const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
-  const selectedModelInfo = models.find(m => m.name === selectedModel);
+  const hasImages = attachedFiles.some((f) => f.type === "image" || f.isImage);
+  const selectedModelInfo = models.find((m) => m.name === selectedModel);
   const isVisionModel = selectedModelInfo?.supportsVision || false;
-  const showVisionWarning = hasImages && !isVisionModel && selectedModel !== 'auto';
+  const showVisionWarning =
+    hasImages && !isVisionModel && selectedModel !== "auto";
 
   /** Last model name returned from server when using Auto (SSE meta). */
   const [autoResolvedLabel, setAutoResolvedLabel] = useState(null);
   useEffect(() => {
-    if (selectedModel !== 'auto') setAutoResolvedLabel(null);
+    if (selectedModel !== "auto") setAutoResolvedLabel(null);
   }, [mode, selectedModel]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, streaming]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, streaming]);
 
   // Fetch build projects for BuildPanel
   async function fetchBuildProjects() {
     try {
-      const res = await apiFetch('/api/build/projects');
+      const res = await apiFetch("/api/build/projects");
       const data = await res.json();
       setBuildProjects(Array.isArray(data) ? data : []);
-    } catch { setBuildProjects([]); }
+    } catch {
+      setBuildProjects([]);
+    }
   }
 
   // Initialize app on mount
@@ -260,15 +434,20 @@ export default function App() {
 
     // Restore last mode in Electron
     if (isElectron && window.electronAPI?.getLastMode) {
-      window.electronAPI.getLastMode().then((lastMode) => {
-        if (lastMode) _setMode(lastMode);
-      }).catch(() => {});
+      window.electronAPI
+        .getLastMode()
+        .then((lastMode) => {
+          if (lastMode) _setMode(lastMode);
+        })
+        .catch(() => {});
     }
 
     // Listen for port fallback notification in Electron
     if (isElectron && window.electronAPI?.onPortFallback) {
       window.electronAPI.onPortFallback(({ actual, preferred }) => {
-        showToast(`Server started on port ${actual} (port ${preferred} was busy)`);
+        showToast(
+          `Server started on port ${actual} (port ${preferred} was busy)`,
+        );
       });
     }
   }, [isElectron]);
@@ -278,44 +457,52 @@ export default function App() {
     if (!window.electronAPI?.isElectron) return;
 
     window.electronAPI.onUpdateAvailable((info) => {
-      setUpdateBanner({ type: 'available', version: info.version });
+      setUpdateBanner({ type: "available", version: info.version });
     });
     window.electronAPI.onUpdateDownloaded((info) => {
-      setUpdateBanner({ type: 'ready', version: info.version });
+      setUpdateBanner({ type: "ready", version: info.version });
     });
   }, []);
 
-  function showToast(msg) { setToast(msg); }
+  function showToast(msg) {
+    setToast(msg);
+  }
 
   async function fetchConfig() {
     try {
-      const res = await apiFetch('/api/config');
+      const res = await apiFetch("/api/config");
       const data = await res.json();
-      setOllamaUrl(data.ollamaUrl || '');
-      setProjectFolder(data.projectFolder || '');
-      setIcmTemplatePath(data.icmTemplatePath || '');
-      setImageSupportConfig(data.imageSupport && typeof data.imageSupport === 'object' ? data.imageSupport : {});
+      setOllamaUrl(data.ollamaUrl || "");
+      setProjectFolder(data.projectFolder || "");
+      setIcmTemplatePath(data.icmTemplatePath || "");
+      setImageSupportConfig(
+        data.imageSupport && typeof data.imageSupport === "object"
+          ? data.imageSupport
+          : {},
+      );
     } catch {}
   }
 
   async function fetchModels() {
     setRefreshing(true);
     try {
-      const res = await apiFetch('/api/models');
+      const res = await apiFetch("/api/models");
       const data = await res.json();
       if (data.models) {
-        setModels(data.models); setConnected(true); setOllamaUrl(data.ollamaUrl || '');
+        setModels(data.models);
+        setConnected(true);
+        setOllamaUrl(data.ollamaUrl || "");
         if (data.models.length > 0 && !selectedModel) {
-          const saved = localStorage.getItem('cc-selected-model');
-          if (saved === 'auto') setSelectedModel('auto');
+          const saved = localStorage.getItem("cc-selected-model");
+          if (saved === "auto") setSelectedModel("auto");
           else {
-            const match = saved && data.models.find(m => m.name === saved);
+            const match = saved && data.models.find((m) => m.name === saved);
             setSelectedModel(match ? match.name : data.models[0].name);
           }
         }
       } else {
         setConnected(false);
-        setOllamaUrl(data.ollamaUrl || '');
+        setOllamaUrl(data.ollamaUrl || "");
         // In Electron mode, show Ollama setup wizard if not connected and no models
         if (isElectron && models.length === 0) {
           setShowOllamaSetup(true);
@@ -332,20 +519,38 @@ export default function App() {
   }
 
   async function fetchHistory() {
-    try { const res = await apiFetch('/api/history'); setHistory(await res.json()); } catch {}
+    try {
+      const res = await apiFetch("/api/history");
+      setHistory(await res.json());
+    } catch {}
   }
 
-  async function handleSaveSettings(newUrl, newFolder, newIcmTemplatePath, extra = {}) {
+  async function handleSaveSettings(
+    newUrl,
+    newFolder,
+    newIcmTemplatePath,
+    extra = {},
+  ) {
     try {
-      const res = await apiFetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ollamaUrl: newUrl, projectFolder: newFolder, icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath, ...extra }) });
+      const res = await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ollamaUrl: newUrl,
+          projectFolder: newFolder,
+          icmTemplatePath: newIcmTemplatePath ?? icmTemplatePath,
+          ...extra,
+        }),
+      });
       const data = await res.json();
       setOllamaUrl(newUrl);
       // Server normalizes empty folder to user home — keep client in sync
-      if (data.projectFolder !== undefined) setProjectFolder(data.projectFolder);
+      if (data.projectFolder !== undefined)
+        setProjectFolder(data.projectFolder);
       else if (newFolder !== undefined) setProjectFolder(newFolder);
-      if (newIcmTemplatePath !== undefined) setIcmTemplatePath(newIcmTemplatePath);
-      if (data.imageSupport && typeof data.imageSupport === 'object') {
+      if (newIcmTemplatePath !== undefined)
+        setIcmTemplatePath(newIcmTemplatePath);
+      if (data.imageSupport && typeof data.imageSupport === "object") {
         setImageSupportConfig(data.imageSupport);
       }
       await fetchModels();
@@ -357,23 +562,25 @@ export default function App() {
     try {
       const res = await apiFetch(`/api/history/${id}`);
       const conv = await res.json();
-      setMessages(conv.messages || []); setMode(conv.mode || 'explain'); setActiveConvId(conv.id);
+      setMessages(conv.messages || []);
+      setMode(conv.mode || "explain");
+      setActiveConvId(conv.id);
       if (conv.model) setSelectedModel(conv.model);
       setAttachedFiles([]);
       // Restore saved review data when loading a review conversation
-      if (conv.mode === 'review' && conv.reviewData) {
+      if (conv.mode === "review" && conv.reviewData) {
         setSavedReview({
           ...conv.reviewData,
-          deepDiveMessages: conv.reviewData.deepDiveMessages || []
+          deepDiveMessages: conv.reviewData.deepDiveMessages || [],
         });
       } else {
         setSavedReview(null);
       }
       // Restore saved pentest data when loading a security conversation
-      if (conv.mode === 'pentest' && conv.pentestData) {
+      if (conv.mode === "pentest" && conv.pentestData) {
         setSavedPentest({
           ...conv.pentestData,
-          deepDiveMessages: conv.pentestData.deepDiveMessages || []
+          deepDiveMessages: conv.pentestData.deepDiveMessages || [],
         });
       } else {
         setSavedPentest(null);
@@ -388,26 +595,48 @@ export default function App() {
   }
 
   async function saveConversation(msgs, convMode, overrides = {}) {
-    const title = overrides.title || msgs[0]?.content?.slice(0, 60) || 'Untitled';
-    const conv = { id: activeConvId || undefined, title, mode: convMode || mode, model: selectedModel, messages: msgs, ...overrides };
+    const title =
+      overrides.title || msgs[0]?.content?.slice(0, 60) || "Untitled";
+    const conv = {
+      id: activeConvId || undefined,
+      title,
+      mode: convMode || mode,
+      model: selectedModel,
+      messages: msgs,
+      ...overrides,
+    };
     if (activeConvId) {
-      const existing = history.find(h => h.id === activeConvId);
-      if (existing) { conv.createdAt = existing.createdAt; if (existing.archived) conv.archived = existing.archived; }
-    } else { conv.createdAt = new Date().toISOString(); }
+      const existing = history.find((h) => h.id === activeConvId);
+      if (existing) {
+        conv.createdAt = existing.createdAt;
+        if (existing.archived) conv.archived = existing.archived;
+      }
+    } else {
+      conv.createdAt = new Date().toISOString();
+    }
     try {
-      const res = await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
+      const res = await apiFetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(conv),
+      });
       const { id } = await res.json();
-      setActiveConvId(id); fetchHistory();
+      setActiveConvId(id);
+      fetchHistory();
     } catch {}
   }
 
   async function deleteConversation(id) {
     if (!id) return;
     try {
-      const res = await apiFetch(`/api/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/history/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        showToast(`❌ Could not delete: ${j.error || res.statusText || res.status}`);
+        showToast(
+          `❌ Could not delete: ${j.error || res.statusText || res.status}`,
+        );
         return;
       }
       if (activeConvId === id) {
@@ -415,30 +644,72 @@ export default function App() {
         setActiveConvId(null);
       }
       fetchHistory();
-      showToast('Conversation deleted');
+      showToast("Conversation deleted");
     } catch (e) {
       showToast(`❌ Could not delete: ${e.message}`);
     }
   }
   async function renameConversation(id, newTitle) {
-    try { const res = await apiFetch(`/api/history/${id}`); const conv = await res.json(); conv.title = newTitle; await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); fetchHistory(); showToast('Renamed'); } catch {}
+    try {
+      const res = await apiFetch(`/api/history/${id}`);
+      const conv = await res.json();
+      conv.title = newTitle;
+      await apiFetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(conv),
+      });
+      fetchHistory();
+      showToast("Renamed");
+    } catch {}
   }
   async function archiveConversation(id, archive) {
-    try { const res = await apiFetch(`/api/history/${id}`); const conv = await res.json(); conv.archived = archive; await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) }); if (activeConvId === id && archive) { setMessages([]); setActiveConvId(null); } fetchHistory(); showToast(archive ? 'Archived' : 'Unarchived'); } catch {}
+    try {
+      const res = await apiFetch(`/api/history/${id}`);
+      const conv = await res.json();
+      conv.archived = archive;
+      await apiFetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(conv),
+      });
+      if (activeConvId === id && archive) {
+        setMessages([]);
+        setActiveConvId(null);
+      }
+      fetchHistory();
+      showToast(archive ? "Archived" : "Unarchived");
+    } catch {}
   }
   async function exportConversation(id, format) {
     try {
-      const res = await apiFetch(`/api/history/${id}`); const conv = await res.json();
-      let content = ''; const title = conv.title || 'Untitled'; const modeLabel = MODES.find(m => m.id === conv.mode)?.label || conv.mode;
-      if (format === 'md') {
-        content = `# ${title}\n\n**Mode:** ${modeLabel}  \n**Model:** ${conv.model || 'N/A'}  \n**Date:** ${new Date(conv.createdAt).toLocaleString()}  \n\n---\n\n`;
-        (conv.messages || []).forEach(m => { content += m.role === 'user' ? `## You\n\n\`\`\`\n${m.content}\n\`\`\`\n\n` : `## Assistant\n\n${m.content}\n\n---\n\n`; });
+      const res = await apiFetch(`/api/history/${id}`);
+      const conv = await res.json();
+      let content = "";
+      const title = conv.title || "Untitled";
+      const modeLabel =
+        MODES.find((m) => m.id === conv.mode)?.label || conv.mode;
+      if (format === "md") {
+        content = `# ${title}\n\n**Mode:** ${modeLabel}  \n**Model:** ${conv.model || "N/A"}  \n**Date:** ${new Date(conv.createdAt).toLocaleString()}  \n\n---\n\n`;
+        (conv.messages || []).forEach((m) => {
+          content +=
+            m.role === "user"
+              ? `## You\n\n\`\`\`\n${m.content}\n\`\`\`\n\n`
+              : `## Assistant\n\n${m.content}\n\n---\n\n`;
+        });
       } else {
-        content = `${title}\nMode: ${modeLabel} | Model: ${conv.model || 'N/A'} | Date: ${new Date(conv.createdAt).toLocaleString()}\n${'='.repeat(60)}\n\n`;
-        (conv.messages || []).forEach(m => { content += `[${m.role === 'user' ? 'YOU' : 'ASSISTANT'}]\n${m.content}\n\n${'-'.repeat(40)}\n\n`; });
+        content = `${title}\nMode: ${modeLabel} | Model: ${conv.model || "N/A"} | Date: ${new Date(conv.createdAt).toLocaleString()}\n${"=".repeat(60)}\n\n`;
+        (conv.messages || []).forEach((m) => {
+          content += `[${m.role === "user" ? "YOU" : "ASSISTANT"}]\n${m.content}\n\n${"-".repeat(40)}\n\n`;
+        });
       }
-      const blob = new Blob([content], { type: 'text/plain' }); const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `${title.replace(/[^a-z0-9]/gi, '_').slice(0, 40)}.${format}`; a.click(); URL.revokeObjectURL(url);
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.replace(/[^a-z0-9]/gi, "_").slice(0, 40)}.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
       showToast(`Exported as .${format}`);
     } catch {}
   }
@@ -447,9 +718,9 @@ export default function App() {
     const validIds = ids.filter(Boolean);
     if (validIds.length === 0) return;
     try {
-      const res = await apiFetch('/api/history/batch-delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/history/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: validIds }),
       });
       const data = await res.json().catch(() => ({}));
@@ -461,7 +732,7 @@ export default function App() {
       }
       fetchHistory();
       if (failed === 0) {
-        showToast(`Deleted ${ok} conversation${ok !== 1 ? 's' : ''}`);
+        showToast(`Deleted ${ok} conversation${ok !== 1 ? "s" : ""}`);
       } else {
         showToast(`Deleted ${ok}, failed ${failed}`);
       }
@@ -471,24 +742,49 @@ export default function App() {
   }
 
   async function bulkExportConversations(ids, format) {
-    for (const id of ids) { await exportConversation(id, format); }
+    for (const id of ids) {
+      await exportConversation(id, format);
+    }
   }
 
   async function bulkArchiveConversations(ids, archive) {
     for (const id of ids) {
       try {
-        const res = await apiFetch(`/api/history/${id}`); const conv = await res.json();
+        const res = await apiFetch(`/api/history/${id}`);
+        const conv = await res.json();
         conv.archived = archive;
-        await apiFetch('/api/history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conv) });
-        if (activeConvId === id && archive) { setMessages([]); setActiveConvId(null); }
+        await apiFetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(conv),
+        });
+        if (activeConvId === id && archive) {
+          setMessages([]);
+          setActiveConvId(null);
+        }
       } catch {}
     }
     fetchHistory();
-    showToast(`${archive ? 'Archived' : 'Unarchived'} ${ids.length} conversation${ids.length !== 1 ? 's' : ''}`);
+    showToast(
+      `${archive ? "Archived" : "Unarchived"} ${ids.length} conversation${ids.length !== 1 ? "s" : ""}`,
+    );
   }
 
-  function handleRenameRequest(id) { const h = history.find(c => c.id === id); if (h) setRenaming({ id, title: h.title || 'Untitled' }); }
-  function startNew() { setMessages([]); setActiveConvId(null); setStats(null); setInput(''); setAttachedFiles([]); setSavedReview(null); setSavedPentest(null); setSavedBuilderData(null); setActiveMemories(null); }
+  function handleRenameRequest(id) {
+    const h = history.find((c) => c.id === id);
+    if (h) setRenaming({ id, title: h.title || "Untitled" });
+  }
+  function startNew() {
+    setMessages([]);
+    setActiveConvId(null);
+    setStats(null);
+    setInput("");
+    setAttachedFiles([]);
+    setSavedReview(null);
+    setSavedPentest(null);
+    setSavedBuilderData(null);
+    setActiveMemories(null);
+  }
 
   async function handleSaveReview(reviewData) {
     const title = reviewData.filename
@@ -497,55 +793,60 @@ export default function App() {
     const conv = {
       id: activeConvId || undefined,
       title,
-      mode: 'review',
+      mode: "review",
       model: selectedModel,
       messages: [],
       reviewData,
       createdAt: new Date().toISOString(),
     };
     try {
-      const res = await apiFetch('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(conv),
       });
       const { id } = await res.json();
       setActiveConvId(id);
       fetchHistory();
-      showToast('Review saved to history');
+      showToast("Review saved to history");
     } catch {}
   }
 
-  const handleSaveBuilder = useCallback((data) => {
-    const convData = {
-      id: activeConvId || undefined,
-      title: `${data.modeId === 'prompting' ? 'Prompt' : data.modeId === 'skillz' ? 'Skill' : 'Agent'}: ${data.formData?.skillName || data.formData?.agentName || data.formData?.purpose || 'Untitled'} (${new Date().toLocaleString()})`,
-      mode: data.modeId,
-      model: selectedModel,
-      messages: [],
-      builderData: data,
-      overallGrade: data.scoreData?.overallGrade,
-    };
-    apiFetch('/api/history', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(convData),
-    }).then(r => r.json()).then(result => {
-      if (result.id) setActiveConvId(result.id);
-      fetchHistory();
-    });
-  }, [activeConvId, selectedModel]);
+  const handleSaveBuilder = useCallback(
+    (data) => {
+      const convData = {
+        id: activeConvId || undefined,
+        title: `${data.modeId === "prompting" ? "Prompt" : data.modeId === "skillz" ? "Skill" : "Agent"}: ${data.formData?.skillName || data.formData?.agentName || data.formData?.purpose || "Untitled"} (${new Date().toLocaleString()})`,
+        mode: data.modeId,
+        model: selectedModel,
+        messages: [],
+        builderData: data,
+        overallGrade: data.scoreData?.overallGrade,
+      };
+      apiFetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(convData),
+      })
+        .then((r) => r.json())
+        .then((result) => {
+          if (result.id) setActiveConvId(result.id);
+          fetchHistory();
+        });
+    },
+    [activeConvId, selectedModel],
+  );
 
   async function handleUpdateReviewDeepDive(deepDiveMessages) {
-    if (!activeConvId || mode !== 'review') return;
+    if (!activeConvId || mode !== "review") return;
     try {
       const res = await apiFetch(`/api/history/${activeConvId}`);
       const conv = await res.json();
       if (conv.reviewData) {
         conv.reviewData.deepDiveMessages = deepDiveMessages;
-        await apiFetch('/api/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await apiFetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(conv),
         });
       }
@@ -559,35 +860,35 @@ export default function App() {
     const conv = {
       id: activeConvId || undefined,
       title,
-      mode: 'pentest',
+      mode: "pentest",
       model: selectedModel,
       messages: [],
       pentestData,
       createdAt: new Date().toISOString(),
     };
     try {
-      const res = await apiFetch('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(conv),
       });
       const { id } = await res.json();
       setActiveConvId(id);
       fetchHistory();
-      showToast('Security scan saved to history');
+      showToast("Security scan saved to history");
     } catch {}
   }
 
   async function handleUpdatePentestDeepDive(deepDiveMessages) {
-    if (!activeConvId || mode !== 'pentest') return;
+    if (!activeConvId || mode !== "pentest") return;
     try {
       const res = await apiFetch(`/api/history/${activeConvId}`);
       const conv = await res.json();
       if (conv.pentestData) {
         conv.pentestData.deepDiveMessages = deepDiveMessages;
-        await apiFetch('/api/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        await apiFetch("/api/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(conv),
         });
       }
@@ -597,7 +898,7 @@ export default function App() {
   // Build message with attached files (text only, images handled separately)
   function buildUserContent(text, files) {
     // Filter out images - they're sent separately
-    const textFiles = files.filter(f => f.type !== 'image' && !f.isImage);
+    const textFiles = files.filter((f) => f.type !== "image" && !f.isImage);
     if (textFiles.length === 0) return text;
 
     // Safety cap per-file to prevent browser/network issues with extremely large payloads.
@@ -606,41 +907,53 @@ export default function App() {
     const MAX_TOTAL_CHARS = 800000;
     let totalChars = 0;
 
-    let content = text.trim() ? text + '\n\n' : '';
-    content += '---\nATTACHED FILES:\n';
-    textFiles.forEach(f => {
-      let fileContent = f.content || '';
+    let content = text.trim() ? text + "\n\n" : "";
+    content += "---\nATTACHED FILES:\n";
+    textFiles.forEach((f) => {
+      let fileContent = f.content || "";
       let truncated = false;
       if (fileContent.length > MAX_FILE_CHARS) {
         fileContent = fileContent.slice(0, MAX_FILE_CHARS);
         truncated = true;
       }
       if (totalChars + fileContent.length > MAX_TOTAL_CHARS) {
-        fileContent = fileContent.slice(0, Math.max(0, MAX_TOTAL_CHARS - totalChars));
+        fileContent = fileContent.slice(
+          0,
+          Math.max(0, MAX_TOTAL_CHARS - totalChars),
+        );
         truncated = true;
       }
       totalChars += fileContent.length;
-      content += `\n### ${f.name}${f.path ? ' (' + f.path + ')' : ''}\n\`\`\`\n${fileContent}\n\`\`\`\n`;
+      content += `\n### ${f.name}${f.path ? " (" + f.path + ")" : ""}\n\`\`\`\n${fileContent}\n\`\`\`\n`;
       if (truncated) {
         content += `\n*(Content truncated to fit model context window — original: ${(f.content.length / 1024).toFixed(0)} KB)*\n`;
       }
-      content += '\n';
+      content += "\n";
     });
     return content;
   }
 
-  async function handleSend() {
-    if ((!input.trim() && attachedFiles.length === 0) || streaming || !selectedModel || showVisionWarning) return;
+  async function handleSend(textOverride) {
+    const sendText = typeof textOverride === "string" ? textOverride : input;
+    if (
+      (!sendText.trim() && attachedFiles.length === 0) ||
+      streaming ||
+      !selectedModel ||
+      showVisionWarning
+    )
+      return;
 
     // Separate text files and image files
-    const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
-    const images = imageFiles.map(img => img.content); // Array of base64 strings (NO prefix)
+    const imageFiles = attachedFiles.filter(
+      (f) => f.type === "image" || f.isImage,
+    );
+    const images = imageFiles.map((img) => img.content); // Array of base64 strings (NO prefix)
 
-    const content = buildUserContent(input.trim(), attachedFiles);
+    const content = buildUserContent(sendText.trim(), attachedFiles);
     const userMsg = {
-      role: 'user',
+      role: "user",
       content,
-      ...(images.length > 0 && { images }) // Add images field if present
+      ...(images.length > 0 && { images }), // Add images field if present
     };
     const newMessages = [...messages, userMsg];
 
@@ -657,14 +970,20 @@ export default function App() {
     const payloadBytes = estimateChatPostBodyBytes(postBody);
     if (payloadBytes > MAX_CHAT_POST_BYTES) {
       showToast(
-        `❌ Request too large (${(payloadBytes / 1024 / 1024).toFixed(1)} MB). Use smaller images, fewer images, or shorter text — stay under ~${Math.floor(MAX_CHAT_POST_BYTES / 1024 / 1024)} MB.`
+        `❌ Request too large (${(payloadBytes / 1024 / 1024).toFixed(1)} MB). Use smaller images, fewer images, or shorter text — stay under ~${Math.floor(MAX_CHAT_POST_BYTES / 1024 / 1024)} MB.`,
       );
       return;
     }
 
-    setMessages(newMessages); setInput(''); setAttachedFiles([]); setStreaming(true); setStats(null); setTerminalOutput(null);
+    setMessages(newMessages);
+    setInput("");
+    setAttachedFiles([]);
+    setStreaming(true);
+    setStats(null);
+    setTerminalOutput(null);
     setAutoResolvedLabel(null);
-    setSendBurst(true); setTimeout(() => setSendBurst(false), 100);
+    setSendBurst(true);
+    setTimeout(() => setSendBurst(false), 100);
 
     // Save user message immediately so it survives a reload
     saveConversation(newMessages, mode);
@@ -673,7 +992,7 @@ export default function App() {
     const ac = new AbortController();
     chatAbortRef.current = ac;
 
-    let assistantContent = '';
+    let assistantContent = "";
     const flushChatAssistantUi = () => {
       if (chatTokenRafRef.current) {
         cancelAnimationFrame(chatTokenRafRef.current);
@@ -681,23 +1000,26 @@ export default function App() {
       }
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === 'assistant') {
+        if (last?.role === "assistant") {
           const updated = [...prev];
-          updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: assistantContent,
+          };
           return updated;
         }
-        return [...prev, { role: 'assistant', content: assistantContent }];
+        return [...prev, { role: "assistant", content: assistantContent }];
       });
     };
     try {
-      const res = await apiFetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         signal: ac.signal,
         body: JSON.stringify(postBody),
       });
       if (!res.ok) {
-        let detail = `${res.status} ${res.statusText || ''}`.trim();
+        let detail = `${res.status} ${res.statusText || ""}`.trim();
         try {
           const text = await res.text();
           if (text) {
@@ -711,20 +1033,29 @@ export default function App() {
         } catch {
           /* keep detail */
         }
-        throw new Error(detail || 'Request failed');
+        throw new Error(detail || "Request failed");
       }
-      const reader = res.body.getReader(); const decoder = new TextDecoder();
-      let buffer = '';
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
       let lastSaveTime = Date.now();
       while (true) {
-        const { done, value } = await reader.read(); if (done) break;
-        buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n'); buffer = lines.pop();
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
         for (const line of lines) {
-          if (!line.startsWith('data: ')) continue; const payload = line.slice(6); if (payload === '[DONE]') break;
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") break;
           try {
             const parsed = JSON.parse(payload);
-            if (parsed.memoryContext) { setActiveMemories(parsed.memoryContext); }
-            if (parsed.resolvedModel) setAutoResolvedLabel(parsed.resolvedModel);
+            if (parsed.memoryContext) {
+              setActiveMemories(parsed.memoryContext);
+            }
+            if (parsed.resolvedModel)
+              setAutoResolvedLabel(parsed.resolvedModel);
             if (parsed.token) {
               assistantContent += parsed.token;
               if (!chatTokenRafRef.current) {
@@ -732,12 +1063,18 @@ export default function App() {
                   chatTokenRafRef.current = null;
                   setMessages((prev) => {
                     const last = prev[prev.length - 1];
-                    if (last?.role === 'assistant') {
+                    if (last?.role === "assistant") {
                       const updated = [...prev];
-                      updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
+                      updated[updated.length - 1] = {
+                        role: "assistant",
+                        content: assistantContent,
+                      };
                       return updated;
                     }
-                    return [...prev, { role: 'assistant', content: assistantContent }];
+                    return [
+                      ...prev,
+                      { role: "assistant", content: assistantContent },
+                    ];
                   });
                 });
               }
@@ -745,7 +1082,10 @@ export default function App() {
             if (parsed.done) {
               flushChatAssistantUi();
               const dur = Number(parsed.total_duration);
-              setStats({ tokens: parsed.eval_count, duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null });
+              setStats({
+                tokens: parsed.eval_count,
+                duration: Number.isFinite(dur) ? (dur / 1e9).toFixed(1) : null,
+              });
               setTerminalOutput(null);
             }
             if (parsed.error) {
@@ -755,11 +1095,15 @@ export default function App() {
             if (parsed.toolCallRound !== undefined) {
               // Show tool execution progress in terminal output indicator
               const calls = parsed.toolCalls || [];
-              const terminalCalls = calls.filter(c => c.serverId === 'builtin');
+              const terminalCalls = calls.filter(
+                (c) => c.serverId === "builtin",
+              );
               if (terminalCalls.length > 0) {
                 setTerminalOutput({
-                  command: terminalCalls.map(c => `${c.toolName}(${JSON.stringify(c.args)})`).join('; '),
-                  status: 'running',
+                  command: terminalCalls
+                    .map((c) => `${c.toolName}(${JSON.stringify(c.args)})`)
+                    .join("; "),
+                  status: "running",
                 });
               }
             }
@@ -767,7 +1111,7 @@ export default function App() {
             if (parsed.toolImage) {
               const { mimeType, data, tool } = parsed.toolImage;
               if (data) {
-                assistantContent += `\n\n![${tool || 'Tool Result'}](data:${mimeType};base64,${data})\n`;
+                assistantContent += `\n\n![${tool || "Tool Result"}](data:${mimeType};base64,${data})\n`;
                 flushChatAssistantUi();
               }
             }
@@ -776,20 +1120,29 @@ export default function App() {
         // Auto-save every 5 seconds during streaming
         if (assistantContent && Date.now() - lastSaveTime > 5000) {
           lastSaveTime = Date.now();
-          saveConversation([...newMessages, { role: 'assistant', content: assistantContent }], mode);
+          saveConversation(
+            [...newMessages, { role: "assistant", content: assistantContent }],
+            mode,
+          );
         }
       }
       flushChatAssistantUi();
-      saveConversation([...newMessages, { role: 'assistant', content: assistantContent }], mode);
+      saveConversation(
+        [...newMessages, { role: "assistant", content: assistantContent }],
+        mode,
+      );
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if (err.name === "AbortError") {
         if (chatTokenRafRef.current) {
           cancelAnimationFrame(chatTokenRafRef.current);
           chatTokenRafRef.current = null;
         }
         setTerminalOutput(null);
         if (assistantContent.trim()) {
-          const stoppedMessages = [...newMessages, { role: 'assistant', content: assistantContent.trimEnd() }];
+          const stoppedMessages = [
+            ...newMessages,
+            { role: "assistant", content: assistantContent.trimEnd() },
+          ];
           setMessages(stoppedMessages);
           saveConversation(stoppedMessages, mode);
         }
@@ -798,12 +1151,12 @@ export default function App() {
       // "Failed to fetch" / TypeError = browser never got a response from *this* app (wrong URL, server down, SSL blocked).
       // That is different from Ollama being offline (server usually returns JSON with an error body).
       const hasImages = images && images.length > 0;
-      const detailLower = String(err.message || '').toLowerCase();
-      const msg = String(err.message || '');
+      const detailLower = String(err.message || "").toLowerCase();
+      const msg = String(err.message || "");
       const isAppUnreachable =
-        msg === 'Failed to fetch' ||
-        msg === 'Load failed' ||
-        (err.name === 'TypeError' && /fetch|network|load failed/i.test(msg));
+        msg === "Failed to fetch" ||
+        msg === "Load failed" ||
+        (err.name === "TypeError" && /fetch|network|load failed/i.test(msg));
 
       let errorMsg = `Oops, I couldn't reach Ollama just now. No worries — let's check that it's running and try again!`;
 
@@ -813,14 +1166,24 @@ export default function App() {
           `Start or restart the server, use the same URL you used to open this page (try http://127.0.0.1 with your port), ` +
           `and if you see a certificate warning for HTTPS, accept it once so requests are allowed.`;
       } else if (hasImages) {
-        if (detailLower.includes('413') || detailLower.includes('too large') || detailLower.includes('payload')) {
+        if (
+          detailLower.includes("413") ||
+          detailLower.includes("too large") ||
+          detailLower.includes("payload")
+        ) {
           errorMsg = `The request was too large (often base64 images in JSON). Try a smaller image, fewer images, or compress the file.`;
         } else {
           errorMsg = `Vision inference failed. ${selectedModel} may not support images, or Ollama may not be running.`;
         }
       }
 
-      setMessages([...newMessages, { role: 'assistant', content: `${errorMsg}\n\nTechnical detail: ${err.message}` }]);
+      setMessages([
+        ...newMessages,
+        {
+          role: "assistant",
+          content: `${errorMsg}\n\nTechnical detail: ${err.message}`,
+        },
+      ]);
     } finally {
       chatAbortRef.current = null;
       setStreaming(false);
@@ -835,26 +1198,45 @@ export default function App() {
   // ── Global Escape key → abort all active requests ──
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         handleStopChat();
         abortAll();
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  function handleKeyDown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }
+  // Auto-send pending prompt after mode change settles (CRE8 PRP flow)
+  useEffect(() => {
+    if (
+      !pendingAutoSend.current ||
+      mode !== "chat" ||
+      !selectedModel ||
+      streaming
+    )
+      return;
+    const prompt = pendingAutoSend.current;
+    pendingAutoSend.current = null;
+    handleSend(prompt);
+  }, [mode, selectedModel, streaming]);
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
 
   // File handling
   function attachFile(fileData) {
     // In review mode, route file to ReviewPanel instead of chat attachments
-    if (mode === 'review' && reviewAttachRef.current) {
+    if (mode === "review" && reviewAttachRef.current) {
       reviewAttachRef.current(fileData);
       return;
     }
     // In pentest mode, route file to SecurityPanel
-    if (mode === 'pentest' && pentestAttachRef.current) {
+    if (mode === "pentest" && pentestAttachRef.current) {
       pentestAttachRef.current(fileData);
       return;
     }
@@ -863,30 +1245,37 @@ export default function App() {
       builderAttachRef.current(fileData);
       return;
     }
-    setAttachedFiles(prev => [...prev, fileData]);
+    setAttachedFiles((prev) => [...prev, fileData]);
     showToast(`Attached: ${fileData.name}`);
   }
-  function removeAttachedFile(index) { setAttachedFiles(prev => prev.filter((_, i) => i !== index)); }
+  function removeAttachedFile(index) {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+  }
 
   // Vision model helpers (Phase 4: Image Support)
   function switchToVisionModel() {
-    const visionModel = models.find(m => m.supportsVision);
+    const visionModel = models.find((m) => m.supportsVision);
     if (visionModel) {
       setSelectedModel(visionModel.name);
       showToast(`Switched to vision model: ${visionModel.name}`);
     } else {
-      showToast('No vision models available. Install one with: ollama pull llava');
+      showToast(
+        "No vision models available. Install one with: ollama pull llava",
+      );
     }
   }
 
   function removeAllImages() {
-    setAttachedFiles(prev => prev.filter(f => f.type !== 'image' && !f.isImage));
-    showToast('Removed all images');
+    setAttachedFiles((prev) =>
+      prev.filter((f) => f.type !== "image" && !f.isImage),
+    );
+    showToast("Removed all images");
   }
 
   // Phase 8: Privacy warning helper
   function checkAndShowImagePrivacyWarning() {
-    const hasSeenWarning = localStorage.getItem('cc-image-privacy-accepted') === 'true';
+    const hasSeenWarning =
+      localStorage.getItem("cc-image-privacy-accepted") === "true";
     if (!hasSeenWarning) {
       setShowImagePrivacyWarning(true);
       return true; // Showed warning, upload should wait
@@ -911,7 +1300,7 @@ export default function App() {
     activeProcessing.current.add(file.name);
 
     // Update processing count
-    setProcessingImages(prev => prev + 1);
+    setProcessingImages((prev) => prev + 1);
 
     try {
       const result = await processImage(file, config);
@@ -920,7 +1309,7 @@ export default function App() {
       reject(err);
     } finally {
       activeProcessing.current.delete(file.name);
-      setProcessingImages(prev => prev - 1);
+      setProcessingImages((prev) => prev - 1);
       // Process next in queue
       processNextInQueue();
     }
@@ -928,12 +1317,14 @@ export default function App() {
 
   // Lightbox handlers
   function openLightbox(imageIndex) {
-    const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
+    const imageFiles = attachedFiles.filter(
+      (f) => f.type === "image" || f.isImage,
+    );
     if (imageIndex >= 0 && imageIndex < imageFiles.length) {
       const img = imageFiles[imageIndex];
       setLightboxImage({
         src: img.thumbnail, // Use thumbnail which has data URI prefix
-        filename: img.name
+        filename: img.name,
       });
       setLightboxIndex(imageIndex);
       setLightboxOpen(true);
@@ -942,7 +1333,9 @@ export default function App() {
 
   function openLightboxFromMessage(imageBase64, filename, allImages, index) {
     // Reconstruct data URI for display (images in messages are stored as raw base64)
-    const src = imageBase64.startsWith('data:') ? imageBase64 : `data:image/jpeg;base64,${imageBase64}`;
+    const src = imageBase64.startsWith("data:")
+      ? imageBase64
+      : `data:image/jpeg;base64,${imageBase64}`;
     setLightboxImage({ src, filename });
     setLightboxIndex(index || 0);
     setLightboxOpen(true);
@@ -954,12 +1347,14 @@ export default function App() {
   }
 
   function navigateLightbox(newIndex) {
-    const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
+    const imageFiles = attachedFiles.filter(
+      (f) => f.type === "image" || f.isImage,
+    );
     if (newIndex >= 0 && newIndex < imageFiles.length) {
       const img = imageFiles[newIndex];
       setLightboxImage({
         src: img.thumbnail,
-        filename: img.name
+        filename: img.name,
       });
       setLightboxIndex(newIndex);
     }
@@ -979,7 +1374,7 @@ export default function App() {
         try {
           const result = await convertDocument(file);
           const attachment = formatAsAttachment(result, file);
-          setAttachedFiles(prev => [...prev, attachment]);
+          setAttachedFiles((prev) => [...prev, attachment]);
         } catch (err) {
           alert(`Failed to convert "${file.name}": ${err.message}`);
         } finally {
@@ -988,7 +1383,7 @@ export default function App() {
         continue;
       }
 
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type.startsWith("image/");
 
       if (isImage) {
         // Phase 8: Check for privacy warning on first image upload
@@ -1013,9 +1408,11 @@ export default function App() {
 
           // Check for duplicates
           const hash = await hashImage(processed.base64);
-          const isDuplicate = attachedFiles.some(f => f.hash === hash);
+          const isDuplicate = attachedFiles.some((f) => f.hash === hash);
           if (isDuplicate) {
-            const proceed = confirm(`${file.name} appears to be a duplicate. Attach anyway?`);
+            const proceed = confirm(
+              `${file.name} appears to be a duplicate. Attach anyway?`,
+            );
             if (!proceed) continue;
           }
 
@@ -1023,24 +1420,26 @@ export default function App() {
           attachFile({
             name: file.name,
             content: processed.base64, // NO data URI prefix (for API)
-            type: 'image',
+            type: "image",
             isImage: true,
             thumbnail: processed.thumbnail, // WITH data URI prefix (for display)
             size: processed.size,
             dimensions: processed.dimensions,
             format: processed.format,
-            hash
+            hash,
           });
         } catch (err) {
           // Phase 6: Categorize processing errors for better user feedback
           const msg = err.message.toLowerCase();
-          if (msg.includes('dimension')) {
+          if (msg.includes("dimension")) {
             showToast(`❌ ${file.name}: Image too large to process`);
-          } else if (msg.includes('canvas') || msg.includes('context')) {
-            showToast(`❌ ${file.name}: Failed to process image (browser error)`);
-          } else if (msg.includes('memory') || msg.includes('out of')) {
+          } else if (msg.includes("canvas") || msg.includes("context")) {
+            showToast(
+              `❌ ${file.name}: Failed to process image (browser error)`,
+            );
+          } else if (msg.includes("memory") || msg.includes("out of")) {
             showToast(`❌ Out of memory. Try smaller images or fewer at once.`);
-          } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+          } else if (msg.includes("corrupt") || msg.includes("invalid")) {
             showToast(`❌ ${file.name}: Corrupted or invalid image file`);
           } else {
             showToast(`❌ ${file.name}: ${err.message}`);
@@ -1054,27 +1453,39 @@ export default function App() {
           attachFile({
             name: file.name,
             content: ev.target.result,
-            lines: ev.target.result.split('\n').length,
-            type: 'text'
+            lines: ev.target.result.split("\n").length,
+            type: "text",
           });
         };
         reader.readAsText(file);
       }
     }
-    e.target.value = '';
+    e.target.value = "";
   }
 
   // Drag and drop
-  function handleDragEnter(e) { e.preventDefault(); dragCounter.current++; setDragging(true); }
-  function handleDragLeave(e) { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setDragging(false); }
-  function handleDragOver(e) { e.preventDefault(); }
+  function handleDragEnter(e) {
+    e.preventDefault();
+    dragCounter.current++;
+    setDragging(true);
+  }
+  function handleDragLeave(e) {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setDragging(false);
+  }
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
   async function handleDrop(e) {
-    e.preventDefault(); dragCounter.current = 0; setDragging(false);
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragging(false);
     const files = Array.from(e.dataTransfer.files);
 
     for (const file of files) {
       // Skip directories — they have no size and can't be read as text
-      if (file.size === 0 && file.type === '') continue;
+      if (file.size === 0 && file.type === "") continue;
 
       // Check for convertible documents
       if (isConvertibleDocument(file)) {
@@ -1084,16 +1495,16 @@ export default function App() {
         try {
           const result = await convertDocument(file);
           const attachment = formatAsAttachment(result, file);
-          setAttachedFiles(prev => [...prev, attachment]);
+          setAttachedFiles((prev) => [...prev, attachment]);
         } catch (err) {
-          console.error('Document conversion failed:', err);
+          console.error("Document conversion failed:", err);
         } finally {
           setConvertingDoc(null);
         }
         continue;
       }
 
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type.startsWith("image/");
 
       if (isImage) {
         // Phase 8: Check for privacy warning on first image upload
@@ -1118,9 +1529,11 @@ export default function App() {
 
           // Check for duplicates
           const hash = await hashImage(processed.base64);
-          const isDuplicate = attachedFiles.some(f => f.hash === hash);
+          const isDuplicate = attachedFiles.some((f) => f.hash === hash);
           if (isDuplicate) {
-            const proceed = confirm(`${file.name} appears to be a duplicate. Attach anyway?`);
+            const proceed = confirm(
+              `${file.name} appears to be a duplicate. Attach anyway?`,
+            );
             if (!proceed) continue;
           }
 
@@ -1128,24 +1541,26 @@ export default function App() {
           attachFile({
             name: file.name,
             content: processed.base64, // NO data URI prefix (for API)
-            type: 'image',
+            type: "image",
             isImage: true,
             thumbnail: processed.thumbnail, // WITH data URI prefix (for display)
             size: processed.size,
             dimensions: processed.dimensions,
             format: processed.format,
-            hash
+            hash,
           });
         } catch (err) {
           // Phase 6: Categorize processing errors for better user feedback
           const msg = err.message.toLowerCase();
-          if (msg.includes('dimension')) {
+          if (msg.includes("dimension")) {
             showToast(`❌ ${file.name}: Image too large to process`);
-          } else if (msg.includes('canvas') || msg.includes('context')) {
-            showToast(`❌ ${file.name}: Failed to process image (browser error)`);
-          } else if (msg.includes('memory') || msg.includes('out of')) {
+          } else if (msg.includes("canvas") || msg.includes("context")) {
+            showToast(
+              `❌ ${file.name}: Failed to process image (browser error)`,
+            );
+          } else if (msg.includes("memory") || msg.includes("out of")) {
             showToast(`❌ Out of memory. Try smaller images or fewer at once.`);
-          } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+          } else if (msg.includes("corrupt") || msg.includes("invalid")) {
             showToast(`❌ ${file.name}: Corrupted or invalid image file`);
           } else {
             showToast(`❌ ${file.name}: ${err.message}`);
@@ -1159,8 +1574,8 @@ export default function App() {
           attachFile({
             name: file.name,
             content: ev.target.result,
-            lines: ev.target.result.split('\n').length,
-            type: 'text'
+            lines: ev.target.result.split("\n").length,
+            type: "text",
           });
         };
         reader.readAsText(file);
@@ -1172,13 +1587,13 @@ export default function App() {
   async function handlePaste() {
     const text = await readText();
     if (text) {
-      setInput(prev => prev + text);
+      setInput((prev) => prev + text);
       textareaRef.current?.focus();
-      showToast('Pasted from clipboard');
+      showToast("Pasted from clipboard");
     } else {
       // Clipboard API denied — focus textarea so user can Ctrl/Cmd+V
       textareaRef.current?.focus();
-      showToast('Press Ctrl+V (or ⌘V) to paste');
+      showToast("Press Ctrl+V (or ⌘V) to paste");
     }
   }
 
@@ -1188,7 +1603,7 @@ export default function App() {
 
     for (const item of items) {
       // Handle direct image data (screenshots, copied images)
-      if (item.type.startsWith('image/')) {
+      if (item.type.startsWith("image/")) {
         e.preventDefault(); // Don't paste as text
 
         const file = item.getAsFile();
@@ -1215,9 +1630,11 @@ export default function App() {
 
           // Check for duplicates
           const hash = await hashImage(processed.base64);
-          const isDuplicate = attachedFiles.some(f => f.hash === hash);
+          const isDuplicate = attachedFiles.some((f) => f.hash === hash);
           if (isDuplicate) {
-            const proceed = confirm('This image appears to be a duplicate. Attach anyway?');
+            const proceed = confirm(
+              "This image appears to be a duplicate. Attach anyway?",
+            );
             if (!proceed) continue;
           }
 
@@ -1225,26 +1642,26 @@ export default function App() {
           attachFile({
             name: file.name || `pasted-image-${Date.now()}.png`,
             content: processed.base64, // NO data URI prefix (for API)
-            type: 'image',
+            type: "image",
             isImage: true,
             thumbnail: processed.thumbnail, // WITH data URI prefix (for display)
             size: processed.size,
             dimensions: processed.dimensions,
             format: processed.format,
-            hash
+            hash,
           });
 
-          showToast('✓ Image pasted from clipboard');
+          showToast("✓ Image pasted from clipboard");
         } catch (err) {
           // Phase 6: Categorize processing errors for better user feedback
           const msg = err.message.toLowerCase();
-          if (msg.includes('dimension')) {
+          if (msg.includes("dimension")) {
             showToast(`❌ Pasted image too large to process`);
-          } else if (msg.includes('canvas') || msg.includes('context')) {
+          } else if (msg.includes("canvas") || msg.includes("context")) {
             showToast(`❌ Failed to process pasted image (browser error)`);
-          } else if (msg.includes('memory') || msg.includes('out of')) {
+          } else if (msg.includes("memory") || msg.includes("out of")) {
             showToast(`❌ Out of memory. Try a smaller image.`);
-          } else if (msg.includes('corrupt') || msg.includes('invalid')) {
+          } else if (msg.includes("corrupt") || msg.includes("invalid")) {
             showToast(`❌ Corrupted or invalid pasted image`);
           } else {
             showToast(`❌ Failed to process pasted image: ${err.message}`);
@@ -1255,84 +1672,114 @@ export default function App() {
     }
   }
   async function handleCopyLastResponse() {
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (lastAssistant) { const ok = await copyText(lastAssistant.content); showToast(ok ? 'Response copied' : 'Copy failed'); }
-    else { showToast('No response to copy'); }
+    const lastAssistant = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    if (lastAssistant) {
+      const ok = await copyText(lastAssistant.content);
+      showToast(ok ? "Response copied" : "Copy failed");
+    } else {
+      showToast("No response to copy");
+    }
   }
   function handleDownloadMarkdown() {
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (!lastAssistant) { showToast('No response to download'); return; }
-    const blob = new Blob([lastAssistant.content], { type: 'text/markdown' });
+    const lastAssistant = [...messages]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    if (!lastAssistant) {
+      showToast("No response to download");
+      return;
+    }
+    const blob = new Blob([lastAssistant.content], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `response-${new Date().toISOString().slice(0, 10)}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Markdown downloaded');
+    showToast("Markdown downloaded");
   }
   function handleSaveChat() {
-    if (!messages.length) { showToast('No conversation to save'); return; }
+    if (!messages.length) {
+      showToast("No conversation to save");
+      return;
+    }
     // Build brief filename from first user message
-    const firstUser = messages.find(m => m.role === 'user');
+    const firstUser = messages.find((m) => m.role === "user");
     const snippet = firstUser
-      ? firstUser.content.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 2).join('-').toLowerCase() || 'chat'
-      : 'chat';
+      ? firstUser.content
+          .replace(/[^a-zA-Z0-9 ]/g, "")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .join("-")
+          .toLowerCase() || "chat"
+      : "chat";
     const date = new Date().toISOString().slice(0, 10);
-    const modeLabel = MODES.find(m => m.id === mode)?.label || mode;
+    const modeLabel = MODES.find((m) => m.id === mode)?.label || mode;
 
     // Format entire conversation as markdown
     const lines = [`# ${modeLabel} — ${date}\n`];
     for (const msg of messages) {
-      if (msg.role === 'user') {
+      if (msg.role === "user") {
         lines.push(`## You\n\n${msg.content}\n`);
-      } else if (msg.role === 'assistant') {
+      } else if (msg.role === "assistant") {
         lines.push(`## Assistant\n\n${msg.content}\n`);
       }
     }
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${snippet}-${date}.md`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Chat saved');
+    showToast("Chat saved");
   }
 
   async function handleExportOffice(ext) {
-    if (!messages.length) { showToast('No conversation to export'); return; }
-    const modeLabel = MODES.find(m => m.id === mode)?.label || mode;
+    if (!messages.length) {
+      showToast("No conversation to export");
+      return;
+    }
+    const modeLabel = MODES.find((m) => m.id === mode)?.label || mode;
     const date = new Date().toISOString().slice(0, 10);
-    const firstUser = messages.find(m => m.role === 'user');
+    const firstUser = messages.find((m) => m.role === "user");
     const snippet = firstUser
-      ? firstUser.content.replace(/[^a-zA-Z0-9 ]/g, '').trim().split(/\s+/).slice(0, 2).join('-').toLowerCase() || 'chat'
-      : 'chat';
+      ? firstUser.content
+          .replace(/[^a-zA-Z0-9 ]/g, "")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .join("-")
+          .toLowerCase() || "chat"
+      : "chat";
 
     // Build markdown content from conversation
     const lines = [`# ${modeLabel} — ${date}\n`];
     for (const msg of messages) {
-      if (msg.role === 'user') lines.push(`## You\n\n${msg.content}\n`);
-      else if (msg.role === 'assistant') lines.push(`## Assistant\n\n${msg.content}\n`);
+      if (msg.role === "user") lines.push(`## You\n\n${msg.content}\n`);
+      else if (msg.role === "assistant")
+        lines.push(`## Assistant\n\n${msg.content}\n`);
     }
-    const content = lines.join('\n');
+    const content = lines.join("\n");
     const filename = `${snippet}-${date}${ext}`;
 
     try {
       showToast(`Generating ${ext.slice(1).toUpperCase()}...`);
-      const res = await apiFetch('/api/generate-office', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/generate-office", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content, filename }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Export failed');
+        throw new Error(err.error || "Export failed");
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = filename;
       a.click();
@@ -1343,31 +1790,37 @@ export default function App() {
     }
   }
 
-  function handleClearInput() { setInput(''); setAttachedFiles([]); textareaRef.current?.focus(); }
+  function handleClearInput() {
+    setInput("");
+    setAttachedFiles([]);
+    textareaRef.current?.focus();
+  }
 
   function handleDictation(text) {
-    setInput(prev => joinAppend(prev, text));
+    setInput((prev) => joinAppend(prev, text));
     textareaRef.current?.focus();
   }
 
   async function handleCreateSuccess(projectPath) {
     // Verify the folder was actually created before saving to config
     try {
-      const verify = await apiFetch(`/api/files/tree?depth=1&folder=${encodeURIComponent(projectPath)}`);
+      const verify = await apiFetch(
+        `/api/files/tree?depth=1&folder=${encodeURIComponent(projectPath)}`,
+      );
       if (!verify.ok) {
-        showToast('Project folder was not found on disk. Try creating again.');
+        showToast("Project folder was not found on disk. Try creating again.");
         return;
       }
     } catch {
-      showToast('Could not verify project folder exists.');
+      showToast("Could not verify project folder exists.");
       return;
     }
     setProjectFolder(projectPath);
     try {
-      await apiFetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectFolder: projectPath })
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectFolder: projectPath }),
       });
     } catch {}
     setShowFileBrowser(true);
@@ -1376,10 +1829,13 @@ export default function App() {
 
   async function handleBuildProjectCreated(projectPath, data) {
     try {
-      await apiFetch('/api/build/projects/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data?.name || projectPath.split('/').pop(), projectPath }),
+      await apiFetch("/api/build/projects/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data?.name || projectPath.split("/").pop(),
+          projectPath,
+        }),
       });
     } catch {}
     await fetchBuildProjects();
@@ -1387,47 +1843,72 @@ export default function App() {
     setShowBuildWizard(false);
     // Find the newly registered project and select it
     try {
-      const res = await apiFetch('/api/build/projects');
+      const res = await apiFetch("/api/build/projects");
       const projects = await res.json();
-      const newest = projects.find(p => p.path === projectPath);
+      const newest = projects.find((p) => p.path === projectPath);
       if (newest) setActiveBuildProject(newest.id);
       setBuildProjects(projects);
     } catch {}
   }
 
-  async function handleCreateOpenInBuild(projectPath, data) {
-    // Register the created project in the Build registry and switch to Build mode
-    const name = data?.name || projectPath.split('/').pop();
+  async function handleGeneratePRP(projectPath, data) {
+    // Set project folder to newly created project
+    setProjectFolder(projectPath);
     try {
-      await apiFetch('/api/build/projects/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, projectPath }),
+      await apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectFolder: projectPath }),
       });
     } catch {}
-    await fetchBuildProjects();
-    // Find and select the newly registered project
+
+    // Build the generate-prp prompt with project context
+    let prpInstructions = "";
     try {
-      const res = await apiFetch('/api/build/projects');
-      const projects = await res.json();
-      const newest = projects.find(p => p.path === projectPath);
-      if (newest) setActiveBuildProject(newest.id);
-      setBuildProjects(projects);
+      const res = await apiFetch("/api/cre8/prp-prompt");
+      if (res.ok) {
+        const { content } = await res.json();
+        prpInstructions = content;
+      }
     } catch {}
-    setShowBuildWizard(false);
-    setMode('build');
-    showToast(`"${name}" opened in Build mode`);
+
+    const projectName = data?.name || projectPath.split("/").pop();
+    const initialContent = [
+      `FEATURE: ${projectName}`,
+      data?.description ? `\n${data.description}` : "",
+      data?.role ? `\nRole: ${data.role}` : "",
+      data?.audience ? `\nAudience: ${data.audience}` : "",
+      data?.tone ? `\nTone: ${data.tone}` : "",
+      data?.stages?.length
+        ? `\nStages:\n${data.stages.map((s) => `- ${s.name}: ${s.purpose || ""}`).join("\n")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
+
+    const prompt = prpInstructions
+      ? `${prpInstructions}\n\n---\n\n## Project Context (INITIAL.md)\n\n${initialContent}`
+      : `Generate an execution plan (PRP) for this project:\n\n${initialContent}`;
+
+    // Switch to chat mode and auto-send the PRP prompt
+    pendingAutoSend.current = prompt;
+    setMessages([]);
+    setMode("chat");
+    setInput("");
+    showToast(`"${projectName}" — generating execution plan…`);
   }
 
-  const currentMode = MODES.find(m => m.id === mode);
+  const currentMode = MODES.find((m) => m.id === mode);
 
   // Splash screen — shown once per browser session
   if (!splashDismissed) {
     return (
-      <SplashScreen onDismiss={() => {
-        sessionStorage.setItem('th3rdai_splash_dismissed', 'true');
-        setSplashDismissed(true);
-      }} />
+      <SplashScreen
+        onDismiss={() => {
+          sessionStorage.setItem("th3rdai_splash_dismissed", "true");
+          setSplashDismissed(true);
+        }}
+      />
     );
   }
 
@@ -1435,14 +1916,22 @@ export default function App() {
     <div className="fixed inset-0 flex mesh-gradient overflow-hidden">
       {/* Auto-update banner */}
       {updateBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-3 px-4 py-2 text-sm"
-          style={{ background: updateBanner.type === 'ready' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(99, 102, 241, 0.15)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div
+          className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-3 px-4 py-2 text-sm"
+          style={{
+            background:
+              updateBanner.type === "ready"
+                ? "rgba(34, 197, 94, 0.15)"
+                : "rgba(99, 102, 241, 0.15)",
+            borderBottom: "1px solid rgba(255,255,255,0.1)",
+          }}
+        >
           <span className="text-slate-200">
-            {updateBanner.type === 'available'
+            {updateBanner.type === "available"
               ? `Version ${updateBanner.version} is available and downloading...`
               : `Version ${updateBanner.version} is ready to install`}
           </span>
-          {updateBanner.type === 'ready' && (
+          {updateBanner.type === "ready" && (
             <button
               onClick={() => window.electronAPI.restartForUpdate()}
               className="btn-neon text-white rounded px-3 py-1 text-xs font-medium"
@@ -1459,61 +1948,123 @@ export default function App() {
           </button>
         </div>
       )}
-      <a href="#chat-input" className="skip-link">Skip to chat input</a>
+      <a href="#chat-input" className="skip-link">
+        Skip to chat input
+      </a>
 
-      <Sidebar history={history} activeId={activeConvId} onSelect={loadConversation} onNew={startNew}
-        onDelete={deleteConversation} onRename={handleRenameRequest} onExport={exportConversation}
-        onArchive={archiveConversation} onBulkDelete={bulkDeleteConversations} onBulkExport={bulkExportConversations}
-        onBulkArchive={bulkArchiveConversations} open={sidebarOpen} onClose={() => setSidebarOpen(false)}
-        collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebarCollapsed}
-        showArchived={showArchived} onToggleArchived={() => setShowArchived(!showArchived)} modes={MODES} />
+      <Sidebar
+        history={history}
+        activeId={activeConvId}
+        onSelect={loadConversation}
+        onNew={startNew}
+        onDelete={deleteConversation}
+        onRename={handleRenameRequest}
+        onExport={exportConversation}
+        onArchive={archiveConversation}
+        onBulkDelete={bulkDeleteConversations}
+        onBulkExport={bulkExportConversations}
+        onBulkArchive={bulkArchiveConversations}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapsed}
+        showArchived={showArchived}
+        onToggleArchived={() => setShowArchived(!showArchived)}
+        modes={MODES}
+      />
 
-      <main className="flex-1 flex flex-col min-w-0 relative"
-        onDragEnter={handleDragEnter} onDragLeave={handleDragLeave} onDragOver={handleDragOver} onDrop={handleDrop}>
-
+      <main
+        className="flex-1 flex flex-col min-w-0 relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         {/* Header */}
         <header className="glass-heavy border-b border-slate-700/30 px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2 relative overflow-hidden">
           <HeaderScene />
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700/50 relative z-10 shrink-0 order-first" aria-label="Open sidebar">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700/50 relative z-10 shrink-0 order-first"
+            aria-label="Open sidebar"
+          >
             <PanelLeft className="w-5 h-5" />
           </button>
-          <button onClick={toggleSidebarCollapsed} className="hidden lg:flex items-center justify-center text-slate-400 hover:text-white w-8 h-8 rounded-lg hover:bg-slate-700/50 relative z-10 shrink-0 order-first" aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-            {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+          <button
+            onClick={toggleSidebarCollapsed}
+            className="hidden lg:flex items-center justify-center text-slate-400 hover:text-white w-8 h-8 rounded-lg hover:bg-slate-700/50 relative z-10 shrink-0 order-first"
+            aria-label={
+              sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+            }
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight className="w-5 h-5" />
+            ) : (
+              <ChevronLeft className="w-5 h-5" />
+            )}
           </button>
           <div className="flex items-center gap-3 shrink-0 relative z-10 min-w-0">
             <img src="/logo.svg" alt="Th3rdAI" className="w-10 h-10 shrink-0" />
             <div className="min-w-0">
               <h1 className="text-base font-bold leading-tight truncate">
-                <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">Th3rdAI</span>
-                <span className="text-slate-300 ml-1.5 font-medium">Code Companion</span>
+                <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  Th3rdAI
+                </span>
+                <span className="text-slate-300 ml-1.5 font-medium">
+                  Code Companion
+                </span>
               </h1>
-              <p className="text-xs text-slate-500 truncate">Your friendly guide to all things code</p>
+              <p className="text-xs text-slate-500 truncate">
+                Your friendly guide to all things code
+              </p>
             </div>
           </div>
           <div className="flex-1 min-w-[1rem] shrink" aria-hidden="true" />
           <div className="flex items-center gap-2 shrink-0 relative z-10 flex-wrap">
-            <button onClick={() => setShowGlossary(true)}
+            <button
+              onClick={() => setShowGlossary(true)}
               className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors text-slate-400 border-slate-600 hover:bg-indigo-500/10"
-              title="Jargon Glossary">
+              title="Jargon Glossary"
+            >
               📖 Glossary
             </button>
-            <button onClick={() => { setShowGitHub(!showGitHub); if (!showGitHub) setShowFileBrowser(false); }}
+            <button
+              onClick={() => {
+                setShowGitHub(!showGitHub);
+                if (!showGitHub) setShowFileBrowser(false);
+              }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
-                ${showGitHub ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
-              title="GitHub Repos">
+                ${showGitHub ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"}`}
+              title="GitHub Repos"
+            >
               🐙 GitHub
             </button>
-            <button onClick={() => { setShowFileBrowser(!showFileBrowser); if (!showFileBrowser) setShowGitHub(false); }}
+            <button
+              onClick={() => {
+                setShowFileBrowser(!showFileBrowser);
+                if (!showFileBrowser) setShowGitHub(false);
+              }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
-                ${showFileBrowser ? 'text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm' : 'text-slate-400 border-slate-600 hover:bg-indigo-500/10'}`}
-              title="File Browser">
+                ${showFileBrowser ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"}`}
+              title="File Browser"
+            >
               📂 Files
             </button>
-            <button onClick={() => setShowSettings(true)}
+            <button
+              onClick={() => setShowSettings(true)}
               className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
-                connected ? 'text-green-400 border-green-500/30 hover:bg-green-500/10' : 'text-red-400 border-red-500/30 hover:bg-red-500/10'
-              }`}>
-              <OrbitingBadge status={streaming ? 'streaming' : connected ? 'online' : 'offline'} size={24} />
+                connected
+                  ? "text-green-400 border-green-500/30 hover:bg-green-500/10"
+                  : "text-red-400 border-red-500/30 hover:bg-red-500/10"
+              }`}
+            >
+              <OrbitingBadge
+                status={
+                  streaming ? "streaming" : connected ? "online" : "offline"
+                }
+                size={24}
+              />
               Settings
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
@@ -1530,22 +2081,37 @@ export default function App() {
                 </button>
                 {memoryDropdownOpen && (
                   <div className="absolute right-0 top-full mt-1 w-72 glass-heavy rounded-lg border border-slate-700/50 p-3 z-50 shadow-xl">
-                    <p className="text-xs font-medium text-slate-300 mb-2">Memories used:</p>
+                    <p className="text-xs font-medium text-slate-300 mb-2">
+                      Memories used:
+                    </p>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
                       {activeMemories.items?.map((m, i) => (
-                        <div key={i} className="text-xs text-slate-400 glass rounded p-2">
-                          <span className={`inline-block px-1.5 py-0.5 rounded-full text-[9px] font-medium mr-1.5 ${
-                            m.type === 'fact' ? 'bg-blue-500/15 text-blue-300' :
-                            m.type === 'project' ? 'bg-green-500/15 text-green-300' :
-                            m.type === 'pattern' ? 'bg-orange-500/15 text-orange-300' :
-                            'bg-purple-500/15 text-purple-300'
-                          }`}>{m.type}</span>
+                        <div
+                          key={i}
+                          className="text-xs text-slate-400 glass rounded p-2"
+                        >
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded-full text-[9px] font-medium mr-1.5 ${
+                              m.type === "fact"
+                                ? "bg-blue-500/15 text-blue-300"
+                                : m.type === "project"
+                                  ? "bg-green-500/15 text-green-300"
+                                  : m.type === "pattern"
+                                    ? "bg-orange-500/15 text-orange-300"
+                                    : "bg-purple-500/15 text-purple-300"
+                            }`}
+                          >
+                            {m.type}
+                          </span>
                           <span className="line-clamp-2">{m.content}</span>
                         </div>
                       ))}
                     </div>
                     <button
-                      onClick={() => { setMemoryDropdownOpen(false); setShowMemoryPanel(true); }}
+                      onClick={() => {
+                        setMemoryDropdownOpen(false);
+                        setShowMemoryPanel(true);
+                      }}
                       className="mt-2 w-full text-xs text-indigo-300 hover:text-indigo-200 py-1 transition-colors"
                     >
                       Manage all memories...
@@ -1554,33 +2120,52 @@ export default function App() {
                 )}
               </div>
             )}
-            <button onClick={fetchModels} disabled={refreshing}
-              className="text-slate-400 hover:text-indigo-300 text-sm px-2 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors disabled:opacity-50" title="Refresh models">
-              <span className={refreshing ? 'inline-block spin' : ''}>&#x27F3;</span>
+            <button
+              onClick={fetchModels}
+              disabled={refreshing}
+              className="text-slate-400 hover:text-indigo-300 text-sm px-2 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors disabled:opacity-50"
+              title="Refresh models"
+            >
+              <span className={refreshing ? "inline-block spin" : ""}>
+                &#x27F3;
+              </span>
             </button>
-            <label htmlFor="model-select" className="sr-only">Select AI model</label>
-            <select id="model-select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}
-              className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[200px]">
+            <label htmlFor="model-select" className="sr-only">
+              Select AI model
+            </label>
+            <select
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[200px]"
+            >
               {models.length === 0 && <option value="">No models found</option>}
-              {models.length > 0 && <option value="auto">Auto (best per mode)</option>}
+              {models.length > 0 && (
+                <option value="auto">Auto (best per mode)</option>
+              )}
               {[...models]
                 .sort((a, b) => {
                   // Sort vision models to top when images attached (Phase 4: Image Support)
                   if (hasImages) {
-                    return (b.supportsVision ? 1 : 0) - (a.supportsVision ? 1 : 0);
+                    return (
+                      (b.supportsVision ? 1 : 0) - (a.supportsVision ? 1 : 0)
+                    );
                   }
                   return 0;
                 })
-                .map(m => (
+                .map((m) => (
                   <option key={m.name} value={m.name}>
-                    {m.supportsVision ? '👁️ ' : ''}{m.name} ({m.paramSize || m.size + 'GB'})
+                    {m.supportsVision ? "👁️ " : ""}
+                    {m.name} ({m.paramSize || m.size + "GB"})
                   </option>
-                ))
-              }
+                ))}
             </select>
-            {selectedModel === 'auto' && models.length > 0 && (
-              <span className="text-xs text-slate-500 whitespace-nowrap hidden sm:inline" title="Shown after your first message in this mode">
-                {autoResolvedLabel ? `→ ${autoResolvedLabel}` : '→ …'}
+            {selectedModel === "auto" && models.length > 0 && (
+              <span
+                className="text-xs text-slate-500 whitespace-nowrap hidden sm:inline"
+                title="Shown after your first message in this mode"
+              >
+                {autoResolvedLabel ? `→ ${autoResolvedLabel}` : "→ …"}
               </span>
             )}
           </div>
@@ -1594,10 +2179,21 @@ export default function App() {
           <div className="bg-amber-500/10 border-b border-amber-500/30 px-4 py-3 flex items-center gap-3">
             <span className="text-amber-400 text-sm">&#9888;</span>
             <div className="flex-1 text-sm text-amber-300">
-              Ollama disconnected — AI features unavailable. You can still browse your conversation history.
+              Ollama disconnected — AI features unavailable. You can still
+              browse your conversation history.
             </div>
-            <button onClick={() => setShowSettings(true)} className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-lg transition-colors">Configure</button>
-            <button onClick={fetchModels} className="text-xs glass text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-600/50 transition-colors">Retry</button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              Configure
+            </button>
+            <button
+              onClick={fetchModels}
+              className="text-xs glass text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+            >
+              Retry
+            </button>
           </div>
         )}
 
@@ -1606,7 +2202,9 @@ export default function App() {
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-base/80 border-2 border-dashed border-indigo-500 rounded-2xl m-2 pointer-events-none">
             <div className="text-center">
               <div className="text-4xl mb-2">📄</div>
-              <p className="text-indigo-300 font-medium neon-text">Drop your files here — I'll take a look!</p>
+              <p className="text-indigo-300 font-medium neon-text">
+                Drop your files here — I'll take a look!
+              </p>
             </div>
           </div>
         )}
@@ -1617,45 +2215,57 @@ export default function App() {
             {/* Mode Tabs */}
             <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative overflow-hidden">
               <FloatingGeometry shapeCount={5} />
-              {MODES.map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    data-testid={`mode-tab-${m.id}`}
-                    onClick={() => setMode(m.id)}
-                    className={`relative z-10 flex cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]
-                      ${mode === m.id
-                        ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm'
-                        : 'text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200'}`}
-                  >
-                    <span aria-hidden="true">{m.icon}</span><span>{m.label}</span>
-                  </button>
+              {MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  data-testid={`mode-tab-${m.id}`}
+                  onClick={() => setMode(m.id)}
+                  className={`relative z-10 flex cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]
+                      ${
+                        mode === m.id
+                          ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm"
+                          : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200"
+                      }`}
+                >
+                  <span aria-hidden="true">{m.icon}</span>
+                  <span>{m.label}</span>
+                </button>
               ))}
             </div>
 
             {/* Messages / Create Wizard / Review Panel */}
-            {mode === 'review' ? (
+            {mode === "review" ? (
               <ReviewPanel
                 selectedModel={selectedModel}
                 connected={connected}
                 streaming={streaming}
                 onAttachFromBrowser={reviewAttachRef}
-                onOpenFileBrowser={() => { setShowFileBrowser(true); setShowGitHub(false); }}
+                onOpenFileBrowser={() => {
+                  setShowFileBrowser(true);
+                  setShowGitHub(false);
+                }}
                 onToast={showToast}
-                onSwitchToChat={(msgs) => { setMode('chat'); if (msgs) setMessages(msgs); }}
+                onSwitchToChat={(msgs) => {
+                  setMode("chat");
+                  if (msgs) setMessages(msgs);
+                }}
                 savedReview={savedReview}
                 onSaveReview={handleSaveReview}
                 models={models}
                 onSetSelectedModel={setSelectedModel}
                 onUpdateReviewDeepDive={handleUpdateReviewDeepDive}
               />
-            ) : mode === 'pentest' ? (
+            ) : mode === "pentest" ? (
               <SecurityPanel
                 selectedModel={selectedModel}
                 connected={connected}
                 streaming={streaming}
                 onAttachFromBrowser={pentestAttachRef}
-                onOpenFileBrowser={() => { setShowFileBrowser(true); setShowGitHub(false); }}
+                onOpenFileBrowser={() => {
+                  setShowFileBrowser(true);
+                  setShowGitHub(false);
+                }}
                 onToast={showToast}
                 savedPentest={savedPentest}
                 onSavePentest={handleSavePentest}
@@ -1663,7 +2273,7 @@ export default function App() {
                 onSetSelectedModel={setSelectedModel}
                 onUpdatePentestDeepDive={handleUpdatePentestDeepDive}
               />
-            ) : mode === 'validate' ? (
+            ) : mode === "validate" ? (
               <ValidatePanel
                 selectedModel={selectedModel}
                 connected={connected}
@@ -1671,7 +2281,7 @@ export default function App() {
                 models={models}
               />
             ) : BUILDER_MODES.includes(mode) ? (
-              mode === 'prompting' ? (
+              mode === "prompting" ? (
                 <PromptingPanel
                   selectedModel={selectedModel}
                   connected={connected}
@@ -1682,7 +2292,7 @@ export default function App() {
                   onLoadFile={builderAttachRef}
                   projectFolder={projectFolder}
                 />
-              ) : mode === 'skillz' ? (
+              ) : mode === "skillz" ? (
                 <SkillzPanel
                   selectedModel={selectedModel}
                   connected={connected}
@@ -1693,7 +2303,7 @@ export default function App() {
                   onLoadFile={builderAttachRef}
                   projectFolder={projectFolder}
                 />
-              ) : mode === 'agentic' ? (
+              ) : mode === "agentic" ? (
                 <AgenticPanel
                   selectedModel={selectedModel}
                   connected={connected}
@@ -1717,250 +2327,394 @@ export default function App() {
                 />
               )
             ) : (
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4" role="log" aria-label="Chat messages" aria-live="polite">
-              {mode === 'create' ? (
-                <>
-                  <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-slate-500">Create project</span>
-                      <button
-                        type="button"
-                        onClick={() => { setShowTutorial(!showTutorial); if (!showTutorial) setTutorialStep(1); setWizardPrefill(null); }}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? 'bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900' : 'bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse'}`}
-                        aria-label={showTutorial ? 'Hide tutorial' : 'Show step-by-step tutorial'}
-                      >
-                        <BookOpen className="w-5 h-5 shrink-0" aria-hidden />
-                        {showTutorial ? 'Tutorial on' : 'Start tutorial'}
-                      </button>
-                    </div>
-                  </div>
-                  {showTutorial && (
-                    <TutorialPanel
-                      mode="create"
-                      currentStep={tutorialStep}
-                      onStepChange={(s) => { setTutorialStep(s); setWizardPrefill(null); }}
-                      onPrefillStep={(stepNum, data) => setWizardPrefill({ step: stepNum, data })}
-                      onClose={() => setShowTutorial(false)}
-                      totalSteps={5}
-                    />
-                  )}
-                  <CreateWizard
-                    defaultOutputRoot={projectFolder || '~/AI_Dev/'}
-                    onSuccess={handleCreateSuccess}
-                    onOpenInBuild={handleCreateOpenInBuild}
-                    onToast={showToast}
-                    step={showTutorial ? tutorialStep : undefined}
-                    onStepChange={showTutorial ? setTutorialStep : undefined}
-                    prefill={wizardPrefill}
-                    tutorialActive={showTutorial}
-                    tutorialSuggestions={showTutorial ? CREATE_TUTORIAL_STEPS[tutorialStep - 1]?.prefill ?? null : null}
-                  />
-                </>
-              ) : mode === 'build' ? (
-                showBuildWizard ? (
-                <>
-                  <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-slate-500">New build project</span>
-                      <button
-                        type="button"
-                        onClick={() => { setShowTutorial(!showTutorial); if (!showTutorial) setTutorialStep(1); setWizardPrefill(null); }}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? 'bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900' : 'bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse'}`}
-                        aria-label={showTutorial ? 'Hide tutorial' : 'Show step-by-step tutorial'}
-                      >
-                        <BookOpen className="w-5 h-5 shrink-0" aria-hidden />
-                        {showTutorial ? 'Tutorial on' : 'Start tutorial'}
-                      </button>
-                    </div>
-                  </div>
-                  {showTutorial && (
-                    <TutorialPanel
-                      mode="build"
-                      currentStep={tutorialStep}
-                      onStepChange={(s) => { setTutorialStep(s); setWizardPrefill(null); }}
-                      onPrefillStep={(stepNum, data) => setWizardPrefill({ step: stepNum, data })}
-                      onClose={() => setShowTutorial(false)}
-                      totalSteps={4}
-                    />
-                  )}
-                  <BuildWizard
-                    defaultOutputRoot={projectFolder || '~/AI_Dev/'}
-                    onSuccess={handleBuildProjectCreated}
-                    onToast={showToast}
-                    onCancel={() => { setShowBuildWizard(false); setShowTutorial(false); }}
-                    step={showTutorial ? tutorialStep : undefined}
-                    onStepChange={showTutorial ? setTutorialStep : undefined}
-                    prefill={wizardPrefill}
-                    tutorialActive={showTutorial}
-                    tutorialSuggestions={showTutorial ? BUILD_TUTORIAL_STEPS[tutorialStep - 1]?.prefill ?? null : null}
-                  />
-                </>
-                ) : (
-                  <BuildPanel
-                    projects={buildProjects}
-                    activeProject={activeBuildProject}
-                    onSelectProject={setActiveBuildProject}
-                    onNewProject={() => setShowBuildWizard(true)}
-                    onViewFiles={(p) => { setProjectFolder(p); setShowFileBrowser(true); }}
-                    onRefresh={fetchBuildProjects}
-                    onToast={showToast}
-                    selectedModel={selectedModel}
-                    ollamaConnected={connected}
-                  />
-                )
-              ) : (
-                <>
-                  {messages.length === 0 ? (
-                    <EmptyStateScene
-                      mode={mode}
-                      currentMode={currentMode}
-                      connected={connected}
-                      selectedModel={selectedModel}
-                      onSettingsClick={() => setShowSettings(true)}
-                    />
-                  ) : null}
-                  {messages.map((msg, i) => (
-                    <div key={i} className="relative group">
-                      <MessageBubble
-                        role={msg.role}
-                        content={msg.content}
-                        streaming={streaming && i === messages.length - 1 && msg.role === 'assistant'}
-                        images={msg.images}
-                        onImageClick={openLightboxFromMessage}
-                      />
-                      {msg.role === 'assistant' && !streaming && (
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"><CopyButton text={msg.content} /></div>
-                      )}
-                    </div>
-                  ))}
-                  {streaming && messages[messages.length - 1]?.role !== 'assistant' && <TypingIndicator3D mode={mode} />}
-                  {terminalOutput && (
-                    <div className="mx-4 my-2 glass rounded-xl border border-indigo-500/20 overflow-hidden">
-                      <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border-b border-indigo-500/20">
-                        <span className="text-xs font-mono text-indigo-300">
-                          {terminalOutput.status === 'running' ? (
-                            <><span className="inline-block animate-spin mr-1">&#x27F3;</span> Running command...</>
-                          ) : (
-                            <>&#x2713; Command completed</>
-                          )}
+              <div
+                className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
+                role="log"
+                aria-label="Chat messages"
+                aria-live="polite"
+              >
+                {mode === "create" ? (
+                  <>
+                    <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs text-slate-500">
+                          Create project
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowTutorial(!showTutorial);
+                            if (!showTutorial) setTutorialStep(1);
+                            setWizardPrefill(null);
+                          }}
+                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? "bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900" : "bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse"}`}
+                          aria-label={
+                            showTutorial
+                              ? "Hide tutorial"
+                              : "Show step-by-step tutorial"
+                          }
+                        >
+                          <BookOpen className="w-5 h-5 shrink-0" aria-hidden />
+                          {showTutorial ? "Tutorial on" : "Start tutorial"}
+                        </button>
                       </div>
-                      {terminalOutput.command && (
-                        <pre className="px-3 py-2 text-xs text-slate-400 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-thin">
-                          {terminalOutput.command}
-                        </pre>
-                      )}
                     </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </>
-              )}
-            </div>
+                    {showTutorial && (
+                      <TutorialPanel
+                        mode="create"
+                        currentStep={tutorialStep}
+                        onStepChange={(s) => {
+                          setTutorialStep(s);
+                          setWizardPrefill(null);
+                        }}
+                        onPrefillStep={(stepNum, data) =>
+                          setWizardPrefill({ step: stepNum, data })
+                        }
+                        onClose={() => setShowTutorial(false)}
+                        totalSteps={5}
+                      />
+                    )}
+                    <CreateWizard
+                      defaultOutputRoot={projectFolder || "~/AI_Dev/"}
+                      onSuccess={handleCreateSuccess}
+                      onGeneratePRP={handleGeneratePRP}
+                      onToast={showToast}
+                      step={showTutorial ? tutorialStep : undefined}
+                      onStepChange={showTutorial ? setTutorialStep : undefined}
+                      prefill={wizardPrefill}
+                      tutorialActive={showTutorial}
+                      tutorialSuggestions={
+                        showTutorial
+                          ? (CREATE_TUTORIAL_STEPS[tutorialStep - 1]?.prefill ??
+                            null)
+                          : null
+                      }
+                    />
+                  </>
+                ) : mode === "build" ? (
+                  showBuildWizard ? (
+                    <>
+                      <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-slate-500">
+                            New build project
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowTutorial(!showTutorial);
+                              if (!showTutorial) setTutorialStep(1);
+                              setWizardPrefill(null);
+                            }}
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? "bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900" : "bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse"}`}
+                            aria-label={
+                              showTutorial
+                                ? "Hide tutorial"
+                                : "Show step-by-step tutorial"
+                            }
+                          >
+                            <BookOpen
+                              className="w-5 h-5 shrink-0"
+                              aria-hidden
+                            />
+                            {showTutorial ? "Tutorial on" : "Start tutorial"}
+                          </button>
+                        </div>
+                      </div>
+                      {showTutorial && (
+                        <TutorialPanel
+                          mode="build"
+                          currentStep={tutorialStep}
+                          onStepChange={(s) => {
+                            setTutorialStep(s);
+                            setWizardPrefill(null);
+                          }}
+                          onPrefillStep={(stepNum, data) =>
+                            setWizardPrefill({ step: stepNum, data })
+                          }
+                          onClose={() => setShowTutorial(false)}
+                          totalSteps={4}
+                        />
+                      )}
+                      <BuildWizard
+                        defaultOutputRoot={projectFolder || "~/AI_Dev/"}
+                        onSuccess={handleBuildProjectCreated}
+                        onToast={showToast}
+                        onCancel={() => {
+                          setShowBuildWizard(false);
+                          setShowTutorial(false);
+                        }}
+                        step={showTutorial ? tutorialStep : undefined}
+                        onStepChange={
+                          showTutorial ? setTutorialStep : undefined
+                        }
+                        prefill={wizardPrefill}
+                        tutorialActive={showTutorial}
+                        tutorialSuggestions={
+                          showTutorial
+                            ? (BUILD_TUTORIAL_STEPS[tutorialStep - 1]
+                                ?.prefill ?? null)
+                            : null
+                        }
+                      />
+                    </>
+                  ) : (
+                    <BuildPanel
+                      projects={buildProjects}
+                      activeProject={activeBuildProject}
+                      onSelectProject={setActiveBuildProject}
+                      onNewProject={() => setShowBuildWizard(true)}
+                      onViewFiles={(p) => {
+                        setProjectFolder(p);
+                        setShowFileBrowser(true);
+                      }}
+                      onRefresh={fetchBuildProjects}
+                      onToast={showToast}
+                      selectedModel={selectedModel}
+                      ollamaConnected={connected}
+                    />
+                  )
+                ) : (
+                  <>
+                    {messages.length === 0 ? (
+                      <EmptyStateScene
+                        mode={mode}
+                        currentMode={currentMode}
+                        connected={connected}
+                        selectedModel={selectedModel}
+                        onSettingsClick={() => setShowSettings(true)}
+                      />
+                    ) : null}
+                    {messages.map((msg, i) => (
+                      <div key={i} className="relative group">
+                        <MessageBubble
+                          role={msg.role}
+                          content={msg.content}
+                          streaming={
+                            streaming &&
+                            i === messages.length - 1 &&
+                            msg.role === "assistant"
+                          }
+                          images={msg.images}
+                          onImageClick={openLightboxFromMessage}
+                        />
+                        {msg.role === "assistant" && !streaming && (
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <CopyButton text={msg.content} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {streaming &&
+                      messages[messages.length - 1]?.role !== "assistant" && (
+                        <TypingIndicator3D mode={mode} />
+                      )}
+                    {terminalOutput && (
+                      <div className="mx-4 my-2 glass rounded-xl border border-indigo-500/20 overflow-hidden">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border-b border-indigo-500/20">
+                          <span className="text-xs font-mono text-indigo-300">
+                            {terminalOutput.status === "running" ? (
+                              <>
+                                <span className="inline-block animate-spin mr-1">
+                                  &#x27F3;
+                                </span>{" "}
+                                Running command...
+                              </>
+                            ) : (
+                              <>&#x2713; Command completed</>
+                            )}
+                          </span>
+                        </div>
+                        {terminalOutput.command && (
+                          <pre className="px-3 py-2 text-xs text-slate-400 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-thin">
+                            {terminalOutput.command}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
+              </div>
             )}
 
             {/* Stats — holographic token counter */}
-            {stats && mode !== 'review' && mode !== 'pentest' && (
+            {stats && mode !== "review" && mode !== "pentest" && (
               <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
-                <span>Model: <strong className="text-slate-400">{selectedModel}</strong></span>
+                <span>
+                  Model:{" "}
+                  <strong className="text-slate-400">{selectedModel}</strong>
+                </span>
                 <TokenCounter tokens={stats.tokens} duration={stats.duration} />
               </div>
             )}
 
             {/* Input — hidden in Create and Review modes */}
-            {mode !== 'create' && mode !== 'build' && mode !== 'review' && mode !== 'pentest' && !BUILDER_MODES.includes(mode) && (
-            <div className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? 'drop-zone-active' : ''}`}>
-              <AttachedFiles files={attachedFiles} onRemove={removeAttachedFile} onImageClick={openLightbox} />
+            {mode !== "create" &&
+              mode !== "build" &&
+              mode !== "review" &&
+              mode !== "pentest" &&
+              !BUILDER_MODES.includes(mode) && (
+                <div
+                  className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? "drop-zone-active" : ""}`}
+                >
+                  <AttachedFiles
+                    files={attachedFiles}
+                    onRemove={removeAttachedFile}
+                    onImageClick={openLightbox}
+                  />
 
-              {/* Vision Model Warning (Phase 4: Image Support) */}
-              {showVisionWarning && (
-                <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 mb-3 rounded">
-                  <p className="text-sm text-yellow-200 flex items-center gap-2 flex-wrap">
-                    <span className="shrink-0">⚠️ Current model doesn't support images.</span>
-                    <button
-                      onClick={switchToVisionModel}
-                      className="underline hover:text-yellow-100 transition-colors"
-                      type="button"
-                    >
-                      Switch to vision model
-                    </button>
-                    <span className="text-yellow-300/60">or</span>
-                    <button
-                      onClick={removeAllImages}
-                      className="underline hover:text-yellow-100 transition-colors"
-                      type="button"
-                    >
-                      remove images
-                    </button>
-                  </p>
-                </div>
-              )}
+                  {/* Vision Model Warning (Phase 4: Image Support) */}
+                  {showVisionWarning && (
+                    <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 mb-3 rounded">
+                      <p className="text-sm text-yellow-200 flex items-center gap-2 flex-wrap">
+                        <span className="shrink-0">
+                          ⚠️ Current model doesn't support images.
+                        </span>
+                        <button
+                          onClick={switchToVisionModel}
+                          className="underline hover:text-yellow-100 transition-colors"
+                          type="button"
+                        >
+                          Switch to vision model
+                        </button>
+                        <span className="text-yellow-300/60">or</span>
+                        <button
+                          onClick={removeAllImages}
+                          className="underline hover:text-yellow-100 transition-colors"
+                          type="button"
+                        >
+                          remove images
+                        </button>
+                      </p>
+                    </div>
+                  )}
 
-              <div className="flex gap-2">
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <label htmlFor="chat-input" className="sr-only">Type your message</label>
-                  <textarea id="chat-input" ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePasteImage}
-                    placeholder={connected ? (attachedFiles.length > 0 ? 'Add a note about these files, or just hit Send — I\'ll take a look!' : currentMode?.placeholder) : 'Let\'s get connected first — click Settings up top to set up Ollama...'}
-                    rows={4} disabled={streaming || !connected}
-                    className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50" />
-                  <div className="flex items-center gap-1.5 pl-1">
-                    <input id="chat-file-input" ref={fileInputRef} type="file" multiple aria-label="Attach files to chat"
-                      accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub" className="hidden" onChange={handleFileUpload} />
-                    <button onClick={() => fileInputRef.current?.click()} title="Upload files to attach"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📎 Upload
-                    </button>
-                    <button onClick={handlePaste} title="Paste text from clipboard"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📋 Paste
-                    </button>
-                    <button onClick={handleCopyLastResponse} title="Copy last AI response to clipboard"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📑 Copy Response
-                    </button>
-                    <button onClick={handleDownloadMarkdown} title="Download last AI response as Markdown file"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      📝 Markdown
-                    </button>
-                    <ExportPanel
-                      messages={messages}
-                      mode={MODES.find(m => m.id === mode)?.label || mode}
-                      showToast={showToast}
-                    />
-                    <button onClick={handleClearInput} title="Clear input text and attached files"
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
-                      🧹 Clear
-                    </button>
-                    <DictateButton onResult={handleDictation} disabled={!connected || streaming} />
-                    <span className="flex-1" />
-                    <span className="text-[10px] text-slate-500">Enter to send · Shift+Enter for new line · Drag files to attach</span>
+                  <div className="flex gap-2">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label htmlFor="chat-input" className="sr-only">
+                        Type your message
+                      </label>
+                      <textarea
+                        id="chat-input"
+                        ref={textareaRef}
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onPaste={handlePasteImage}
+                        placeholder={
+                          connected
+                            ? attachedFiles.length > 0
+                              ? "Add a note about these files, or just hit Send — I'll take a look!"
+                              : currentMode?.placeholder
+                            : "Let's get connected first — click Settings up top to set up Ollama..."
+                        }
+                        rows={4}
+                        disabled={streaming || !connected}
+                        className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+                      />
+                      <div className="flex items-center gap-1.5 pl-1">
+                        <input
+                          id="chat-file-input"
+                          ref={fileInputRef}
+                          type="file"
+                          multiple
+                          aria-label="Attach files to chat"
+                          accept=".js,.jsx,.ts,.tsx,.py,.json,.md,.txt,.html,.css,.yaml,.yml,.sh,.sql,.go,.rs,.java,.c,.cpp,.h,.toml,.xml,.csv,.env,.svelte,.vue,image/*,.png,.jpg,.jpeg,.gif,.pdf,.pptx,.docx,.xlsx,.xls,.doc,.ppt,.odt,.ods,.odp,.rtf,.tex,.epub"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          title="Upload files to attach"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        >
+                          📎 Upload
+                        </button>
+                        <button
+                          onClick={handlePaste}
+                          title="Paste text from clipboard"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        >
+                          📋 Paste
+                        </button>
+                        <button
+                          onClick={handleCopyLastResponse}
+                          title="Copy last AI response to clipboard"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        >
+                          📑 Copy Response
+                        </button>
+                        <button
+                          onClick={handleDownloadMarkdown}
+                          title="Download last AI response as Markdown file"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        >
+                          📝 Markdown
+                        </button>
+                        <ExportPanel
+                          messages={messages}
+                          mode={MODES.find((m) => m.id === mode)?.label || mode}
+                          showToast={showToast}
+                        />
+                        <button
+                          onClick={handleClearInput}
+                          title="Clear input text and attached files"
+                          className="text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                        >
+                          🧹 Clear
+                        </button>
+                        <DictateButton
+                          onResult={handleDictation}
+                          disabled={!connected || streaming}
+                        />
+                        <span className="flex-1" />
+                        <span className="text-[10px] text-slate-500">
+                          Enter to send · Shift+Enter for new line · Drag files
+                          to attach
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 relative">
+                      <ParticleBurst
+                        trigger={sendBurst}
+                        color={theme.primary}
+                      />
+                      {streaming ? (
+                        <button
+                          type="button"
+                          onClick={handleStopChat}
+                          className="flex-1 rounded-xl px-4 py-2 font-medium min-w-[60px] bg-red-600/90 hover:bg-red-500 text-white border border-red-500/50 shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                          aria-label="Stop generation"
+                        >
+                          Stop
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleSend}
+                          disabled={
+                            (!input.trim() && attachedFiles.length === 0) ||
+                            !connected ||
+                            !selectedModel ||
+                            showVisionWarning
+                          }
+                          className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+                        >
+                          Send
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 relative">
-                  <ParticleBurst trigger={sendBurst} color={theme.primary} />
-                  {streaming ? (
-                    <button
-                      type="button"
-                      onClick={handleStopChat}
-                      className="flex-1 rounded-xl px-4 py-2 font-medium min-w-[60px] bg-red-600/90 hover:bg-red-500 text-white border border-red-500/50 shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                      aria-label="Stop generation"
-                    >
-                      Stop
-                    </button>
-                  ) : (
-                    <button onClick={handleSend} disabled={(!input.trim() && attachedFiles.length === 0) || !connected || !selectedModel || showVisionWarning}
-                      className="flex-1 btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]">
-                      Send
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-            )}
+              )}
           </div>
 
           {/* GitHub Panel (right panel) */}
           {showGitHub && (
-            <aside className="w-80 border-l border-slate-700/30 glass" aria-label="GitHub repos">
+            <aside
+              className="w-80 border-l border-slate-700/30 glass"
+              aria-label="GitHub repos"
+            >
               <GitHubPanel
                 onRepoOpened={(folder) => {
                   setProjectFolder(folder);
@@ -1978,28 +2732,34 @@ export default function App() {
               <FileBrowser
                 projectFolder={projectFolder}
                 onAttachFile={attachFile}
-                attachLabel={BUILDER_MODES.includes(mode) ? 'Load into Form' : mode === 'review' || mode === 'pentest' ? 'Load for Review' : '+ Attach to Chat'}
+                attachLabel={
+                  BUILDER_MODES.includes(mode)
+                    ? "Load into Form"
+                    : mode === "review" || mode === "pentest"
+                      ? "Load for Review"
+                      : "+ Attach to Chat"
+                }
                 onClose={() => setShowFileBrowser(false)}
                 onClearFolder={async () => {
                   try {
-                    const res = await apiFetch('/api/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ projectFolder: '' })
+                    const res = await apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ projectFolder: "" }),
                     });
                     const data = await res.json();
-                    setProjectFolder(data.projectFolder || '');
+                    setProjectFolder(data.projectFolder || "");
                   } catch {
-                    setProjectFolder('');
+                    setProjectFolder("");
                   }
                 }}
                 onSetFolder={async (folder) => {
                   setProjectFolder(folder);
                   try {
-                    await apiFetch('/api/config', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ projectFolder: folder })
+                    await apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ projectFolder: folder }),
                     });
                   } catch {}
                 }}
@@ -2012,12 +2772,41 @@ export default function App() {
         <PrivacyBanner />
       </main>
 
-      {showSettings && <SettingsPanel ollamaUrl={ollamaUrl} projectFolder={projectFolder} icmTemplatePath={icmTemplatePath} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} onOpenMemoryPanel={() => { setShowSettings(false); setShowMemoryPanel(true); }} />}
-      {showMemoryPanel && <MemoryPanel onClose={() => setShowMemoryPanel(false)} />}
-      {renaming && <RenameModal currentName={renaming.title} onSave={(name) => renameConversation(renaming.id, name)} onClose={() => setRenaming(null)} />}
+      {showSettings && (
+        <SettingsPanel
+          ollamaUrl={ollamaUrl}
+          projectFolder={projectFolder}
+          icmTemplatePath={icmTemplatePath}
+          onSave={handleSaveSettings}
+          onClose={() => setShowSettings(false)}
+          onOpenMemoryPanel={() => {
+            setShowSettings(false);
+            setShowMemoryPanel(true);
+          }}
+        />
+      )}
+      {showMemoryPanel && (
+        <MemoryPanel onClose={() => setShowMemoryPanel(false)} />
+      )}
+      {renaming && (
+        <RenameModal
+          currentName={renaming.title}
+          onSave={(name) => renameConversation(renaming.id, name)}
+          onClose={() => setRenaming(null)}
+        />
+      )}
       {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
-      {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
-      {showOllamaSetup && <OllamaSetup onComplete={() => { setShowOllamaSetup(false); fetchModels(); }} />}
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+      )}
+      {showOllamaSetup && (
+        <OllamaSetup
+          onComplete={() => {
+            setShowOllamaSetup(false);
+            fetchModels();
+          }}
+        />
+      )}
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
       {/* Image Lightbox (Phase 2: Image Support) */}
@@ -2027,7 +2816,9 @@ export default function App() {
           onClose={closeLightbox}
           src={lightboxImage.src}
           filename={lightboxImage.filename}
-          images={attachedFiles.filter(f => f.type === 'image' || f.isImage).map(f => f.thumbnail)}
+          images={attachedFiles
+            .filter((f) => f.type === "image" || f.isImage)
+            .map((f) => f.thumbnail)}
           currentIndex={lightboxIndex}
           onNavigate={navigateLightbox}
         />
@@ -2041,15 +2832,22 @@ export default function App() {
             <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
             <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
           </div>
-          <span className="text-sm text-slate-300">Processing {processingImages} image{processingImages > 1 ? 's' : ''}...</span>
+          <span className="text-sm text-slate-300">
+            Processing {processingImages} image{processingImages > 1 ? "s" : ""}
+            ...
+          </span>
         </div>
       )}
 
       {/* Document Conversion Indicator */}
       {convertingDoc && (
         <div className="fixed bottom-4 right-4 z-50 glass-heavy border border-indigo-500/30 rounded-lg px-4 py-3 flex items-center gap-3">
-          <span className="inline-block animate-spin text-indigo-400">&#x27F3;</span>
-          <span className="text-sm text-slate-300">Converting {convertingDoc}...</span>
+          <span className="inline-block animate-spin text-indigo-400">
+            &#x27F3;
+          </span>
+          <span className="text-sm text-slate-300">
+            Converting {convertingDoc}...
+          </span>
         </div>
       )}
 
@@ -2059,7 +2857,7 @@ export default function App() {
           onClose={() => setShowImagePrivacyWarning(false)}
           onAccept={() => {
             setShowImagePrivacyWarning(false);
-            showToast('✓ You can now upload images');
+            showToast("✓ You can now upload images");
           }}
         />
       )}

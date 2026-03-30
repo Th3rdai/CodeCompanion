@@ -139,19 +139,19 @@ project-name/
 
 ## Risks, Edge Cases, and Mitigations
 
-| Risk / Edge Case | Mitigation |
-|------------------|------------|
-| User chooses output path outside allowed roots | Validate with `isUnderRoot(resolvedRoot, getWritableRoots(config))`; return 403 and `PATH_OUTSIDE_ROOT`; show friendly message in UI suggesting Settings. |
-| Project folder already exists and user did not check Overwrite | Return 409 and `ALREADY_EXISTS`; UI message: suggest different name or enable Overwrite. |
-| Overwrite checked but directory is locked or permission denied | Return 400 with `CLEANUP_FAILED`; show server error message. |
-| Disk full or write failure mid-scaffold | Write into temp dir first; on exception, delete temp dir and return `SCAFFOLD_FAILED` so no partial project is left. |
-| Concurrent requests for same project path | Temp dir includes timestamp; one request wins rename. The other gets rename error → cleanup temp; document that duplicate concurrent creates may leave one orphan temp dir (rare). |
-| Empty or whitespace-only project name | Treat as invalid; require non-empty after trim; backend returns `MISSING_FIELDS` if missing. |
-| Path traversal in `outputRoot` (e.g. `../../../etc`) | Resolve to absolute and check `isUnderRoot`; only paths under allowed roots accepted. |
-| Very long project name | Slugify with same max length as ICM (e.g. 64 chars); no new risk. |
-| GSD not installed on user machine | Scaffold is self-contained; skills/gsd-workflows.md explains that GSD must be installed to run commands. No runtime dependency in Code Companion. |
-| Windows reserved folder names (e.g. con, prn, aux) | slugify yields lowercase; if project name becomes one of these, mkdir/rename can fail on Windows. Optional: add a reserved-name check and suffix (e.g. `con` → `con-project`) or document as rare edge case. |
-| Non-JSON or missing API response | Frontend: catch parse errors and network errors; show generic message and keep form state so user can retry. |
+| Risk / Edge Case                                               | Mitigation                                                                                                                                                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| User chooses output path outside allowed roots                 | Validate with `isUnderRoot(resolvedRoot, getWritableRoots(config))`; return 403 and `PATH_OUTSIDE_ROOT`; show friendly message in UI suggesting Settings.                                                    |
+| Project folder already exists and user did not check Overwrite | Return 409 and `ALREADY_EXISTS`; UI message: suggest different name or enable Overwrite.                                                                                                                     |
+| Overwrite checked but directory is locked or permission denied | Return 400 with `CLEANUP_FAILED`; show server error message.                                                                                                                                                 |
+| Disk full or write failure mid-scaffold                        | Write into temp dir first; on exception, delete temp dir and return `SCAFFOLD_FAILED` so no partial project is left.                                                                                         |
+| Concurrent requests for same project path                      | Temp dir includes timestamp; one request wins rename. The other gets rename error → cleanup temp; document that duplicate concurrent creates may leave one orphan temp dir (rare).                           |
+| Empty or whitespace-only project name                          | Treat as invalid; require non-empty after trim; backend returns `MISSING_FIELDS` if missing.                                                                                                                 |
+| Path traversal in `outputRoot` (e.g. `../../../etc`)           | Resolve to absolute and check `isUnderRoot`; only paths under allowed roots accepted.                                                                                                                        |
+| Very long project name                                         | Slugify with same max length as ICM (e.g. 64 chars); no new risk.                                                                                                                                            |
+| GSD not installed on user machine                              | Scaffold is self-contained; skills/gsd-workflows.md explains that GSD must be installed to run commands. No runtime dependency in Code Companion.                                                            |
+| Windows reserved folder names (e.g. con, prn, aux)             | slugify yields lowercase; if project name becomes one of these, mkdir/rename can fail on Windows. Optional: add a reserved-name check and suffix (e.g. `con` → `con-project`) or document as rare edge case. |
+| Non-JSON or missing API response                               | Frontend: catch parse errors and network errors; show generic message and keep form state so user can retry.                                                                                                 |
 
 ---
 
@@ -176,14 +176,14 @@ Implement in phase order: **1 → 2 → 3 → 4 → 5**. Phase 2 depends on Phas
 
 ## Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| lib/build-scaffolder.js | Create |
-| server.js | Add POST /api/build-project |
-| src/components/BuildWizard.jsx | Create |
-| src/App.jsx | Add Build mode, BuildWizard branch |
-| src/constants/tiers.js | Add build to MODE_TIERS |
-| lib/license-manager.js | Add mode:build to FEATURE_TIERS (if gated) |
+| File                           | Action                                     |
+| ------------------------------ | ------------------------------------------ |
+| lib/build-scaffolder.js        | Create                                     |
+| server.js                      | Add POST /api/build-project                |
+| src/components/BuildWizard.jsx | Create                                     |
+| src/App.jsx                    | Add Build mode, BuildWizard branch         |
+| src/constants/tiers.js         | Add build to MODE_TIERS                    |
+| lib/license-manager.js         | Add mode:build to FEATURE_TIERS (if gated) |
 
 ---
 

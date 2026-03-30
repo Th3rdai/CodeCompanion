@@ -11,6 +11,7 @@ files:
 ## Problem
 
 Two Phase 6 directories exist under `.planning/phases/`:
+
 - `06-desktop-app/` — appears to be from initial roadmap setup, likely empty or minimal
 - `06-desktop-packaging/` — has the actual `06-CONTEXT.md` from the discuss-phase session
 

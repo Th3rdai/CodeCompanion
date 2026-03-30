@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from "react";
 
 /**
  * DictateButton — a mic button that uses the Web Speech API
@@ -9,13 +9,18 @@ import { useState, useRef, useCallback } from 'react';
  *   disabled        — disables the button
  *   className       — optional extra classes
  */
-export default function DictateButton({ onResult, disabled = false, className = '' }) {
+export default function DictateButton({
+  onResult,
+  disabled = false,
+  className = "",
+}) {
   const [listening, setListening] = useState(false);
   const [error, setError] = useState(null);
   const recognitionRef = useRef(null);
 
-  const supported = typeof window !== 'undefined' &&
-    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  const supported =
+    typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   const toggle = useCallback(async () => {
     if (listening) {
@@ -31,17 +36,25 @@ export default function DictateButton({ onResult, disabled = false, className = 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Release the mic immediately — we just needed the permission grant
-      stream.getTracks().forEach(t => t.stop());
+      stream.getTracks().forEach((t) => t.stop());
     } catch (err) {
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setError('Microphone access denied. Check System Settings → Privacy & Security → Microphone.');
-        console.warn('Microphone permission denied:', err);
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setError('No microphone found. Connect an audio input device.');
-        console.warn('No microphone hardware:', err);
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        setError(
+          "Microphone access denied. Check System Settings → Privacy & Security → Microphone.",
+        );
+        console.warn("Microphone permission denied:", err);
+      } else if (
+        err.name === "NotFoundError" ||
+        err.name === "DevicesNotFoundError"
+      ) {
+        setError("No microphone found. Connect an audio input device.");
+        console.warn("No microphone hardware:", err);
       } else {
-        setError('Microphone unavailable.');
-        console.warn('getUserMedia error:', err);
+        setError("Microphone unavailable.");
+        console.warn("getUserMedia error:", err);
       }
       return;
     }
@@ -50,8 +63,10 @@ export default function DictateButton({ onResult, disabled = false, className = 
     if (window.electronAPI?.requestMicrophoneAccess) {
       try {
         const status = await window.electronAPI.requestMicrophoneAccess();
-        if (status === 'denied') {
-          setError('Microphone access denied. Re-enable in System Settings → Privacy & Security → Microphone, then relaunch.');
+        if (status === "denied") {
+          setError(
+            "Microphone access denied. Re-enable in System Settings → Privacy & Security → Microphone, then relaunch.",
+          );
           return;
         }
       } catch {
@@ -59,11 +74,12 @@ export default function DictateButton({ onResult, disabled = false, className = 
       }
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
+    recognition.lang = "en-US";
     recognition.interimResults = false;
     recognition.continuous = true;
     recognition.maxAlternatives = 1;
@@ -72,7 +88,7 @@ export default function DictateButton({ onResult, disabled = false, className = 
 
     recognition.onresult = (event) => {
       // Gather all new final results
-      let transcript = '';
+      let transcript = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           transcript += event.results[i][0].transcript;
@@ -84,9 +100,9 @@ export default function DictateButton({ onResult, disabled = false, className = 
     };
 
     recognition.onerror = (event) => {
-      console.warn('Speech recognition error:', event.error);
-      if (event.error === 'not-allowed') {
-        setError('Microphone access denied.');
+      console.warn("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        setError("Microphone access denied.");
       }
       setListening(false);
     };
@@ -101,10 +117,12 @@ export default function DictateButton({ onResult, disabled = false, className = 
   }, [listening, onResult]);
 
   const title = !supported
-    ? 'Voice dictation requires Chrome or Edge'
+    ? "Voice dictation requires Chrome or Edge"
     : error
       ? error
-      : listening ? 'Stop dictation' : 'Start dictation';
+      : listening
+        ? "Stop dictation"
+        : "Start dictation";
 
   return (
     <div className="relative inline-flex">
@@ -115,14 +133,14 @@ export default function DictateButton({ onResult, disabled = false, className = 
         title={title}
         className={`flex items-center justify-center rounded-lg transition-all duration-200 ${
           error
-            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+            ? "bg-amber-500/20 text-amber-400 border border-amber-500/40"
             : listening
-              ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
-              : 'bg-slate-700/40 text-slate-400 border border-slate-600/30 hover:text-indigo-300 hover:bg-indigo-500/10 hover:border-indigo-500/30'
+              ? "bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse"
+              : "bg-slate-700/40 text-slate-400 border border-slate-600/30 hover:text-indigo-300 hover:bg-indigo-500/10 hover:border-indigo-500/30"
         } disabled:opacity-40 disabled:cursor-not-allowed ${className}`}
-        style={{ width: '36px', height: '36px', fontSize: '16px' }}
+        style={{ width: "36px", height: "36px", fontSize: "16px" }}
       >
-        {listening ? '⏹' : '🎤'}
+        {listening ? "⏹" : "🎤"}
       </button>
       {error && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 rounded-lg bg-amber-900/90 border border-amber-500/40 text-amber-200 text-xs text-center shadow-lg z-50 pointer-events-none">

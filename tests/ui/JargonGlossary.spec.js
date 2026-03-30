@@ -1,32 +1,39 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('JargonGlossary component', () => {
+test.describe("JargonGlossary component", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => localStorage.setItem('th3rdai_onboarding_complete', 'true'));
+    await page.goto("/");
+    await page.evaluate(() =>
+      localStorage.setItem("th3rdai_onboarding_complete", "true"),
+    );
     await page.reload();
     // Open glossary panel
-    await page.getByRole('button', { name: /glossary/i }).click();
+    await page.getByRole("button", { name: /glossary/i }).click();
   });
 
-  test('UX-03: displays all terms with search and category filtering', async ({ page }) => {
+  test("UX-03: displays all terms with search and category filtering", async ({
+    page,
+  }) => {
     // Verify glossary header
-    await expect(page.getByText('Jargon Glossary')).toBeVisible();
+    await expect(page.getByText("Jargon Glossary")).toBeVisible();
 
     // Verify search input exists
     const searchInput = page.getByPlaceholder(/Search terms/i);
     await expect(searchInput).toBeVisible();
 
     // Test search filtering
-    await searchInput.fill('api');
-    await expect(page.getByText('API', { exact: true })).toBeVisible();
+    await searchInput.fill("api");
+    await expect(page.getByText("API", { exact: true })).toBeVisible();
   });
 
-  test('UX-03: category filtering works', async ({ page }) => {
+  test("UX-03: category filtering works", async ({ page }) => {
     // Scope to glossary dialog — mode tabs also include a Security button
-    await page.getByRole('dialog', { name: 'Jargon Glossary' }).getByRole('button', { name: 'Security', exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "Jargon Glossary" })
+      .getByRole("button", { name: "Security", exact: true })
+      .click();
 
     // Verify Security terms visible
-    await expect(page.getByText('SQL Injection')).toBeVisible();
+    await expect(page.getByText("SQL Injection")).toBeVisible();
   });
 });

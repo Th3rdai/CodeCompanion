@@ -25,11 +25,13 @@
 
 ```markdown
 ## Completed
+
 - Created PRD: PRDs/daily-quote-app.md
 - Generated execution plan: PRPs/daily-quote-app.md (multi-agent task breakdown)
 - Ran /validate: Pass (P1, P3, P5 OK; P2, P4 skipped)
 
 ## Next actions
+
 1. **Review the PRD** – Open PRDs/daily-quote-app.md and adjust scope if needed.
 2. **Execute the plan** – Run `/execute-prp PRPs/daily-quote-app.md` to implement.
 3. **Full validation** – Run `./install-dev-tools.sh` then `/validate --thorough` for mypy/pytest.

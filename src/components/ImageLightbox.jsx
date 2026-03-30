@@ -1,5 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import {
+  X,
+  ZoomIn,
+  ZoomOut,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 /**
  * ImageLightbox Component
@@ -18,10 +25,10 @@ export default function ImageLightbox({
   isOpen,
   onClose,
   src,
-  filename = 'image',
+  filename = "image",
   images = [],
   currentIndex = 0,
-  onNavigate
+  onNavigate,
 }) {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
@@ -44,23 +51,23 @@ export default function ImageLightbox({
 
     const handleKeyDown = (e) => {
       switch (e.key) {
-        case 'Escape':
+        case "Escape":
           onClose?.();
           break;
-        case '+':
-        case '=':
+        case "+":
+        case "=":
           handleZoomIn();
           break;
-        case '-':
-        case '_':
+        case "-":
+        case "_":
           handleZoomOut();
           break;
-        case 'ArrowLeft':
+        case "ArrowLeft":
           if (hasGallery && currentIndex > 0) {
             onNavigate?.(currentIndex - 1);
           }
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           if (hasGallery && currentIndex < images.length - 1) {
             onNavigate?.(currentIndex + 1);
           }
@@ -70,21 +77,29 @@ export default function ImageLightbox({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, zoom, hasGallery, currentIndex, images.length, onClose, onNavigate]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isOpen,
+    zoom,
+    hasGallery,
+    currentIndex,
+    images.length,
+    onClose,
+    onNavigate,
+  ]);
 
   // Focus trap for accessibility
   useEffect(() => {
     if (isOpen && overlayRef.current) {
       const focusableElements = overlayRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
 
       const trapFocus = (e) => {
-        if (e.key !== 'Tab') return;
+        if (e.key !== "Tab") return;
 
         if (e.shiftKey) {
           if (document.activeElement === firstElement) {
@@ -99,10 +114,10 @@ export default function ImageLightbox({
         }
       };
 
-      window.addEventListener('keydown', trapFocus);
+      window.addEventListener("keydown", trapFocus);
       firstElement?.focus();
 
-      return () => window.removeEventListener('keydown', trapFocus);
+      return () => window.removeEventListener("keydown", trapFocus);
     }
   }, [isOpen]);
 
@@ -115,7 +130,7 @@ export default function ImageLightbox({
   };
 
   const handleDownload = () => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = src;
     link.download = filename;
     link.click();
@@ -138,7 +153,7 @@ export default function ImageLightbox({
     if (isDragging && zoom > 1) {
       setPosition({
         x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
+        y: e.clientY - dragStart.y,
       });
     }
   };
@@ -157,7 +172,9 @@ export default function ImageLightbox({
   };
 
   // Reconstruct data URI if src is raw base64
-  const imageSrc = src?.startsWith('data:') ? src : `data:image/jpeg;base64,${src}`;
+  const imageSrc = src?.startsWith("data:")
+    ? src
+    : `data:image/jpeg;base64,${src}`;
 
   if (!isOpen) return null;
 
@@ -271,11 +288,11 @@ export default function ImageLightbox({
           src={imageSrc}
           alt={filename}
           className={`max-w-full max-h-full object-contain transition-transform ${
-            zoom > 1 ? 'cursor-move' : 'cursor-zoom-in'
+            zoom > 1 ? "cursor-move" : "cursor-zoom-in"
           }`}
           style={{
             transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-            transformOrigin: 'center'
+            transformOrigin: "center",
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}

@@ -31,10 +31,12 @@ Run the create-project.sh script with the provided path (if present in the templ
 **Note:** The script is optional. If `create-project.sh` doesn't exist (e.g. you only have these command files), manually execute the steps below.
 
 ### Step 1: Validate Path
+
 - Check that the target path does NOT already exist
 - If it exists, ask user to choose a different path or confirm overwrite
 
 ### Step 2: Create Directory Structure
+
 ```bash
 mkdir -p "$PROJECT_PATH"
 mkdir -p "$PROJECT_PATH/PRPs/prompts"
@@ -44,7 +46,9 @@ mkdir -p "$PROJECT_PATH/journal"
 ```
 
 ### Step 3: Copy Template Files
+
 Copy from the context-engineering template (adjust source path as needed):
+
 - `CLAUDE.md` → project root
 - `.cursorrules` → project root
 - `.claude/` → project root (entire directory)
@@ -54,22 +58,29 @@ Copy from the context-engineering template (adjust source path as needed):
 - `PRPs/templates/*` → `PRPs/templates/`
 
 ### Step 4: Create INITIAL.md
+
 Create a blank template:
+
 ```markdown
 ## FEATURE:
+
 [Describe what you want to build - be specific about functionality and requirements]
 
 ## EXAMPLES:
+
 [List any example files in the examples/ folder and explain how they should be used]
 
 ## DOCUMENTATION:
+
 [Include links to relevant documentation, APIs, or resources]
 
 ## OTHER CONSIDERATIONS:
+
 [Mention any gotchas, specific requirements, or things AI assistants commonly miss]
 ```
 
 ### Step 5: Create .gitignore
+
 ```
 # Environment
 .env
@@ -95,6 +106,7 @@ dist/
 ```
 
 ### Step 6: Initialize Git
+
 ```bash
 cd "$PROJECT_PATH"
 git init

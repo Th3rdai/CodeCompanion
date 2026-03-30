@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback } from "react";
 
 /**
  * Shared AbortController lifecycle hook.
@@ -22,7 +22,7 @@ export function useAbortable() {
   }, []);
 
   /** Returns true if an error is an AbortError. */
-  const isAborted = useCallback((err) => err?.name === 'AbortError', []);
+  const isAborted = useCallback((err) => err?.name === "AbortError", []);
 
   /** Null out the ref (call in finally block). */
   const clearAbortable = useCallback(() => {

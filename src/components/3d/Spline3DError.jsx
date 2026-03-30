@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { Component } from "react";
 
 /**
  * Error boundary that catches Spline scene crashes and shows a
@@ -12,22 +12,22 @@ import { Component } from 'react';
 export default class Spline3DError extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, errorMessage: '' };
+    this.state = { hasError: false, errorMessage: "" };
   }
 
   static getDerivedStateFromError(error) {
     return {
       hasError: true,
-      errorMessage: error?.message || 'Unknown error',
+      errorMessage: error?.message || "Unknown error",
     };
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('[Spline3D] Scene failed to load:', error, errorInfo);
+    console.error("[Spline3D] Scene failed to load:", error, errorInfo);
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, errorMessage: '' });
+    this.setState({ hasError: false, errorMessage: "" });
   };
 
   render() {

@@ -5,11 +5,26 @@ subsystem: desktop-shell
 tags: [electron, desktop, data-management, port-config, window-state]
 dependencies:
   requires: [server.js, src/App.jsx, lib/config.js, lib/history.js]
-  provides: [electron/main.js, electron/data-manager.js, electron/window-state.js, electron/preload.js]
+  provides:
+    [
+      electron/main.js,
+      electron/data-manager.js,
+      electron/window-state.js,
+      electron/preload.js,
+    ]
   affects: [package.json, server.js]
 tech_stack:
-  added: [electron, electron-builder, electron-updater, electron-log, archiver, extract-zip]
-  patterns: [child_process.fork, IPC messaging, contextBridge, OS user data directory]
+  added:
+    [
+      electron,
+      electron-builder,
+      electron-updater,
+      electron-log,
+      archiver,
+      extract-zip,
+    ]
+  patterns:
+    [child_process.fork, IPC messaging, contextBridge, OS user data directory]
 key_files:
   created:
     - electron/main.js
@@ -50,14 +65,15 @@ Created a fully functional Electron desktop application that launches the existi
 
 ## Task Breakdown
 
-| Task | Name                                           | Commit  | Status    |
-| ---- | ---------------------------------------------- | ------- | --------- |
-| 1    | Electron dependencies and main process         | 2117d52 | ✅ Complete |
-| 2    | Last-mode persistence, port config UI          | bb37fd9 | ✅ Complete |
+| Task | Name                                   | Commit  | Status      |
+| ---- | -------------------------------------- | ------- | ----------- |
+| 1    | Electron dependencies and main process | 2117d52 | ✅ Complete |
+| 2    | Last-mode persistence, port config UI  | bb37fd9 | ✅ Complete |
 
 ### Task 1: Electron Dependencies and Main Process (2117d52)
 
 **Created:**
+
 - `electron/main.js` (306 lines) — Main Electron process with fork()-based server spawning
   - `findFreePort(preferredPort)` — tries preferred port first, falls back to random port
   - `spawnServer(port)` — forks server.js with CC_DATA_DIR env var and IPC stdio
@@ -95,6 +111,7 @@ Created a fully functional Electron desktop application that launches the existi
 - `resources/data-readme.txt` — Explains data directory contents
 
 **Modified:**
+
 - `package.json`
   - Changed main entry from "server.js" to "electron/main.js"
   - Added scripts: "electron:dev": "electron electron/main.js", "electron:build": "npm run build && electron-builder"
@@ -106,12 +123,13 @@ Created a fully functional Electron desktop application that launches the existi
   - Line 936: After `app.listen()`, added IPC ready message:
     ```javascript
     if (process.send) {
-      process.send({ type: 'server-ready', port: PORT });
+      process.send({ type: "server-ready", port: PORT });
     }
     ```
   - Added `module.exports = app;` at end
 
 **Verification:**
+
 - All 7 electron/ files exist ✅
 - main.js uses child_process.fork() (not require()) ✅
 - server.js sends IPC ready message via process.send() ✅
@@ -123,6 +141,7 @@ Created a fully functional Electron desktop application that launches the existi
 ### Task 2: Last-Mode Persistence, Port Config UI (bb37fd9)
 
 **Modified:**
+
 - `src/App.jsx`
   - Added `isElectron` detection: `window.electronAPI?.isElectron`
   - Wrapped `setMode()` in `useCallback` to persist mode via `electronAPI.setLastMode(mode)`
@@ -145,6 +164,7 @@ Created a fully functional Electron desktop application that launches the existi
   - Used Lucide icons per ui-ux-pro-max skill (no emoji icons)
 
 **Verification:**
+
 - `npx vite build` succeeds with no errors ✅
 - App.jsx reads/writes last active mode ✅
 - Port fallback toast implemented ✅
@@ -154,6 +174,7 @@ Created a fully functional Electron desktop application that launches the existi
 ## Deviations from Plan
 
 None — plan executed exactly as written. All must-have truths satisfied:
+
 - ✅ App launches as native Electron window
 - ✅ Express server starts as forked child process on free port
 - ✅ Splash screen displays during server boot
@@ -168,6 +189,7 @@ None — plan executed exactly as written. All must-have truths satisfied:
 ## Key Integrations
 
 ### Server <-> Electron IPC Flow
+
 ```
 1. main.js calls findFreePort(preferredPort)
 2. main.js forks server.js with PORT and CC_DATA_DIR env vars
@@ -180,6 +202,7 @@ None — plan executed exactly as written. All must-have truths satisfied:
 ```
 
 ### Data Directory Migration
+
 ```
 1. resolveDataDirectory() creates app.getPath('userData')/CodeCompanion-Data
 2. migrateDevData() checks for ./data/, ./history/, .cc-config.json
@@ -189,6 +212,7 @@ None — plan executed exactly as written. All must-have truths satisfied:
 ```
 
 ### Window State Persistence
+
 ```
 1. On startup: loadWindowState(dataDir) reads window-state.json
 2. Validates saved bounds are still visible on current displays
@@ -200,6 +224,7 @@ None — plan executed exactly as written. All must-have truths satisfied:
 ## Testing Notes
 
 Manual testing required:
+
 1. Run `npm run electron:dev` to launch app in Electron window
 2. Verify splash screen shows during server boot
 3. Verify app navigates to Code Companion UI after ~2-3 seconds
@@ -213,6 +238,7 @@ Manual testing required:
 ## What's Next
 
 Phase 06 Plan 02 dependencies unlocked:
+
 - IDE launcher endpoints (Cursor, Windsurf, VSCode, OpenCode) can now use Electron shell.openPath()
 - Build configuration (electron-builder.yml) can reference electron/main.js as entry point
 - Ollama environment setup can leverage Electron dialogs for user interaction
@@ -220,6 +246,7 @@ Phase 06 Plan 02 dependencies unlocked:
 ## Files Changed
 
 **Created (7):**
+
 - electron/main.js (306 lines)
 - electron/data-manager.js (175 lines)
 - electron/window-state.js (60 lines)
@@ -229,6 +256,7 @@ Phase 06 Plan 02 dependencies unlocked:
 - resources/data-readme.txt (13 lines)
 
 **Modified (4):**
+
 - package.json (+2 scripts, +6 dependencies)
 - server.js (+5 lines for CC_DATA_DIR and IPC ready)
 - src/App.jsx (+25 lines for Electron detection and mode persistence)
@@ -239,6 +267,7 @@ Phase 06 Plan 02 dependencies unlocked:
 ## Self-Check
 
 **Created files exist:**
+
 ```bash
 ✅ electron/main.js
 ✅ electron/data-manager.js
@@ -250,12 +279,14 @@ Phase 06 Plan 02 dependencies unlocked:
 ```
 
 **Commits exist:**
+
 ```bash
 ✅ 2117d52 feat(06-01): create Electron shell with forked Express server
 ✅ bb37fd9 feat(06-01): add Electron UI integration with last-mode persistence and port config
 ```
 
 **Build verification:**
+
 ```bash
 ✅ npx vite build — succeeded with no errors
 ✅ All electron files load without syntax errors

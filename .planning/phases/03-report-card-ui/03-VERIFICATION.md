@@ -23,51 +23,51 @@ gaps_closed: 2/2 (2 fixed, 2 not-a-gap)
 
 ### Observable Truths
 
-| # | Truth | Status | Evidence |
-|---|-------|--------|----------|
-| 1 | User sees playful loading animation with encouraging messages while review processes | ✓ VERIFIED | LoadingAnimation.jsx exists (80 lines), has 4 rotating messages, bouncing dots with staggered delays, aria-live region. Integrated into ReviewPanel at line 385 when `phase === 'loading'` |
-| 2 | Report card displays color-coded letter grades (green for A through red for F) for each category | ✓ VERIFIED | ReportCard.jsx has GRADE_COLORS mapping (lines 6-12) with A=emerald, B=blue, C=amber, D=orange, F=red. Used in GradeBadge component and 4-up grid (lines 399-411) |
-| 3 | User can click any grade category to enter a streaming conversational deep-dive about that category's issues | ✓ VERIFIED | ReportCard.jsx has "Learn more about [category]" buttons (line 164), onClick calls onDeepDive callback (line 161). ReviewPanel.handleDeepDive (line 175) creates deep-dive conversation with streaming |
-| 4 | User sees a friendly loading state with realistic timing expectations | ✓ VERIFIED | LoadingAnimation displays "Reviewing your code..." with rotating encouraging messages and "This can take 30-120 seconds" message (lines 73-76) |
-| 5 | User can feed code into review via paste, file upload, or file browser — all paths produce the same report card | ✓ VERIFIED | ReviewPanel has 3 tabs (Paste/Upload/Browse) using Headless UI (lines 531-674). All tabs share `code` and `filename` state, call same `handleSubmitReview` function (line 79) with identical payload structure |
+| #   | Truth                                                                                                           | Status     | Evidence                                                                                                                                                                                                       |
+| --- | --------------------------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | User sees playful loading animation with encouraging messages while review processes                            | ✓ VERIFIED | LoadingAnimation.jsx exists (80 lines), has 4 rotating messages, bouncing dots with staggered delays, aria-live region. Integrated into ReviewPanel at line 385 when `phase === 'loading'`                     |
+| 2   | Report card displays color-coded letter grades (green for A through red for F) for each category                | ✓ VERIFIED | ReportCard.jsx has GRADE_COLORS mapping (lines 6-12) with A=emerald, B=blue, C=amber, D=orange, F=red. Used in GradeBadge component and 4-up grid (lines 399-411)                                              |
+| 3   | User can click any grade category to enter a streaming conversational deep-dive about that category's issues    | ✓ VERIFIED | ReportCard.jsx has "Learn more about [category]" buttons (line 164), onClick calls onDeepDive callback (line 161). ReviewPanel.handleDeepDive (line 175) creates deep-dive conversation with streaming         |
+| 4   | User sees a friendly loading state with realistic timing expectations                                           | ✓ VERIFIED | LoadingAnimation displays "Reviewing your code..." with rotating encouraging messages and "This can take 30-120 seconds" message (lines 73-76)                                                                 |
+| 5   | User can feed code into review via paste, file upload, or file browser — all paths produce the same report card | ✓ VERIFIED | ReviewPanel has 3 tabs (Paste/Upload/Browse) using Headless UI (lines 531-674). All tabs share `code` and `filename` state, call same `handleSubmitReview` function (line 79) with identical payload structure |
 
 **Score:** 5/5 truths verified
 
 ### Required Artifacts
 
-| Artifact | Expected | Status | Details |
-|----------|----------|--------|---------|
-| `src/components/LoadingAnimation.jsx` | Playful loading animation with rotating encouraging messages | ✓ VERIFIED | 80 lines, exports default component, has 4 messages in ENCOURAGING_MESSAGES array, useEffect with setInterval rotation (3500ms), 3 bouncing dots with staggered animationDelay, aria-live="polite" region |
-| `src/components/ReportCard.jsx` | Progressive disclosure toggle and Lucide React icons | ✓ VERIFIED | 435 lines, imports ChevronDown/ChevronUp/Bug/Lock/BookOpen/CheckCircle from lucide-react, has `useState(false)` for showAllFindings (line 303), conditional render at line 425, "Learn More" buttons at category level |
-| `src/components/ReviewPanel.jsx` | Input method tabs with Headless UI | ✓ VERIFIED | 710 lines, imports Tab from @headlessui/react (line 2), imports FileText/Upload/FolderOpen icons (line 3), Tab.Group structure (lines 531-674) with 3 Tab.Panel components, all panels share code/filename state |
-| `tests/ui/loading-animation.spec.js` | Component tests for LoadingAnimation | ✓ VERIFIED | 80 lines, exports test suite, 4 test cases: bouncing dots, rotating messages, aria-live region, filename display |
-| `tests/ui/report-card-interactions.spec.js` | Component tests for ReportCard progressive disclosure | ✓ VERIFIED | File exists, component test structure verified |
-| `tests/ui/input-methods.spec.js` | Component tests for input method parity | ✓ VERIFIED | 137 lines, 6 test cases: three tabs render, paste tab content, upload tab content, browse tab content, keyboard navigation, SVG icons |
-| `tests/e2e/review-workflow.spec.js` | E2E tests for full review workflow | ✓ VERIFIED | File exists, E2E test structure verified |
-| `package.json` | @headlessui/react installed | ✓ VERIFIED | "@headlessui/react": "^2.2.9" in dependencies |
+| Artifact                                    | Expected                                                     | Status     | Details                                                                                                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/LoadingAnimation.jsx`       | Playful loading animation with rotating encouraging messages | ✓ VERIFIED | 80 lines, exports default component, has 4 messages in ENCOURAGING_MESSAGES array, useEffect with setInterval rotation (3500ms), 3 bouncing dots with staggered animationDelay, aria-live="polite" region              |
+| `src/components/ReportCard.jsx`             | Progressive disclosure toggle and Lucide React icons         | ✓ VERIFIED | 435 lines, imports ChevronDown/ChevronUp/Bug/Lock/BookOpen/CheckCircle from lucide-react, has `useState(false)` for showAllFindings (line 303), conditional render at line 425, "Learn More" buttons at category level |
+| `src/components/ReviewPanel.jsx`            | Input method tabs with Headless UI                           | ✓ VERIFIED | 710 lines, imports Tab from @headlessui/react (line 2), imports FileText/Upload/FolderOpen icons (line 3), Tab.Group structure (lines 531-674) with 3 Tab.Panel components, all panels share code/filename state       |
+| `tests/ui/loading-animation.spec.js`        | Component tests for LoadingAnimation                         | ✓ VERIFIED | 80 lines, exports test suite, 4 test cases: bouncing dots, rotating messages, aria-live region, filename display                                                                                                       |
+| `tests/ui/report-card-interactions.spec.js` | Component tests for ReportCard progressive disclosure        | ✓ VERIFIED | File exists, component test structure verified                                                                                                                                                                         |
+| `tests/ui/input-methods.spec.js`            | Component tests for input method parity                      | ✓ VERIFIED | 137 lines, 6 test cases: three tabs render, paste tab content, upload tab content, browse tab content, keyboard navigation, SVG icons                                                                                  |
+| `tests/e2e/review-workflow.spec.js`         | E2E tests for full review workflow                           | ✓ VERIFIED | File exists, E2E test structure verified                                                                                                                                                                               |
+| `package.json`                              | @headlessui/react installed                                  | ✓ VERIFIED | "@headlessui/react": "^2.2.9" in dependencies                                                                                                                                                                          |
 
 **Artifact Score:** 8/8 artifacts verified
 
 ### Key Link Verification
 
-| From | To | Via | Status | Details |
-|------|-----|-----|--------|---------|
-| ReviewPanel.jsx | LoadingAnimation.jsx | phase === 'loading' renders LoadingAnimation | ✓ WIRED | Import at line 8, conditional render at line 385: `if (phase === 'loading') return <LoadingAnimation filename={filename} />` |
-| ReportCard.jsx | useState | showAllFindings state toggle | ✓ WIRED | useState imported (line 1), state declaration verified in code, used in conditional render (line 425) and button onClick (line 416) |
-| ReviewPanel.jsx | @headlessui/react | Tab.Group component for accessible tabs | ✓ WIRED | Import at line 2: `import { Tab } from '@headlessui/react'`, used in JSX at lines 531-674 with Tab.Group/Tab.List/Tab/Tab.Panels/Tab.Panel |
-| ReportCard.jsx | onDeepDive callback | 'Learn More' button click triggers deep-dive | ✓ WIRED | onDeepDive prop received (line 298), passed to CategorySection (line 428), called onClick at lines 115, 161, 387 with finding/category data |
-| ReviewPanel input tabs | handleSubmitReview | All three input methods produce identical API payloads | ✓ WIRED | All tabs share `code` state (line 41) and `filename` state (line 42). Submit button at line 688 calls handleSubmitReview (line 79) which sends identical JSON structure regardless of tab used |
+| From                   | To                   | Via                                                    | Status  | Details                                                                                                                                                                                        |
+| ---------------------- | -------------------- | ------------------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ReviewPanel.jsx        | LoadingAnimation.jsx | phase === 'loading' renders LoadingAnimation           | ✓ WIRED | Import at line 8, conditional render at line 385: `if (phase === 'loading') return <LoadingAnimation filename={filename} />`                                                                   |
+| ReportCard.jsx         | useState             | showAllFindings state toggle                           | ✓ WIRED | useState imported (line 1), state declaration verified in code, used in conditional render (line 425) and button onClick (line 416)                                                            |
+| ReviewPanel.jsx        | @headlessui/react    | Tab.Group component for accessible tabs                | ✓ WIRED | Import at line 2: `import { Tab } from '@headlessui/react'`, used in JSX at lines 531-674 with Tab.Group/Tab.List/Tab/Tab.Panels/Tab.Panel                                                     |
+| ReportCard.jsx         | onDeepDive callback  | 'Learn More' button click triggers deep-dive           | ✓ WIRED | onDeepDive prop received (line 298), passed to CategorySection (line 428), called onClick at lines 115, 161, 387 with finding/category data                                                    |
+| ReviewPanel input tabs | handleSubmitReview   | All three input methods produce identical API payloads | ✓ WIRED | All tabs share `code` state (line 41) and `filename` state (line 42). Submit button at line 688 calls handleSubmitReview (line 79) which sends identical JSON structure regardless of tab used |
 
 **Link Score:** 5/5 key links verified
 
 ### Requirements Coverage
 
-| Requirement | Source Plan | Description | Status | Evidence |
-|-------------|------------|-------------|--------|----------|
-| REVW-05 | 03-02 | User can click any grade category to start a conversational deep-dive explaining the issues | ✓ SATISFIED | CategorySection has "Learn more about [category]" button (ReportCard.jsx line 164), calls onDeepDive callback (line 161), ReviewPanel.handleDeepDive creates streaming conversation (line 175) |
-| REVW-07 | 03-01, 03-02 | Report card uses color-coded grades (A=green through F=red) for instant visual feedback | ✓ SATISFIED | GRADE_COLORS mapping in ReportCard.jsx (lines 6-12): A=emerald-500 (green), B=blue-500, C=amber-500 (yellow), D=orange-500, F=red-500. Used in GradeBadge and grid display |
-| REVW-08 | 03-01 | User sees a friendly loading state ("Grading your code...") while review processes | ✓ SATISFIED | LoadingAnimation.jsx displays "Reviewing your code..." heading (line 58), rotates 4 encouraging messages (lines 4-9), shows realistic timing "30-120 seconds" (lines 74-75) |
-| REVW-09 | 03-02 | User can upload files or use file browser to feed code into review | ✓ SATISFIED | ReviewPanel has 3 tabs: Paste (lines 566-617), Upload (lines 619-653), Browse (lines 655-673). Upload tab has file input with handleFileUpload (line 637), Browse tab triggers onAttachFromBrowser (line 661) |
+| Requirement | Source Plan  | Description                                                                                 | Status      | Evidence                                                                                                                                                                                                      |
+| ----------- | ------------ | ------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REVW-05     | 03-02        | User can click any grade category to start a conversational deep-dive explaining the issues | ✓ SATISFIED | CategorySection has "Learn more about [category]" button (ReportCard.jsx line 164), calls onDeepDive callback (line 161), ReviewPanel.handleDeepDive creates streaming conversation (line 175)                |
+| REVW-07     | 03-01, 03-02 | Report card uses color-coded grades (A=green through F=red) for instant visual feedback     | ✓ SATISFIED | GRADE_COLORS mapping in ReportCard.jsx (lines 6-12): A=emerald-500 (green), B=blue-500, C=amber-500 (yellow), D=orange-500, F=red-500. Used in GradeBadge and grid display                                    |
+| REVW-08     | 03-01        | User sees a friendly loading state ("Grading your code...") while review processes          | ✓ SATISFIED | LoadingAnimation.jsx displays "Reviewing your code..." heading (line 58), rotates 4 encouraging messages (lines 4-9), shows realistic timing "30-120 seconds" (lines 74-75)                                   |
+| REVW-09     | 03-02        | User can upload files or use file browser to feed code into review                          | ✓ SATISFIED | ReviewPanel has 3 tabs: Paste (lines 566-617), Upload (lines 619-653), Browse (lines 655-673). Upload tab has file input with handleFileUpload (line 637), Browse tab triggers onAttachFromBrowser (line 661) |
 
 **Requirements Score:** 4/4 requirements satisfied
 
@@ -76,6 +76,7 @@ gaps_closed: 2/2 (2 fixed, 2 not-a-gap)
 ### Anti-Patterns Found
 
 No anti-patterns detected. Scanned files:
+
 - `src/components/LoadingAnimation.jsx` — No TODO/FIXME/PLACEHOLDER comments, no empty implementations, no console.log stubs
 - `src/components/ReviewPanel.jsx` — No placeholder returns, proper error handling
 - `src/components/ReportCard.jsx` — No stub implementations, proper conditional rendering
@@ -119,6 +120,7 @@ No anti-patterns detected. Scanned files:
 **Status:** PASSED
 
 All automated verification checks passed:
+
 - ✓ 5/5 observable truths verified
 - ✓ 8/8 required artifacts exist and are substantive
 - ✓ 5/5 key links wired correctly
@@ -127,6 +129,7 @@ All automated verification checks passed:
 - ✓ All commits documented in SUMMARYs exist and are verified
 
 **Human verification recommended** for:
+
 - Visual color grading accuracy and accessibility
 - Animation smoothness and timing feel
 - Tab navigation user experience
@@ -138,11 +141,13 @@ All automated verification checks passed:
 ### Commits Verified
 
 **Plan 03-01 commits:**
+
 - ✓ `9e30ade` — test(03-01): add component test scaffolds
 - ✓ `a76b605` — feat(03-01): create LoadingAnimation component
 - ✓ `c37c7eb` — feat(03-01): add progressive disclosure toggle
 
 **Plan 03-02 commits:**
+
 - ✓ `4119e16` — test(03-02): add failing tests for input method tabs
 - ✓ `11f7aa5` — chore(03-02): install @headlessui/react
 - ✓ `0fc4b09` — feat(03-02): add input method tabs to ReviewPanel
@@ -153,6 +158,7 @@ All 7 commits exist in git history and match SUMMARY claims.
 ### Code Quality
 
 **LoadingAnimation.jsx:**
+
 - 80 lines (meets min_lines: 50 from Plan 03-01)
 - Exports default component ✓
 - Contains all 4 encouraging messages from spec
@@ -161,6 +167,7 @@ All 7 commits exist in git history and match SUMMARY claims.
 - Cleans up interval on unmount ✓
 
 **ReportCard.jsx:**
+
 - Progressive disclosure: useState hook for showAllFindings ✓
 - Chevron icons: ChevronDown/ChevronUp from lucide-react ✓
 - Category icons: Bug, Lock, BookOpen, CheckCircle (no emoji) ✓
@@ -168,6 +175,7 @@ All 7 commits exist in git history and match SUMMARY claims.
 - Conditional rendering of detailed findings ✓
 
 **ReviewPanel.jsx:**
+
 - Headless UI Tab component imported and used ✓
 - Three tabs with Lucide icons (FileText, Upload, FolderOpen) ✓
 - All tabs share code/filename state ✓
@@ -175,6 +183,7 @@ All 7 commits exist in git history and match SUMMARY claims.
 - All input methods call same handleSubmitReview ✓
 
 **Tests:**
+
 - 4 test files created (2 UI component, 2 E2E)
 - Tests follow Playwright API structure
 - Test coverage matches plan requirements
@@ -182,6 +191,7 @@ All 7 commits exist in git history and match SUMMARY claims.
 ### Wiring Integrity
 
 **Critical data flow verified:**
+
 1. User pastes/uploads/browses code → `code` and `filename` state populated
 2. User clicks submit → `handleSubmitReview` called with `{ model, code, filename }`
 3. API returns JSON → `setReportData` called, `phase` set to 'report'
@@ -210,6 +220,7 @@ All 7 steps verified through code inspection.
 ### Gap Closure Summary
 
 **Gap 1: Code Block Button Overlap (MAJOR)**
+
 - **Status:** FIXED
 - **Issue:** Copy/download buttons overlapping code content in deep-dive mode
 - **Root Cause:** Code blocks lacked padding to accommodate absolute-positioned toolbar
@@ -218,6 +229,7 @@ All 7 steps verified through code inspection.
 - **Commit:** `02fb5bd`
 
 **Gap 2: Progress Indicator (MINOR)**
+
 - **Status:** FIXED
 - **Issue:** No visual feedback during AI response generation in deep-dive
 - **Root Cause:** Missing loading indicator during streaming responses
@@ -226,6 +238,7 @@ All 7 steps verified through code inspection.
 - **Commit:** `02fb5bd`
 
 **Gap 3: Copy/Download Buttons (NOT A GAP)**
+
 - **Status:** FEATURE ALREADY EXISTS
 - **Issue:** User requested copy/download buttons in code blocks
 - **Root Cause:** Feature was already implemented - user may not have noticed buttons
@@ -233,6 +246,7 @@ All 7 steps verified through code inspection.
 - **File:** `src/components/MarkdownContent.jsx` (verified existing code)
 
 **Gap 4: Download Extension (NOT A GAP)**
+
 - **Status:** FEATURE ALREADY EXISTS
 - **Issue:** User reported files not downloading with .md extension
 - **Root Cause:** Feature was already correctly implemented - possible user confusion about file location
@@ -244,11 +258,12 @@ All 7 steps verified through code inspection.
 **Issue:** "Open File Browser" button in Browse Files tab was non-functional
 **Root Cause:** Button was calling `onAttachFromBrowser` (ref for receiving file data) instead of a function to open the panel
 **Fix:**
+
 - Added `onOpenFileBrowser` prop to ReviewPanel
 - Wired to `setShowFileBrowser(true)` in App.jsx
 - Updated Browse Files button to call `onOpenFileBrowser`
-**Files:** `src/App.jsx`, `src/components/ReviewPanel.jsx`
-**Commit:** `f8eabb8`
+  **Files:** `src/App.jsx`, `src/components/ReviewPanel.jsx`
+  **Commit:** `f8eabb8`
 
 ### Verification Commits
 
@@ -263,6 +278,7 @@ All commits pushed to GitHub: `origin/master`
 **Status:** PASSED WITH IMPROVEMENTS
 
 All Phase 3 features verified working correctly:
+
 - ✅ Playful loading animation
 - ✅ Color-coded report card with progressive disclosure
 - ✅ Three input methods (paste, upload, browse) all functional

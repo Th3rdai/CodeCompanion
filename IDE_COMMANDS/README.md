@@ -9,9 +9,13 @@ You can **install** them into a project so slash-commands like `/generate-prd` a
 ## What’s in this folder
 
 - **Command files** (`.md`) — One file per workflow (e.g. `generate-prd.md`, `execute-prp.md`, `validate.md`). Each file is the full instruction set for that workflow.
+- **`BUILD-WORKFLOW-GUIDE.md`** — Step-by-step PRP pipeline for Build mode (PRD → PRP → execute → validate → summarize).
+- **`BUILD-WORKFLOW-DIAGRAM.md`** — Mermaid diagram for that pipeline; notes for **Stitch** + **Nano Banana** MCP (image / UI companion).
 - **Reference docs** — `ADD-TO-PROJECT.md` (install and folder setup), `EFFICIENCY-REVIEW.md` (design notes). Not needed for copy/paste use.
 
 **Typical flow:** PRD (what to build) → PRP (how to build it, in order) → build/execute → validate → summarize. You can run the whole flow or any single step.
+
+**Step-by-step (Build / PRP):** See **`BUILD-WORKFLOW-GUIDE.md`** for a numbered walkthrough, command roles, and how this maps to Code Companion Build mode.
 
 ---
 
@@ -23,10 +27,10 @@ Installing makes slash-commands available inside that project (e.g. `/generate-p
 
 From this folder, copy **all `.md` files** into your project’s commands directory for your IDE. Create the directory if it doesn’t exist.
 
-| IDE / product   | Path under your project root   |
-|----------------|---------------------------------|
-| **Cursor**     | `.cursor/commands/`             |
-| **Claude Code**| `.claude/commands/`             |
+| IDE / product       | Path under your project root                                           |
+| ------------------- | ---------------------------------------------------------------------- |
+| **Cursor**          | `.cursor/commands/`                                                    |
+| **Claude Code**     | `.claude/commands/`                                                    |
 | **VS Code Copilot** | `.github/prompts/` (use `.prompt.md` suffix if your setup requires it) |
 
 **Which files:** Every `.md` in this folder **except** `README.md`, `ADD-TO-PROJECT.md`, and `EFFICIENCY-REVIEW.md` (those are reference only). So copy at least: `build-prp.md`, `execute-prp.md`, `generate-prd.md`, `generate-prp.md`, `generate-validate.md`, `generate-prompt.md`, `new-project.md`, `summarize.md`, `validate.md`, `example-validate.md`, `e2e-test.md`.
@@ -80,8 +84,8 @@ You can run any of these workflows **without installing** by pasting the command
 3. **Select all and copy** the entire file contents (no need to change anything).
 4. **Paste into the AI chat** (e.g. Cursor, Claude Code, or any chat that has access to your project).
 5. **Add any arguments** the command needs:
-   - For **execute-prp** or **build-prp**: in a follow-up message (or at the top of the paste) say which PRP file to use, e.g. *“Use PRPs/daily-quote-app.md”* or *“$ARGUMENTS: PRPs/my-feature.md”*.
-   - For **generate-prp** or **generate-prd**: say the input (e.g. *“Use INITIAL.md”* or *“PRDs/my-app.md”*), or type the feature description.
+   - For **execute-prp** or **build-prp**: in a follow-up message (or at the top of the paste) say which PRP file to use, e.g. _“Use PRPs/daily-quote-app.md”_ or _“$ARGUMENTS: PRPs/my-feature.md”_.
+   - For **generate-prp** or **generate-prd**: say the input (e.g. _“Use INITIAL.md”_ or _“PRDs/my-app.md”_), or type the feature description.
    - For **validate**, **summarize**, **e2e-test**, **generate-prompt**: usually no extra argument unless the file says so.
 6. **Send.** The AI will treat the pasted text as the command and run through the steps (e.g. load PRP → implement → validate → journal).
 
@@ -110,19 +114,19 @@ You can run any of these workflows **without installing** by pasting the command
 
 ## Command list (quick reference)
 
-| Command file          | What it does |
-|-----------------------|--------------|
-| `new-project.md`     | Create a new project from a template (folders, INITIAL.md, optional git). |
-| `generate-prd.md`     | Turn INITIAL.md or a description into a Product Requirements Document (PRD) in `PRDs/`. |
-| `generate-prp.md`    | Turn a PRD (or INITIAL.md) into an execution plan (PRP) in `PRPs/` with tasks and validation. |
-| `build-prp.md`       | Finalize a PRP with the user, then optionally build and run (same flow as execute-prp). |
-| `execute-prp.md`     | Implement a PRP: load file → plan → implement → validate → journal (and optionally run the app). |
-| `validate.md`        | Run project validation (example: lint, type-check, test). Replace with project-specific version via `/generate-validate`. |
-| `generate-validate.md` | Create a project-specific `/validate` command from your repo’s tooling. |
-| `summarize.md`       | Summarize what was completed and suggest next actions (e.g. after validate or execute-prp). |
-| `e2e-test.md`        | E2E testing with browser automation (research app + DB, then run user journeys, screenshots, DB checks). |
-| `generate-prompt.md` | Generate an XML-structured prompt for a task (ambiguity check, complexity, verification). |
-| `example-validate.md`| Example validation command structure (reference for generate-validate). |
+| Command file           | What it does                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `new-project.md`       | Create a new project from a template (folders, INITIAL.md, optional git).                                                 |
+| `generate-prd.md`      | Turn INITIAL.md or a description into a Product Requirements Document (PRD) in `PRDs/`.                                   |
+| `generate-prp.md`      | Turn a PRD (or INITIAL.md) into an execution plan (PRP) in `PRPs/` with tasks and validation.                             |
+| `build-prp.md`         | Finalize a PRP with the user, then optionally build and run (same flow as execute-prp).                                   |
+| `execute-prp.md`       | Implement a PRP: load file → plan → implement → validate → journal (and optionally run the app).                          |
+| `validate.md`          | Run project validation (example: lint, type-check, test). Replace with project-specific version via `/generate-validate`. |
+| `generate-validate.md` | Create a project-specific `/validate` command from your repo’s tooling.                                                   |
+| `summarize.md`         | Summarize what was completed and suggest next actions (e.g. after validate or execute-prp).                               |
+| `e2e-test.md`          | E2E testing with browser automation (research app + DB, then run user journeys, screenshots, DB checks).                  |
+| `generate-prompt.md`   | Generate an XML-structured prompt for a task (ambiguity check, complexity, verification).                                 |
+| `example-validate.md`  | Example validation command structure (reference for generate-validate).                                                   |
 
 ---
 

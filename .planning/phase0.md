@@ -9,6 +9,7 @@
 ## Overview
 
 Phase 0 establishes the foundation for image support by creating:
+
 1. Core image processing utilities (validation, resize, compression, EXIF stripping)
 2. React components for displaying images (thumbnails, full-screen viewer)
 3. Zero external dependencies (uses built-in Canvas API)
@@ -18,10 +19,12 @@ Phase 0 establishes the foundation for image support by creating:
 ## ✅ Completed Tasks
 
 ### Task 0.1: Create Image Processing Utility Module
+
 **File**: `lib/image-processor.js`
 **Status**: ✅ Complete
 
 **Functions Implemented**:
+
 - ✅ `validateImage(file, config)` → Validates format, size, dimensions
 - ✅ `processImage(file, options)` → Resize, compress, generate thumbnail, strip EXIF
 - ✅ `extractBase64(dataURL)` → Strips data URI prefix for Ollama
@@ -33,6 +36,7 @@ Phase 0 establishes the foundation for image support by creating:
 - ✅ `sanitizeFilename(filename)` → Remove unsafe characters
 
 **Key Features**:
+
 - Strict MIME whitelist: PNG, JPEG, GIF only
 - Max size: 25MB (configurable)
 - Max dimensions: 8192x8192px (configurable)
@@ -42,6 +46,7 @@ Phase 0 establishes the foundation for image support by creating:
 - Browser-only (requires Canvas API)
 
 **Security**:
+
 - ✅ Strict MIME type validation
 - ✅ Automatic EXIF stripping via canvas re-encoding
 - ✅ Embedded script destruction (XSS prevention)
@@ -51,13 +56,16 @@ Phase 0 establishes the foundation for image support by creating:
 ---
 
 ### Task 0.2: Create React Image Components
+
 **Status**: ✅ Complete
 
 #### ImageThumbnail Component
+
 **File**: `src/components/ImageThumbnail.jsx`
 **Status**: ✅ Complete
 
 **Features**:
+
 - ✅ 128x128px responsive thumbnail
 - ✅ Format badge with color coding (PNG=blue, JPEG=green, GIF=purple)
 - ✅ Remove button with X icon (Lucide React)
@@ -73,6 +81,7 @@ Phase 0 establishes the foundation for image support by creating:
 - ✅ Touch-friendly (44x44px minimum tap target implied by 128px container)
 
 **Props**:
+
 ```javascript
 {
   src: string,           // Thumbnail data URL (WITH prefix)
@@ -86,10 +95,12 @@ Phase 0 establishes the foundation for image support by creating:
 ```
 
 #### ImageLightbox Component
+
 **File**: `src/components/ImageLightbox.jsx`
 **Status**: ✅ Complete
 
 **Features**:
+
 - ✅ Full-screen modal overlay (black/90 backdrop)
 - ✅ Zoom controls (+/- buttons, range: 50%-500%)
 - ✅ Scroll wheel zoom support
@@ -112,6 +123,7 @@ Phase 0 establishes the foundation for image support by creating:
 - ✅ Auto-reconstructs data URI from raw base64 if needed
 
 **Props**:
+
 ```javascript
 {
   isOpen: boolean,          // Control visibility
@@ -148,6 +160,7 @@ Phase 0 establishes the foundation for image support by creating:
 ## 🔍 Testing Performed
 
 ### Manual Testing
+
 - ✅ image-processor.js compiles without errors
 - ✅ ImageThumbnail.jsx compiles without errors
 - ✅ ImageLightbox.jsx compiles without errors
@@ -156,6 +169,7 @@ Phase 0 establishes the foundation for image support by creating:
 - ✅ Linter auto-fixed generateThumbnail to return Promise (async)
 
 ### Not Yet Tested (requires integration):
+
 - ⏸️ Image processing with real files
 - ⏸️ Component rendering in app
 - ⏸️ Lightbox zoom/pan interactions
@@ -167,11 +181,13 @@ Phase 0 establishes the foundation for image support by creating:
 ## 🔗 Dependencies
 
 **New Dependencies**: None
+
 - ✅ Uses built-in crypto module (Node.js)
 - ✅ Uses built-in Canvas API (browser)
 - ✅ Uses existing lucide-react icons (already in project)
 
 **Browser Requirements**:
+
 - Canvas API (all modern browsers)
 - FileReader API (all modern browsers)
 - URL.createObjectURL (all modern browsers)
@@ -184,16 +200,19 @@ Phase 0 establishes the foundation for image support by creating:
 Phase 0 is complete and ready for integration. Next phases can proceed:
 
 **Phase 1: Backend Integration** (READY)
+
 - Ollama client can now receive images array
 - API endpoints can validate and pass images
 - Config can store imageSupport settings
 
 **Phase 2: Frontend Upload** (READY)
+
 - Can import and use processImage(), validateImage()
 - Can render ImageThumbnail for attachments
 - Can open ImageLightbox on click
 
 **Phase 3: Chat Display** (READY)
+
 - Can display images in message history
 - Can use ImageLightbox for full-size viewing
 
@@ -219,11 +238,16 @@ Phase 0 is complete and ready for integration. Next phases can proceed:
    - Guard with `typeof window !== 'undefined'`
 
 4. **Import Pattern**:
+
    ```javascript
    // In frontend (App.jsx)
-   import { validateImage, processImage, checkVisionModel } from '../lib/image-processor';
-   import ImageThumbnail from './components/ImageThumbnail';
-   import ImageLightbox from './components/ImageLightbox';
+   import {
+     validateImage,
+     processImage,
+     checkVisionModel,
+   } from "../lib/image-processor";
+   import ImageThumbnail from "./components/ImageThumbnail";
+   import ImageLightbox from "./components/ImageLightbox";
    ```
 
 5. **Config Schema** (to be added in Phase 1):
@@ -244,6 +268,7 @@ Phase 0 is complete and ready for integration. Next phases can proceed:
 ## ✅ Phase 0 Sign-Off
 
 **Checklist**:
+
 - ✅ All 3 files created
 - ✅ All functions implemented
 - ✅ No compilation errors

@@ -8,23 +8,23 @@
 
 // Vision model families that support image inputs
 export const VISION_FAMILIES = [
-  'llava',           // LLaVA (all variants)
-  'bakllava',        // BakLLaVA
-  'minicpm-v',       // MiniCPM-V
-  'moondream',       // Moondream (efficient vision)
-  'minimax',         // MiniMax M2
-  'cogvlm',          // CogVLM
-  'fuyu',            // Fuyu
-  'idefics',         // IDEFICS
-  'qwen-vl',         // Qwen-VL
-  'internvl',        // InternVL
-  'yi-vl',           // Yi-VL
-  'deepseek-vl',     // DeepSeek-VL
-  'glm-4v',          // GLM-4V
+  "llava", // LLaVA (all variants)
+  "bakllava", // BakLLaVA
+  "minicpm-v", // MiniCPM-V
+  "moondream", // Moondream (efficient vision)
+  "minimax", // MiniMax M2
+  "cogvlm", // CogVLM
+  "fuyu", // Fuyu
+  "idefics", // IDEFICS
+  "qwen-vl", // Qwen-VL
+  "internvl", // InternVL
+  "yi-vl", // Yi-VL
+  "deepseek-vl", // DeepSeek-VL
+  "glm-4v", // GLM-4V
 ];
 
 // Supported MIME types (strict whitelist for security)
-export const ALLOWED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/gif'];
+export const ALLOWED_MIME_TYPES = ["image/png", "image/jpeg", "image/gif"];
 
 /**
  * Get image dimensions from a File object
@@ -43,7 +43,7 @@ function getImageDimensions(file) {
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Failed to load image'));
+      reject(new Error("Failed to load image"));
     };
 
     img.src = url;
@@ -61,11 +61,11 @@ export async function validateImage(file, config = {}) {
   const maxDimensionPx = config.maxDimensionPx || 8192;
 
   // 1. MIME Type Check
-  const fileType = file.type || '';
+  const fileType = file.type || "";
   if (!ALLOWED_MIME_TYPES.includes(fileType)) {
     return {
       valid: false,
-      error: `Unsupported format: ${fileType}. Only PNG, JPEG, GIF allowed.`
+      error: `Unsupported format: ${fileType}. Only PNG, JPEG, GIF allowed.`,
     };
   }
 
@@ -74,7 +74,7 @@ export async function validateImage(file, config = {}) {
   if (file.size > maxSizeBytes) {
     return {
       valid: false,
-      error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Max: ${maxSizeMB}MB`
+      error: `File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Max: ${maxSizeMB}MB`,
     };
   }
 
@@ -82,16 +82,19 @@ export async function validateImage(file, config = {}) {
   try {
     const dimensions = await getImageDimensions(file);
 
-    if (dimensions.width > maxDimensionPx || dimensions.height > maxDimensionPx) {
+    if (
+      dimensions.width > maxDimensionPx ||
+      dimensions.height > maxDimensionPx
+    ) {
       return {
         valid: false,
-        error: `Image too large: ${dimensions.width}x${dimensions.height}px. Max: ${maxDimensionPx}px`
+        error: `Image too large: ${dimensions.width}x${dimensions.height}px. Max: ${maxDimensionPx}px`,
       };
     }
 
     return { valid: true, dimensions, size: file.size };
   } catch (err) {
-    return { valid: false, error: 'Invalid or corrupted image file' };
+    return { valid: false, error: "Invalid or corrupted image file" };
   }
 }
 
@@ -112,8 +115,8 @@ export async function processImage(file, options = {}) {
       try {
         const img = new Image();
         img.onload = async () => {
-          let canvas = document.createElement('canvas');
-          let ctx = canvas.getContext('2d');
+          let canvas = document.createElement("canvas");
+          let ctx = canvas.getContext("2d");
 
           let { width, height } = img;
 
@@ -125,7 +128,10 @@ export async function processImage(file, options = {}) {
 
           // Final resize to threshold
           if (width > resizeThreshold || height > resizeThreshold) {
-            const ratio = Math.min(resizeThreshold / width, resizeThreshold / height);
+            const ratio = Math.min(
+              resizeThreshold / width,
+              resizeThreshold / height,
+            );
             width = Math.floor(width * ratio);
             height = Math.floor(height * ratio);
           }
@@ -137,32 +143,33 @@ export async function processImage(file, options = {}) {
           ctx.drawImage(img, 0, 0, width, height);
 
           // Convert to JPEG with compression
-          const dataURL = canvas.toDataURL('image/jpeg', compressionQuality);
+          const dataURL = canvas.toDataURL("image/jpeg", compressionQuality);
           const base64 = extractBase64(dataURL);
 
           // Generate thumbnail
           const thumbnail = await generateThumbnail(dataURL, 128);
 
           // Determine format
-          const format = file.type.split('/')[1] || 'jpeg';
+          const format = file.type.split("/")[1] || "jpeg";
 
           resolve({
             base64, // NO data URI prefix (for Ollama API)
             thumbnail, // WITH data URI prefix (for display)
             size: file.size,
             dimensions: { width, height },
-            format
+            format,
           });
         };
 
-        img.onerror = () => reject(new Error('Failed to load image for processing'));
+        img.onerror = () =>
+          reject(new Error("Failed to load image for processing"));
         img.src = e.target.result;
       } catch (err) {
         reject(err);
       }
     };
 
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
 }
@@ -173,7 +180,7 @@ export async function processImage(file, options = {}) {
  * @returns {string} Raw base64 string
  */
 export function extractBase64(dataURL) {
-  if (!dataURL || typeof dataURL !== 'string') return '';
+  if (!dataURL || typeof dataURL !== "string") return "";
   const match = dataURL.match(/^data:image\/[a-z]+;base64,(.+)$/);
   return match ? match[1] : dataURL;
 }
@@ -188,8 +195,8 @@ export async function generateThumbnail(dataURL, size = 128) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
 
       // Calculate aspect ratio
       const aspectRatio = img.width / img.height;
@@ -207,10 +214,10 @@ export async function generateThumbnail(dataURL, size = 128) {
       canvas.height = thumbHeight;
 
       ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
     };
 
-    img.onerror = () => reject(new Error('Failed to generate thumbnail'));
+    img.onerror = () => reject(new Error("Failed to generate thumbnail"));
     img.src = dataURL;
   });
 }
@@ -223,7 +230,7 @@ export async function generateThumbnail(dataURL, size = 128) {
 export function checkVisionModel(modelFamily) {
   if (!modelFamily) return false;
   const normalized = modelFamily.toLowerCase();
-  return VISION_FAMILIES.some(vf => normalized.includes(vf));
+  return VISION_FAMILIES.some((vf) => normalized.includes(vf));
 }
 
 /**
@@ -233,16 +240,18 @@ export function checkVisionModel(modelFamily) {
  */
 export async function hashImage(base64OrDataURL) {
   // Extract base64 if data URL
-  const base64 = base64OrDataURL.startsWith('data:')
+  const base64 = base64OrDataURL.startsWith("data:")
     ? extractBase64(base64OrDataURL)
     : base64OrDataURL;
 
   // Use SubtleCrypto for hashing (browser API)
   const encoder = new TextEncoder();
   const data = encoder.encode(base64);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
   return hashHex.substring(0, 16); // Return first 16 chars (like MD5)
 }
 
@@ -272,5 +281,5 @@ export function validateDataURI(dataURI) {
  * @returns {string} Sanitized filename
  */
 export function sanitizeFilename(filename) {
-  return filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 }

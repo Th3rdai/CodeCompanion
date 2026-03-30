@@ -45,16 +45,16 @@ User submits code
 
 ### Component Boundaries
 
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| **ReviewService** (backend, `lib/review-service.js`) | Orchestrates review: builds prompt, calls Ollama with JSON schema, validates response, retries on parse failure | `ollama-client.js`, `prompts.js` |
-| **ollama-client.js** (existing, extended) | New `chatCompleteStructured(url, model, messages, schema)` function that passes `format` param to Ollama | Ollama API |
-| **prompts.js** (existing, extended) | New `review` system prompt + JSON schema definition for report card structure | Used by ReviewService |
-| **POST /api/review-report** (new route) | Express endpoint that accepts code + model, returns structured report card JSON | ReviewService |
-| **POST /api/chat** (existing) | Unchanged. Handles deep-dive follow-up conversations using existing SSE streaming | ollama-client.js |
-| **ReviewPanel** (frontend, `src/components/ReviewPanel.jsx`) | Main Review mode container. Manages two sub-states: report card display and deep-dive chat | ReportCard, chat components |
-| **ReportCard** (frontend, `src/components/ReportCard.jsx`) | Renders structured grades as visual cards with letter grades, color coding, progress bars | None (pure presentation) |
-| **GradeCard** (frontend, `src/components/GradeCard.jsx`) | Single grade category tile. Clickable to trigger deep-dive on that category | ReviewPanel (via callback) |
+| Component                                                    | Responsibility                                                                                                  | Communicates With                |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| **ReviewService** (backend, `lib/review-service.js`)         | Orchestrates review: builds prompt, calls Ollama with JSON schema, validates response, retries on parse failure | `ollama-client.js`, `prompts.js` |
+| **ollama-client.js** (existing, extended)                    | New `chatCompleteStructured(url, model, messages, schema)` function that passes `format` param to Ollama        | Ollama API                       |
+| **prompts.js** (existing, extended)                          | New `review` system prompt + JSON schema definition for report card structure                                   | Used by ReviewService            |
+| **POST /api/review-report** (new route)                      | Express endpoint that accepts code + model, returns structured report card JSON                                 | ReviewService                    |
+| **POST /api/chat** (existing)                                | Unchanged. Handles deep-dive follow-up conversations using existing SSE streaming                               | ollama-client.js                 |
+| **ReviewPanel** (frontend, `src/components/ReviewPanel.jsx`) | Main Review mode container. Manages two sub-states: report card display and deep-dive chat                      | ReportCard, chat components      |
+| **ReportCard** (frontend, `src/components/ReportCard.jsx`)   | Renders structured grades as visual cards with letter grades, color coding, progress bars                       | None (pure presentation)         |
+| **GradeCard** (frontend, `src/components/GradeCard.jsx`)     | Single grade category tile. Clickable to trigger deep-dive on that category                                     | ReviewPanel (via callback)       |
 
 ### Data Flow
 
@@ -114,11 +114,11 @@ const REPORT_CARD_SCHEMA = {
   properties: {
     overallGrade: {
       type: "string",
-      enum: ["A", "B", "C", "D", "F"]
+      enum: ["A", "B", "C", "D", "F"],
     },
     summary: {
       type: "string",
-      description: "2-3 sentence plain-English summary"
+      description: "2-3 sentence plain-English summary",
     },
     categories: {
       type: "array",
@@ -127,37 +127,44 @@ const REPORT_CARD_SCHEMA = {
         properties: {
           name: {
             type: "string",
-            enum: ["Bugs", "Security", "Readability", "Completeness", "Performance"]
+            enum: [
+              "Bugs",
+              "Security",
+              "Readability",
+              "Completeness",
+              "Performance",
+            ],
           },
           grade: {
             type: "string",
-            enum: ["A", "B", "C", "D", "F"]
+            enum: ["A", "B", "C", "D", "F"],
           },
           emoji: {
-            type: "string"
+            type: "string",
           },
           finding: {
             type: "string",
-            description: "One sentence finding in friendly language"
+            description: "One sentence finding in friendly language",
           },
           details: {
             type: "string",
-            description: "2-3 sentence explanation"
-          }
+            description: "2-3 sentence explanation",
+          },
         },
-        required: ["name", "grade", "finding", "details"]
-      }
+        required: ["name", "grade", "finding", "details"],
+      },
     },
     topPriority: {
       type: "string",
-      description: "The single most important thing to fix, in plain English"
-    }
+      description: "The single most important thing to fix, in plain English",
+    },
   },
-  required: ["overallGrade", "summary", "categories", "topPriority"]
+  required: ["overallGrade", "summary", "categories", "topPriority"],
 };
 ```
 
 **Why this schema shape:**
+
 - `overallGrade` as enum constrains to valid letter grades -- no "B+" or "7/10" drift
 - `categories` as array allows the frontend to map/render each grade card independently
 - `finding` (one sentence) drives the card subtitle; `details` drives the deep-dive context
@@ -180,30 +187,36 @@ const REPORT_CARD_SCHEMA = {
 
 ```javascript
 // lib/ollama-client.js - new function
-async function chatCompleteStructured(ollamaUrl, model, messages, schema, timeoutMs = 120000) {
+async function chatCompleteStructured(
+  ollamaUrl,
+  model,
+  messages,
+  schema,
+  timeoutMs = 120000,
+) {
   const url = `${ollamaUrl}/api/chat`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
         messages,
-        format: schema,  // Ollama's JSON schema support
-        stream: false
+        format: schema, // Ollama's JSON schema support
+        stream: false,
       }),
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     clearTimeout(timeout);
     if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
 
     const data = await response.json();
-    const content = data.message?.content || '';
-    return JSON.parse(content);  // Already guaranteed valid JSON by Ollama
+    const content = data.message?.content || "";
+    return JSON.parse(content); // Already guaranteed valid JSON by Ollama
   } catch (err) {
     clearTimeout(timeout);
     throw err;
@@ -223,16 +236,19 @@ async function chatCompleteStructured(ollamaUrl, model, messages, schema, timeou
 // When user clicks "Explain Bugs grade" on the report card
 function buildDeepDiveMessages(originalCode, reportCard, question) {
   return [
-    { role: 'user', content: `Review this code:\n\`\`\`\n${originalCode}\n\`\`\`` },
-    { role: 'assistant', content: formatReportCardAsText(reportCard) },
-    { role: 'user', content: question }
+    {
+      role: "user",
+      content: `Review this code:\n\`\`\`\n${originalCode}\n\`\`\``,
+    },
+    { role: "assistant", content: formatReportCardAsText(reportCard) },
+    { role: "user", content: question },
   ];
 }
 
 function formatReportCardAsText(reportCard) {
   let text = `## Code Report Card: ${reportCard.overallGrade}\n\n`;
   text += `${reportCard.summary}\n\n`;
-  reportCard.categories.forEach(cat => {
+  reportCard.categories.forEach((cat) => {
     text += `**${cat.name}: ${cat.grade}** - ${cat.finding}\n`;
   });
   text += `\nTop priority: ${reportCard.topPriority}`;
@@ -252,12 +268,21 @@ function formatReportCardAsText(reportCard) {
 async function getReportCard(ollamaUrl, model, code) {
   try {
     // Attempt 1: structured output with schema
-    return await chatCompleteStructured(ollamaUrl, model, messages, REPORT_CARD_SCHEMA);
+    return await chatCompleteStructured(
+      ollamaUrl,
+      model,
+      messages,
+      REPORT_CARD_SCHEMA,
+    );
   } catch (parseErr) {
     // Attempt 2: plain chatComplete with strong prompt instructions
     const fallbackResponse = await chatComplete(ollamaUrl, model, [
       ...messages,
-      { role: 'user', content: 'Respond ONLY with valid JSON matching the report card format. No other text.' }
+      {
+        role: "user",
+        content:
+          "Respond ONLY with valid JSON matching the report card format. No other text.",
+      },
     ]);
 
     // Try to extract JSON from the response
@@ -265,7 +290,9 @@ async function getReportCard(ollamaUrl, model, code) {
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
 
     // Attempt 3: return a default "could not grade" report
-    return buildDefaultReport('Unable to generate structured review. Try a different model.');
+    return buildDefaultReport(
+      "Unable to generate structured review. Try a different model.",
+    );
   }
 }
 ```
@@ -373,23 +400,23 @@ This is independent of the review feature and can be done in parallel or sequent
 
 ## Scalability Considerations
 
-| Concern | Current (single user) | At 5-10 concurrent users | Notes |
-|---------|----------------------|--------------------------|-------|
-| Ollama response time for structured output | 3-8 seconds per report card | Queue contention, 10-30 seconds | Ollama processes one request at a time per model. Show clear loading states. |
-| Report card generation timeout | 120s default is fine | Same | The schema constraint actually helps -- models produce shorter, more focused output. |
-| Memory for conversation context | Negligible | Negligible | Report card JSON is small (~1KB). Conversation history is already managed per-session. |
-| Frontend state for review mode | Simple -- one report card per session | Same | No cross-user state needed. Each user's review is independent. |
+| Concern                                    | Current (single user)                 | At 5-10 concurrent users        | Notes                                                                                  |
+| ------------------------------------------ | ------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------- |
+| Ollama response time for structured output | 3-8 seconds per report card           | Queue contention, 10-30 seconds | Ollama processes one request at a time per model. Show clear loading states.           |
+| Report card generation timeout             | 120s default is fine                  | Same                            | The schema constraint actually helps -- models produce shorter, more focused output.   |
+| Memory for conversation context            | Negligible                            | Negligible                      | Report card JSON is small (~1KB). Conversation history is already managed per-session. |
+| Frontend state for review mode             | Simple -- one report card per session | Same                            | No cross-user state needed. Each user's review is independent.                         |
 
 ## Key Architectural Decisions Summary
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Structured output mechanism | Ollama `format` parameter with JSON schema | Native constrained decoding. No regex parsing. Documented in official API. |
-| Report card delivery | Non-streaming POST returning JSON | Cannot meaningfully stream partial report cards. 3-5s wait with loading state is better UX. |
-| Deep-dive mechanism | Existing SSE streaming via `/api/chat` | Reuses existing infrastructure. Report card injected as conversation context. |
-| Review mode architecture | New panel component (like DashboardPanel) | Follows existing mode-switching pattern in App.jsx. |
-| Backend organization | New service module + route, not new server | Matches existing single-server architecture. |
-| Fallback for schema failures | Three-tier: schema -> prompt-only -> default report | Graceful degradation. User always sees something useful. |
+| Decision                     | Choice                                              | Rationale                                                                                   |
+| ---------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Structured output mechanism  | Ollama `format` parameter with JSON schema          | Native constrained decoding. No regex parsing. Documented in official API.                  |
+| Report card delivery         | Non-streaming POST returning JSON                   | Cannot meaningfully stream partial report cards. 3-5s wait with loading state is better UX. |
+| Deep-dive mechanism          | Existing SSE streaming via `/api/chat`              | Reuses existing infrastructure. Report card injected as conversation context.               |
+| Review mode architecture     | New panel component (like DashboardPanel)           | Follows existing mode-switching pattern in App.jsx.                                         |
+| Backend organization         | New service module + route, not new server          | Matches existing single-server architecture.                                                |
+| Fallback for schema failures | Three-tier: schema -> prompt-only -> default report | Graceful degradation. User always sees something useful.                                    |
 
 ## Sources
 

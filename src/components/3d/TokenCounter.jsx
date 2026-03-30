@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import { useEffect, useRef, useState } from "react";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
 export default function TokenCounter({ tokens = 0, duration = 0 }) {
   const { enabled, theme } = use3DEffects();
@@ -49,7 +49,7 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    const ctx = canvasRef.current.getContext('2d');
+    const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
 
     const width = 200;
@@ -102,16 +102,16 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
     // Draw text
     ctx.globalAlpha = opacity;
     ctx.fillStyle = theme.tertiary;
-    ctx.font = 'bold 16px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.font = "bold 16px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
     const text = `${displayTokens} tokens`;
     ctx.fillText(text, width / 2, height / 2 - 8);
 
     const dur = Number(duration);
     if (dur && Number.isFinite(dur)) {
-      ctx.font = '12px monospace';
+      ctx.font = "12px monospace";
       ctx.fillStyle = theme.secondary;
       ctx.globalAlpha = opacity * 0.6;
       ctx.fillText(`${dur.toFixed(2)}s`, width / 2, height / 2 + 12);
@@ -121,7 +121,10 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
   if (!enabled) {
     return (
       <span className="text-xs text-slate-400">
-        {tokens} tokens{duration && Number.isFinite(Number(duration)) ? ` · ${Number(duration).toFixed(1)}s` : ''}
+        {tokens} tokens
+        {duration && Number.isFinite(Number(duration))
+          ? ` · ${Number(duration).toFixed(1)}s`
+          : ""}
       </span>
     );
   }
@@ -130,10 +133,10 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
     <div
       ref={containerRef}
       style={{
-        position: 'relative',
-        display: 'inline-block',
+        position: "relative",
+        display: "inline-block",
         opacity: opacity,
-        transition: 'opacity 0.3s ease-out',
+        transition: "opacity 0.3s ease-out",
       }}
     >
       <canvas
@@ -141,7 +144,7 @@ export default function TokenCounter({ tokens = 0, duration = 0 }) {
         width={200}
         height={60}
         style={{
-          display: 'block',
+          display: "block",
           filter: `drop-shadow(0 0 8px ${theme.tertiary}66)`,
         }}
       />

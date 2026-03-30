@@ -19,22 +19,26 @@
 **Note**: Phase 2 agent is actively modifying App.jsx. These changes should be integrated after Phase 2 completes to avoid conflicts.
 
 ### Step 1: Import Component (Already Done ✅)
+
 ```javascript
 // Line ~38
-import ImagePrivacyWarning from './components/ImagePrivacyWarning';
+import ImagePrivacyWarning from "./components/ImagePrivacyWarning";
 ```
 
 ### Step 2: Add State Variable
+
 ```javascript
 // Around line ~174, after showOllamaSetup
 const [showImagePrivacyWarning, setShowImagePrivacyWarning] = useState(false);
 ```
 
 ### Step 3: Add Helper Function
+
 ```javascript
 // Add after other helper functions (around line ~610+)
 function checkAndShowImagePrivacyWarning() {
-  const hasSeenWarning = localStorage.getItem('cc-image-privacy-accepted') === 'true';
+  const hasSeenWarning =
+    localStorage.getItem("cc-image-privacy-accepted") === "true";
   if (!hasSeenWarning) {
     setShowImagePrivacyWarning(true);
     return true; // Showed warning, upload should wait
@@ -44,6 +48,7 @@ function checkAndShowImagePrivacyWarning() {
 ```
 
 ### Step 4: Trigger in Upload Logic
+
 ```javascript
 // In handleFileUpload() or wherever Phase 2 processes images
 // Before processing first image:
@@ -64,19 +69,22 @@ if (isImage) {
 ```
 
 ### Step 5: Render Modal
+
 ```javascript
 // At the end of App component, around line ~1540+
 // Add before closing </div>:
 
-{showImagePrivacyWarning && (
-  <ImagePrivacyWarning
-    onClose={() => setShowImagePrivacyWarning(false)}
-    onAccept={() => {
-      // User accepted, can proceed with uploads
-      // Phase 2 logic can retry queued uploads here if needed
-    }}
-  />
-)}
+{
+  showImagePrivacyWarning && (
+    <ImagePrivacyWarning
+      onClose={() => setShowImagePrivacyWarning(false)}
+      onAccept={() => {
+        // User accepted, can proceed with uploads
+        // Phase 2 logic can retry queued uploads here if needed
+      }}
+    />
+  );
+}
 ```
 
 ---
@@ -86,10 +94,12 @@ if (isImage) {
 If the upload queueing is complex, here's a simpler approach:
 
 **Trigger on first upload attempt**:
+
 ```javascript
 useEffect(() => {
-  const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
-  const hasSeenWarning = localStorage.getItem('cc-image-privacy-accepted') === 'true';
+  const hasImages = attachedFiles.some((f) => f.type === "image" || f.isImage);
+  const hasSeenWarning =
+    localStorage.getItem("cc-image-privacy-accepted") === "true";
 
   if (hasImages && !hasSeenWarning) {
     setShowImagePrivacyWarning(true);
@@ -104,6 +114,7 @@ This shows the warning whenever images are attached and user hasn't seen it befo
 ## Component API
 
 ### ImagePrivacyWarning Props
+
 ```typescript
 {
   onClose: () => void;      // Called when user clicks Cancel or ESC
@@ -112,6 +123,7 @@ This shows the warning whenever images are attached and user hasn't seen it befo
 ```
 
 ### localStorage Key
+
 - `cc-image-privacy-accepted: 'true'` - Set when user checks "Don't show again" and clicks accept
 
 ---
@@ -133,6 +145,7 @@ After integration:
 ## Current Status
 
 **Phase 8 Tasks**:
+
 - ✅ EXIF stripping (done in Phase 0)
 - ✅ CSP configuration (already correct)
 - ✅ Privacy warning component (created)

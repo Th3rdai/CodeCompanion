@@ -5,14 +5,17 @@
 ## Test Framework
 
 **Runner:**
+
 - Playwright 1.58.2 for E2E/UI
 - Node.js built-in `node:test` for unit tests
 
 **Assertion Library:**
+
 - `node:assert/strict` for unit tests
 - Playwright `expect` for E2E
 
 **Run Commands:**
+
 ```bash
 npm test                    # Playwright (all tests)
 npm run test:ui             # Playwright UI mode, tests/ui, chromium
@@ -23,6 +26,7 @@ node --test tests/*.test.js # Node unit tests (manual)
 ## Test File Organization
 
 **Location:**
+
 - `tests/` — root for all tests
 - `tests/ui/` — UI/E2E specs (Playwright)
 - `tests/e2e/` — E2E specs
@@ -31,10 +35,12 @@ node --test tests/*.test.js # Node unit tests (manual)
 - `tests/test/e2e/` — Duplicate E2E layout (e.g. `create-mode.spec.js`)
 
 **Naming:**
+
 - Playwright: `*.spec.js`
 - Node: `*.test.js`
 
 **Structure:**
+
 ```
 tests/
 ├── rate-limit.test.js
@@ -60,16 +66,18 @@ tests/
 ## Test Structure
 
 **Suite Organization (Node):**
-```javascript
-const test = require('node:test');
-const assert = require('node:assert/strict');
 
-test('rate limiting blocks burst traffic', async () => {
+```javascript
+const test = require("node:test");
+const assert = require("node:assert/strict");
+
+test("rate limiting blocks burst traffic", async () => {
   // spawn server, waitForServer, make requests, assert
 });
 ```
 
 **Suite Organization (Playwright):**
+
 ```javascript
 import { test, expect } from '@playwright/test';
 
@@ -88,23 +96,27 @@ test.describe('Prompting Builder Mode', () => {
 ```
 
 **Patterns:**
+
 - Setup: `beforeEach` for route mocking, localStorage, navigation
 - Teardown: Implicit (Playwright), `child.kill()` in rate-limit test
 - Assertion: `assert.equal`, `expect(...).toBeVisible()`, `expect(...).toBeDisabled()`
 
 ### Playwright: reload + `/api/models` (2026-03-28)
 
-After `page.reload()`, **do not** attach `waitForResponse('**/api/models')` *after* the reload — the request may finish before the listener runs. **Pattern:** register the waiter **before** `reload()`, then wait for `#model-select` (shell hydrated):
+After `page.reload()`, **do not** attach `waitForResponse('**/api/models')` _after_ the reload — the request may finish before the listener runs. **Pattern:** register the waiter **before** `reload()`, then wait for `#model-select` (shell hydrated):
 
 ```javascript
 async function reloadAndWaitForModels(page) {
   const modelsPromise = page.waitForResponse(
-    (r) => r.url().includes('/api/models'),
-    { timeout: 30_000 }
+    (r) => r.url().includes("/api/models"),
+    { timeout: 30_000 },
   );
   await page.reload();
   await modelsPromise;
-  await page.waitForSelector('#model-select', { state: 'visible', timeout: 30_000 });
+  await page.waitForSelector("#model-select", {
+    state: "visible",
+    timeout: 30_000,
+  });
 }
 ```
 
@@ -121,32 +133,40 @@ Used (inlined) in `tests/ui/privacy-banner.spec.js`, `OnboardingWizard.spec.js`,
 **Framework:** Playwright `context.route()` for API mocking
 
 **Patterns:**
+
 ```javascript
-await context.route('**/api/models', async (route) => {
+await context.route("**/api/models", async (route) => {
   await route.fulfill({
     status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ models: [{ name: 'test-model' }], ollamaUrl: 'http://localhost:11434' })
+    contentType: "application/json",
+    body: JSON.stringify({
+      models: [{ name: "test-model" }],
+      ollamaUrl: "http://localhost:11434",
+    }),
   });
 });
 ```
 
 **What to Mock:**
+
 - `/api/models` — avoid Ollama dependency
 - `/api/score` — deterministic score-card responses
 - `/api/chat` — for chat flow tests (if needed)
 
 **What NOT to Mock:**
+
 - UI components in isolation (no React Testing Library)
 - Lib modules in Playwright (use route mocking instead)
 
 ## Fixtures and Factories
 
 **Test Data:**
+
 - Inline objects: `mockScoreResponse` in `builder-prompting.spec.js`
 - Spawned server with env: `PORT`, `RATE_LIMIT_MAX_CREATE` in `rate-limit.test.js`
 
 **Location:**
+
 - Inline in spec files; no shared `fixtures/` directory
 
 ## Coverage
@@ -158,16 +178,19 @@ await context.route('**/api/models', async (route) => {
 ## Test Types
 
 **Unit Tests:**
+
 - `tests/rate-limit.test.js` — spawns server, hits endpoint
 - `tests/mcp-security.test.js` — McpClientManager validation (no server)
 - `tests/unit/builder-score.test.js` — getTimeoutForModel, scoreContent contract
 - `tests/tone-validation.test.js`, `tests/ui-labels.test.js` — label/validation checks
 
 **Integration Tests:**
+
 - Rate-limit test is integration (real server)
 - MCP security is unit (manager only)
 
 **E2E Tests:**
+
 - Playwright `tests/ui/*.spec.js`, `tests/e2e/*.spec.js`
 - webServer: `PORT=4173 node server.js`, baseURL `http://127.0.0.1:4173`
 - Timeout: 45s per test, 10s expect
@@ -175,6 +198,7 @@ await context.route('**/api/models', async (route) => {
 ## Common Patterns
 
 **Async Testing:**
+
 ```javascript
 await waitForServer(baseUrl);
 const res = await fetch(...);
@@ -182,6 +206,7 @@ assert.equal(res.status, 429);
 ```
 
 **Error Testing:**
+
 ```javascript
 await assert.rejects(
   () => scoreContent(..., 'unknown-mode', ...),
@@ -190,9 +215,10 @@ await assert.rejects(
 ```
 
 **Route Mocking:**
+
 - Use `context.route` in `beforeEach` to stub API
 - Set `localStorage.setItem('th3rdai_onboarding_complete', 'true')` to skip onboarding
 
 ---
 
-*Testing analysis: 2026-03-14; Playwright reload/hydration notes: 2026-03-28*
+_Testing analysis: 2026-03-14; Playwright reload/hydration notes: 2026-03-28_

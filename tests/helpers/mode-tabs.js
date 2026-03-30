@@ -3,16 +3,21 @@
  * so Playwright does not match sidebar history or in-panel copy containing "Review".
  */
 function reviewModeTab(page) {
-  return page.getByTestId('mode-tab-review');
+  return page.getByTestId("mode-tab-review");
 }
 function securityModeTab(page) {
-  return page.getByTestId('mode-tab-pentest');
+  return page.getByTestId("mode-tab-pentest");
 }
 function createModeTab(page) {
-  return page.getByTestId('mode-tab-create');
+  return page.getByTestId("mode-tab-create");
 }
 function promptingModeTab(page) {
-  return page.getByTestId('mode-tab-prompting');
+  return page.getByTestId("mode-tab-prompting");
 }
 
-module.exports = { reviewModeTab, securityModeTab, createModeTab, promptingModeTab };
+module.exports = {
+  reviewModeTab,
+  securityModeTab,
+  createModeTab,
+  promptingModeTab,
+};

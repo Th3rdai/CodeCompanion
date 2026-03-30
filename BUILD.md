@@ -48,10 +48,10 @@ FORCE_HTTP=1 BASE_URL=http://127.0.0.1:4173 npx playwright test tests/ui tests/e
 
 These keys live in `.cc-config.json` (via **Settings** UI):
 
-| Key | Purpose |
-|-----|---------|
-| `chatTimeoutSec` | Max wait for **chat** completion (30–600 seconds; default 120). |
-| `numCtx` | Ollama **`num_ctx`** (0 = model default; higher for large pasted docs / PDF text). |
+| Key                 | Purpose                                                                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `chatTimeoutSec`    | Max wait for **chat** completion (30–600 seconds; default 120).                                                                                    |
+| `numCtx`            | Ollama **`num_ctx`** (0 = model default; higher for large pasted docs / PDF text).                                                                 |
 | `autoAdjustContext` | When true, server **raises** effective `num_ctx` and can **extend** timeout for large payloads (chat path; review uses the same flags for sizing). |
 
 **Review** still uses `reviewTimeoutSec` separately. If Ollama returns **500** on huge content, the UI surfaces a hint to shorten input or use a larger-context model.
@@ -70,12 +70,12 @@ The in-chat **tool loop** runs when **either** (a) at least one MCP client is co
 
 Optional **AI-driven shell commands** from chat, same `TOOL_CALL:` mechanism as MCP (`builtin.run_terminal_cmd`). **Off by default.**
 
-| Topic | Detail |
-|-------|--------|
-| **Enable** | Settings → **Agent terminal** (writes `agentTerminal` in `.cc-config.json`). Requires a **project folder** set. |
-| **Spec** | **`CLIPLAN.md`** (living reference); plan review notes in **`docs/CLIPLAN-plan-review.md`**. |
-| **Security** | Allowlist/blocklist, cwd locked to project, env whitelist, intra-request rate limit, optional **`CC_ALLOW_AGENT_TERMINAL=1`** when not running as a purely local server. |
-| **Clipboard** | Copy/paste in the app uses **`src/lib/clipboard.js`** so copy works under **self-signed HTTPS** (fallback when `navigator.clipboard` is denied). |
+| Topic         | Detail                                                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Enable**    | Settings → **Agent terminal** (writes `agentTerminal` in `.cc-config.json`). Requires a **project folder** set.                                                          |
+| **Spec**      | **`CLIPLAN.md`** (living reference); plan review notes in **`docs/CLIPLAN-plan-review.md`**.                                                                             |
+| **Security**  | Allowlist/blocklist, cwd locked to project, env whitelist, intra-request rate limit, optional **`CC_ALLOW_AGENT_TERMINAL=1`** when not running as a purely local server. |
+| **Clipboard** | Copy/paste in the app uses **`src/lib/clipboard.js`** so copy works under **self-signed HTTPS** (fallback when `navigator.clipboard` is denied).                         |
 
 ## Platform-Specific Builds
 
@@ -96,12 +96,12 @@ npm run electron:build:win-linux-x64
 
 **Artifacts** (version from `package.json`; filenames follow **`artifactName`** in `electron-builder.config.js`: **`${name}-${version}-${arch}.${ext}`** — npm **`name`** is `code-companion`, so no spaces and updater YAML URLs match GitHub assets):
 
-| Platform | Typical files in `release/` |
-|----------|-----------------------------|
-| macOS arm64 | `code-companion-1.5.x-arm64.dmg`, `code-companion-1.5.x-arm64.zip`, `latest-mac.yml` |
-| Windows x64 | `code-companion-1.5.x-x64.exe` (NSIS), `code-companion-1.5.x-x64.zip`, `latest.yml` |
-| Linux x64 | `code-companion-1.5.x-x64.AppImage`, `code-companion-1.5.x-x64.zip`, `latest-linux.yml` |
-| Windows arm64 / Linux arm64 | Same pattern with **`arm64`** (build `--win --arm64` / `--linux --arm64`) |
+| Platform                    | Typical files in `release/`                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| macOS arm64                 | `code-companion-1.5.x-arm64.dmg`, `code-companion-1.5.x-arm64.zip`, `latest-mac.yml`    |
+| Windows x64                 | `code-companion-1.5.x-x64.exe` (NSIS), `code-companion-1.5.x-x64.zip`, `latest.yml`     |
+| Linux x64                   | `code-companion-1.5.x-x64.AppImage`, `code-companion-1.5.x-x64.zip`, `latest-linux.yml` |
+| Windows arm64 / Linux arm64 | Same pattern with **`arm64`** (build `--win --arm64` / `--linux --arm64`)               |
 
 Auto-update metadata: `latest.yml` (Windows), `latest-linux.yml` / `latest-linux-arm64.yml` (Linux).
 
@@ -169,11 +169,11 @@ npm run electron:publish:linux            # Linux
 npm run electron:publish:linux:release    # Linux + optional GPG signatures for AppImage (set LINUX_GPG_KEY_ID)
 ```
 
-| Platform | Files |
-|----------|-------|
-| macOS | `Code Companion-{version}-arm64.dmg`, `Code Companion-{version}-arm64-mac.zip` (Apple Silicon) |
-| Windows | `Code Companion Setup {version}.exe` (NSIS), `Code Companion-{version}-win.zip` (x64). For ARM64: `electron-builder --win --arm64 ...` |
-| Linux | `Code Companion-{version}-arm64.AppImage`, `code-companion-{version}-arm64.zip` (arch depends on build host) |
+| Platform | Files                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS    | `Code Companion-{version}-arm64.dmg`, `Code Companion-{version}-arm64-mac.zip` (Apple Silicon)                                         |
+| Windows  | `Code Companion Setup {version}.exe` (NSIS), `Code Companion-{version}-win.zip` (x64). For ARM64: `electron-builder --win --arm64 ...` |
+| Linux    | `Code Companion-{version}-arm64.AppImage`, `code-companion-{version}-arm64.zip` (arch depends on build host)                           |
 
 ## Testing the Build
 
@@ -213,11 +213,11 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 
 `electron-builder.config.js` picks a **signing mode** from environment variables:
 
-| Goal | Command | Notes |
-|------|---------|--------|
-| **Fast local DMG/ZIP** (ad-hoc) | `npm run electron:build:mac` | `identity: '-'`, no hardened runtime — quickest iteration. |
-| **Signed for distribution** | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain. |
-| **Publish to GitHub (signed)** | Same identity in env + `npm run electron:publish:mac:release` | Use when shipping a release users will download. |
+| Goal                            | Command                                                                                           | Notes                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Fast local DMG/ZIP** (ad-hoc) | `npm run electron:build:mac`                                                                      | `identity: '-'`, no hardened runtime — quickest iteration.                |
+| **Signed for distribution**     | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain. |
+| **Publish to GitHub (signed)**  | Same identity in env + `npm run electron:publish:mac:release`                                     | Use when shipping a release users will download.                          |
 
 **Required for distribution builds:** `MAC_CODESIGN_IDENTITY` must match a **Developer ID Application** certificate in your login keychain. The `:release` scripts set `MAC_DISTRIBUTION_SIGN=1`, which enables **hardened runtime** and uses that identity.
 
@@ -227,24 +227,24 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 
 The workflow **`.github/workflows/build.yml`** builds macOS with **ad-hoc** signing unless you add **repository secrets** so CI can import your **Developer ID** certificate:
 
-| Secret | Required for signing | Notes |
-|--------|----------------------|--------|
-| `MAC_CERTS` | Yes | **Base64** of your **`.p12`** (export from Keychain Access → include private key; then `base64 -i cert.p12 \| tr -d '\n'` on macOS). |
-| `MAC_CERTS_PASSWORD` | Yes | Password for the `.p12` export. |
-| `MAC_CODESIGN_IDENTITY` | Yes | Exact string, e.g. `Developer ID Application: Your Name (TEAMID)`. |
-| `APPLE_TEAM_ID` | For **notarization** | 10-character Team ID. |
-| `APPLE_ID` | For **notarization** | Apple ID email used for notarization. |
-| `APPLE_APP_SPECIFIC_PASSWORD` | For **notarization** | App-specific password (not your Apple ID password). |
+| Secret                        | Required for signing | Notes                                                                                                                                |
+| ----------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `MAC_CERTS`                   | Yes                  | **Base64** of your **`.p12`** (export from Keychain Access → include private key; then `base64 -i cert.p12 \| tr -d '\n'` on macOS). |
+| `MAC_CERTS_PASSWORD`          | Yes                  | Password for the `.p12` export.                                                                                                      |
+| `MAC_CODESIGN_IDENTITY`       | Yes                  | Exact string, e.g. `Developer ID Application: Your Name (TEAMID)`.                                                                   |
+| `APPLE_TEAM_ID`               | For **notarization** | 10-character Team ID.                                                                                                                |
+| `APPLE_ID`                    | For **notarization** | Apple ID email used for notarization.                                                                                                |
+| `APPLE_APP_SPECIFIC_PASSWORD` | For **notarization** | App-specific password (not your Apple ID password).                                                                                  |
 
 When **`MAC_CERTS`**, **`MAC_CERTS_PASSWORD`**, and **`MAC_CODESIGN_IDENTITY`** are all set, the mac job imports the cert into a temporary keychain and sets **`MAC_DISTRIBUTION_SIGN=1`** for that build. **Signed + notarized CI** needs those **three** plus **`APPLE_TEAM_ID`**, **`APPLE_ID`**, and **`APPLE_APP_SPECIFIC_PASSWORD`** (six secrets total); then **`MAC_NOTARIZE=1`** is enabled for that job. Omit any of the signing trio to keep **fast ad-hoc** mac builds in CI (same as local `npm run electron:build:mac`).
 
 ## Windows code signing (Authenticode)
 
-| Goal | Command | Notes |
-|------|---------|--------|
-| **Fast local NSIS/ZIP** (unsigned) | `npm run electron:build:win` | No `.pfx` required. SmartScreen may warn until reputation builds. |
-| **Signed for distribution** | `WIN_CSC_LINK=/path/to/cert.pfx WIN_CSC_KEY_PASSWORD=… npm run electron:build:win:release` | Sets `WIN_DISTRIBUTION_SIGN=1`. Or use **`CSC_LINK`** / **`CSC_KEY_PASSWORD`** ([electron-builder](https://www.electron.build/code-signing)). |
-| **Certificate by name** (Windows store / EV token) | `CSC_NAME="…" npm run electron:build:win:release` | Use when signing via subject name instead of a `.pfx` file. |
+| Goal                                               | Command                                                                                    | Notes                                                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fast local NSIS/ZIP** (unsigned)                 | `npm run electron:build:win`                                                               | No `.pfx` required. SmartScreen may warn until reputation builds.                                                                             |
+| **Signed for distribution**                        | `WIN_CSC_LINK=/path/to/cert.pfx WIN_CSC_KEY_PASSWORD=… npm run electron:build:win:release` | Sets `WIN_DISTRIBUTION_SIGN=1`. Or use **`CSC_LINK`** / **`CSC_KEY_PASSWORD`** ([electron-builder](https://www.electron.build/code-signing)). |
+| **Certificate by name** (Windows store / EV token) | `CSC_NAME="…" npm run electron:build:win:release`                                          | Use when signing via subject name instead of a `.pfx` file.                                                                                   |
 
 **Required when using `WIN_DISTRIBUTION_SIGN=1`:** either **`WIN_CSC_LINK` or `CSC_LINK`** (path to `.pfx`), **or** **`CSC_NAME` / `WIN_CSC_NAME`**. Password: **`WIN_CSC_KEY_PASSWORD`** or **`CSC_KEY_PASSWORD`**. Do **not** commit `.pfx` files (see `.gitignore`).
 
@@ -254,11 +254,11 @@ When **`MAC_CERTS`**, **`MAC_CERTS_PASSWORD`**, and **`MAC_CODESIGN_IDENTITY`** 
 
 electron-builder does not use an X.509 cert for AppImages the way Windows/macOS do. Optional **detached GPG signatures** are produced after the build:
 
-| Goal | Command | Notes |
-|------|---------|--------|
-| **Build only** | `npm run electron:build:linux` | Unsigned AppImage + ZIP. |
+| Goal                            | Command                                                             | Notes                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Build only**                  | `npm run electron:build:linux`                                      | Unsigned AppImage + ZIP.                                                                           |
 | **Build + `.asc` for AppImage** | `LINUX_GPG_KEY_ID=0xYOURKEYID npm run electron:build:linux:release` | Sets `LINUX_GPG_SIGN=1`; runs `gpg --detach-sign` on each `*.AppImage` (requires `gpg` on `PATH`). |
-| **Publish + signatures** | Same key env + `npm run electron:publish:linux:release` | Upload `*.AppImage` and matching **`*.AppImage.asc`** if you ship signatures. |
+| **Publish + signatures**        | Same key env + `npm run electron:publish:linux:release`             | Upload `*.AppImage` and matching **`*.AppImage.asc`** if you ship signatures.                      |
 
 **Required for signatures:** `LINUX_GPG_KEY_ID` (or full fingerprint) for a **secret** key available to `gpg`. Implementation: `scripts/linux-gpg-after-artifact.js` (`afterAllArtifactBuild`).
 

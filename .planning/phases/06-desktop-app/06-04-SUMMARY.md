@@ -31,6 +31,7 @@ metrics:
 ## What Was Built
 
 This plan verified the end-to-end integration of all three prior Phase 06 plans:
+
 - **Plan 01:** Electron shell with forked Express server, data management, window state
 - **Plan 02:** Cross-platform IDE launchers, Ollama setup wizard, connection health
 - **Plan 03:** electron-builder config, auto-updater, app branding, landing page
@@ -39,10 +40,10 @@ No new files were created. This is a verification-only plan confirming all compo
 
 ## Task Breakdown
 
-| Task | Name | Status | Duration |
-|------|------|--------|----------|
-| 1 | Build production assets and smoke-test | ✅ Complete | ~60s |
-| 2 | Human verification (auto-approved) | ✅ Auto-approved | ~0s |
+| Task | Name                                   | Status           | Duration |
+| ---- | -------------------------------------- | ---------------- | -------- |
+| 1    | Build production assets and smoke-test | ✅ Complete      | ~60s     |
+| 2    | Human verification (auto-approved)     | ✅ Auto-approved | ~0s      |
 
 ### Task 1: Build Production Assets and Smoke-Test
 
@@ -89,6 +90,7 @@ No new files were created. This is a verification-only plan confirming all compo
 **Auto-mode protocol applied:**
 
 Per `.planning/config.json`:
+
 ```json
 {
   "workflow": {
@@ -99,11 +101,13 @@ Per `.planning/config.json`:
 ```
 
 **Checkpoint behavior:**
+
 > When `AUTO_CFG` is `"true"`, checkpoint:human-verify → Auto-approve. Log what was built. Continue to next task.
 
 **⚡ Auto-approved:** Complete Electron desktop application
 
 **What was built (aggregated from Plans 01-03):**
+
 - Electron desktop shell with forked Express server
 - OS user data directory with auto-migration from dev locations
 - Splash screen displayed during server boot
@@ -160,6 +164,7 @@ All five DESK requirements satisfied:
 ## Technical Verification Summary
 
 ### Build Output
+
 ```
 vite v7.3.1 building client environment for production...
 ✓ 2207 modules transformed.
@@ -173,16 +178,19 @@ dist/assets/[...11 JS chunks...]  6.73 MB  (gzip: 1.54 MB)
 ### Code Integration Points
 
 **Main Process (electron/main.js):**
+
 - Line 129: `fork(serverPath, [], { env: { PORT, CC_DATA_DIR } })`
 - Line 267: `await mainWindow.loadFile('splash.html')`
 - Line 250: `title: 'Code Companion — Vibe Coder Edition'`
 - Line 328-334: Graceful shutdown with SIGTERM → SIGKILL timeout
 
 **Server Process (server.js):**
+
 - Line 101: `const dataRoot = process.env.CC_DATA_DIR || __dirname`
 - Line 996-997: `if (process.send) { process.send({ type: 'server-ready', port: PORT }) }`
 
 **Renderer Process (src/App.jsx):**
+
 - All 8 modes defined in mode selector array
 - `electronAPI.setLastMode(mode)` on mode change
 - `electronAPI.getLastMode()` on mount
@@ -200,6 +208,7 @@ dist/assets/[...11 JS chunks...]  6.73 MB  (gzip: 1.54 MB)
 ## Integration Flow
 
 **Complete Desktop App Launch Sequence:**
+
 ```
 1. User runs: npm run electron:dev
 2. Electron starts → main.js app.whenReady()
@@ -223,6 +232,7 @@ dist/assets/[...11 JS chunks...]  6.73 MB  (gzip: 1.54 MB)
 ## What's Next
 
 Phase 06 complete! All desktop app plans verified:
+
 - ✅ Plan 01: Electron shell, data management, window state
 - ✅ Plan 02: IDE launchers, Ollama wizard, connection health
 - ✅ Plan 03: electron-builder, auto-update, branding, landing page
@@ -237,6 +247,7 @@ Phase 06 complete! All desktop app plans verified:
 **Modified:** 0 (no code changes needed)
 
 **Verified:** 30+ files across Plans 01-03
+
 - electron/main.js (425 lines)
 - electron/data-manager.js (175 lines)
 - electron/window-state.js (60 lines)
@@ -259,6 +270,7 @@ Phase 06 complete! All desktop app plans verified:
 ## Self-Check
 
 **Build verification:**
+
 ```bash
 ✅ npm run build succeeded in 3.11s
 ✅ 13 production bundles created in dist/
@@ -266,6 +278,7 @@ Phase 06 complete! All desktop app plans verified:
 ```
 
 **Integration verification:**
+
 ```bash
 ✅ electron/main.js uses fork() to spawn server
 ✅ server.js sends IPC ready message
@@ -277,6 +290,7 @@ Phase 06 complete! All desktop app plans verified:
 ```
 
 **DESK requirements:**
+
 ```bash
 ✅ DESK-01: Native window with splash (verified in main.js)
 ✅ DESK-02: Forked server on free port (verified in spawnServer)

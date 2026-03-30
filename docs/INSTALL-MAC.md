@@ -9,11 +9,13 @@
 ### Installation Options
 
 **Option 1: DMG Installer (Recommended)**
+
 - **File:** `code-companion-<version>-arm64.dmg` (size varies by build; often ~180 MB+)
 - **Installation:** Drag app to Applications folder
 - ⭐ **Recommended — traditional macOS experience**
 
 **Option 2: ZIP Archive (Portable)**
+
 - **File:** `code-companion-<version>-arm64.zip` (portable; size varies)
 - **Installation:** Extract and run from anywhere
 - No installation required, self-contained
@@ -34,9 +36,9 @@
 
 What you see depends on **how the build was signed**:
 
-| Build type | Typical experience |
-|------------|-------------------|
-| **Developer ID + notarization** (distribution release) | Often opens normally from Downloads or Applications; least friction. |
+| Build type                                                              | Typical experience                                                                                                      |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Developer ID + notarization** (distribution release)                  | Often opens normally from Downloads or Applications; least friction.                                                    |
 | **Developer ID without notarization**, or **ad-hoc** (local/dev builds) | macOS may say the **developer cannot be verified** or ask you to confirm — use **Right-click → Open** once (see below). |
 
 Maintainer builds from source default to **ad-hoc** signing for speed; **GitHub release** builds may use **Developer ID** when published with `electron:publish:mac:release` (see **[BUILD.md](../BUILD.md)**).
@@ -61,15 +63,18 @@ Maintainer builds from source default to **ad-hoc** signing for speed; **GitHub 
 ```
 
 **To access:**
+
 1. Finder → Go menu → Hold Option key → Library
 2. Navigate to `Application Support/code-companion/`
 
 **Or via Terminal:**
+
 ```bash
 open ~/Library/Application\ Support/code-companion/
 ```
 
 **Contains:**
+
 - Configuration files (`.cc-config.json`)
 - Conversation history
 - Memory data
@@ -105,6 +110,7 @@ Past highlights (examples — not exhaustive):
 ### DMG Installation (Recommended)
 
 **Features:**
+
 - ✅ Traditional macOS app installation
 - ✅ Lives in Applications folder
 - ✅ Appears in Spotlight search
@@ -113,18 +119,21 @@ Past highlights (examples — not exhaustive):
 - ✅ Easy to uninstall (drag to trash)
 
 **Location:**
+
 - `/Applications/Code Companion.app`
 - Data: `~/Library/Application Support/code-companion/`
 
 ### ZIP Installation (Portable)
 
 **Features:**
+
 - ✅ No installation required
 - ✅ Run from any folder (external drive, etc.)
 - ✅ Self-contained
 - ✅ No system integration needed
 
 **How to use:**
+
 1. Extract ZIP to desired location
 2. Run `Code Companion.app`
 3. Data saves in `~/Library/Application Support/code-companion/` (same as DMG)
@@ -134,9 +143,11 @@ Past highlights (examples — not exhaustive):
 ## Troubleshooting
 
 ### "Cannot be opened because the developer cannot be verified"
+
 **Solution:** Right-click → Open (see First Launch section above)
 
 ### App Won't Launch
+
 1. Check System Requirements (Apple Silicon required)
 2. Try removing quarantine attribute:
    ```bash
@@ -145,35 +156,45 @@ Past highlights (examples — not exhaustive):
 3. Check Console.app for error messages
 
 ### "Damaged and can't be opened" Error
+
 This usually means the download was corrupted.
+
 1. Delete the downloaded file
 2. Re-download from a stable connection
 3. Verify file size matches expected (180 MB for DMG, 183 MB for ZIP)
 
 ### Firewall Blocks Connection
+
 **Allow through firewall:**
+
 1. System Settings → Network → Firewall
 2. Firewall Options
 3. Add Code Companion to allowed apps
 4. Click OK
 
 ### Ollama Not Found
+
 Install Ollama for macOS: https://ollama.ai
+
 ```bash
 ollama --version
 ```
 
 ### Port 8900 Already in Use
+
 Another app is using the default port.
 
 **Change port in settings:**
+
 1. Open Code Companion
 2. Settings (⚙️) → General
 3. Change port to 8901 or another free port
 4. Restart app
 
 ### Data Directory Not Found
+
 If you're upgrading from an older version that used a portable data directory:
+
 1. Old location: Next to the app or in project folder
 2. Current location: `~/Library/Application Support/code-companion/`
 3. The app will automatically migrate data on first run (if found in legacy locations)
@@ -183,17 +204,20 @@ If you're upgrading from an older version that used a portable data directory:
 ## 🗑️ Uninstall
 
 ### DMG Installation
+
 1. Quit Code Companion
 2. Open Applications folder
 3. Drag Code Companion.app to Trash
 4. Empty Trash
 
 **To remove data:**
+
 ```bash
 rm -rf ~/Library/Application\ Support/code-companion/
 ```
 
 ### ZIP Installation
+
 1. Quit Code Companion
 2. Delete the folder containing Code Companion.app
 3. Remove data folder (same as above)

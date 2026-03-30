@@ -15,19 +15,23 @@ Research confirms that explicit tone instructions, example-based prompting, and 
 ## User Constraints (from CONTEXT.md)
 
 <user_constraints>
+
 ### Locked Decisions
 
 **Tone Approach:**
+
 - Mode-specific flavors — Each mode has its own personality (explain is patient teacher, bugs is protective friend, refactor is helpful coach) rather than unified tone everywhere
 - Refactor mode behavior — Show the improved code PLUS explain what to ask the user's AI tool to change. Don't skip the code — it's a reference. But add "Here's what to tell your AI" prompts that are copy-pasteable
 - Clean code celebration — Warm but measured. "This looks solid! All green across the board." Positive without being over the top. Not "This is AMAZING!!!" — keep it encouraging but grounded
 
 **Audience Shift:**
+
 - Remove team references — "your dev team" becomes "your AI coding tool" or similar. Vibe coders work solo with AI, not managing engineering teams
 - Remove PM-specific phrases — "your product roadmap", "tell your manager", "leadership update" → reframe for solo builders working on projects
 - Direct "you" without assumptions — Address the user directly but don't assume PM context. "You can paste code here" not "your dev team can review this"
 
 **Mode Label Updates:**
+
 - Translation modes need renaming — "Tech → Biz" and "Biz → Tech" are PM jargon
 - Keep generic translation framing — Something like "Code → Plain English" and "Idea → Code Spec" or similar clear transformation language
 - Other labels mostly fine — "Chat", "Explain This", "Safety Check", "Clean Up", "Review", "Create" already work for vibe coders
@@ -52,47 +56,50 @@ None — discussion stayed within phase scope
 </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|-----------------|
+| ID      | Description                                                                                | Research Support                                                                                                                                                                |
+| ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TONE-01 | All system prompts rewritten with friendly-teacher persona using analogies and zero jargon | LLM prompt engineering best practices (explicit tone instructions, consistent vocabulary), jargon-free communication strategies (analogies, plain language, inline definitions) |
-| TONE-02 | Explain mode reworked for users who have never coded — uses everyday analogies | Plain-language strategies, analogy-based explanations, audience-specific framing techniques |
-| TONE-03 | Bugs mode reworked with plain-English severity and "what will actually break" framing | Non-technical communication strategies, severity framing without technical assumptions |
-| TONE-04 | Refactor mode reworked as "what to ask your AI to change" with copy-pasteable prompts | Vibe-coder workflow patterns (user tells AI what to fix, not manual code editing), actionable guidance framing |
-| TONE-05 | Translate modes reworked to bridge vibe-coder understanding, not PM-developer gap | Audience shift from PM-to-dev translation to non-technical-to-technical translation |
-| UX-02 | Simplified mode labels and UI language throughout (no technical jargon in navigation) | UI naming conventions (verb-led commands, clear state indication, brief informative labels) |
+| TONE-02 | Explain mode reworked for users who have never coded — uses everyday analogies             | Plain-language strategies, analogy-based explanations, audience-specific framing techniques                                                                                     |
+| TONE-03 | Bugs mode reworked with plain-English severity and "what will actually break" framing      | Non-technical communication strategies, severity framing without technical assumptions                                                                                          |
+| TONE-04 | Refactor mode reworked as "what to ask your AI to change" with copy-pasteable prompts      | Vibe-coder workflow patterns (user tells AI what to fix, not manual code editing), actionable guidance framing                                                                  |
+| TONE-05 | Translate modes reworked to bridge vibe-coder understanding, not PM-developer gap          | Audience shift from PM-to-dev translation to non-technical-to-technical translation                                                                                             |
+| UX-02   | Simplified mode labels and UI language throughout (no technical jargon in navigation)      | UI naming conventions (verb-led commands, clear state indication, brief informative labels)                                                                                     |
+
 </phase_requirements>
 
 ## Standard Stack
 
 ### Core Libraries (Already Installed)
 
-| Library | Version | Purpose | Why Standard |
-|---------|---------|---------|--------------|
-| Node.js | 18+ | JavaScript runtime for backend | Industry standard for server-side JS, Express ecosystem |
-| Express | ^4.18.2 | Web server framework | Most popular Node.js web framework, minimal and flexible |
-| React | ^19.2.4 | Frontend UI framework | Already in use, component-based architecture fits mode-specific UI |
-| Ollama REST API | N/A | LLM inference | Local-first AI, already integrated, supports streaming |
+| Library         | Version | Purpose                        | Why Standard                                                       |
+| --------------- | ------- | ------------------------------ | ------------------------------------------------------------------ |
+| Node.js         | 18+     | JavaScript runtime for backend | Industry standard for server-side JS, Express ecosystem            |
+| Express         | ^4.18.2 | Web server framework           | Most popular Node.js web framework, minimal and flexible           |
+| React           | ^19.2.4 | Frontend UI framework          | Already in use, component-based architecture fits mode-specific UI |
+| Ollama REST API | N/A     | LLM inference                  | Local-first AI, already integrated, supports streaming             |
 
 ### Supporting (No New Dependencies Needed)
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| JargonGlossary.jsx | In-app | Inline term definitions | Already implemented for UX-03, can enhance with vibe-coder-specific terms |
-| MODE_GUARDRAIL | In-app | Conversational fallback | Already handles non-code input gracefully, no changes needed |
+| Library            | Version | Purpose                 | When to Use                                                               |
+| ------------------ | ------- | ----------------------- | ------------------------------------------------------------------------- |
+| JargonGlossary.jsx | In-app  | Inline term definitions | Already implemented for UX-03, can enhance with vibe-coder-specific terms |
+| MODE_GUARDRAIL     | In-app  | Conversational fallback | Already handles non-code input gracefully, no changes needed              |
 
 ### Alternatives Considered
 
-| Instead of | Could Use | Tradeoff |
-|------------|-----------|----------|
-| Manual prompt editing | LangChain prompt templates | Adds dependency overhead, existing string templates work fine for 8 prompts |
-| Static prompts | Dynamic prompt injection | Over-engineered for fixed-mode system, adds complexity without clear benefit |
-| Inline definitions only | Separate glossary modal | Already have both (GlossaryPanel + JargonTooltip), no changes needed |
+| Instead of              | Could Use                  | Tradeoff                                                                     |
+| ----------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| Manual prompt editing   | LangChain prompt templates | Adds dependency overhead, existing string templates work fine for 8 prompts  |
+| Static prompts          | Dynamic prompt injection   | Over-engineered for fixed-mode system, adds complexity without clear benefit |
+| Inline definitions only | Separate glossary modal    | Already have both (GlossaryPanel + JargonTooltip), no changes needed         |
 
 **Installation:**
 
 No new dependencies required. All work is editing existing files:
+
 - `lib/prompts.js` (8 system prompts)
 - `src/App.jsx` (2 mode labels, 8 placeholder texts)
 
@@ -111,7 +118,7 @@ const SYSTEM_PROMPTS = {
 
 [STRUCTURAL TEMPLATE if mode needs sections]
 
-[GUARDRAIL for edge cases]`
+[GUARDRAIL for edge cases]`,
 };
 ```
 
@@ -123,7 +130,7 @@ const SYSTEM_PROMPTS = {
 
 ```javascript
 // Source: Latitude.so "5 Tips for Consistent LLM Prompts" + MIT Sloan effective prompts guide
-explain: `You are a friendly, patient teacher helping someone who has never written code understand what code does. Think of yourself as the friend who makes complex things feel simple — never condescating, always encouraging.`
+explain: `You are a friendly, patient teacher helping someone who has never written code understand what code does. Think of yourself as the friend who makes complex things feel simple — never condescating, always encouraging.`;
 ```
 
 ### Pattern 2: Mode-Specific Personality Flavors
@@ -134,13 +141,13 @@ explain: `You are a friendly, patient teacher helping someone who has never writ
 
 ```javascript
 // Explain: Patient teacher
-explain: `You are a friendly, patient teacher... Think of yourself as the friend who makes complex things feel simple.`
+explain: `You are a friendly, patient teacher... Think of yourself as the friend who makes complex things feel simple.`;
 
 // Bugs: Protective friend
-bugs: `You are a thoughtful, supportive safety inspector... Think of yourself as a friendly lookout — you're not here to criticize, you're here to protect.`
+bugs: `You are a thoughtful, supportive safety inspector... Think of yourself as a friendly lookout — you're not here to criticize, you're here to protect.`;
 
 // Refactor: Helpful coach
-refactor: `You are a supportive coding mentor... Think of yourself as a helpful coach doing a collaborative review — you're building up, not tearing down.`
+refactor: `You are a supportive coding mentor... Think of yourself as a helpful coach doing a collaborative review — you're building up, not tearing down.`;
 ```
 
 ### Pattern 3: Structured Output Sections
@@ -160,7 +167,7 @@ explain: `Structure your response as:
 (Step-by-step walkthrough. Use analogies that make it click)
 
 ## Why It Matters for Your Project
-(Connect the dots: what does this mean for what you're building?)`
+(Connect the dots: what does this mean for what you're building?)`;
 ```
 
 ### Pattern 4: Inline Jargon Definition Strategy
@@ -171,7 +178,7 @@ explain: `Structure your response as:
 
 ```javascript
 // Source: Review prompt (already implemented)
-review: `When a technical term is unavoidable, always explain it in parentheses: "SQL injection (when someone tricks your app into running commands on your database)".`
+review: `When a technical term is unavoidable, always explain it in parentheses: "SQL injection (when someone tricks your app into running commands on your database)".`;
 ```
 
 ### Pattern 5: Conversational Guardrail
@@ -196,12 +203,12 @@ IMPORTANT: If the user sends a greeting, general question, or message that does 
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
+| Problem                     | Don't Build                         | Use Instead                                        | Why                                                                              |
+| --------------------------- | ----------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Jargon detection & tooltips | Custom regex matcher for tech terms | Existing JargonGlossary.jsx with highlightJargon() | Already implemented, covers 69 terms across 7 categories, handles inline + modal |
-| Prompt version control | Manual copy-paste of old prompts | Git commits with descriptive messages | Git already tracks changes, no custom tooling needed |
-| Tone consistency validation | Custom LLM prompt analyzer | Manual review + test conversations | 8 prompts total, small enough for human review, over-engineering for scale |
-| Non-code input handling | Custom intent classifier | Existing MODE_GUARDRAIL pattern | Already handles greeting/question detection, works well |
+| Prompt version control      | Manual copy-paste of old prompts    | Git commits with descriptive messages              | Git already tracks changes, no custom tooling needed                             |
+| Tone consistency validation | Custom LLM prompt analyzer          | Manual review + test conversations                 | 8 prompts total, small enough for human review, over-engineering for scale       |
+| Non-code input handling     | Custom intent classifier            | Existing MODE_GUARDRAIL pattern                    | Already handles greeting/question detection, works well                          |
 
 **Key insight:** This is a content editing task (rewriting 8 prompts + 2 labels), not a feature build. Resist the urge to add tooling, frameworks, or validation systems. The existing codebase has everything needed.
 
@@ -268,7 +275,7 @@ translate-biz: `Take the idea and produce:
 
 ```javascript
 // Source: Existing review prompt (REVIEW_SYSTEM_PROMPT)
-review: `When a technical term is unavoidable, always explain it in parentheses: "SQL injection (when someone tricks your app into running commands on your database)".`
+review: `When a technical term is unavoidable, always explain it in parentheses: "SQL injection (when someone tricks your app into running commands on your database)".`;
 ```
 
 ### Mode-Specific Personality Preservation
@@ -276,13 +283,13 @@ review: `When a technical term is unavoidable, always explain it in parentheses:
 ```javascript
 // Source: Existing prompts (lib/prompts.js)
 // Explain: Patient teacher
-explain: `You are a friendly, patient teacher... Think of yourself as the colleague who always makes complex things feel simple — never condescending, always encouraging.`
+explain: `You are a friendly, patient teacher... Think of yourself as the colleague who always makes complex things feel simple — never condescending, always encouraging.`;
 
 // Bugs: Protective friend
-bugs: `You are a thoughtful, supportive code reviewer... Think of yourself as a friendly safety inspector — you're not here to criticize, you're here to protect.`
+bugs: `You are a thoughtful, supportive code reviewer... Think of yourself as a friendly safety inspector — you're not here to criticize, you're here to protect.`;
 
 // Refactor: Helpful coach
-refactor: `You are a supportive coding mentor... Think of yourself as a friendly senior dev doing a collaborative code review — you're building up, not tearing down.`
+refactor: `You are a supportive coding mentor... Think of yourself as a friendly senior dev doing a collaborative code review — you're building up, not tearing down.`;
 ```
 
 ### UI Label Clarity (Mode Labels)
@@ -302,21 +309,25 @@ refactor: `You are a supportive coding mentor... Think of yourself as a friendly
 ```javascript
 // Source: NN/G UI Copy guidelines (verb-led, clear outcome)
 // Before (PM-focused)
-{ placeholder: "Paste a technical spec, PR, or code snippet...\nI'll turn it into something anyone can understand." }
+{
+  placeholder: "Paste a technical spec, PR, or code snippet...\nI'll turn it into something anyone can understand.";
+}
 
 // After (vibe-coder-focused, remove "anyone" assumption)
-{ placeholder: "Paste code or a technical description...\nI'll explain it in plain English." }
+{
+  placeholder: "Paste code or a technical description...\nI'll explain it in plain English.";
+}
 ```
 
 ## State of the Art
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Generic "helpful AI assistant" prompts | Explicit identity + tone + structure + guardrail | 2024-2025 | LLM behavior more consistent, reduces hallucination, clearer user expectations |
-| Single global tone | Mode-specific personality flavors | 2024-2025 | Users get appropriate tone for task (patient for learning, protective for safety checks) |
-| Assume technical literacy | Inline jargon definitions + glossary backup | 2023-2025 | Accessible to non-technical users, reduces support questions |
-| PM/developer dichotomy | Vibe coder (AI-assisted non-technical builder) | 2024-2025 | New user archetype emerges with Cursor, Replit, Windsurf, Claude Code |
-| Manual prompt versioning | Git-based prompt tracking | Always standard | Version control for prompts like any code artifact |
+| Old Approach                           | Current Approach                                 | When Changed    | Impact                                                                                   |
+| -------------------------------------- | ------------------------------------------------ | --------------- | ---------------------------------------------------------------------------------------- |
+| Generic "helpful AI assistant" prompts | Explicit identity + tone + structure + guardrail | 2024-2025       | LLM behavior more consistent, reduces hallucination, clearer user expectations           |
+| Single global tone                     | Mode-specific personality flavors                | 2024-2025       | Users get appropriate tone for task (patient for learning, protective for safety checks) |
+| Assume technical literacy              | Inline jargon definitions + glossary backup      | 2023-2025       | Accessible to non-technical users, reduces support questions                             |
+| PM/developer dichotomy                 | Vibe coder (AI-assisted non-technical builder)   | 2024-2025       | New user archetype emerges with Cursor, Replit, Windsurf, Claude Code                    |
+| Manual prompt versioning               | Git-based prompt tracking                        | Always standard | Version control for prompts like any code artifact                                       |
 
 **Deprecated/outdated:**
 
@@ -330,23 +341,23 @@ refactor: `You are a supportive coding mentor... Think of yourself as a friendly
 
 ### Test Framework
 
-| Property | Value |
-|----------|-------|
-| Framework | Node.js built-in `node:test` (detected from tests/rate-limit.test.js) |
-| Config file | None — using Node.js native test runner |
-| Quick run command | `node --test tests/tone-validation.test.js` |
-| Full suite command | `node --test tests/` |
+| Property           | Value                                                                 |
+| ------------------ | --------------------------------------------------------------------- |
+| Framework          | Node.js built-in `node:test` (detected from tests/rate-limit.test.js) |
+| Config file        | None — using Node.js native test runner                               |
+| Quick run command  | `node --test tests/tone-validation.test.js`                           |
+| Full suite command | `node --test tests/`                                                  |
 
 ### Phase Requirements → Test Map
 
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| TONE-01 | All prompts use friendly-teacher persona with analogies | unit | `node --test tests/tone-validation.test.js::test_prompt_tone` | Wave 0 |
-| TONE-02 | Explain mode uses everyday analogies for non-coders | unit | `node --test tests/tone-validation.test.js::test_explain_analogies` | Wave 0 |
-| TONE-03 | Bugs mode uses plain-English severity framing | unit | `node --test tests/tone-validation.test.js::test_bugs_severity` | Wave 0 |
-| TONE-04 | Refactor mode includes copy-pasteable AI prompts | unit | `node --test tests/tone-validation.test.js::test_refactor_prompts` | Wave 0 |
-| TONE-05 | Translate modes bridge vibe-coder understanding | unit | `node --test tests/tone-validation.test.js::test_translate_audience` | Wave 0 |
-| UX-02 | Mode labels use clear non-jargon language | unit | `node --test tests/ui-labels.test.js::test_label_clarity` | Wave 0 |
+| Req ID  | Behavior                                                | Test Type | Automated Command                                                    | File Exists? |
+| ------- | ------------------------------------------------------- | --------- | -------------------------------------------------------------------- | ------------ |
+| TONE-01 | All prompts use friendly-teacher persona with analogies | unit      | `node --test tests/tone-validation.test.js::test_prompt_tone`        | Wave 0       |
+| TONE-02 | Explain mode uses everyday analogies for non-coders     | unit      | `node --test tests/tone-validation.test.js::test_explain_analogies`  | Wave 0       |
+| TONE-03 | Bugs mode uses plain-English severity framing           | unit      | `node --test tests/tone-validation.test.js::test_bugs_severity`      | Wave 0       |
+| TONE-04 | Refactor mode includes copy-pasteable AI prompts        | unit      | `node --test tests/tone-validation.test.js::test_refactor_prompts`   | Wave 0       |
+| TONE-05 | Translate modes bridge vibe-coder understanding         | unit      | `node --test tests/tone-validation.test.js::test_translate_audience` | Wave 0       |
+| UX-02   | Mode labels use clear non-jargon language               | unit      | `node --test tests/ui-labels.test.js::test_label_clarity`            | Wave 0       |
 
 ### Sampling Rate
 
@@ -421,6 +432,7 @@ Research complete. Key findings:
 6. **Test infrastructure gap** — Need Wave 0 tests for prompt validation (no PM language, inline definitions, analogies)
 
 Planner can now create task breakdown for:
+
 - Rewrite 8 prompts in `lib/prompts.js`
 - Update 2 labels + 8 placeholders in `src/App.jsx`
 - Create validation tests in `tests/tone-validation.test.js` and `tests/ui-labels.test.js`

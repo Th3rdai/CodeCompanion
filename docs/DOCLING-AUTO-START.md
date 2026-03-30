@@ -27,6 +27,7 @@ The enhanced startup script now includes docling-serve management:
 ```
 
 This provides:
+
 - Clean shutdown of previous instances
 - Health checks for docling-serve
 - Status reporting in the startup summary
@@ -41,6 +42,7 @@ A new simplified start script:
 ```
 
 This is the fastest way to get everything running:
+
 - Starts docling-serve if not already running
 - Builds frontend if needed
 - Starts the web server
@@ -51,16 +53,19 @@ This is the fastest way to get everything running:
 ### Install docling-serve
 
 **Using uv (recommended):**
+
 ```bash
 uv tool install "docling-serve[ui]"
 ```
 
 **Using pip:**
+
 ```bash
 pip install "docling-serve[ui]"
 ```
 
 **Using pipx:**
+
 ```bash
 pipx install "docling-serve[ui]"
 ```
@@ -92,6 +97,7 @@ In Settings (⚙️), configure the Docling section:
 **Why 5002?** Port 5001 conflicts with macOS AirPlay Receiver.
 
 **Change the port:**
+
 1. Update Settings → Docling → URL
 2. Restart the server
 
@@ -100,12 +106,14 @@ In Settings (⚙️), configure the Docling section:
 ### When Auto-Start Activates
 
 ✅ **Starts docling-serve when:**
+
 - Docling is enabled in settings (default: true)
 - Binary is found on the system
 - Port 5002 is not already in use
 - Not already running
 
 ⏭️ **Skips auto-start when:**
+
 - Docling is disabled in settings
 - Binary not found (shows install instructions)
 - Already running on the target port
@@ -135,6 +143,7 @@ Settings → Docling → "Test Connection" button
 ### Logs
 
 **Startup script logs:**
+
 ```bash
 cat /tmp/docling-serve.log
 ```
@@ -147,11 +156,13 @@ Look for `[Docling]` prefix in server output
 ### "docling-serve not found"
 
 Install it:
+
 ```bash
 uv tool install "docling-serve[ui]"
 ```
 
 Verify:
+
 ```bash
 which docling-serve
 ```
@@ -159,11 +170,13 @@ which docling-serve
 ### "Port 5002 is in use"
 
 Check what's using it:
+
 ```bash
 lsof -i :5002
 ```
 
 Kill the process:
+
 ```bash
 lsof -ti:5002 | xargs kill
 ```
@@ -175,6 +188,7 @@ Or change the port in Settings.
 This is normal during first startup — model loading can take 30+ seconds.
 
 Wait a minute and try again:
+
 ```bash
 curl http://127.0.0.1:5002/health
 ```
@@ -182,6 +196,7 @@ curl http://127.0.0.1:5002/health
 ### Docling Process Won't Stop
 
 Force kill:
+
 ```bash
 pkill -9 -f docling-serve
 ```
@@ -189,11 +204,13 @@ pkill -9 -f docling-serve
 ### "fetch failed" Error
 
 **Causes:**
+
 1. Docling not running
 2. Wrong URL in settings
 3. Firewall blocking localhost connections
 
 **Fix:**
+
 ```bash
 # Check if running
 curl http://127.0.0.1:5002/health
@@ -236,14 +253,14 @@ curl http://127.0.0.1:5002/health
 
 ### Files
 
-| File | Purpose |
-|------|---------|
-| `lib/docling-starter.js` | Auto-start module for web server |
-| `lib/docling-client.js` | REST API client |
-| `electron/docling-manager.js` | Auto-start module for Electron app |
-| `server.js` | Integration point (startup + shutdown) |
-| `startup.sh` | Enhanced startup script with docling |
-| `start.sh` | Quick start script |
+| File                          | Purpose                                |
+| ----------------------------- | -------------------------------------- |
+| `lib/docling-starter.js`      | Auto-start module for web server       |
+| `lib/docling-client.js`       | REST API client                        |
+| `electron/docling-manager.js` | Auto-start module for Electron app     |
+| `server.js`                   | Integration point (startup + shutdown) |
+| `startup.sh`                  | Enhanced startup script with docling   |
+| `start.sh`                    | Quick start script                     |
 
 ### Shutdown Handling
 
@@ -269,12 +286,12 @@ Both `SIGINT` (Ctrl+C) and `SIGTERM` trigger graceful shutdown:
 
 ## Differences: Web vs Electron
 
-| Feature | Web Server (`server.js`) | Electron App |
-|---------|-------------------------|--------------|
-| Auto-start | ✅ Via `docling-starter.js` | ✅ Via `docling-manager.js` |
-| Shutdown | ✅ Graceful on SIGINT/SIGTERM | ✅ Graceful on app quit |
-| Config source | `.cc-config.json` | App data directory |
-| Logs | Server stdout | Electron main process |
+| Feature       | Web Server (`server.js`)      | Electron App                |
+| ------------- | ----------------------------- | --------------------------- |
+| Auto-start    | ✅ Via `docling-starter.js`   | ✅ Via `docling-manager.js` |
+| Shutdown      | ✅ Graceful on SIGINT/SIGTERM | ✅ Graceful on app quit     |
+| Config source | `.cc-config.json`             | App data directory          |
+| Logs          | Server stdout                 | Electron main process       |
 
 ## Performance
 

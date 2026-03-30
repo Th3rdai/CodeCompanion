@@ -16,7 +16,8 @@ affects: [01-review-engine, 03-report-card-ui]
 
 tech-stack:
   added: [zod v4 toJSONSchema]
-  patterns: [structured-output-via-format-param, non-streaming-for-schema-enforcement]
+  patterns:
+    [structured-output-via-format-param, non-streaming-for-schema-enforcement]
 
 key-files:
   created: [lib/review-schema.js]
@@ -48,6 +49,7 @@ completed: 2026-03-13
 - **Files modified:** 3
 
 ## Accomplishments
+
 - Created report card schema with grades A-F for bugs, security, readability, completeness plus overallGrade and topPriority
 - Added chatStructured function that sends JSON Schema via Ollama format parameter with stream:false
 - Engineered review system prompt implementing all CONTEXT.md locked decisions for tone
@@ -59,25 +61,31 @@ completed: 2026-03-13
 3. **Task 3: Add review prompts** - `b8ca9a5` (feat)
 
 ## Files Created/Modified
+
 - `lib/review-schema.js` - Zod schema + JSON Schema export for report card structure
 - `lib/ollama-client.js` - Added chatStructured() for non-streaming structured output
 - `lib/prompts.js` - Added REVIEW_SYSTEM_PROMPT and REVIEW_FALLBACK_PROMPT
 
 ## Decisions Made
+
 - Used Zod v4 native `z.toJSONSchema()` instead of `zod-to-json-schema` package (incompatible with Zod v4)
 - chatStructured uses `stream: false` and `temperature: 0` per research findings on reliability
 - analogy field is optional in FindingSchema — only used for critical/high severity per CONTEXT.md
 
 ## Deviations from Plan
+
 None - plan executed exactly as written
 
 ## Issues Encountered
+
 None
 
 ## Next Phase Readiness
+
 - Schema, client function, and prompts ready for Plan 02 (review endpoint)
 - No blockers
 
 ---
-*Phase: 01-review-engine*
-*Completed: 2026-03-13*
+
+_Phase: 01-review-engine_
+_Completed: 2026-03-13_

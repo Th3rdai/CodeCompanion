@@ -59,9 +59,11 @@ Add input method tabs with equal priority and explicit deep-dive buttons for con
 ## What Was Built
 
 ### 1. Test Scaffolding (Task 0)
+
 **Commit:** `4119e16`
 
 Created Playwright test infrastructure:
+
 - **tests/ui/input-methods.spec.js** - Component tests for tab rendering, keyboard navigation, icon display
 - **tests/e2e/review-workflow.spec.js** - E2E tests for full workflows (paste/upload/browse), identical payloads, deep-dive activation
 - **playwright-ct.config.js** - Component testing configuration
@@ -71,11 +73,13 @@ Created Playwright test infrastructure:
 **Verification:** Tests created and executable (expected to fail initially per TDD approach).
 
 ### 2. Headless UI Installation (Task 1)
+
 **Commit:** `11f7aa5`
 
 Installed @headlessui/react v2.2.9 for accessible tab component.
 
 **Why Headless UI:**
+
 - Zero runtime bundle cost
 - Built-in accessibility (aria-selected, role="tablist", keyboard navigation)
 - Handles focus management automatically
@@ -84,11 +88,13 @@ Installed @headlessui/react v2.2.9 for accessible tab component.
 **Verification:** `npm list @headlessui/react` shows v2.2.9 installed.
 
 ### 3. Input Method Tabs (Task 2 - TDD)
+
 **Commit:** `0fc4b09`
 
 **Files Modified:** `src/components/ReviewPanel.jsx`
 
 **Changes:**
+
 - Imported Headless UI `Tab` component and Lucide React icons (`FileText`, `Upload`, `FolderOpen`)
 - Replaced single code input section with `Tab.Group` containing three panels:
   - **Paste Code Tab:** Code textarea + filename input (existing functionality preserved)
@@ -105,11 +111,13 @@ All three input methods populate the same `code` and `filename` state variables 
 **Build Verification:** `npm run build` succeeded with no errors.
 
 ### 4. Learn More Buttons & SVG Icons (Task 3 - TDD)
+
 **Commit:** `4a5331b`
 
 **Files Modified:** `src/components/ReportCard.jsx`
 
 **Changes:**
+
 - Imported Lucide React icons: `Bug`, `Lock`, `BookOpen`, `CheckCircle`
 - Replaced emoji icons in `CATEGORY_LABELS` with JSX icon components:
   - `bugs: '🐛'` → `<Bug className="w-4 h-4" />`
@@ -136,6 +144,7 @@ Per ui-ux-pro-max skill rule `no-emoji-icons` (line 79, 312 in SKILL.md): "Use S
 ### Auto-fixed Issues
 
 **1. [Rule 2 - Missing Critical Functionality] Added Playwright test infrastructure**
+
 - **Found during:** Task 0
 - **Issue:** Plan required Playwright tests but Playwright was not installed, and no test runner was configured
 - **Fix:** Installed `@playwright/test` and `@playwright/experimental-ct-react`, created `playwright-ct.config.js`, added test scripts to package.json
@@ -143,6 +152,7 @@ Per ui-ux-pro-max skill rule `no-emoji-icons` (line 79, 312 in SKILL.md): "Use S
 - **Commit:** `4119e16`
 
 **2. [Rule 1 - Bug] Fixed LoadingAnimation import in ReviewPanel**
+
 - **Found during:** Task 2 (reading ReviewPanel.jsx)
 - **Issue:** File had `import LoadingAnimation from './LoadingAnimation'` but component wasn't used (likely added by linter or previous work)
 - **Fix:** Preserved the import (no action needed, not breaking)
@@ -195,29 +205,32 @@ Per ui-ux-pro-max skill rule `no-emoji-icons` (line 79, 312 in SKILL.md): "Use S
 
 ## Commits
 
-| Task | Commit | Message |
-|------|--------|---------|
-| 0 | `4119e16` | test(03-02): add failing tests for input method tabs and deep-dive buttons |
-| 1 | `11f7aa5` | chore(03-02): install @headlessui/react for accessible tab component |
-| 2 | `0fc4b09` | feat(03-02): add input method tabs with equal priority to ReviewPanel |
-| 3 | `4a5331b` | feat(03-02): add Learn More buttons and replace emoji with Lucide React icons |
+| Task | Commit    | Message                                                                       |
+| ---- | --------- | ----------------------------------------------------------------------------- |
+| 0    | `4119e16` | test(03-02): add failing tests for input method tabs and deep-dive buttons    |
+| 1    | `11f7aa5` | chore(03-02): install @headlessui/react for accessible tab component          |
+| 2    | `0fc4b09` | feat(03-02): add input method tabs with equal priority to ReviewPanel         |
+| 3    | `4a5331b` | feat(03-02): add Learn More buttons and replace emoji with Lucide React icons |
 
 **Total Duration:** 439 seconds (7 minutes 19 seconds)
 
 ## Self-Check: PASSED
 
 ### Files Exist
+
 - ✅ tests/ui/input-methods.spec.js
 - ✅ tests/e2e/review-workflow.spec.js
 - ✅ playwright-ct.config.js
 
 ### Commits Exist
+
 - ✅ `4119e16` (test scaffolding)
 - ✅ `11f7aa5` (Headless UI install)
 - ✅ `0fc4b09` (input method tabs)
 - ✅ `4a5331b` (Learn More buttons & SVG icons)
 
 ### Build Verification
+
 - ✅ `npm run build` succeeded with no errors after Task 2
 - ✅ `npm run build` succeeded with no errors after Task 3
 

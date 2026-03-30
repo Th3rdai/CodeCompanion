@@ -64,6 +64,7 @@ Please read **[SECURITY.md](SECURITY.md)** before reporting vulnerabilities. For
 ## Reporting Bugs
 
 Open an issue with:
+
 - What you expected to happen
 - What actually happened
 - Steps to reproduce

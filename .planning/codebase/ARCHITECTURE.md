@@ -4,12 +4,12 @@
 
 ## Runtime shape
 
-| Layer | Role | Primary paths |
-|-------|------|----------------|
-| **HTTP + API** | Express app, static SPA, SSE chat, REST | `server.js` |
-| **Frontend** | React 19 + Vite, Tailwind 4, mode-driven UI | `src/main.jsx` → `src/App.jsx`, `src/components/` |
-| **Desktop** | Electron shell: window, IPC, data dir, optional Ollama/Docling helpers, auto-update | `electron/main.js`, `electron/preload.js`, `electron/*.js` |
-| **Libraries** | Ollama, file I/O, MCP, review/pentest/validate/build, office export | `lib/` |
+| Layer          | Role                                                                                | Primary paths                                              |
+| -------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **HTTP + API** | Express app, static SPA, SSE chat, REST                                             | `server.js`                                                |
+| **Frontend**   | React 19 + Vite, Tailwind 4, mode-driven UI                                         | `src/main.jsx` → `src/App.jsx`, `src/components/`          |
+| **Desktop**    | Electron shell: window, IPC, data dir, optional Ollama/Docling helpers, auto-update | `electron/main.js`, `electron/preload.js`, `electron/*.js` |
+| **Libraries**  | Ollama, file I/O, MCP, review/pentest/validate/build, office export                 | `lib/`                                                     |
 
 No separate database: JSON files under the app data root (`CC_DATA_DIR` or repo root) for config, history, memory, build registry.
 
@@ -23,11 +23,11 @@ No separate database: JSON files under the app data root (`CC_DATA_DIR` or repo 
 
 ## Configuration
 
-| Mechanism | Purpose |
-|-----------|---------|
-| `lib/config.js` | Loads/merges defaults with `.cc-config.json` at `appRoot`; `getConfig` / `updateConfig` / `saveConfig`. Nested merge for `memory`, `imageSupport`, `docling`, `agentTerminal`. |
+| Mechanism         | Purpose                                                                                                                                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/config.js`   | Loads/merges defaults with `.cc-config.json` at `appRoot`; `getConfig` / `updateConfig` / `saveConfig`. Nested merge for `memory`, `imageSupport`, `docling`, `agentTerminal`.                                                |
 | `.cc-config.json` | Persisted settings: Ollama URL, ports, timeouts, MCP client list, GitHub token, project folder, memory, docling, agent terminal allowlist, etc. **Not committed** as a rule; path is `path.join(appRoot, '.cc-config.json')`. |
-| Env | `PORT`, `HOST`, `CC_DATA_DIR`, `DEBUG`, `FORCE_HTTP` (disables HTTPS in `server.js`), etc. |
+| Env               | `PORT`, `HOST`, `CC_DATA_DIR`, `DEBUG`, `FORCE_HTTP` (disables HTTPS in `server.js`), etc.                                                                                                                                    |
 
 Client-facing config omits secrets (`sanitizeConfigForClient` in `server.js` strips `githubToken`, masks MCP env, strips `license` field).
 
@@ -45,13 +45,13 @@ Client-facing config omits secrets (`sanitizeConfigForClient` in `server.js` str
 
 ## Electron vs browser
 
-| Concern | Browser | Electron |
-|---------|---------|----------|
-| API base | Same origin or Vite proxy | Local server URL from main process |
-| Data / port | Typical web storage | `electron/data-manager.js`, port config IPC |
-| Updates | N/A | `electron/updater.js` + `electron-updater` |
-| Ollama / Docling setup | User installs manually | `electron/ollama-setup.js`, `docling-manager.js` optional automation |
+| Concern                | Browser                   | Electron                                                             |
+| ---------------------- | ------------------------- | -------------------------------------------------------------------- |
+| API base               | Same origin or Vite proxy | Local server URL from main process                                   |
+| Data / port            | Typical web storage       | `electron/data-manager.js`, port config IPC                          |
+| Updates                | N/A                       | `electron/updater.js` + `electron-updater`                           |
+| Ollama / Docling setup | User installs manually    | `electron/ollama-setup.js`, `docling-manager.js` optional automation |
 
 ---
 
-*Architecture analysis: 2025-03-21*
+_Architecture analysis: 2025-03-21_

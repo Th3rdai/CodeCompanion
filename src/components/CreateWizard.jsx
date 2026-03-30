@@ -1,66 +1,89 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { apiFetch } from '../lib/api-fetch';
-import DictateButton from './DictateButton';
-import { CREATE_TUTORIAL_STEPS } from '../data/tutorialSteps';
-import { joinAppend } from '../lib/dictationAppend';
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { apiFetch } from "../lib/api-fetch";
+import DictateButton from "./DictateButton";
+import { CREATE_TUTORIAL_STEPS } from "../data/tutorialSteps";
+import { joinAppend } from "../lib/dictationAppend";
 
 const STEPS = [
-  { id: 1, title: 'Project Info', fields: ['name', 'description', 'role'] },
-  { id: 2, title: 'Audience & Tone', fields: ['audience', 'tone'] },
-  { id: 3, title: 'Stages', fields: ['stages'] },
-  { id: 4, title: 'Output Location', fields: ['outputRoot'] },
-  { id: 5, title: 'Review & Create', fields: ['review'] }
+  { id: 1, title: "Project Info", fields: ["name", "description", "role"] },
+  { id: 2, title: "Audience & Tone", fields: ["audience", "tone"] },
+  { id: 3, title: "Stages", fields: ["stages"] },
+  { id: 4, title: "Output Location", fields: ["outputRoot"] },
+  { id: 5, title: "Review & Create", fields: ["review"] },
 ];
 
-const TONE_OPTIONS = ['Friendly', 'Professional', 'Technical', 'Warm', 'Custom'];
+const TONE_OPTIONS = [
+  "Friendly",
+  "Professional",
+  "Technical",
+  "Warm",
+  "Custom",
+];
 
 const DEFAULT_STAGES = [
-  { name: 'Research', purpose: 'Gather and organize source material' },
-  { name: 'Draft', purpose: 'Create first draft from research findings' },
-  { name: 'Review', purpose: 'Quality check, edit, and produce final version' }
+  { name: "Research", purpose: "Gather and organize source material" },
+  { name: "Draft", purpose: "Create first draft from research findings" },
+  { name: "Review", purpose: "Quality check, edit, and produce final version" },
 ];
 
 /** Client-side slug matching backend rules (lowercase, hyphens, strip invalid, max 64). */
 function slugify(name) {
-  if (!name || typeof name !== 'string') return 'project';
+  if (!name || typeof name !== "string") return "project";
   let s = name
     .toLowerCase()
-    .replace(/[\s/]+/g, '-')
-    .replace(/[\\:*?"<>|]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-  if (s.length > 64) s = s.slice(0, 64).replace(/-$/, '');
-  return s || 'project';
+    .replace(/[\s/]+/g, "-")
+    .replace(/[\\:*?"<>|]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  if (s.length > 64) s = s.slice(0, 64).replace(/-$/, "");
+  return s || "project";
 }
 
-const TUTORIAL_HINT = 'Press Tab to keep and move on, or right-click in the field to accept this suggestion.';
-const TUTORIAL_CLICK_HINT = 'Double-click in the field to get a different suggestion.';
+const TUTORIAL_HINT =
+  "Press Tab to keep and move on, or right-click in the field to accept this suggestion.";
+const TUTORIAL_CLICK_HINT =
+  "Double-click in the field to get a different suggestion.";
 
 // Alternatives for step 1 (cycle on left-click when tutorial is on)
 const STEP1_ALTERNATIVES = {
-  name: ['My Blog Assistant', 'My Research Helper', 'My Content Studio', 'My Data Explorer'],
+  name: [
+    "My Blog Assistant",
+    "My Research Helper",
+    "My Content Studio",
+    "My Data Explorer",
+  ],
   description: [
-    'A project to draft and refine blog posts with an AI writing assistant.',
-    'A project for research and analysis with an AI that helps find and summarize sources.',
-    'A project for creating and editing content with a friendly AI writing partner.',
-    'A project to explore and visualize data with AI-assisted analysis.',
+    "A project to draft and refine blog posts with an AI writing assistant.",
+    "A project for research and analysis with an AI that helps find and summarize sources.",
+    "A project for creating and editing content with a friendly AI writing partner.",
+    "A project to explore and visualize data with AI-assisted analysis.",
   ],
   role: [
-    'Content writing assistant that helps draft and edit posts in a friendly, clear tone.',
-    'Research analyst that finds sources, summarizes key points, and suggests directions.',
-    'Writing partner that keeps tone consistent and suggests improvements.',
-    'Data assistant that helps interpret and explain findings clearly.',
+    "Content writing assistant that helps draft and edit posts in a friendly, clear tone.",
+    "Research analyst that finds sources, summarizes key points, and suggests directions.",
+    "Writing partner that keeps tone consistent and suggests improvements.",
+    "Data assistant that helps interpret and explain findings clearly.",
   ],
 };
 
-export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSuccess, onOpenInBuild, onToast, step: controlledStep, onStepChange, prefill, tutorialActive, tutorialSuggestions }) {
+export default function CreateWizard({
+  defaultOutputRoot = "~/AI_Dev/",
+  onSuccess,
+  onGeneratePRP,
+  onToast,
+  step: controlledStep,
+  onStepChange,
+  prefill,
+  tutorialActive,
+  tutorialSuggestions,
+}) {
   const [internalStep, setInternalStep] = useState(1);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [role, setRole] = useState('');
-  const [audience, setAudience] = useState('');
-  const [tone, setTone] = useState('Professional');
-  const [toneCustom, setToneCustom] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [role, setRole] = useState("");
+  const [audience, setAudience] = useState("");
+  const [tone, setTone] = useState("Professional");
+  const [toneCustom, setToneCustom] = useState("");
   const [stages, setStages] = useState(DEFAULT_STAGES);
   const [outputRoot, setOutputRoot] = useState(defaultOutputRoot);
   const [submitting, setSubmitting] = useState(false);
@@ -71,9 +94,14 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
   const [result, setResult] = useState(null);
   const [hintField, setHintField] = useState(null);
   const [contextualSuggestions, setContextualSuggestions] = useState(null);
-  const [contextualSuggestionsLoading, setContextualSuggestionsLoading] = useState(false);
+  const [contextualSuggestionsLoading, setContextualSuggestionsLoading] =
+    useState(false);
   const [loadingSuggestionFor, setLoadingSuggestionFor] = useState(null);
-  const [step1CycleIndex, setStep1CycleIndex] = useState({ name: 0, description: 0, role: 0 });
+  const [step1CycleIndex, setStep1CycleIndex] = useState({
+    name: 0,
+    description: 0,
+    role: 0,
+  });
 
   const step = controlledStep !== undefined ? controlledStep : internalStep;
   const setStep = (n) => {
@@ -88,26 +116,38 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
   }, [step]);
   // Fetch contextual suggestions when entering step 2+ with project info filled
   useEffect(() => {
-    if (step < 2 || !tutorialActive || contextualSuggestions || contextualSuggestionsLoading) return;
+    if (
+      step < 2 ||
+      !tutorialActive ||
+      contextualSuggestions ||
+      contextualSuggestionsLoading
+    )
+      return;
     const hasProjectInfo = name.trim() || description.trim();
     if (!hasProjectInfo) return;
     setContextualSuggestionsLoading(true);
-    apiFetch('/api/tutorial-suggestions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), description: description.trim(), role: role.trim() || undefined, mode: 'create' })
+    apiFetch("/api/tutorial-suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim(),
+        role: role.trim() || undefined,
+        mode: "create",
+      }),
     })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText)))
-      .then(data => setContextualSuggestions(data))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))))
+      .then((data) => setContextualSuggestions(data))
       .catch(() => setContextualSuggestions(null))
       .finally(() => setContextualSuggestionsLoading(false));
   }, [step, tutorialActive, name, description, role]);
 
   // Derive suggestions from current wizard step so we're not dependent on parent's tutorialStep
   const staticStepSuggestions = CREATE_TUTORIAL_STEPS[step - 1]?.prefill ?? {};
-  const effectiveSuggestions = (step >= 2 && contextualSuggestions)
-    ? { ...staticStepSuggestions, ...contextualSuggestions }
-    : staticStepSuggestions;
+  const effectiveSuggestions =
+    step >= 2 && contextualSuggestions
+      ? { ...staticStepSuggestions, ...contextualSuggestions }
+      : staticStepSuggestions;
 
   useEffect(() => {
     if (!prefill?.data) return;
@@ -116,91 +156,133 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
     if (d.description !== undefined) setDescription(d.description);
     if (d.role !== undefined) setRole(d.role);
     if (d.audience !== undefined) setAudience(d.audience);
-    if (d.tone !== undefined) { setTone(d.tone); setToneCustom(''); }
+    if (d.tone !== undefined) {
+      setTone(d.tone);
+      setToneCustom("");
+    }
     if (d.toneCustom !== undefined) setToneCustom(d.toneCustom);
-    if (d.stages !== undefined && Array.isArray(d.stages)) setStages(d.stages.map(s => ({ name: s.name || '', purpose: s.purpose || '' })));
+    if (d.stages !== undefined && Array.isArray(d.stages))
+      setStages(
+        d.stages.map((s) => ({ name: s.name || "", purpose: s.purpose || "" })),
+      );
     if (d.outputRoot !== undefined) setOutputRoot(d.outputRoot);
   }, [prefill]);
 
   const slug = useMemo(() => slugify(name), [name]);
-  const projectPathPreview = name ? `${outputRoot.replace(/\/?$/, '/')}${slug}` : '';
+  const projectPathPreview = name
+    ? `${outputRoot.replace(/\/?$/, "/")}${slug}`
+    : "";
 
-  const handleTutorialSuggestFill = useCallback((fieldKey, currentValue, setValue) => {
-    if (!tutorialActive) return;
-    const suggestions = effectiveSuggestions || {};
-    const suggested = suggestions[fieldKey];
-    if (suggested == null || suggested === '') return;
-    if (fieldKey === 'tone') {
+  const handleTutorialSuggestFill = useCallback(
+    (fieldKey, currentValue, setValue) => {
+      if (!tutorialActive) return;
+      const suggestions = effectiveSuggestions || {};
+      const suggested = suggestions[fieldKey];
+      if (suggested == null || suggested === "") return;
+      if (fieldKey === "tone") {
+        setValue(suggested);
+        setHintField("tone");
+        return;
+      }
+      if (String(currentValue ?? "").trim() !== "") return;
       setValue(suggested);
-      setHintField('tone');
-      return;
-    }
-    if (String(currentValue ?? '').trim() !== '') return;
-    setValue(suggested);
-    setHintField(fieldKey);
-  }, [tutorialActive, effectiveSuggestions]);
+      setHintField(fieldKey);
+    },
+    [tutorialActive, effectiveSuggestions],
+  );
 
-  const handleTutorialClickForNewSuggestion = useCallback((fieldKey) => {
-    if (!tutorialActive) return;
-    const setters = { name: setName, description: setDescription, role: setRole, audience: setAudience, tone: setTone, outputRoot: setOutputRoot };
-    const setValue = setters[fieldKey];
-    if (!setValue) return;
+  const handleTutorialClickForNewSuggestion = useCallback(
+    (fieldKey) => {
+      if (!tutorialActive) return;
+      const setters = {
+        name: setName,
+        description: setDescription,
+        role: setRole,
+        audience: setAudience,
+        tone: setTone,
+        outputRoot: setOutputRoot,
+      };
+      const setValue = setters[fieldKey];
+      if (!setValue) return;
 
-    if (step >= 2 && (fieldKey === 'audience' || fieldKey === 'tone' || fieldKey === 'outputRoot')) {
-      setLoadingSuggestionFor(fieldKey);
-      apiFetch('/api/tutorial-suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), description: description.trim(), role: role.trim() || undefined, mode: 'create' })
-      })
-        .then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText)))
-        .then((data) => {
-          const value = data[fieldKey];
-          if (value != null && value !== '') {
-            setValue(value);
-            setHintField(fieldKey);
-          }
+      if (
+        step >= 2 &&
+        (fieldKey === "audience" ||
+          fieldKey === "tone" ||
+          fieldKey === "outputRoot")
+      ) {
+        setLoadingSuggestionFor(fieldKey);
+        apiFetch("/api/tutorial-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            description: description.trim(),
+            role: role.trim() || undefined,
+            mode: "create",
+          }),
         })
-        .catch(() => {})
-        .finally(() => setLoadingSuggestionFor(null));
-      return;
-    }
+          .then((r) =>
+            r.ok ? r.json() : Promise.reject(new Error(r.statusText)),
+          )
+          .then((data) => {
+            const value = data[fieldKey];
+            if (value != null && value !== "") {
+              setValue(value);
+              setHintField(fieldKey);
+            }
+          })
+          .catch(() => {})
+          .finally(() => setLoadingSuggestionFor(null));
+        return;
+      }
 
-    if (step === 1 && (fieldKey === 'name' || fieldKey === 'description' || fieldKey === 'role')) {
-      const options = STEP1_ALTERNATIVES[fieldKey];
-      if (!options?.length) return;
-      setStep1CycleIndex(prev => {
-        const next = (prev[fieldKey] + 1) % options.length;
-        setValue(options[next]);
-        setHintField(fieldKey);
-        return { ...prev, [fieldKey]: next };
-      });
-    }
-  }, [tutorialActive, step, name, description, role]);
+      if (
+        step === 1 &&
+        (fieldKey === "name" ||
+          fieldKey === "description" ||
+          fieldKey === "role")
+      ) {
+        const options = STEP1_ALTERNATIVES[fieldKey];
+        if (!options?.length) return;
+        setStep1CycleIndex((prev) => {
+          const next = (prev[fieldKey] + 1) % options.length;
+          setValue(options[next]);
+          setHintField(fieldKey);
+          return { ...prev, [fieldKey]: next };
+        });
+      }
+    },
+    [tutorialActive, step, name, description, role],
+  );
 
   const acceptTutorialHint = () => setHintField(null);
 
   const validateStep = () => {
-    if (step === 1 && !name.trim()) return 'Project name is required.';
-    if (step === 2 && tone === 'Custom' && !toneCustom.trim()) return 'Please describe your custom tone.';
+    if (step === 1 && !name.trim()) return "Project name is required.";
+    if (step === 2 && tone === "Custom" && !toneCustom.trim())
+      return "Please describe your custom tone.";
     if (step === 3) {
-      if (stages.length === 0) return 'At least one stage is required.';
-      const names = stages.map(s => s.name.trim().toLowerCase()).filter(Boolean);
-      if (names.length !== stages.length) return 'Each stage needs a name.';
-      if (new Set(names).size !== names.length) return 'Stage names must be unique.';
+      if (stages.length === 0) return "At least one stage is required.";
+      const names = stages
+        .map((s) => s.name.trim().toLowerCase())
+        .filter(Boolean);
+      if (names.length !== stages.length) return "Each stage needs a name.";
+      if (new Set(names).size !== names.length)
+        return "Stage names must be unique.";
     }
-    if (step === 4 && !outputRoot.trim()) return 'Output location is required.';
+    if (step === 4 && !outputRoot.trim()) return "Output location is required.";
     return null;
   };
 
   const handleNext = () => {
     const msg = validateStep();
     setStepError(msg);
-    if (!msg) setStep(s => Math.min(s + 1, STEPS.length));
+    if (!msg) setStep((s) => Math.min(s + 1, STEPS.length));
   };
   const handleBack = () => {
     setStepError(null);
-    setStep(s => Math.max(s - 1, 1));
+    setStep((s) => Math.max(s - 1, 1));
   };
 
   const handleSubmit = async () => {
@@ -208,24 +290,28 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
     setStepError(null);
     setSubmitting(true);
     try {
-      const res = await apiFetch('/api/create-project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await apiFetch("/api/create-project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim() || 'New Project',
-          description: description.trim() || '',
-          role: role.trim() || 'AI assistant for this project',
-          audience: audience.trim() || 'General',
-          tone: tone === 'Custom' ? toneCustom.trim() : tone,
-          stages: stages.map((s, i) => ({ name: s.name, purpose: s.purpose || '', order: i + 1 })),
+          name: name.trim() || "New Project",
+          description: description.trim() || "",
+          role: role.trim() || "AI assistant for this project",
+          audience: audience.trim() || "General",
+          tone: tone === "Custom" ? toneCustom.trim() : tone,
+          stages: stages.map((s, i) => ({
+            name: s.name,
+            purpose: s.purpose || "",
+            order: i + 1,
+          })),
           outputRoot: outputRoot.trim() || defaultOutputRoot,
           overwrite,
-          makerEnabled
-        })
+          makerEnabled,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || data.message || 'Project creation failed');
+        setError(data.error || data.message || "Project creation failed");
         return;
       }
       if (data.success && data.projectPath) {
@@ -233,10 +319,10 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
         onToast?.(`Project created at ${data.projectPath}`);
         onSuccess?.(data.projectPath, data);
       } else {
-        setError(data.error || 'Unknown error');
+        setError(data.error || "Unknown error");
       }
     } catch (err) {
-      setError(err.message || 'Network error');
+      setError(err.message || "Network error");
     } finally {
       setSubmitting(false);
     }
@@ -244,20 +330,46 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
 
   if (result) {
     return (
-      <div className="glass rounded-xl p-6 max-w-2xl mx-auto space-y-4" role="status" aria-live="polite">
-        <h2 className="text-lg font-bold text-green-400">Your project is ready!</h2>
+      <div
+        className="glass rounded-xl p-6 max-w-2xl mx-auto space-y-4"
+        role="status"
+        aria-live="polite"
+      >
+        <h2 className="text-lg font-bold text-green-400">
+          Your project is ready!
+        </h2>
         <p className="text-sm text-slate-300">{result.projectPath}</p>
 
         {/* Action buttons - shown prominently before file list */}
         <div className="flex flex-wrap gap-3 py-2 border-y border-slate-700/30">
           <button
-            onClick={() => onOpenInBuild?.(result.projectPath, result)}
+            onClick={() => onGeneratePRP?.(result.projectPath, result)}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium text-sm transition-colors cursor-pointer shadow-lg shadow-indigo-500/20"
           >
-            🏗️ Open in Build
+            Generate Execution Plan
           </button>
           <button
-            onClick={() => { setResult(null); setStep(1); setForm({ name: '', description: '', outputRoot: defaultOutputRoot, customFields: [] }); }}
+            onClick={() => {
+              setResult(null);
+              setStep(1);
+              setName("");
+              setDescription("");
+              setRole("");
+              setAudience("");
+              setTone("Professional");
+              setToneCustom("");
+              setStages(DEFAULT_STAGES);
+              setOutputRoot(defaultOutputRoot);
+              setError(null);
+              setStepError(null);
+              setMakerEnabled(false);
+              setOverwrite(false);
+              setHintField(null);
+              setContextualSuggestions(null);
+              setContextualSuggestionsLoading(false);
+              setLoadingSuggestionFor(null);
+              setStep1CycleIndex({ name: 0, description: 0, role: 0 });
+            }}
             className="px-5 py-2.5 text-sm text-slate-400 hover:text-white border border-slate-600 hover:bg-slate-700/40 rounded-xl transition-colors cursor-pointer"
           >
             Create Another
@@ -268,24 +380,32 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           {(result.files || []).slice(0, 20).map((f, i) => (
             <li key={i}>{f}</li>
           ))}
-          {(result.files?.length || 0) > 20 && <li>… and {result.files.length - 20} more</li>}
+          {(result.files?.length || 0) > 20 && (
+            <li>… and {result.files.length - 20} more</li>
+          )}
         </ul>
       </div>
     );
   }
 
   return (
-    <div className="glass rounded-xl p-6 max-w-2xl mx-auto" role="form" aria-label="Create project wizard">
+    <div
+      className="glass rounded-xl p-6 max-w-2xl mx-auto"
+      role="form"
+      aria-label="Create project wizard"
+    >
       {/* Step indicator */}
       <div className="flex gap-2 mb-6" aria-label="Progress">
-        {STEPS.map(s => (
+        {STEPS.map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() => setStep(s.id)}
-            aria-current={step === s.id ? 'step' : undefined}
+            aria-current={step === s.id ? "step" : undefined}
             className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-              step === s.id ? 'bg-indigo-600/40 text-indigo-200' : 'bg-slate-700/50 text-slate-500 hover:text-slate-300'
+              step === s.id
+                ? "bg-indigo-600/40 text-indigo-200"
+                : "bg-slate-700/50 text-slate-500 hover:text-slate-300"
             }`}
           >
             {s.id}. {s.title}
@@ -294,12 +414,18 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm" role="alert">
+        <div
+          className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
+          role="alert"
+        >
           {error}
         </div>
       )}
       {stepError && (
-        <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm" role="alert">
+        <div
+          className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm"
+          role="alert"
+        >
           {stepError}
         </div>
       )}
@@ -307,85 +433,139 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       {/* Step 1: Project Info */}
       {step === 1 && (
         <div className="space-y-4" aria-labelledby="step1-heading">
-          <h3 id="step1-heading" className="text-sm font-semibold text-slate-200">Project Info</h3>
+          <h3
+            id="step1-heading"
+            className="text-sm font-semibold text-slate-200"
+          >
+            Project Info
+          </h3>
           <div>
-            <label htmlFor="create-name" className="block text-xs text-slate-400 mb-1">Project name</label>
+            <label
+              htmlFor="create-name"
+              className="block text-xs text-slate-400 mb-1"
+            >
+              Project name
+            </label>
             <div className="flex gap-2 items-start">
               <input
                 id="create-name"
                 type="text"
                 value={name}
-                onChange={e => setName(e.target.value)}
-                onFocus={() => handleTutorialSuggestFill('name', name, setName)}
-                onClick={() => handleTutorialSuggestFill('name', name, setName)}
-                onDoubleClick={() => handleTutorialClickForNewSuggestion('name')}
+                onChange={(e) => setName(e.target.value)}
+                onFocus={() => handleTutorialSuggestFill("name", name, setName)}
+                onClick={() => handleTutorialSuggestFill("name", name, setName)}
+                onDoubleClick={() =>
+                  handleTutorialClickForNewSuggestion("name")
+                }
                 onContextMenu={acceptTutorialHint}
                 placeholder="My Blog Assistant"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 autoFocus
               />
-              <DictateButton onResult={text => setName(prev => joinAppend(prev, text))} />
+              <DictateButton
+                onResult={(text) => setName((prev) => joinAppend(prev, text))}
+              />
             </div>
-            {hintField === 'name' && (
+            {hintField === "name" && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
                 {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
               </p>
             )}
-            {loadingSuggestionFor === 'name' && (
-              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            {loadingSuggestionFor === "name" && (
+              <p className="mt-1 text-xs text-slate-400" role="status">
+                Getting new suggestion…
+              </p>
             )}
-            {name && <p className="mt-1 text-xs text-slate-500">Slug: {slug}</p>}
+            {name && (
+              <p className="mt-1 text-xs text-slate-500">Slug: {slug}</p>
+            )}
           </div>
           <div>
-            <label htmlFor="create-desc" className="block text-xs text-slate-400 mb-1">Description</label>
+            <label
+              htmlFor="create-desc"
+              className="block text-xs text-slate-400 mb-1"
+            >
+              Description
+            </label>
             <div className="flex gap-2 items-start">
               <textarea
                 id="create-desc"
                 value={description}
-                onChange={e => setDescription(e.target.value)}
-                onFocus={() => handleTutorialSuggestFill('description', description, setDescription)}
-                onClick={() => handleTutorialSuggestFill('description', description, setDescription)}
-                onDoubleClick={() => handleTutorialClickForNewSuggestion('description')}
+                onChange={(e) => setDescription(e.target.value)}
+                onFocus={() =>
+                  handleTutorialSuggestFill(
+                    "description",
+                    description,
+                    setDescription,
+                  )
+                }
+                onClick={() =>
+                  handleTutorialSuggestFill(
+                    "description",
+                    description,
+                    setDescription,
+                  )
+                }
+                onDoubleClick={() =>
+                  handleTutorialClickForNewSuggestion("description")
+                }
                 onContextMenu={acceptTutorialHint}
                 placeholder="What is this project for?"
                 rows={2}
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm resize-none"
               />
-              <DictateButton onResult={text => setDescription(prev => joinAppend(prev, text))} />
+              <DictateButton
+                onResult={(text) =>
+                  setDescription((prev) => joinAppend(prev, text))
+                }
+              />
             </div>
-            {hintField === 'description' && (
+            {hintField === "description" && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
                 {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
               </p>
             )}
-            {loadingSuggestionFor === 'description' && (
-              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            {loadingSuggestionFor === "description" && (
+              <p className="mt-1 text-xs text-slate-400" role="status">
+                Getting new suggestion…
+              </p>
             )}
           </div>
           <div>
-            <label htmlFor="create-role" className="block text-xs text-slate-400 mb-1">AI role</label>
+            <label
+              htmlFor="create-role"
+              className="block text-xs text-slate-400 mb-1"
+            >
+              AI role
+            </label>
             <div className="flex gap-2 items-start">
               <input
                 id="create-role"
                 type="text"
                 value={role}
-                onChange={e => setRole(e.target.value)}
-                onFocus={() => handleTutorialSuggestFill('role', role, setRole)}
-                onClick={() => handleTutorialSuggestFill('role', role, setRole)}
-                onDoubleClick={() => handleTutorialClickForNewSuggestion('role')}
+                onChange={(e) => setRole(e.target.value)}
+                onFocus={() => handleTutorialSuggestFill("role", role, setRole)}
+                onClick={() => handleTutorialSuggestFill("role", role, setRole)}
+                onDoubleClick={() =>
+                  handleTutorialClickForNewSuggestion("role")
+                }
                 onContextMenu={acceptTutorialHint}
                 placeholder="e.g. content writing assistant, research analyst"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setRole(prev => joinAppend(prev, text))} />
+              <DictateButton
+                onResult={(text) => setRole((prev) => joinAppend(prev, text))}
+              />
             </div>
-            {hintField === 'role' && (
+            {hintField === "role" && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
                 {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
               </p>
             )}
-            {loadingSuggestionFor === 'role' && (
-              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            {loadingSuggestionFor === "role" && (
+              <p className="mt-1 text-xs text-slate-400" role="status">
+                Getting new suggestion…
+              </p>
             )}
           </div>
         </div>
@@ -394,67 +574,102 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       {/* Step 2: Audience & Tone */}
       {step === 2 && (
         <div className="space-y-4" aria-labelledby="step2-heading">
-          <h3 id="step2-heading" className="text-sm font-semibold text-slate-200">Audience & Tone</h3>
+          <h3
+            id="step2-heading"
+            className="text-sm font-semibold text-slate-200"
+          >
+            Audience & Tone
+          </h3>
           <div>
-            <label htmlFor="create-audience" className="block text-xs text-slate-400 mb-1">Target audience</label>
+            <label
+              htmlFor="create-audience"
+              className="block text-xs text-slate-400 mb-1"
+            >
+              Target audience
+            </label>
             <div className="flex gap-2 items-start">
               <input
                 id="create-audience"
                 type="text"
                 value={audience}
-                onChange={e => setAudience(e.target.value)}
-                onFocus={() => handleTutorialSuggestFill('audience', audience, setAudience)}
-                onClick={() => handleTutorialSuggestFill('audience', audience, setAudience)}
-                onDoubleClick={() => handleTutorialClickForNewSuggestion('audience')}
+                onChange={(e) => setAudience(e.target.value)}
+                onFocus={() =>
+                  handleTutorialSuggestFill("audience", audience, setAudience)
+                }
+                onClick={() =>
+                  handleTutorialSuggestFill("audience", audience, setAudience)
+                }
+                onDoubleClick={() =>
+                  handleTutorialClickForNewSuggestion("audience")
+                }
                 onContextMenu={acceptTutorialHint}
                 placeholder="Who will use the output?"
                 className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setAudience(prev => joinAppend(prev, text))} />
+              <DictateButton
+                onResult={(text) =>
+                  setAudience((prev) => joinAppend(prev, text))
+                }
+              />
             </div>
-            {hintField === 'audience' && (
+            {hintField === "audience" && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
                 {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
               </p>
             )}
-            {loadingSuggestionFor === 'audience' && (
-              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            {loadingSuggestionFor === "audience" && (
+              <p className="mt-1 text-xs text-slate-400" role="status">
+                Getting new suggestion…
+              </p>
             )}
           </div>
           <div>
-            <label htmlFor="create-tone" className="block text-xs text-slate-400 mb-1">Tone</label>
+            <label
+              htmlFor="create-tone"
+              className="block text-xs text-slate-400 mb-1"
+            >
+              Tone
+            </label>
             <select
               id="create-tone"
               value={tone}
-              onChange={e => setTone(e.target.value)}
-              onFocus={() => handleTutorialSuggestFill('tone', tone, setTone)}
-              onClick={() => handleTutorialSuggestFill('tone', tone, setTone)}
-              onDoubleClick={() => handleTutorialClickForNewSuggestion('tone')}
+              onChange={(e) => setTone(e.target.value)}
+              onFocus={() => handleTutorialSuggestFill("tone", tone, setTone)}
+              onClick={() => handleTutorialSuggestFill("tone", tone, setTone)}
+              onDoubleClick={() => handleTutorialClickForNewSuggestion("tone")}
               onContextMenu={acceptTutorialHint}
               className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
             >
-              {TONE_OPTIONS.map(t => (
-                <option key={t} value={t}>{t}</option>
+              {TONE_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
-            {hintField === 'tone' && (
+            {hintField === "tone" && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
                 {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
               </p>
             )}
-            {loadingSuggestionFor === 'tone' && (
-              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            {loadingSuggestionFor === "tone" && (
+              <p className="mt-1 text-xs text-slate-400" role="status">
+                Getting new suggestion…
+              </p>
             )}
-            {tone === 'Custom' && (
+            {tone === "Custom" && (
               <div className="flex gap-2 items-start mt-2">
                 <input
                   type="text"
                   value={toneCustom}
-                  onChange={e => setToneCustom(e.target.value)}
+                  onChange={(e) => setToneCustom(e.target.value)}
                   placeholder="Describe tone"
                   className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-4 py-2.5 text-sm"
                 />
-                <DictateButton onResult={text => setToneCustom(prev => joinAppend(prev, text))} />
+                <DictateButton
+                  onResult={(text) =>
+                    setToneCustom((prev) => joinAppend(prev, text))
+                  }
+                />
               </div>
             )}
           </div>
@@ -464,28 +679,57 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       {/* Step 3: Stages */}
       {step === 3 && (
         <div className="space-y-4" aria-labelledby="step3-heading">
-          <h3 id="step3-heading" className="text-sm font-semibold text-slate-200">Stages</h3>
-          <p className="text-xs text-slate-500">Make these your own — rename stages or tweak purposes to match how you work.</p>
+          <h3
+            id="step3-heading"
+            className="text-sm font-semibold text-slate-200"
+          >
+            Stages
+          </h3>
+          <p className="text-xs text-slate-500">
+            Make these your own — rename stages or tweak purposes to match how
+            you work.
+          </p>
           <div className="space-y-2">
             {stages.map((s, i) => (
-              <div key={i} className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/40">
+              <div
+                key={i}
+                className="p-3 rounded-lg bg-slate-800/40 border border-slate-700/40"
+              >
                 <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="font-mono text-indigo-400 text-xs shrink-0">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="font-mono text-indigo-400 text-xs shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <div className="flex flex-1 min-w-0 gap-2 items-start">
                     <input
                       type="text"
                       value={s.name}
-                      onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, name: e.target.value } : row))}
+                      onChange={(e) =>
+                        setStages((prev) =>
+                          prev.map((row, idx) =>
+                            idx === i ? { ...row, name: e.target.value } : row,
+                          ),
+                        )
+                      }
                       className="flex-1 min-w-0 input-glow text-slate-100 rounded-lg px-3 py-1.5 text-sm"
                       placeholder="Stage name"
                     />
                     <DictateButton
-                      onResult={text => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, name: joinAppend(row.name, text) } : row))}
+                      onResult={(text) =>
+                        setStages((prev) =>
+                          prev.map((row, idx) =>
+                            idx === i
+                              ? { ...row, name: joinAppend(row.name, text) }
+                              : row,
+                          ),
+                        )
+                      }
                     />
                   </div>
                   <button
                     type="button"
-                    onClick={() => setStages(prev => prev.filter((_, idx) => idx !== i))}
+                    onClick={() =>
+                      setStages((prev) => prev.filter((_, idx) => idx !== i))
+                    }
                     disabled={stages.length <= 1}
                     className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-300 disabled:opacity-50 shrink-0"
                   >
@@ -496,12 +740,26 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
                   <input
                     type="text"
                     value={s.purpose}
-                    onChange={e => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, purpose: e.target.value } : row))}
+                    onChange={(e) =>
+                      setStages((prev) =>
+                        prev.map((row, idx) =>
+                          idx === i ? { ...row, purpose: e.target.value } : row,
+                        ),
+                      )
+                    }
                     className="flex-1 min-w-0 input-glow text-slate-300 rounded-lg px-3 py-1.5 text-xs"
                     placeholder="Stage purpose"
                   />
                   <DictateButton
-                    onResult={text => setStages(prev => prev.map((row, idx) => idx === i ? { ...row, purpose: joinAppend(row.purpose, text) } : row))}
+                    onResult={(text) =>
+                      setStages((prev) =>
+                        prev.map((row, idx) =>
+                          idx === i
+                            ? { ...row, purpose: joinAppend(row.purpose, text) }
+                            : row,
+                        ),
+                      )
+                    }
                   />
                 </div>
               </div>
@@ -509,7 +767,15 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           </div>
           <button
             type="button"
-            onClick={() => setStages(prev => [...prev, { name: `Stage ${prev.length + 1}`, purpose: 'Define stage purpose' }])}
+            onClick={() =>
+              setStages((prev) => [
+                ...prev,
+                {
+                  name: `Stage ${prev.length + 1}`,
+                  purpose: "Define stage purpose",
+                },
+              ])
+            }
             className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30"
           >
             + Add Stage
@@ -521,13 +787,17 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
               <input
                 type="checkbox"
                 checked={makerEnabled}
-                onChange={e => setMakerEnabled(e.target.checked)}
+                onChange={(e) => setMakerEnabled(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500/30"
               />
               <div>
-                <span className="text-sm text-slate-200 font-medium">Enable MAKER Framework</span>
+                <span className="text-sm text-slate-200 font-medium">
+                  Enable MAKER Framework
+                </span>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Zero-error methodology — decomposes each stage into verified subtasks with red-flag detection. Best for complex, multi-step projects.
+                  Zero-error methodology — decomposes each stage into verified
+                  subtasks with red-flag detection. Best for complex, multi-step
+                  projects.
                 </p>
               </div>
             </label>
@@ -538,36 +808,67 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       {/* Step 4: Output Location */}
       {step === 4 && (
         <div className="space-y-4" aria-labelledby="step4-heading">
-          <h3 id="step4-heading" className="text-sm font-semibold text-slate-200">Output Location</h3>
+          <h3
+            id="step4-heading"
+            className="text-sm font-semibold text-slate-200"
+          >
+            Output Location
+          </h3>
           <div>
-            <label htmlFor="create-output" className="block text-xs text-slate-400 mb-1">Parent folder (project will be created inside)</label>
+            <label
+              htmlFor="create-output"
+              className="block text-xs text-slate-400 mb-1"
+            >
+              Parent folder (project will be created inside)
+            </label>
             <div className="flex gap-2 items-start">
               <input
                 id="create-output"
                 type="text"
                 value={outputRoot}
-                onChange={e => setOutputRoot(e.target.value)}
-                onFocus={() => handleTutorialSuggestFill('outputRoot', outputRoot, setOutputRoot)}
-                onClick={() => handleTutorialSuggestFill('outputRoot', outputRoot, setOutputRoot)}
-                onDoubleClick={() => handleTutorialClickForNewSuggestion('outputRoot')}
+                onChange={(e) => setOutputRoot(e.target.value)}
+                onFocus={() =>
+                  handleTutorialSuggestFill(
+                    "outputRoot",
+                    outputRoot,
+                    setOutputRoot,
+                  )
+                }
+                onClick={() =>
+                  handleTutorialSuggestFill(
+                    "outputRoot",
+                    outputRoot,
+                    setOutputRoot,
+                  )
+                }
+                onDoubleClick={() =>
+                  handleTutorialClickForNewSuggestion("outputRoot")
+                }
                 onContextMenu={acceptTutorialHint}
                 placeholder="~/AI_Dev/"
                 className="flex-1 min-w-0 input-glow text-slate-100 font-mono rounded-lg px-4 py-2.5 text-sm"
               />
-              <DictateButton onResult={text => setOutputRoot(prev => joinAppend(prev, text))} />
+              <DictateButton
+                onResult={(text) =>
+                  setOutputRoot((prev) => joinAppend(prev, text))
+                }
+              />
             </div>
-            {hintField === 'outputRoot' && (
+            {hintField === "outputRoot" && (
               <p className="mt-1 text-xs text-amber-400/90" role="status">
                 {TUTORIAL_HINT} {TUTORIAL_CLICK_HINT}
               </p>
             )}
-            {loadingSuggestionFor === 'outputRoot' && (
-              <p className="mt-1 text-xs text-slate-400" role="status">Getting new suggestion…</p>
+            {loadingSuggestionFor === "outputRoot" && (
+              <p className="mt-1 text-xs text-slate-400" role="status">
+                Getting new suggestion…
+              </p>
             )}
           </div>
           {name && (
             <div className="p-3 rounded-lg bg-slate-800/50 text-xs text-slate-400 font-mono">
-              Project will be created at:<br />
+              Project will be created at:
+              <br />
               <span className="text-indigo-300">{projectPathPreview}</span>
             </div>
           )}
@@ -575,7 +876,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
             <input
               type="checkbox"
               checked={overwrite}
-              onChange={e => setOverwrite(e.target.checked)}
+              onChange={(e) => setOverwrite(e.target.checked)}
               className="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-indigo-500/40"
             />
             Overwrite if project already exists
@@ -586,17 +887,59 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
       {/* Step 5: Review & Create */}
       {step === 5 && (
         <div className="space-y-4" aria-labelledby="step5-heading">
-          <h3 id="step5-heading" className="text-sm font-semibold text-slate-200">Review & Create</h3>
+          <h3
+            id="step5-heading"
+            className="text-sm font-semibold text-slate-200"
+          >
+            Review & Create
+          </h3>
           <dl className="grid grid-cols-1 gap-2 text-sm">
-            <div><dt className="text-slate-500">Name</dt><dd className="text-slate-200">{name || '—'}</dd></div>
-            <div><dt className="text-slate-500">Slug</dt><dd className="font-mono text-indigo-300">{slug}</dd></div>
-            <div><dt className="text-slate-500">Description</dt><dd className="text-slate-300">{description || '—'}</dd></div>
-            <div><dt className="text-slate-500">Role</dt><dd className="text-slate-300">{role || '—'}</dd></div>
-            <div><dt className="text-slate-500">Audience</dt><dd className="text-slate-300">{audience || '—'}</dd></div>
-            <div><dt className="text-slate-500">Tone</dt><dd className="text-slate-300">{tone === 'Custom' ? toneCustom : tone}</dd></div>
-            <div><dt className="text-slate-500">MAKER</dt><dd className={makerEnabled ? 'text-green-400' : 'text-slate-500'}>{makerEnabled ? 'Enabled — zero-error methodology' : 'Off'}</dd></div>
-            <div><dt className="text-slate-500">Path</dt><dd className="font-mono text-slate-300 break-all">{projectPathPreview || '—'}</dd></div>
-            <div><dt className="text-slate-500">Overwrite</dt><dd className={overwrite ? 'text-amber-400' : 'text-slate-500'}>{overwrite ? 'Yes — will replace existing folder' : 'No'}</dd></div>
+            <div>
+              <dt className="text-slate-500">Name</dt>
+              <dd className="text-slate-200">{name || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Slug</dt>
+              <dd className="font-mono text-indigo-300">{slug}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Description</dt>
+              <dd className="text-slate-300">{description || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Role</dt>
+              <dd className="text-slate-300">{role || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Audience</dt>
+              <dd className="text-slate-300">{audience || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Tone</dt>
+              <dd className="text-slate-300">
+                {tone === "Custom" ? toneCustom : tone}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">MAKER</dt>
+              <dd
+                className={makerEnabled ? "text-green-400" : "text-slate-500"}
+              >
+                {makerEnabled ? "Enabled — zero-error methodology" : "Off"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Path</dt>
+              <dd className="font-mono text-slate-300 break-all">
+                {projectPathPreview || "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Overwrite</dt>
+              <dd className={overwrite ? "text-amber-400" : "text-slate-500"}>
+                {overwrite ? "Yes — will replace existing folder" : "No"}
+              </dd>
+            </div>
           </dl>
         </div>
       )}
@@ -612,7 +955,11 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
           Back
         </button>
         {step < STEPS.length ? (
-          <button type="button" onClick={handleNext} className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium">
+          <button
+            type="button"
+            onClick={handleNext}
+            className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium"
+          >
             Next
           </button>
         ) : (
@@ -622,7 +969,7 @@ export default function CreateWizard({ defaultOutputRoot = '~/AI_Dev/', onSucces
             disabled={submitting}
             className="px-4 py-2 btn-neon text-white rounded-lg text-sm font-medium disabled:opacity-50"
           >
-            {submitting ? 'Creating…' : 'Create Project'}
+            {submitting ? "Creating…" : "Create Project"}
           </button>
         )}
       </div>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Shield } from 'lucide-react';
+import { useState } from "react";
+import { Shield } from "lucide-react";
 
-const STORAGE_KEY = 'th3rdai_privacy_banner_dismissed';
+const STORAGE_KEY = "th3rdai_privacy_banner_dismissed";
 
 /**
  * Compact privacy reassurance banner shown at the bottom of the app.
@@ -10,7 +10,7 @@ const STORAGE_KEY = 'th3rdai_privacy_banner_dismissed';
  */
 export function isPrivacyBannerDismissed() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    return localStorage.getItem(STORAGE_KEY) === "true";
   } catch {
     return false;
   }
@@ -29,18 +29,22 @@ export default function PrivacyBanner() {
 
   function handleDismiss() {
     try {
-      localStorage.setItem(STORAGE_KEY, 'true');
+      localStorage.setItem(STORAGE_KEY, "true");
     } catch {}
     setDismissed(true);
   }
 
   return (
-    <div className="glass border-t border-indigo-500/20 px-4 py-2.5 flex items-center gap-3 fade-in" role="status">
+    <div
+      className="glass border-t border-indigo-500/20 px-4 py-2.5 flex items-center gap-3 fade-in"
+      role="status"
+    >
       <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />
       <p className="flex-1 text-xs text-slate-400">
-        <strong className="text-slate-300">100% private.</strong>{' '}
-        Your code and conversations stay on your machine — nothing is sent to the cloud.
-        AI runs locally through Ollama. No tracking, no accounts, no data collection.
+        <strong className="text-slate-300">100% private.</strong> Your code and
+        conversations stay on your machine — nothing is sent to the cloud. AI
+        runs locally through Ollama. No tracking, no accounts, no data
+        collection.
       </p>
       <button
         type="button"

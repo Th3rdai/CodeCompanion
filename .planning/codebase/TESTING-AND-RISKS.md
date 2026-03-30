@@ -4,11 +4,11 @@
 
 ## Test commands (`package.json`)
 
-| Command | Scope |
-|---------|--------|
-| `npm test` | Full Playwright (default config) |
-| `npm run test:ui` | `tests/ui` — Chromium project |
-| `npm run test:e2e` | `tests/e2e` — Chromium project |
+| Command             | Scope                                                                                                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`          | Full Playwright (default config)                                                                                                                                             |
+| `npm run test:ui`   | `tests/ui` — Chromium project                                                                                                                                                |
+| `npm run test:e2e`  | `tests/e2e` — Chromium project                                                                                                                                               |
 | `npm run test:unit` | Node built-in test runner: `tests/unit/*.test.js`, plus `tests/rate-limit.test.js`, `tests/mcp-security.test.js`, `tests/tone-validation.test.js`, `tests/ui-labels.test.js` |
 
 ## `tests/unit/`
@@ -21,7 +21,7 @@ Browser tests for **onboarding** (`onboarding.spec.js`, `OnboardingWizard.spec.j
 
 ## `tests/e2e/`
 
-Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`, `create-mode.spec.js`, and others. **Stability:** specs that `reload()` then wait for `/api/models` must register `waitForResponse` *before* `reload()` (see `.planning/codebase/TESTING.md`).
+Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`, `create-mode.spec.js`, and others. **Stability:** specs that `reload()` then wait for `/api/models` must register `waitForResponse` _before_ `reload()` (see `.planning/codebase/TESTING.md`).
 
 ## Other tests (repo root `tests/`)
 
@@ -30,14 +30,14 @@ Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`, `create-mode.s
 
 ## Complexity & coupling hotspots
 
-| Area | Why it matters | Paths |
-|------|----------------|--------|
-| **Monolithic server** | Single `server.js` (~3.2k lines) holds most HTTP routes, chat loop, static, MCP HTTP — harder to navigate and test in isolation | `server.js` |
-| **Large SPA root** | `src/App.jsx` (~1.9k lines) centralizes state, modes, chat, wizards — high change conflict risk | `src/App.jsx` |
-| **Electron vs web** | Branching on `window.electronAPI`, different data paths and updates — features must be verified in both shells | `src/App.jsx`, `electron/main.js`, `electron/preload.js` |
-| **Dual chat paths** | Tool-enabled chat uses complete + fake stream; tool-free uses real SSE — regressions easy if only one path tested | `server.js` `/api/chat` |
-| **MCP transport matrix** | stdio/http/sse + fallback behavior — integration-heavy | `lib/mcp-client-manager.js` |
-| **Security-sensitive agent terminal** | Allowlist/blocklist mistakes have real impact | `lib/builtin-agent-tools.js` |
+| Area                                  | Why it matters                                                                                                                  | Paths                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Monolithic server**                 | Single `server.js` (~3.2k lines) holds most HTTP routes, chat loop, static, MCP HTTP — harder to navigate and test in isolation | `server.js`                                              |
+| **Large SPA root**                    | `src/App.jsx` (~1.9k lines) centralizes state, modes, chat, wizards — high change conflict risk                                 | `src/App.jsx`                                            |
+| **Electron vs web**                   | Branching on `window.electronAPI`, different data paths and updates — features must be verified in both shells                  | `src/App.jsx`, `electron/main.js`, `electron/preload.js` |
+| **Dual chat paths**                   | Tool-enabled chat uses complete + fake stream; tool-free uses real SSE — regressions easy if only one path tested               | `server.js` `/api/chat`                                  |
+| **MCP transport matrix**              | stdio/http/sse + fallback behavior — integration-heavy                                                                          | `lib/mcp-client-manager.js`                              |
+| **Security-sensitive agent terminal** | Allowlist/blocklist mistakes have real impact                                                                                   | `lib/builtin-agent-tools.js`                             |
 
 ## Dependency / ops notes
 
@@ -46,4 +46,4 @@ Broader flows: `review-workflow.spec.js`, `image-upload.spec.js`, `create-mode.s
 
 ---
 
-*Testing & risks: 2025-03-21; E2E stability cross-ref: 2026-03-28*
+_Testing & risks: 2025-03-21; E2E stability cross-ref: 2026-03-28_

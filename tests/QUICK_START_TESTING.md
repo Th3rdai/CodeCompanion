@@ -105,6 +105,7 @@ code tests/TESTING_SESSION_TRACKER.md
 **THIS IS THE #1 BLOCKER - MUST PASS**
 
 ### Steps:
+
 1. Upload `photo.jpg` (with GPS EXIF) to chat
 2. Send message to llava model
 3. **Wait for response**
@@ -133,6 +134,7 @@ exiftool downloaded_image.jpg
 ```
 
 ### Results:
+
 - ✅ **PASS**: No GPS/Date/Camera info → Safe to release
 - ❌ **FAIL**: Any EXIF data present → **BLOCKER - DO NOT RELEASE**
 
@@ -140,17 +142,17 @@ exiftool downloaded_image.jpg
 
 ## 📋 Testing Phases Overview
 
-| Phase | Focus | Est. Time | Priority |
-|-------|-------|-----------|----------|
-| **Phase 1** | File Formats | 30 min | High |
-| **Phase 2** | Upload Methods | 20 min | High |
-| **Phase 3** | UI/UX | 20 min | Medium |
-| **Phase 4** | Vision Models | 20 min | Critical |
-| **Phase 5** | Mode Integration | 30 min | High |
-| **Phase 6** | Security | 30 min | **CRITICAL** |
-| **Phase 7** | Performance | 20 min | Medium |
-| **Phase 8** | Error Handling | 20 min | High |
-| **Phase 9** | Settings | 20 min | Medium |
+| Phase       | Focus            | Est. Time | Priority     |
+| ----------- | ---------------- | --------- | ------------ |
+| **Phase 1** | File Formats     | 30 min    | High         |
+| **Phase 2** | Upload Methods   | 20 min    | High         |
+| **Phase 3** | UI/UX            | 20 min    | Medium       |
+| **Phase 4** | Vision Models    | 20 min    | Critical     |
+| **Phase 5** | Mode Integration | 30 min    | High         |
+| **Phase 6** | Security         | 30 min    | **CRITICAL** |
+| **Phase 7** | Performance      | 20 min    | Medium       |
+| **Phase 8** | Error Handling   | 20 min    | High         |
+| **Phase 9** | Settings         | 20 min    | Medium       |
 
 **Total**: ~3 hours
 
@@ -159,17 +161,20 @@ exiftool downloaded_image.jpg
 ## 💡 Testing Tips
 
 ### General
+
 - **Keep DevTools console open** - watch for errors
 - **Test in order** - each phase builds on previous
 - **Take screenshots** - of bugs for documentation
 - **Record actual times** - helps improve estimates
 
 ### Browser
+
 - **Use Chrome** for primary testing
 - **Test Firefox** if time permits (cross-browser)
 - **Clear cache** between major test groups (Cmd+Shift+Del)
 
 ### When You Find a Bug
+
 1. Note the exact steps to reproduce
 2. Add to Bugs Found table in tracker
 3. Assign severity (Critical/High/Medium/Low)
@@ -177,6 +182,7 @@ exiftool downloaded_image.jpg
 5. Continue testing (don't stop for non-blockers)
 
 ### Performance Tests
+
 - **Close other apps** - free up memory
 - **Use Activity Monitor** (macOS) or Task Manager (Windows)
 - **Record actual times** - note if slower than expected
@@ -186,12 +192,14 @@ exiftool downloaded_image.jpg
 ## ✅ After Testing
 
 ### Complete the Summary
+
 1. Count total passed/failed phases
 2. List all critical bugs
 3. Make recommendation (PASS/FAIL/PARTIAL)
 4. Sign off in tracker
 
 ### Report Results
+
 ```bash
 # View your completed tracker
 cat tests/TESTING_SESSION_TRACKER.md
@@ -203,16 +211,19 @@ cat tests/TESTING_SESSION_TRACKER.md
 ### Next Steps Based on Results
 
 **If ALL CRITICAL TESTS PASS**:
+
 - ✅ Ready for production release
 - Create release tag: `git tag v1.5.0`
 - Update announcement docs
 
 **If MINOR BUGS FOUND**:
+
 - ✅ Ready for beta release
 - Document known issues
 - Plan fixes for v1.5.2
 
 **If CRITICAL BUGS FOUND**:
+
 - ❌ Cannot release
 - Fix blockers first
 - Re-test critical areas
@@ -225,28 +236,33 @@ cat tests/TESTING_SESSION_TRACKER.md
 ### Common Issues
 
 **"Can't upload image"**
+
 - Check console for errors
 - Verify file format (PNG/JPEG/GIF only)
 - Verify size (<25MB default)
 - Try a different image
 
 **"Lightbox won't open"**
+
 - Check console for JavaScript errors
 - Try refreshing page
 - Verify thumbnail rendered correctly
 
 **"Vision model warning doesn't appear"**
+
 - Verify image actually attached (check thumbnails)
 - Verify model is non-vision (llama3.2, not llava)
 - Try switching model then back
 
 **"EXIF test failed - data still present"**
+
 - 🚨 **THIS IS A BLOCKER**
 - Verify you downloaded the RIGHT image (from chat, not original)
 - Re-test with fresh upload
 - If still fails → DO NOT RELEASE, investigate code
 
 ### Reference Documents
+
 - **Full Checklist**: `tests/IMAGE_TESTING_CHECKLIST.md` (150 tests)
 - **Manual Guide**: `tests/MANUAL_TESTING_GUIDE.md` (detailed instructions)
 - **Code Verification**: `tests/TEST_VERIFICATION_REPORT.md` (implementation review)

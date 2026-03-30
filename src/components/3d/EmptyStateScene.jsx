@@ -1,5 +1,5 @@
-import SplineScene from './SplineScene';
-import Spline3DError from './Spline3DError';
+import SplineScene from "./SplineScene";
+import Spline3DError from "./Spline3DError";
 
 /**
  * Enhanced empty state with optional 3D Spline scene.
@@ -22,34 +22,34 @@ export default function EmptyStateScene({
   selectedModel,
   onSettingsClick,
 }) {
-  const sceneUrl = import.meta.env.VITE_SPLINE_EMPTY_STATE_SCENE || '';
+  const sceneUrl = import.meta.env.VITE_SPLINE_EMPTY_STATE_SCENE || "";
   const hasScene = Boolean(sceneUrl);
 
   // "Try:" suggestion cards based on current mode
   const suggestions = {
     chat: [
       'Explain "microservices" like I\'m five',
-      'Help me get ready for sprint planning',
+      "Help me get ready for sprint planning",
     ],
     explain: [
-      'Paste a function — I\'ll walk you through it',
-      'Drop an API endpoint and I\'ll break it down',
+      "Paste a function — I'll walk you through it",
+      "Drop an API endpoint and I'll break it down",
     ],
     bugs: [
-      'Paste your team\'s code — let\'s check it together',
-      'Let\'s do a quick security check before launch',
+      "Paste your team's code — let's check it together",
+      "Let's do a quick security check before launch",
     ],
     refactor: [
-      'Got messy code? Let me help tidy it up',
-      'Paste something old — I\'ll modernize it for you',
+      "Got messy code? Let me help tidy it up",
+      "Paste something old — I'll modernize it for you",
     ],
-    'translate-tech': [
-      'Paste a PR and I\'ll make it stakeholder-friendly',
-      'Drop a technical spec — I\'ll translate it to plain English',
+    "translate-tech": [
+      "Paste a PR and I'll make it stakeholder-friendly",
+      "Drop a technical spec — I'll translate it to plain English",
     ],
-    'translate-biz': [
-      'Describe a feature idea — I\'ll draft the specs',
-      'Tell me what users want — I\'ll write the tech requirements',
+    "translate-biz": [
+      "Describe a feature idea — I'll draft the specs",
+      "Tell me what users want — I'll write the tech requirements",
     ],
   };
 
@@ -59,9 +59,7 @@ export default function EmptyStateScene({
     <div className="h-full flex items-center justify-center">
       <div
         className={`flex items-center gap-6 w-full max-w-6xl px-6 ${
-          hasScene
-            ? 'flex-col md:flex-row'
-            : 'flex-col'
+          hasScene ? "flex-col md:flex-row" : "flex-col"
         }`}
       >
         {/* 3D Scene (left side / top on mobile) */}
@@ -76,11 +74,11 @@ export default function EmptyStateScene({
         {/* Text content (right side / bottom on mobile) */}
         <div
           className={`text-center fade-in ${
-            hasScene ? 'w-full md:w-1/2 md:text-left' : 'max-w-md'
+            hasScene ? "w-full md:w-1/2 md:text-left" : "max-w-md"
           }`}
         >
           {/* Mode icon */}
-          <div className={`text-5xl mb-4 ${hasScene ? 'md:text-4xl' : ''}`}>
+          <div className={`text-5xl mb-4 ${hasScene ? "md:text-4xl" : ""}`}>
             {currentMode?.icon}
           </div>
 
@@ -96,9 +94,9 @@ export default function EmptyStateScene({
               className={`inline-flex items-center gap-2 glass rounded-lg px-3 py-1.5 text-xs text-slate-400 mb-6`}
             >
               <div className="w-2 h-2 bg-green-400 rounded-full" />
-              Using{' '}
+              Using{" "}
               <strong className="text-indigo-400">
-                {selectedModel.split(':')[0]}
+                {selectedModel.split(":")[0]}
               </strong>
             </div>
           )}
@@ -116,7 +114,7 @@ export default function EmptyStateScene({
           {/* "Try:" suggestion cards */}
           <div
             className={`grid grid-cols-1 sm:grid-cols-2 gap-2 text-left text-xs ${
-              hasScene ? 'md:grid-cols-1 lg:grid-cols-2' : ''
+              hasScene ? "md:grid-cols-1 lg:grid-cols-2" : ""
             }`}
           >
             {trySuggestions.map((suggestion, i) => (

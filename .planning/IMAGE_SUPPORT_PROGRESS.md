@@ -6,6 +6,7 @@
 ## ✅ COMPLETED
 
 ### Phase 0: Foundation & Utilities ✅ COMPLETE
+
 **Completed by**: Session 1 (2026-03-17)
 **Documentation**: `.planning/phase0.md`
 
@@ -21,13 +22,16 @@
 ## 🚧 IN PROGRESS - PARALLEL WORK STREAMS
 
 ### STREAM A: Backend Integration (Phases 1)
+
 **Assigned to**: Session A
 **Files to modify**:
+
 - `lib/ollama-client.js` - Add images parameter to chatStream/chatComplete
 - `server.js` - Update `/api/chat`, `/api/review`, `/api/pentest` endpoints
 - `lib/config.js` - Add imageSupport config section
 
 **Tasks**:
+
 1. ✅ Task 1.1: Update Ollama Client (lib/ollama-client.js:10)
    - Add optional `images = []` parameter to chatStream() and chatComplete()
    - Transform messages to include images array
@@ -63,12 +67,15 @@
 ---
 
 ### STREAM B: Frontend Upload & Display (Phases 2-3)
+
 **Assigned to**: Session B
 **Files to modify**:
+
 - `src/App.jsx` - File upload, attachment state, message display
 - `lib/history.js` - Conversation history with images
 
 **Tasks**:
+
 1. ✅ Task 2.1: Update Attachment State Structure (App.jsx)
    - Extend attachedFiles schema to support images
    - Add fields: isImage, thumbnail, size, dimensions, format, hash
@@ -116,12 +123,15 @@
 ---
 
 ### STREAM C: Vision Model Detection & UI (Phase 4)
+
 **Assigned to**: Either Session (Quick win)
 **Files to modify**:
+
 - Backend: Model list endpoint or startup
 - `src/components/SettingsPanel.jsx` - Model selector with badges
 
 **Tasks**:
+
 1. ✅ Task 4.1: Detect Vision Models (Backend)
    - Tag models with supportsVision based on family field
    - Vision families: llava, bakllava, minicpm-v
@@ -142,11 +152,14 @@
 ---
 
 ### STREAM D: Settings & Polish (Phases 5-6)
+
 **Assigned to**: Either Session
 **Files to modify**:
+
 - `src/components/SettingsPanel.jsx` - Image settings UI
 
 **Tasks**:
+
 1. ✅ Task 5.1: Add Image Settings UI (SettingsPanel.jsx)
    - New "Image Support (Beta)" section in General tab
    - Toggle: Enable Image Upload
@@ -158,13 +171,16 @@
 ---
 
 ### STREAM E: Additional Upload Points (Phase 9)
+
 **Assigned to**: Either Session (After Streams A+B complete)
 **Files to modify**:
+
 - `src/components/ReviewPanel.jsx`
 - `src/components/SecurityPanel.jsx`
 - `src/components/FileBrowser.jsx`
 
 **Tasks**:
+
 1. ✅ Task 9.1: Review Panel Image Support
    - Import image-processor utilities
    - Apply same file upload logic
@@ -182,8 +198,10 @@
 ---
 
 ### STREAM F: Testing & Documentation (Phase 10-11)
+
 **Assigned to**: After Streams A-E complete
 **New files to create**:
+
 - `tests/unit/image-processor.test.js`
 - `tests/integration/chat-with-images.test.js`
 - `tests/e2e/image-upload.spec.js`
@@ -191,6 +209,7 @@
 - `docs/IMAGES.md`
 
 **Tasks**:
+
 1. ⬜ Task 10.1: Unit Tests
 2. ⬜ Task 10.2: Integration Tests
 3. ⬜ Task 10.3: E2E Tests (Playwright)
@@ -205,16 +224,19 @@
 ## 🎯 RECOMMENDED WORK SPLIT
 
 ### Session A (Backend-focused):
+
 1. Start with **STREAM A** (Backend Integration) - Required for everything else
 2. Then **STREAM C** (Vision Model Detection) - Quick win
 3. Help with **STREAM E** (Additional Upload Points) if time
 
 ### Session B (Frontend-focused):
+
 1. Start with **STREAM B** (Frontend Upload & Display) - Core user experience
 2. Then **STREAM D** (Settings & Polish) - Quick win
 3. Help with **STREAM E** (Additional Upload Points) if time
 
 ### Either Session Can Do:
+
 - **STREAM F** (Testing & Documentation) - After core features complete
 
 ---
@@ -222,17 +244,20 @@
 ## 🔄 COORDINATION POINTS
 
 **Dependencies**:
+
 - STREAM B depends on STREAM A (needs backend endpoints ready)
 - STREAM E depends on STREAM A + STREAM B (needs core flow working)
 - STREAM F depends on all others (testing needs features complete)
 
 **Communication**:
+
 - Update this file when you complete a task (✅)
 - Mark task as "🚧 In Progress" when starting
 - Add notes if you encounter blockers
 - Commit frequently with clear messages
 
 **Testing Strategy**:
+
 - Test each stream independently first
 - Integration test after both A+B complete
 - E2E test after all streams complete
@@ -241,20 +266,21 @@
 
 ## 📋 CURRENT STATUS
 
-| Stream | Status | Progress | Blocker |
-|--------|--------|----------|---------|
-| A: Backend | 🚧 Ready to start | 0/4 tasks | None |
-| B: Frontend | 🚧 Ready to start | 0/7 tasks | Needs Stream A endpoints |
-| C: Vision Models | 🚧 Ready to start | 0/3 tasks | None |
-| D: Settings | 🚧 Ready to start | 0/1 tasks | None |
-| E: Upload Points | ⏸️ Waiting | 0/3 tasks | Needs A+B |
-| F: Testing | ⏸️ Waiting | 0/8 tasks | Needs A-E |
+| Stream           | Status            | Progress  | Blocker                  |
+| ---------------- | ----------------- | --------- | ------------------------ |
+| A: Backend       | 🚧 Ready to start | 0/4 tasks | None                     |
+| B: Frontend      | 🚧 Ready to start | 0/7 tasks | Needs Stream A endpoints |
+| C: Vision Models | 🚧 Ready to start | 0/3 tasks | None                     |
+| D: Settings      | 🚧 Ready to start | 0/1 tasks | None                     |
+| E: Upload Points | ⏸️ Waiting        | 0/3 tasks | Needs A+B                |
+| F: Testing       | ⏸️ Waiting        | 0/8 tasks | Needs A-E                |
 
 ---
 
 ## 🚀 QUICK START
 
 **Session A** - Run this:
+
 ```bash
 # Start with backend
 # 1. Update lib/ollama-client.js (Task 1.1)
@@ -264,6 +290,7 @@
 ```
 
 **Session B** - Run this:
+
 ```bash
 # Start with frontend (after Session A completes backend)
 # 1. Update App.jsx attachment state (Task 2.1)

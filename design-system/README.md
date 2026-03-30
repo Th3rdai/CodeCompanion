@@ -4,17 +4,17 @@ Design documentation for **Code Companion** lives in **`.md` files** in this dir
 
 ## Primary doc (start here)
 
-| File | Purpose |
-|------|---------|
+| File                                             | Purpose                                                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | [**DESIGN-STANDARDS.md**](./DESIGN-STANDARDS.md) | Colors, typography, glass system, components, layout (viewport vs content rails), accessibility, stack |
 
 ## Other references
 
-| Path | Notes |
-|------|--------|
-| `code-companion/MASTER.md` | Generated / page-override design notes (v1 flow) |
+| Path                            | Notes                                            |
+| ------------------------------- | ------------------------------------------------ |
+| `code-companion/MASTER.md`      | Generated / page-override design notes (v1 flow) |
 | `code-companion-v2.0/MASTER.md` | Generated master + `pages/*.md` per feature area |
-| `.pdf` files | Optional exports — **do not treat as canonical** |
+| `.pdf` files                    | Optional exports — **do not treat as canonical** |
 
 ## For contributors
 

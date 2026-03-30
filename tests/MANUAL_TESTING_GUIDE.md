@@ -9,6 +9,7 @@
 If you only have 30 minutes, run these **8 critical blocker tests**:
 
 ### Setup (5 minutes)
+
 1. Start Ollama: `ollama serve`
 2. Install vision model: `ollama pull llava`
 3. Start Code Companion: `npm start`
@@ -18,6 +19,7 @@ If you only have 30 minutes, run these **8 critical blocker tests**:
 ### Critical Tests (25 minutes)
 
 #### Test 1: EXIF Metadata Stripping (SECURITY CRITICAL) ⏱️ 5 min
+
 ```
 1. Upload photo.jpg (with GPS EXIF data) to chat
 2. Send message to llava model
@@ -28,6 +30,7 @@ If you only have 30 minutes, run these **8 critical blocker tests**:
 ```
 
 #### Test 2: Basic Upload Flow ⏱️ 3 min
+
 ```
 1. Drag screenshot.jpg into chat textarea
 2. Verify thumbnail appears (128x128px, shows size/dimensions)
@@ -37,6 +40,7 @@ If you only have 30 minutes, run these **8 critical blocker tests**:
 ```
 
 #### Test 3: Vision Model Warning ⏱️ 3 min
+
 ```
 1. Select non-vision model (e.g., llama3.2)
 2. Drag image into chat
@@ -48,6 +52,7 @@ If you only have 30 minutes, run these **8 critical blocker tests**:
 ```
 
 #### Test 4: Clipboard Paste ⏱️ 2 min
+
 ```
 macOS: Cmd+Shift+4 → capture area → Cmd+V in chat
 Windows: Win+Shift+S → capture area → Ctrl+V in chat
@@ -55,6 +60,7 @@ Windows: Win+Shift+S → capture area → Ctrl+V in chat
 ```
 
 #### Test 5: Unsupported Format Errors ⏱️ 3 min
+
 ```
 1. Try uploading test.svg file
 2. ✅ Error message: "Unsupported format: image/svg+xml. Only PNG, JPEG, GIF allowed."
@@ -64,6 +70,7 @@ Windows: Win+Shift+S → capture area → Ctrl+V in chat
 ```
 
 #### Test 6: File Size Limit ⏱️ 2 min
+
 ```
 1. Upload 24MB image → ✅ Processes successfully
 2. Upload 30MB image → ✅ Error: "File too large: 30.0MB. Max: 25MB"
@@ -71,6 +78,7 @@ Windows: Win+Shift+S → capture area → Ctrl+V in chat
 ```
 
 #### Test 7: Lightbox Viewer ⏱️ 3 min
+
 ```
 1. Click thumbnail → ✅ Lightbox opens fullscreen
 2. Click + button → ✅ Zooms in (shows "150%")
@@ -81,6 +89,7 @@ Windows: Win+Shift+S → capture area → Ctrl+V in chat
 ```
 
 #### Test 8: Settings Persistence ⏱️ 4 min
+
 ```
 1. Open Settings → General → Image Support section
 2. Change max size to 10MB
@@ -101,41 +110,48 @@ Follow `tests/IMAGE_TESTING_CHECKLIST.md` for comprehensive testing (~150 test c
 ### Recommended Order:
 
 **Phase 1: Basics** (30 min)
+
 - File formats (PNG, JPEG, GIF valid | HEIC, SVG, WEBP rejected)
 - Upload methods (file picker, drag-drop, paste)
 - Quantity limits (1, 5, 10, 11 images)
 - Size limits (1KB, 5MB, 25MB, 30MB)
 
 **Phase 2: UI/UX** (30 min)
+
 - Thumbnails (display, format badges, size/dimension labels)
 - Lightbox (zoom, pan, navigate, download)
 - Processing indicators ("Processing 3 images...")
 - Dark mode appearance
 
 **Phase 3: Mode Integration** (30 min)
+
 - Chat mode (send, history, persistence)
 - Review mode (attach, generate review, deep dive)
 - Security mode (attach, scan, remediation)
 
 **Phase 4: Vision Models** (20 min)
+
 - Model detection (👁️ badges)
 - Warning banner (non-vision model + image)
 - Empty state ("No vision models installed")
 - Settings vision model list
 
 **Phase 5: Performance** (20 min)
+
 - Single large image (15MB)
 - Bulk upload (10 images simultaneously)
 - UI responsiveness during processing
 - Memory usage (DevTools Memory tab)
 
 **Phase 6: Security** (30 min)
+
 - EXIF stripping (GPS, timestamps)
 - Privacy warning modal (first upload)
 - Path traversal prevention
 - SVG/XSS rejection
 
 **Phase 7: Edge Cases** (20 min)
+
 - Duplicate detection (upload same image twice)
 - Mixed attachments (images + text files)
 - Rapid actions (upload → remove → upload)
@@ -146,6 +162,7 @@ Follow `tests/IMAGE_TESTING_CHECKLIST.md` for comprehensive testing (~150 test c
 ## 🔧 Test Environment Setup
 
 ### Prerequisites
+
 ```bash
 # 1. Ollama running
 ollama serve
@@ -162,6 +179,7 @@ npm start
 ```
 
 ### Test Fixtures
+
 ```bash
 # Generate test images (requires ImageMagick)
 cd tests/fixtures/images
@@ -186,6 +204,7 @@ exiftool -GPSLatitude="37.7749 N" -GPSLongitude="122.4194 W" photo.jpg
 ```
 
 **Or download samples**:
+
 - Unsplash: https://unsplash.com (free photos)
 - Sample Files: https://file-examples.com
 
@@ -298,22 +317,26 @@ Copy this for each test session:
 ### How to Debug Common Issues
 
 **Image Won't Upload**:
+
 1. Check console for errors
 2. Verify file format (PNG/JPEG/GIF only)
 3. Verify file size (<25MB default)
 4. Check browser Canvas API support
 
 **Lightbox Won't Open**:
+
 1. Check if click event fires (console log)
 2. Verify thumbnail rendered correctly
 3. Check for JavaScript errors in console
 
 **Vision Model Warning Doesn't Appear**:
+
 1. Verify image actually attached (check attachedFiles state)
 2. Verify model is non-vision (not llava/bakllava/minicpm-v)
 3. Check showVisionWarning state in React DevTools
 
 **EXIF Not Stripped**:
+
 1. Verify image processed (not original file saved)
 2. Check Canvas re-encoding happened
 3. Test with `exiftool` to confirm
@@ -347,6 +370,7 @@ Copy this for each test session:
 ## 📞 Support
 
 **Found a Bug?**
+
 1. Check "Known Issues" section above
 2. Search existing GitHub issues
 3. Create new issue with:
@@ -356,6 +380,7 @@ Copy this for each test session:
    - Console errors (if any)
 
 **Questions?**
+
 - See `docs/IMAGES.md` for comprehensive guide
 - See `tests/IMAGE_TESTING_CHECKLIST.md` for full test list
 - See `tests/TEST_VERIFICATION_REPORT.md` for code analysis
@@ -391,30 +416,36 @@ exiftool photo.jpg | grep -E "GPS|Date|Camera"
 ### Appendix B: Quick Browser Testing
 
 **Chrome** (Primary):
+
 - Dev environment: Use daily
 - Full feature support expected
 
 **Firefox** (Secondary):
+
 - Test all critical features
 - Canvas API may differ slightly
 
 **Safari** (macOS only):
+
 - Test Canvas API limits
 - May have stricter memory limits
 
 **Edge** (Windows only):
+
 - Chromium-based, should match Chrome
 - Test for Windows-specific issues
 
 ### Appendix C: Performance Benchmarks
 
 **Expected Processing Times**:
+
 - 1MB image: ~1 second
 - 5MB image: ~2-3 seconds
 - 15MB image: ~4-5 seconds
 - 10 images (5MB each): ~12 seconds with queue
 
 **If Slower**:
+
 - Check CPU usage (other apps)
 - Check browser throttling (DevTools Performance tab)
 - Verify queue working (max 3 concurrent)

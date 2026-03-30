@@ -59,48 +59,56 @@ I'm implementing Phase 4 based on the planned attachment state structure from `.
 #### In App.jsx, I'll add:
 
 1. **State/Derived Values**:
+
 ```javascript
-const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
-const selectedModelInfo = models.find(m => m.name === selectedModel);
+const hasImages = attachedFiles.some((f) => f.type === "image" || f.isImage);
+const selectedModelInfo = models.find((m) => m.name === selectedModel);
 const isVisionModel = selectedModelInfo?.supportsVision || false;
 const showVisionWarning = hasImages && !isVisionModel;
 const canSend = input.trim() && !showVisionWarning; // Disable send when invalid
 ```
 
 2. **Warning Banner JSX** (before textarea):
+
 ```jsx
-{showVisionWarning && (
-  <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-3 mb-2">
-    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-      ⚠️ Current model doesn't support images.
-      <button onClick={switchToVisionModel} className="underline ml-1">
-        Switch to vision model
-      </button>
-      {' or '}
-      <button onClick={removeAllImages} className="underline">
-        remove images
-      </button>
-    </p>
-  </div>
-)}
+{
+  showVisionWarning && (
+    <div className="bg-yellow-100 dark:bg-yellow-900/30 border-l-4 border-yellow-500 p-3 mb-2">
+      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+        ⚠️ Current model doesn't support images.
+        <button onClick={switchToVisionModel} className="underline ml-1">
+          Switch to vision model
+        </button>
+        {" or "}
+        <button onClick={removeAllImages} className="underline">
+          remove images
+        </button>
+      </p>
+    </div>
+  );
+}
 ```
 
 3. **Model Selector Enhancement**:
+
 ```jsx
-{/* In model dropdown */}
+{
+  /* In model dropdown */
+}
 <select value={selectedModel} onChange={handleModelChange}>
-  {sortedModels.map(model => (
+  {sortedModels.map((model) => (
     <option key={model.name} value={model.name}>
-      {model.supportsVision && '👁️ '}
+      {model.supportsVision && "👁️ "}
       {model.name}
     </option>
   ))}
-</select>
+</select>;
 ```
 
 ### Merge Strategy
 
 When Phase 2 completes:
+
 1. Phase 2 agent implements attachment state structure
 2. Phase 2 agent implements `hasImages` derived value
 3. My Phase 4 code will integrate seamlessly (reads same state)
@@ -126,12 +134,14 @@ I'm working on Phase 4 (Vision Detection UI) in parallel. Here's what you need t
 ### What I Need From You
 
 Please implement the attachment state structure as documented above:
+
 - `attachedFiles` array with `type: 'text' | 'image'`
 - Image-specific fields: `isImage`, `thumbnail`, `dimensions`, `format`, `hash`
 
 ### What I'm Adding
 
 I'm adding vision model warnings and badges. My code will:
+
 - Check `attachedFiles.some(f => f.type === 'image')` to detect images
 - Show a warning if images are attached but model doesn't support vision
 - Add 👁️ badges to vision models in the dropdown
@@ -139,6 +149,7 @@ I'm adding vision model warnings and badges. My code will:
 ### How to Merge
 
 When you're done with Phase 2:
+
 1. Your changes: File upload logic, attachment rendering
 2. My changes: Warning banner, vision badges
 3. **Minimal overlap** - should merge cleanly

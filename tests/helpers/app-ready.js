@@ -4,8 +4,8 @@
  * or page.evaluate(browserAppReady) before reload.
  */
 function browserAppReady() {
-  sessionStorage.setItem('th3rdai_splash_dismissed', 'true');
-  localStorage.setItem('th3rdai_onboarding_complete', 'true');
+  sessionStorage.setItem("th3rdai_splash_dismissed", "true");
+  localStorage.setItem("th3rdai_onboarding_complete", "true");
 }
 
 module.exports = browserAppReady;

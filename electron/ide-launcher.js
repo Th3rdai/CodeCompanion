@@ -1,5 +1,5 @@
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const { exec } = require("child_process");
+const { promisify } = require("util");
 
 const execAsync = promisify(exec);
 
@@ -15,54 +15,54 @@ async function launchIDE(ideName, folder) {
   let command = null;
 
   switch (ideName) {
-    case 'vscode':
-      if (platform === 'darwin') {
+    case "vscode":
+      if (platform === "darwin") {
         command = `open -a "Visual Studio Code" "${folder}"`;
-      } else if (platform === 'win32') {
+      } else if (platform === "win32") {
         command = `cmd /c start "" "code" "${folder}"`;
-      } else if (platform === 'linux') {
+      } else if (platform === "linux") {
         command = `code "${folder}"`;
       }
       break;
 
-    case 'cursor':
-      if (platform === 'darwin') {
+    case "cursor":
+      if (platform === "darwin") {
         command = `open -a "Cursor" "${folder}"`;
-      } else if (platform === 'win32') {
+      } else if (platform === "win32") {
         command = `cmd /c start "" "cursor" "${folder}"`;
-      } else if (platform === 'linux') {
+      } else if (platform === "linux") {
         command = `cursor "${folder}"`;
       }
       break;
 
-    case 'windsurf':
-      if (platform === 'darwin') {
+    case "windsurf":
+      if (platform === "darwin") {
         command = `open -a "Windsurf" "${folder}"`;
-      } else if (platform === 'win32') {
+      } else if (platform === "win32") {
         command = `cmd /c start "" "windsurf" "${folder}"`;
-      } else if (platform === 'linux') {
+      } else if (platform === "linux") {
         command = `windsurf "${folder}"`;
       }
       break;
 
-    case 'claude-code':
-      if (platform === 'darwin') {
+    case "claude-code":
+      if (platform === "darwin") {
         const script = `tell application "Terminal" to do script "cd \\"${folder}\\" && claude --dangerously-skip-permissions"`;
         command = `osascript -e '${script.replace(/'/g, "'\\''")}'`;
-      } else if (platform === 'win32') {
+      } else if (platform === "win32") {
         command = `cmd /c start cmd /k "cd /d \\"${folder}\\" && claude --dangerously-skip-permissions"`;
-      } else if (platform === 'linux') {
+      } else if (platform === "linux") {
         command = `x-terminal-emulator -e "cd '${folder}' && claude --dangerously-skip-permissions"`;
       }
       break;
 
-    case 'opencode':
-      if (platform === 'darwin') {
+    case "opencode":
+      if (platform === "darwin") {
         const script = `tell application "Terminal" to do script "cd \\"${folder}\\" && opencode"`;
         command = `osascript -e '${script.replace(/'/g, "'\\''")}'`;
-      } else if (platform === 'win32') {
+      } else if (platform === "win32") {
         command = `cmd /c start cmd /k "cd /d \\"${folder}\\" && opencode"`;
-      } else if (platform === 'linux') {
+      } else if (platform === "linux") {
         command = `x-terminal-emulator -e "cd '${folder}' && opencode"`;
       }
       break;
@@ -72,7 +72,9 @@ async function launchIDE(ideName, folder) {
   }
 
   if (!command) {
-    throw new Error(`IDE "${ideName}" is not supported on platform "${platform}"`);
+    throw new Error(
+      `IDE "${ideName}" is not supported on platform "${platform}"`,
+    );
   }
 
   try {

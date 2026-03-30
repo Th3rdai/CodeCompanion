@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import SplineScene from './SplineScene';
-import Spline3DError from './Spline3DError';
+import { useState, useEffect, useCallback } from "react";
+import SplineScene from "./SplineScene";
+import Spline3DError from "./Spline3DError";
 
 /**
  * Full-screen splash / hero screen shown once per browser session.
@@ -13,7 +13,7 @@ export default function SplashScreen({ onDismiss }) {
   const [fading, setFading] = useState(false);
   const [sceneLoaded, setSceneLoaded] = useState(false);
 
-  const sceneUrl = import.meta.env.VITE_SPLINE_SPLASH_SCENE || '';
+  const sceneUrl = import.meta.env.VITE_SPLINE_SPLASH_SCENE || "";
 
   const dismiss = useCallback(() => {
     setFading(true);
@@ -28,11 +28,11 @@ export default function SplashScreen({ onDismiss }) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-opacity duration-500 ${fading ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-50 transition-opacity duration-500 ${fading ? "opacity-0" : "opacity-100"}`}
       onClick={dismiss}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && dismiss()}
+      onKeyDown={(e) => e.key === "Enter" && dismiss()}
       aria-label="Click or press Enter to start"
     >
       {/* 3D Scene Background */}
@@ -55,7 +55,7 @@ export default function SplashScreen({ onDismiss }) {
         <img
           src="/logo.svg"
           alt="Th3rdAI"
-          className={`w-20 h-20 mb-6 transition-all duration-1000 ${sceneLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
+          className={`w-20 h-20 mb-6 transition-all duration-1000 ${sceneLoaded ? "opacity-100 scale-100" : "opacity-0 scale-75"}`}
         />
 
         {/* Title */}
@@ -73,7 +73,10 @@ export default function SplashScreen({ onDismiss }) {
 
         {/* CTA Button */}
         <button
-          onClick={(e) => { e.stopPropagation(); dismiss(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            dismiss();
+          }}
           className="btn-neon text-white text-sm px-8 py-3 rounded-xl font-medium tracking-wide fade-in"
         >
           Let's Go!

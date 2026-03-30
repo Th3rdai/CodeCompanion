@@ -1,6 +1,6 @@
-import SplineScene from './SplineScene';
-import Spline3DError from './Spline3DError';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import SplineScene from "./SplineScene";
+import Spline3DError from "./Spline3DError";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
 /**
  * Ambient 3D background that renders behind the app header.
@@ -12,7 +12,7 @@ import { use3DEffects } from '../../contexts/Effects3DContext';
  */
 export default function HeaderScene() {
   const { enabled } = use3DEffects();
-  const sceneUrl = import.meta.env.VITE_SPLINE_HEADER_SCENE || '';
+  const sceneUrl = import.meta.env.VITE_SPLINE_HEADER_SCENE || "";
 
   // Don't render anything if disabled or no scene URL is set
   if (!enabled || !sceneUrl) return null;
@@ -24,10 +24,7 @@ export default function HeaderScene() {
       aria-hidden="true"
     >
       <Spline3DError>
-        <SplineScene
-          scene={sceneUrl}
-          className="w-full h-full opacity-40"
-        />
+        <SplineScene scene={sceneUrl} className="w-full h-full opacity-40" />
       </Spline3DError>
     </div>
   );

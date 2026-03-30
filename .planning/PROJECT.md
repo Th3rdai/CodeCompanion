@@ -73,16 +73,17 @@ A vibe coder can paste, upload, or point to their AI-generated code and get a cl
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Report card + conversation hybrid for review output | Gives quick overview then lets users dig in at their own pace | Implemented (Phase 3) |
-| Friendly teacher tone (not clinical or minimal) | Vibe coders need encouragement and context, not just facts | Implemented (Phase 2) |
-| Improve existing modes AND add new review mode | Users benefit from consistency — all modes should speak the same language | Implemented (Phase 2+3) |
-| Four review categories: bugs, security, readability, completeness | Covers what vibe coders most need to know about AI-generated code | Implemented (Phase 3) |
-| Overwrite checkbox for Create wizard | Prevents accidental folder overwrites while allowing intentional ones | Implemented |
-| Lucide React icons over emoji in report card | Better visual consistency and accessibility | Implemented |
-| Report card export (Markdown + JSON) | Users can save and share their code reviews | Implemented |
-| Unified chat export (11 server-generated formats) | Share conversations outside the app without copy-paste; same engine as builtin `generate_office_file` | Implemented (2026-03) |
+| Decision                                                          | Rationale                                                                                             | Outcome                 |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------- |
+| Report card + conversation hybrid for review output               | Gives quick overview then lets users dig in at their own pace                                         | Implemented (Phase 3)   |
+| Friendly teacher tone (not clinical or minimal)                   | Vibe coders need encouragement and context, not just facts                                            | Implemented (Phase 2)   |
+| Improve existing modes AND add new review mode                    | Users benefit from consistency — all modes should speak the same language                             | Implemented (Phase 2+3) |
+| Four review categories: bugs, security, readability, completeness | Covers what vibe coders most need to know about AI-generated code                                     | Implemented (Phase 3)   |
+| Overwrite checkbox for Create wizard                              | Prevents accidental folder overwrites while allowing intentional ones                                 | Implemented             |
+| Lucide React icons over emoji in report card                      | Better visual consistency and accessibility                                                           | Implemented             |
+| Report card export (Markdown + JSON)                              | Users can save and share their code reviews                                                           | Implemented             |
+| Unified chat export (11 server-generated formats)                 | Share conversations outside the app without copy-paste; same engine as builtin `generate_office_file` | Implemented (2026-03)   |
 
 ---
-*Last updated: 2026-03-21*
+
+_Last updated: 2026-03-21_

@@ -1,8 +1,8 @@
-const { app } = require('electron');
-const fs = require('fs');
-const path = require('path');
-const archiver = require('archiver');
-const extractZip = require('extract-zip');
+const { app } = require("electron");
+const fs = require("fs");
+const path = require("path");
+const archiver = require("archiver");
+const extractZip = require("extract-zip");
 
 /**
  * Resolves the portable app root — the directory containing the app itself.
@@ -22,14 +22,14 @@ function getPortableRoot() {
   if (app.isPackaged) {
     // macOS: Use standard user data directory
     // Apps in /Applications can't create sibling folders on read-only volumes
-    if (process.platform === 'darwin') {
-      return app.getPath('userData');
+    if (process.platform === "darwin") {
+      return app.getPath("userData");
     }
     // Windows/Linux: exe is in the app root folder, use portable approach
-    return path.dirname(app.getPath('exe'));
+    return path.dirname(app.getPath("exe"));
   }
   // Dev mode: project root
-  return path.join(__dirname, '..');
+  return path.join(__dirname, "..");
 }
 
 /**
@@ -44,18 +44,24 @@ function resolveDataDirectory() {
   // macOS packaged: userData already points to app-specific folder
   // Windows/Linux packaged: portableRoot is the exe directory
   // Dev mode: portableRoot is project root
-  const dataDir = (app.isPackaged && process.platform === 'darwin')
-    ? portableRoot // Already app.getPath('userData'), no need for subfolder
-    : path.join(portableRoot, 'CodeCompanion-Data');
+  const dataDir =
+    app.isPackaged && process.platform === "darwin"
+      ? portableRoot // Already app.getPath('userData'), no need for subfolder
+      : path.join(portableRoot, "CodeCompanion-Data");
 
   // Create directory if it doesn't exist
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 
     // Copy README to data directory (skip for macOS userData)
-    if (!(app.isPackaged && process.platform === 'darwin')) {
-      const readmePath = path.join(__dirname, '..', 'resources', 'data-readme.txt');
-      const destReadme = path.join(dataDir, 'README.txt');
+    if (!(app.isPackaged && process.platform === "darwin")) {
+      const readmePath = path.join(
+        __dirname,
+        "..",
+        "resources",
+        "data-readme.txt",
+      );
+      const destReadme = path.join(dataDir, "README.txt");
       if (fs.existsSync(readmePath)) {
         fs.copyFileSync(readmePath, destReadme);
       }
@@ -70,26 +76,28 @@ function resolveDataDirectory() {
  * Checks for ./data/, ./history/, and ./config.json relative to app root
  */
 function migrateDevData(dataDir, appRoot) {
-  const legacyDataDir = path.join(appRoot, 'data');
-  const legacyHistoryDir = path.join(appRoot, 'history');
-  const legacyConfigFile = path.join(appRoot, '.cc-config.json');
+  const legacyDataDir = path.join(appRoot, "data");
+  const legacyHistoryDir = path.join(appRoot, "history");
+  const legacyConfigFile = path.join(appRoot, ".cc-config.json");
 
   let migrated = false;
   const migrationLog = [];
 
   // Check if data directory is effectively empty (only README or nothing)
   const existingFiles = fs.existsSync(dataDir)
-    ? fs.readdirSync(dataDir).filter(f => f !== 'README.txt')
+    ? fs.readdirSync(dataDir).filter((f) => f !== "README.txt")
     : [];
 
   if (existingFiles.length > 0) {
-    console.log('[Data Manager] Data directory already has content, skipping migration');
+    console.log(
+      "[Data Manager] Data directory already has content, skipping migration",
+    );
     return { migrated: false, log: [] };
   }
 
   // Migrate legacy data directory
   if (fs.existsSync(legacyDataDir)) {
-    const newDataSubdir = path.join(dataDir, 'data');
+    const newDataSubdir = path.join(dataDir, "data");
     fs.mkdirSync(newDataSubdir, { recursive: true });
     copyDirectoryRecursive(legacyDataDir, newDataSubdir);
     migrationLog.push(`Migrated ${legacyDataDir} to ${newDataSubdir}`);
@@ -98,7 +106,7 @@ function migrateDevData(dataDir, appRoot) {
 
   // Migrate legacy history directory
   if (fs.existsSync(legacyHistoryDir)) {
-    const newHistoryDir = path.join(dataDir, 'history');
+    const newHistoryDir = path.join(dataDir, "history");
     fs.mkdirSync(newHistoryDir, { recursive: true });
     copyDirectoryRecursive(legacyHistoryDir, newHistoryDir);
     migrationLog.push(`Migrated ${legacyHistoryDir} to ${newHistoryDir}`);
@@ -107,14 +115,14 @@ function migrateDevData(dataDir, appRoot) {
 
   // Migrate legacy config file
   if (fs.existsSync(legacyConfigFile)) {
-    const newConfigFile = path.join(dataDir, '.cc-config.json');
+    const newConfigFile = path.join(dataDir, ".cc-config.json");
     fs.copyFileSync(legacyConfigFile, newConfigFile);
     migrationLog.push(`Migrated ${legacyConfigFile} to ${newConfigFile}`);
     migrated = true;
   }
 
   if (migrated) {
-    console.log('[Data Manager] Migration complete:', migrationLog);
+    console.log("[Data Manager] Migration complete:", migrationLog);
   }
 
   return { migrated, log: migrationLog };
@@ -128,15 +136,17 @@ function migrateDevData(dataDir, appRoot) {
  */
 function mergeDevMcpClientsFromRoot(dataDir, appRoot, { isDev } = {}) {
   if (!isDev) return { merged: false };
-  const rootPath = path.join(appRoot, '.cc-config.json');
-  const dataPath = path.join(dataDir, '.cc-config.json');
-  if (!fs.existsSync(rootPath) || !fs.existsSync(dataPath)) return { merged: false };
+  const rootPath = path.join(appRoot, ".cc-config.json");
+  const dataPath = path.join(dataDir, ".cc-config.json");
+  if (!fs.existsSync(rootPath) || !fs.existsSync(dataPath))
+    return { merged: false };
   try {
-    const root = JSON.parse(fs.readFileSync(rootPath, 'utf8'));
-    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    const root = JSON.parse(fs.readFileSync(rootPath, "utf8"));
+    const data = JSON.parse(fs.readFileSync(dataPath, "utf8"));
     const rootClients = Array.isArray(root.mcpClients) ? root.mcpClients : [];
     const dataClients = Array.isArray(data.mcpClients) ? data.mcpClients : [];
-    if (rootClients.length === 0 || dataClients.length > 0) return { merged: false };
+    if (rootClients.length === 0 || dataClients.length > 0)
+      return { merged: false };
     data.mcpClients = rootClients;
     fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
     return { merged: true, count: rootClients.length };
@@ -173,20 +183,22 @@ function copyDirectoryRecursive(src, dest) {
  */
 function createBackup(dataDir) {
   return new Promise((resolve, reject) => {
-    const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const timestamp = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     const backupFileName = `CodeCompanion-Backup-${timestamp}.zip`;
     const backupPath = path.join(dataDir, backupFileName);
 
     const output = fs.createWriteStream(backupPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    const archive = archiver("zip", { zlib: { level: 9 } });
 
-    output.on('close', () => {
-      console.log(`[Data Manager] Backup created: ${backupPath} (${archive.pointer()} bytes)`);
+    output.on("close", () => {
+      console.log(
+        `[Data Manager] Backup created: ${backupPath} (${archive.pointer()} bytes)`,
+      );
       resolve(backupPath);
     });
 
-    archive.on('error', (err) => {
-      console.error('[Data Manager] Backup error:', err);
+    archive.on("error", (err) => {
+      console.error("[Data Manager] Backup error:", err);
       reject(err);
     });
 
@@ -195,7 +207,7 @@ function createBackup(dataDir) {
     // Add all files in data directory except other backup ZIPs
     const entries = fs.readdirSync(dataDir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.endsWith('.zip')) continue; // Skip existing backups
+      if (entry.name.endsWith(".zip")) continue; // Skip existing backups
 
       const fullPath = path.join(dataDir, entry.name);
       if (entry.isDirectory()) {
@@ -229,7 +241,7 @@ async function importData(dataDir, zipPath) {
     console.log(`[Data Manager] Import complete`);
     return { success: true };
   } catch (err) {
-    console.error('[Data Manager] Import error:', err);
+    console.error("[Data Manager] Import error:", err);
     return { success: false, error: err.message };
   }
 }

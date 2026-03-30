@@ -1,45 +1,112 @@
-import { useState } from 'react';
-import { ShieldAlert, Database, Code, KeyRound, Settings, Globe, ChevronDown, ChevronRight, Copy, Check, Download, RotateCcw, ShieldCheck, AlertTriangle, FileText, FolderOpen, Wrench } from 'lucide-react';
-import { copyText } from '../lib/clipboard';
+import { useState } from "react";
+import {
+  ShieldAlert,
+  Database,
+  Code,
+  KeyRound,
+  Settings,
+  Globe,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Check,
+  Download,
+  RotateCcw,
+  ShieldCheck,
+  AlertTriangle,
+  FileText,
+  FolderOpen,
+  Wrench,
+} from "lucide-react";
+import { copyText } from "../lib/clipboard";
 
 // ── Grade color mapping ─────────────────────────────
 const GRADE_COLORS = {
-  A: { bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-300', ring: 'ring-emerald-500/30', glow: 'shadow-emerald-500/20' },
-  B: { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-300', ring: 'ring-blue-500/30', glow: 'shadow-blue-500/20' },
-  C: { bg: 'bg-amber-500/20', border: 'border-amber-500/40', text: 'text-amber-300', ring: 'ring-amber-500/30', glow: 'shadow-amber-500/20' },
-  D: { bg: 'bg-orange-500/20', border: 'border-orange-500/40', text: 'text-orange-300', ring: 'ring-orange-500/30', glow: 'shadow-orange-500/20' },
-  F: { bg: 'bg-red-500/20', border: 'border-red-500/40', text: 'text-red-300', ring: 'ring-red-500/30', glow: 'shadow-red-500/20' },
+  A: {
+    bg: "bg-emerald-500/20",
+    border: "border-emerald-500/40",
+    text: "text-emerald-300",
+    ring: "ring-emerald-500/30",
+    glow: "shadow-emerald-500/20",
+  },
+  B: {
+    bg: "bg-blue-500/20",
+    border: "border-blue-500/40",
+    text: "text-blue-300",
+    ring: "ring-blue-500/30",
+    glow: "shadow-blue-500/20",
+  },
+  C: {
+    bg: "bg-amber-500/20",
+    border: "border-amber-500/40",
+    text: "text-amber-300",
+    ring: "ring-amber-500/30",
+    glow: "shadow-amber-500/20",
+  },
+  D: {
+    bg: "bg-orange-500/20",
+    border: "border-orange-500/40",
+    text: "text-orange-300",
+    ring: "ring-orange-500/30",
+    glow: "shadow-orange-500/20",
+  },
+  F: {
+    bg: "bg-red-500/20",
+    border: "border-red-500/40",
+    text: "text-red-300",
+    ring: "ring-red-500/30",
+    glow: "shadow-red-500/20",
+  },
 };
 
 const SEVERITY_COLORS = {
-  critical: 'text-red-400 bg-red-500/15 border-red-500/30',
-  high: 'text-orange-400 bg-orange-500/15 border-orange-500/30',
-  medium: 'text-amber-400 bg-amber-500/15 border-amber-500/30',
-  low: 'text-blue-400 bg-blue-500/15 border-blue-500/30',
-  info: 'text-slate-400 bg-slate-500/15 border-slate-500/30',
+  critical: "text-red-400 bg-red-500/15 border-red-500/30",
+  high: "text-orange-400 bg-orange-500/15 border-orange-500/30",
+  medium: "text-amber-400 bg-amber-500/15 border-amber-500/30",
+  low: "text-blue-400 bg-blue-500/15 border-blue-500/30",
+  info: "text-slate-400 bg-slate-500/15 border-slate-500/30",
 };
 
 // ── OWASP category configuration with Lucide icons ──
 const SECURITY_CATEGORIES = {
-  accessControl: { label: 'Access Control', Icon: ShieldAlert, owasp: 'A01, API1, API5' },
-  dataProtection: { label: 'Data Protection', Icon: Database, owasp: 'A02, A08' },
-  injection: { label: 'Injection & Input', Icon: Code, owasp: 'A03' },
-  authAndSession: { label: 'Auth & Sessions', Icon: KeyRound, owasp: 'A07, API2' },
-  configuration: { label: 'Configuration', Icon: Settings, owasp: 'A05, A06, A09, A10' },
-  apiSecurity: { label: 'API Security', Icon: Globe, owasp: 'API3-10' },
+  accessControl: {
+    label: "Access Control",
+    Icon: ShieldAlert,
+    owasp: "A01, API1, API5",
+  },
+  dataProtection: {
+    label: "Data Protection",
+    Icon: Database,
+    owasp: "A02, A08",
+  },
+  injection: { label: "Injection & Input", Icon: Code, owasp: "A03" },
+  authAndSession: {
+    label: "Auth & Sessions",
+    Icon: KeyRound,
+    owasp: "A07, API2",
+  },
+  configuration: {
+    label: "Configuration",
+    Icon: Settings,
+    owasp: "A05, A06, A09, A10",
+  },
+  apiSecurity: { label: "API Security", Icon: Globe, owasp: "API3-10" },
 };
 
 // ── Grade Badge ─────────────────────────────────────
-function GradeBadge({ grade, size = 'lg' }) {
+function GradeBadge({ grade, size = "lg" }) {
   const colors = GRADE_COLORS[grade] || GRADE_COLORS.C;
-  const sizeClasses = size === 'lg'
-    ? 'w-20 h-20 text-4xl'
-    : size === 'md'
-    ? 'w-12 h-12 text-2xl'
-    : 'w-8 h-8 text-base';
+  const sizeClasses =
+    size === "lg"
+      ? "w-20 h-20 text-4xl"
+      : size === "md"
+        ? "w-12 h-12 text-2xl"
+        : "w-8 h-8 text-base";
 
   return (
-    <div className={`${sizeClasses} rounded-2xl ${colors.bg} ${colors.border} border-2 flex items-center justify-center font-bold ${colors.text} shadow-lg ${colors.glow} transition-all`}>
+    <div
+      className={`${sizeClasses} rounded-2xl ${colors.bg} ${colors.border} border-2 flex items-center justify-center font-bold ${colors.text} shadow-lg ${colors.glow} transition-all`}
+    >
       {grade}
     </div>
   );
@@ -48,7 +115,9 @@ function GradeBadge({ grade, size = 'lg' }) {
 // ── Severity Pill ───────────────────────────────────
 function SeverityPill({ severity }) {
   return (
-    <span className={`text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full border ${SEVERITY_COLORS[severity] || SEVERITY_COLORS.medium}`}>
+    <span
+      className={`text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full border ${SEVERITY_COLORS[severity] || SEVERITY_COLORS.medium}`}
+    >
       {severity}
     </span>
   );
@@ -62,18 +131,22 @@ function CopyFixButton({ text, onToast }) {
       onClick={async () => {
         await copyText(text);
         setCopied(true);
-        onToast?.('Fix prompt copied to clipboard');
+        onToast?.("Fix prompt copied to clipboard");
         setTimeout(() => setCopied(false), 3000);
       }}
       className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border transition-all duration-200 cursor-pointer min-h-[32px] ${
         copied
-          ? 'text-emerald-300 border-emerald-500/40 bg-emerald-500/10'
-          : 'text-slate-400 border-slate-600 hover:text-indigo-300 hover:border-indigo-500/30 hover:bg-indigo-500/10'
+          ? "text-emerald-300 border-emerald-500/40 bg-emerald-500/10"
+          : "text-slate-400 border-slate-600 hover:text-indigo-300 hover:border-indigo-500/30 hover:bg-indigo-500/10"
       }`}
       aria-label="Copy fix prompt to clipboard"
     >
-      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-      {copied ? 'Copied!' : 'Copy Fix Prompt'}
+      {copied ? (
+        <Check className="w-3.5 h-3.5" />
+      ) : (
+        <Copy className="w-3.5 h-3.5" />
+      )}
+      {copied ? "Copied!" : "Copy Fix Prompt"}
     </button>
   );
 }
@@ -97,33 +170,49 @@ function VulnerabilityCard({ vuln, onToast }) {
               {vuln.wstgTestCase}
             </span>
           )}
-          <span className="text-sm font-medium text-slate-200 truncate">{vuln.title}</span>
+          <span className="text-sm font-medium text-slate-200 truncate">
+            {vuln.title}
+          </span>
         </div>
         <button
           onClick={() => setExpanded(!expanded)}
           className="text-slate-500 hover:text-slate-300 text-xs shrink-0 transition-colors cursor-pointer p-1 min-w-[28px] min-h-[28px] flex items-center justify-center"
-          aria-label={expanded ? 'Collapse' : 'Expand'}
+          aria-label={expanded ? "Collapse" : "Expand"}
         >
-          {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          {expanded ? (
+            <ChevronDown className="w-4 h-4" />
+          ) : (
+            <ChevronRight className="w-4 h-4" />
+          )}
         </button>
       </div>
 
       {expanded && (
         <div className="space-y-2 pt-1 fade-in">
-          <p className="text-sm text-slate-300 leading-relaxed">{vuln.description}</p>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            {vuln.description}
+          </p>
           {vuln.impact && (
             <div className="flex items-start gap-2 bg-red-500/5 border border-red-500/20 rounded-lg px-3 py-2">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-200/80"><strong>Impact:</strong> {vuln.impact}</p>
+              <p className="text-sm text-red-200/80">
+                <strong>Impact:</strong> {vuln.impact}
+              </p>
             </div>
           )}
           {vuln.codeLocation && (
-            <p className="text-xs text-slate-500 font-mono">Location: {vuln.codeLocation}</p>
+            <p className="text-xs text-slate-500 font-mono">
+              Location: {vuln.codeLocation}
+            </p>
           )}
           {vuln.remediation && (
             <div className="space-y-1.5">
-              <span className="text-xs font-medium text-emerald-400">Remediation</span>
-              <p className="text-sm text-slate-300 leading-relaxed">{vuln.remediation}</p>
+              <span className="text-xs font-medium text-emerald-400">
+                Remediation
+              </span>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                {vuln.remediation}
+              </p>
             </div>
           )}
           {vuln.cvssEstimate && (
@@ -144,7 +233,11 @@ function VulnerabilityCard({ vuln, onToast }) {
 
 // ── Category Section ────────────────────────────────
 function CategorySection({ categoryKey, category, onDeepDive, onToast }) {
-  const meta = SECURITY_CATEGORIES[categoryKey] || { label: categoryKey, Icon: Code, owasp: '' };
+  const meta = SECURITY_CATEGORIES[categoryKey] || {
+    label: categoryKey,
+    Icon: Code,
+    owasp: "",
+  };
   const { Icon } = meta;
   const [collapsed, setCollapsed] = useState(false);
   const vulnCount = category.vulnerabilities?.length || 0;
@@ -161,27 +254,37 @@ function CategorySection({ categoryKey, category, onDeepDive, onToast }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Icon className="w-4 h-4 text-slate-300" />
-              <h3 className="text-sm font-semibold text-slate-100">{meta.label}</h3>
+              <h3 className="text-sm font-semibold text-slate-100">
+                {meta.label}
+              </h3>
               <span className="text-[10px] text-slate-500 bg-slate-700/40 px-1.5 py-0.5 rounded font-mono">
                 {meta.owasp}
               </span>
               {vulnCount > 0 && (
                 <span className="text-[10px] text-slate-500 bg-slate-700/40 px-1.5 py-0.5 rounded-full">
-                  {vulnCount} finding{vulnCount !== 1 ? 's' : ''}
+                  {vulnCount} finding{vulnCount !== 1 ? "s" : ""}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5 truncate">{category.summary}</p>
+            <p className="text-xs text-slate-400 mt-0.5 truncate">
+              {category.summary}
+            </p>
           </div>
           <span className="text-slate-500 shrink-0">
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {collapsed ? (
+              <ChevronRight className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
           </span>
         </button>
 
         {/* Deep Dive button */}
         {onDeepDive && (
           <button
-            onClick={() => onDeepDive(categoryKey, { ...category, label: meta.label })}
+            onClick={() =>
+              onDeepDive(categoryKey, { ...category, label: meta.label })
+            }
             className="w-full text-sm px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors font-medium cursor-pointer focus:ring-2 focus:ring-blue-500/40 focus:outline-none"
             aria-label={`Deep dive into ${meta.label}`}
           >
@@ -200,7 +303,9 @@ function CategorySection({ categoryKey, category, onDeepDive, onToast }) {
 
       {!collapsed && vulnCount === 0 && (
         <div className="px-4 pb-4 border-t border-slate-700/20 pt-3">
-          <p className="text-xs text-slate-500 italic">No vulnerabilities found in this category.</p>
+          <p className="text-xs text-slate-500 italic">
+            No vulnerabilities found in this category.
+          </p>
         </div>
       )}
     </div>
@@ -209,12 +314,14 @@ function CategorySection({ categoryKey, category, onDeepDive, onToast }) {
 
 // ── Export helpers ──────────────────────────────────
 function baseName(filename) {
-  return filename ? filename.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_') : 'security-scan';
+  return filename
+    ? filename.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_")
+    : "security-scan";
 }
 
 function downloadBlob(blob, downloadName) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = downloadName;
   a.click();
@@ -227,91 +334,156 @@ function reportToMarkdown(data, filename) {
   if (filename) lines.push(`**File:** ${filename}`);
   lines.push(`**Overall Grade:** ${data.overallGrade}`);
   lines.push(`**Date:** ${new Date().toISOString().slice(0, 10)}`);
-  lines.push('');
-  if (data.riskSummary) { lines.push(`## Risk Summary`, '', data.riskSummary, ''); }
-  if (data.topRisk && !data.cleanBillOfHealth) {
-    lines.push(`## Top Risk`, '', `**${data.topRisk.title}** (${data.topRisk.category})`, '', data.topRisk.explanation, '');
+  lines.push("");
+  if (data.riskSummary) {
+    lines.push(`## Risk Summary`, "", data.riskSummary, "");
   }
-  if (data.cleanBillOfHealth) lines.push('> No vulnerabilities detected.', '');
+  if (data.topRisk && !data.cleanBillOfHealth) {
+    lines.push(
+      `## Top Risk`,
+      "",
+      `**${data.topRisk.title}** (${data.topRisk.category})`,
+      "",
+      data.topRisk.explanation,
+      "",
+    );
+  }
+  if (data.cleanBillOfHealth) lines.push("> No vulnerabilities detected.", "");
 
   const catMeta = {
-    accessControl: 'Access Control', dataProtection: 'Data Protection', injection: 'Injection & Input',
-    authAndSession: 'Auth & Sessions', configuration: 'Configuration', apiSecurity: 'API Security',
+    accessControl: "Access Control",
+    dataProtection: "Data Protection",
+    injection: "Injection & Input",
+    authAndSession: "Auth & Sessions",
+    configuration: "Configuration",
+    apiSecurity: "API Security",
   };
 
-  lines.push('## Category Grades', '');
-  lines.push('| Category | Grade | Findings |', '|---|---|---|');
+  lines.push("## Category Grades", "");
+  lines.push("| Category | Grade | Findings |", "|---|---|---|");
   for (const [key, cat] of Object.entries(data.categories || {})) {
-    lines.push(`| ${catMeta[key] || key} | ${cat.grade} | ${cat.vulnerabilities?.length || 0} |`);
+    lines.push(
+      `| ${catMeta[key] || key} | ${cat.grade} | ${cat.vulnerabilities?.length || 0} |`,
+    );
   }
-  lines.push('');
+  lines.push("");
 
   for (const [key, cat] of Object.entries(data.categories || {})) {
     const vulns = cat.vulnerabilities || [];
-    lines.push(`## ${catMeta[key] || key} — Grade ${cat.grade}`, '');
-    if (cat.summary) lines.push(cat.summary, '');
-    if (vulns.length === 0) { lines.push('No vulnerabilities found.', ''); continue; }
+    lines.push(`## ${catMeta[key] || key} — Grade ${cat.grade}`, "");
+    if (cat.summary) lines.push(cat.summary, "");
+    if (vulns.length === 0) {
+      lines.push("No vulnerabilities found.", "");
+      continue;
+    }
     for (const v of vulns) {
-      lines.push(`### ${v.title}`, '');
+      lines.push(`### ${v.title}`, "");
       lines.push(`- **Severity:** ${v.severity}`);
       if (v.owaspCategory) lines.push(`- **OWASP:** ${v.owaspCategory}`);
       if (v.cvssEstimate) lines.push(`- **CVSS:** ${v.cvssEstimate}`);
       lines.push(`- **Description:** ${v.description}`);
       if (v.impact) lines.push(`- **Impact:** ${v.impact}`);
       if (v.remediation) lines.push(`- **Remediation:** ${v.remediation}`);
-      lines.push('');
+      lines.push("");
     }
   }
 
   if (data.testCaseSuggestions?.length) {
-    lines.push('## Suggested Test Cases', '');
+    lines.push("## Suggested Test Cases", "");
     for (const s of data.testCaseSuggestions) lines.push(`- ${s}`);
-    lines.push('');
+    lines.push("");
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function reportToCSV(data) {
-  const rows = [['Category', 'Grade', 'Title', 'Severity', 'OWASP', 'CVSS', 'Description', 'Impact', 'Remediation']];
+  const rows = [
+    [
+      "Category",
+      "Grade",
+      "Title",
+      "Severity",
+      "OWASP",
+      "CVSS",
+      "Description",
+      "Impact",
+      "Remediation",
+    ],
+  ];
   const catMeta = {
-    accessControl: 'Access Control', dataProtection: 'Data Protection', injection: 'Injection & Input',
-    authAndSession: 'Auth & Sessions', configuration: 'Configuration', apiSecurity: 'API Security',
+    accessControl: "Access Control",
+    dataProtection: "Data Protection",
+    injection: "Injection & Input",
+    authAndSession: "Auth & Sessions",
+    configuration: "Configuration",
+    apiSecurity: "API Security",
   };
   for (const [key, cat] of Object.entries(data.categories || {})) {
     const vulns = cat.vulnerabilities || [];
     if (vulns.length === 0) {
-      rows.push([catMeta[key] || key, cat.grade, '', '', '', '', cat.summary || '', '', '']);
+      rows.push([
+        catMeta[key] || key,
+        cat.grade,
+        "",
+        "",
+        "",
+        "",
+        cat.summary || "",
+        "",
+        "",
+      ]);
     }
     for (const v of vulns) {
       rows.push([
-        catMeta[key] || key, cat.grade, v.title || '', v.severity || '', v.owaspCategory || '',
-        v.cvssEstimate || '', v.description || '', v.impact || '', v.remediation || '',
+        catMeta[key] || key,
+        cat.grade,
+        v.title || "",
+        v.severity || "",
+        v.owaspCategory || "",
+        v.cvssEstimate || "",
+        v.description || "",
+        v.impact || "",
+        v.remediation || "",
       ]);
     }
   }
-  return rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  return rows
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
 }
 
 function reportToHTML(data, filename) {
   const md = reportToMarkdown(data, filename);
   // Simple markdown-to-HTML for the report
   const body = md
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/^- (.+)$/gm, "<li>$1</li>")
+    .replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>")
     .replace(/\|(.+)\|/g, (match) => {
-      if (match.includes('---|')) return '';
-      const cells = match.split('|').filter(Boolean).map(c => c.trim());
-      return '<tr>' + cells.map(c => `<td style="padding:4px 12px;border:1px solid #444">${c}</td>`).join('') + '</tr>';
+      if (match.includes("---|")) return "";
+      const cells = match
+        .split("|")
+        .filter(Boolean)
+        .map((c) => c.trim());
+      return (
+        "<tr>" +
+        cells
+          .map(
+            (c) =>
+              `<td style="padding:4px 12px;border:1px solid #444">${c}</td>`,
+          )
+          .join("") +
+        "</tr>"
+      );
     })
-    .replace(/\n\n+/g, '<br/><br/>')
-    .replace(/\n/g, '\n');
+    .replace(/\n\n+/g, "<br/><br/>")
+    .replace(/\n/g, "\n");
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Security Report${filename ? ' — ' + filename : ''}</title>
+<html><head><meta charset="utf-8"><title>Security Report${filename ? " — " + filename : ""}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem;background:#0c0f1a;color:#e2e8f0}
 h1{color:#f97316}h2{color:#fb923c;border-bottom:1px solid #334155;padding-bottom:4px}h3{color:#fbbf24}
 table{border-collapse:collapse;width:100%}td{padding:4px 12px;border:1px solid #475569}
@@ -321,8 +493,17 @@ li{margin:2px 0}strong{color:#f1f5f9}</style></head>
 }
 
 function handleExportJSON(data, filename) {
-  const exportData = { ...data, filename, exportedAt: new Date().toISOString() };
-  downloadBlob(new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' }), `${baseName(filename)}-security-report.json`);
+  const exportData = {
+    ...data,
+    filename,
+    exportedAt: new Date().toISOString(),
+  };
+  downloadBlob(
+    new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    }),
+    `${baseName(filename)}-security-report.json`,
+  );
 }
 
 // ── Export Dropdown ─────────────────────────────────
@@ -331,35 +512,46 @@ function ExportDropdown({ data, filename, onToast }) {
 
   async function handleCopy() {
     await copyText(reportToMarkdown(data, filename));
-    onToast?.('Report copied to clipboard');
+    onToast?.("Report copied to clipboard");
     setOpen(false);
   }
 
   function handleMD() {
-    downloadBlob(new Blob([reportToMarkdown(data, filename)], { type: 'text/markdown' }), `${baseName(filename)}-security-report.md`);
+    downloadBlob(
+      new Blob([reportToMarkdown(data, filename)], { type: "text/markdown" }),
+      `${baseName(filename)}-security-report.md`,
+    );
     setOpen(false);
   }
 
   function handleCSV() {
-    downloadBlob(new Blob([reportToCSV(data)], { type: 'text/csv' }), `${baseName(filename)}-security-report.csv`);
+    downloadBlob(
+      new Blob([reportToCSV(data)], { type: "text/csv" }),
+      `${baseName(filename)}-security-report.csv`,
+    );
     setOpen(false);
   }
 
   function handleHTML() {
-    downloadBlob(new Blob([reportToHTML(data, filename)], { type: 'text/html' }), `${baseName(filename)}-security-report.html`);
+    downloadBlob(
+      new Blob([reportToHTML(data, filename)], { type: "text/html" }),
+      `${baseName(filename)}-security-report.html`,
+    );
     setOpen(false);
   }
 
   function handlePDF() {
     // Open the HTML report in a new tab for the user to print as PDF
     const html = reportToHTML(data, filename);
-    const blob = new Blob([html], { type: 'text/html' });
+    const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const win = window.open(url, '_blank');
+    const win = window.open(url, "_blank");
     if (win) {
-      win.onload = () => { setTimeout(() => win.print(), 500); };
+      win.onload = () => {
+        setTimeout(() => win.print(), 500);
+      };
     }
-    onToast?.('Print dialog opened — save as PDF');
+    onToast?.("Print dialog opened — save as PDF");
     setOpen(false);
   }
 
@@ -383,23 +575,41 @@ function ExportDropdown({ data, filename, onToast }) {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-50 glass-heavy rounded-xl border border-slate-600/50 shadow-xl py-1 min-w-[160px] fade-in">
-            <button onClick={handleCopy} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={handleCopy}
+              className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
+            >
               <Copy className="w-3.5 h-3.5" /> Copy to Clipboard
             </button>
-            <button onClick={handleMD} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={handleMD}
+              className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
+            >
               <Download className="w-3.5 h-3.5" /> Download .md
             </button>
-            <button onClick={handleCSV} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={handleCSV}
+              className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
+            >
               <Download className="w-3.5 h-3.5" /> Download .csv
             </button>
-            <button onClick={handleHTML} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={handleHTML}
+              className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
+            >
               <Download className="w-3.5 h-3.5" /> Download .html
             </button>
-            <button onClick={handlePDF} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={handlePDF}
+              className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
+            >
               <Download className="w-3.5 h-3.5" /> Save as PDF
             </button>
             <div className="border-t border-slate-700/30 my-1" />
-            <button onClick={handleJSON} className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={handleJSON}
+              className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:bg-slate-700/40 hover:text-white transition-colors flex items-center gap-2 cursor-pointer"
+            >
               <Download className="w-3.5 h-3.5" /> Download .json
             </button>
           </div>
@@ -410,10 +620,26 @@ function ExportDropdown({ data, filename, onToast }) {
 }
 
 // ── Main Security Report ────────────────────────────
-export default function SecurityReport({ data, filename, onDeepDive, onNewScan, onToast, onRemediate, remediating, remediationProgress }) {
+export default function SecurityReport({
+  data,
+  filename,
+  onDeepDive,
+  onNewScan,
+  onToast,
+  onRemediate,
+  remediating,
+  remediationProgress,
+}) {
   if (!data) return null;
 
-  const { overallGrade, riskSummary, topRisk, categories, cleanBillOfHealth, testCaseSuggestions } = data;
+  const {
+    overallGrade,
+    riskSummary,
+    topRisk,
+    categories,
+    cleanBillOfHealth,
+    testCaseSuggestions,
+  } = data;
 
   return (
     <div className="space-y-4 fade-in max-w-3xl mx-auto">
@@ -427,11 +653,15 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
             </h2>
             {filename && (
               <div className="flex items-center gap-1.5 mt-1">
-                {filename.toLowerCase().includes('folder') || filename.includes('files')
-                  ? <FolderOpen className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  : <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                }
-                <p className="text-sm text-slate-400 font-mono break-all">{filename}</p>
+                {filename.toLowerCase().includes("folder") ||
+                filename.includes("files") ? (
+                  <FolderOpen className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                )}
+                <p className="text-sm text-slate-400 font-mono break-all">
+                  {filename}
+                </p>
               </div>
             )}
             <div className="flex items-center gap-3 mt-2">
@@ -456,7 +686,9 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
                 aria-label="Generate remediation package"
               >
                 <Wrench className="w-3.5 h-3.5" />
-                {remediating ? (remediationProgress || 'Remediating...') : 'Remediate'}
+                {remediating
+                  ? remediationProgress || "Remediating..."
+                  : "Remediate"}
               </button>
             )}
             <button
@@ -474,7 +706,9 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
       {/* Risk Summary */}
       {riskSummary && (
         <div className="glass rounded-xl border border-slate-700/30 p-4">
-          <p className="text-sm text-slate-300 leading-relaxed">{riskSummary}</p>
+          <p className="text-sm text-slate-300 leading-relaxed">
+            {riskSummary}
+          </p>
         </div>
       )}
 
@@ -482,8 +716,12 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
       {cleanBillOfHealth && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-5 text-center">
           <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-emerald-300 mb-1">Your code passed the security scan!</h3>
-          <p className="text-sm text-emerald-200/70">No vulnerabilities detected. Keep up the good work!</p>
+          <h3 className="text-lg font-semibold text-emerald-300 mb-1">
+            Your code passed the security scan!
+          </h3>
+          <p className="text-sm text-emerald-200/70">
+            No vulnerabilities detected. Keep up the good work!
+          </p>
         </div>
       )}
 
@@ -494,13 +732,19 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-slate-100">Top Risk</h3>
+                <h3 className="text-sm font-semibold text-slate-100">
+                  Top Risk
+                </h3>
                 <span className="text-[10px] text-slate-500 bg-slate-700/40 px-1.5 py-0.5 rounded-full">
                   {topRisk.category}
                 </span>
               </div>
-              <p className="text-sm font-medium text-slate-300 mt-1">{topRisk.title}</p>
-              <p className="text-sm text-slate-400 mt-1 leading-relaxed">{topRisk.explanation}</p>
+              <p className="text-sm font-medium text-slate-300 mt-1">
+                {topRisk.title}
+              </p>
+              <p className="text-sm text-slate-400 mt-1 leading-relaxed">
+                {topRisk.explanation}
+              </p>
             </div>
           </div>
         </div>
@@ -509,17 +753,28 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
       {/* 6 Category Grade Summary Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {Object.entries(categories).map(([key, cat]) => {
-          const meta = SECURITY_CATEGORIES[key] || { label: key, Icon: Code, owasp: '' };
+          const meta = SECURITY_CATEGORIES[key] || {
+            label: key,
+            Icon: Code,
+            owasp: "",
+          };
           const { Icon } = meta;
           const colors = GRADE_COLORS[cat.grade] || GRADE_COLORS.C;
           return (
-            <div key={key} className={`glass rounded-xl border ${colors.border} p-3 text-center`}>
+            <div
+              key={key}
+              className={`glass rounded-xl border ${colors.border} p-3 text-center`}
+            >
               <div className="flex items-center justify-center">
                 <Icon className="w-4 h-4 text-slate-300" />
               </div>
-              <div className={`text-2xl font-bold ${colors.text} mt-1`}>{cat.grade}</div>
+              <div className={`text-2xl font-bold ${colors.text} mt-1`}>
+                {cat.grade}
+              </div>
               <div className="text-xs text-slate-400 mt-1">{meta.label}</div>
-              <div className="text-[9px] text-slate-600 mt-0.5 font-mono">{meta.owasp}</div>
+              <div className="text-[9px] text-slate-600 mt-0.5 font-mono">
+                {meta.owasp}
+              </div>
             </div>
           );
         })}
@@ -528,14 +783,22 @@ export default function SecurityReport({ data, filename, onDeepDive, onNewScan, 
       {/* Detailed Category Sections */}
       <div className="space-y-3">
         {Object.entries(categories).map(([key, cat]) => (
-          <CategorySection key={key} categoryKey={key} category={cat} onDeepDive={onDeepDive} onToast={onToast} />
+          <CategorySection
+            key={key}
+            categoryKey={key}
+            category={cat}
+            onDeepDive={onDeepDive}
+            onToast={onToast}
+          />
         ))}
       </div>
 
       {/* Test Case Suggestions */}
       {testCaseSuggestions && testCaseSuggestions.length > 0 && (
         <div className="glass rounded-xl border border-slate-700/30 p-4">
-          <h3 className="text-sm font-semibold text-slate-200 mb-2">Suggested Test Cases</h3>
+          <h3 className="text-sm font-semibold text-slate-200 mb-2">
+            Suggested Test Cases
+          </h3>
           <ul className="list-disc list-inside space-y-1 text-sm text-slate-400">
             {testCaseSuggestions.map((suggestion, i) => (
               <li key={i}>{suggestion}</li>

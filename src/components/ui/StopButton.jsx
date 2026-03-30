@@ -2,7 +2,11 @@
  * Shared red Stop button — matches the existing chat Stop button styling.
  * Used by ReviewPanel, SecurityPanel, ValidatePanel, and BaseBuilderPanel.
  */
-export default function StopButton({ onClick, label = 'Stop', className = '' }) {
+export default function StopButton({
+  onClick,
+  label = "Stop",
+  className = "",
+}) {
   return (
     <button
       type="button"

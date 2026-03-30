@@ -37,6 +37,7 @@ metrics:
 Transformed the existing 4-step OnboardingWizard component from PM-focused to vibe-coder audience by rewriting all content to match Phase 2's friendly-teacher tone, adding Ollama troubleshooting for non-technical users, and replacing mode emoji icons with Lucide React SVG icons.
 
 **Core changes:**
+
 - **Step 1 (Welcome)**: Replaced "helps Product Managers" with "translates AI-generated code into honest, plain-English reviews" and added "AI coding tool" framing for Cursor/ChatGPT users
 - **Step 2 (Ollama Setup)**: Added troubleshooting section with 3 common issues and fixes (port not responding, no models installed, connection refused)
 - **Step 3 (Pick Your Mode)**: Replaced emoji mode icons with Lucide React components (MessageCircle, Bug, Lightbulb, etc.) and updated descriptions to vibe-coder language
@@ -49,11 +50,13 @@ None - plan executed exactly as written.
 ## Key Decisions Made
 
 **1. Icon strategy: Mixed approach**
+
 - Mode grid uses Lucide React SVG icons (MessageCircle, Lightbulb, ArrowRightLeft, WrenchIcon, Bug, FileCheck, Sparkles, Hammer) per ui-ux-pro-max skill rule
 - Step indicators preserve emoji (👋, 🔌, 🎯, 🛡️) for friendly tone per user-granted exception
 - Balances professional consistency with approachable personality
 
 **2. Ollama troubleshooting scope**
+
 - Added 3 most common issues based on 05-RESEARCH.md Pattern 2:
   - Port not responding → Check Ollama is running in menu bar
   - No models installed → Run `ollama list` and `ollama pull llama3.2`
@@ -61,12 +64,14 @@ None - plan executed exactly as written.
 - Focused on issues non-technical users encounter (not developer-specific problems)
 
 **3. Content transformation approach**
+
 - Used "building with AI" framing instead of "PM workflow"
 - Emphasized translation/understanding over team management
 - Maintained existing localStorage keys (`th3rdai_onboarding_complete`) to preserve user state
 - Kept keyboard navigation and component structure intact
 
 **4. Privacy messaging verification**
+
 - Step 4 already compliant with UX-04 requirement
 - Message clearly states "Your code never leaves your computer"
 - No changes needed (existing content vibe-coder friendly)
@@ -74,6 +79,7 @@ None - plan executed exactly as written.
 ## Testing & Validation
 
 **Code review verification (all passing):**
+
 - ✅ First launch displays wizard when localStorage key not set
 - ✅ Completion persists to `th3rdai_onboarding_complete` unchanged
 - ✅ Keyboard navigation preserved (ArrowRight/Left, Enter, Escape)
@@ -84,6 +90,7 @@ None - plan executed exactly as written.
 - ✅ "AI coding tool" framing present in Step 1
 
 **Manual spot-check criteria:**
+
 - Step 1 references "AI coding tool" and "vibe coders": YES
 - Step 2 includes troubleshooting for non-technical users: YES (3 bullets)
 - Step 3 mode grid uses Lucide icons (not emoji): YES
@@ -93,6 +100,7 @@ None - plan executed exactly as written.
 ## Files Changed
 
 **Modified:**
+
 - `src/components/OnboardingWizard.jsx` (24 insertions, 13 deletions) — Rewrote 3 of 4 steps for vibe-coder tone, added Lucide imports, replaced mode emoji with icon components
 
 ## Commits
@@ -103,15 +111,18 @@ None - plan executed exactly as written.
 ## Dependencies
 
 **Requires:**
+
 - `02-01-vibe-coder-prompts` — Tone consistency baseline from Phase 2
 - `lucide-react` (0.577.0) — Already installed
 
 **Provides:**
+
 - Vibe-coder-focused onboarding wizard matching Phase 2 tone
 - Ollama troubleshooting guidance for non-technical users
 - Lucide icon pattern for future onboarding updates
 
 **Affects:**
+
 - First-time user experience now aligned with vibe-coder audience
 - UX-01 requirement fulfilled (onboarding flow with vibe-coder tone)
 - UX-04 requirement verified (privacy messaging in Step 4)
@@ -119,6 +130,7 @@ None - plan executed exactly as written.
 ## What's Next
 
 **Phase 5 Plan 2** will audit and update JargonGlossary.jsx:
+
 - Review all 70+ glossary terms for vibe-coder-friendly definitions
 - Remove any PM-centric language from term explanations
 - Add "Replay Onboarding" trigger to settings or help menu
@@ -127,17 +139,20 @@ None - plan executed exactly as written.
 ## Self-Check
 
 **Files modified:**
+
 ```bash
 [✓] FOUND: src/components/OnboardingWizard.jsx (24 insertions, 13 deletions)
 ```
 
 **Commits exist:**
+
 ```bash
 [✓] FOUND: 4f1ab9a (feat: vibe-coder onboarding)
 [✓] FOUND: f62b952 (test: verification)
 ```
 
 **Verification criteria:**
+
 ```bash
 [✓] No "Product Managers" language detected
 [✓] "AI coding tool" framing present

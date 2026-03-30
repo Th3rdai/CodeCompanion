@@ -10,6 +10,7 @@
 Phase 9.2 adds image upload and vision model support to the Security (Pentest) feature. Users can now attach images (screenshots of vulnerabilities, error messages, configuration screens) alongside code for more comprehensive security assessments.
 
 **Key Difference from ReviewPanel**: SecurityPanel handles complex scenarios including:
+
 - Single file uploads
 - Multiple file uploads (combined into one scan)
 - Recursive folder scanning
@@ -24,14 +25,16 @@ Phase 9.2 adds image upload and vision model support to the Security (Pentest) f
 **src/components/SecurityPanel.jsx** (~170 lines added/modified)
 
 ### 1. Imports Added
+
 ```javascript
-import { X } from 'lucide-react';
-import ImageThumbnail from './ImageThumbnail';
-import ImageLightbox from './ImageLightbox';
-import { validateImage, processImage, hashImage } from '../lib/image-processor';
+import { X } from "lucide-react";
+import ImageThumbnail from "./ImageThumbnail";
+import ImageLightbox from "./ImageLightbox";
+import { validateImage, processImage, hashImage } from "../lib/image-processor";
 ```
 
 ### 2. State Management
+
 ```javascript
 const [attachedImages, setAttachedImages] = useState([]);
 const [processingImages, setProcessingImages] = useState(0);
@@ -41,10 +44,12 @@ const [lightboxIndex, setLightboxIndex] = useState(0);
 ```
 
 ### 3. File Upload Handler (Enhanced)
+
 - **Function**: `handleFileUpload()` (now async)
 - **Key Enhancement**: Separates images from text files
 
 **Logic**:
+
 ```javascript
 async function handleFileUpload(e) {
   const files = Array.from(e.target.files);
@@ -53,7 +58,7 @@ async function handleFileUpload(e) {
   const imageFiles = [];
   const textFiles = [];
   for (const file of files) {
-    if (file.type.startsWith('image/')) {
+    if (file.type.startsWith("image/")) {
       imageFiles.push(file);
     } else {
       textFiles.push(file);
@@ -75,16 +80,19 @@ async function handleFileUpload(e) {
 ```
 
 **Why This Approach**:
+
 - Images shouldn't be combined like text files
 - Each image is a separate visual asset
 - Text file combining logic is preserved
 - Users can mix text + image files in one upload
 
 ### 4. Drag and Drop Handler (Enhanced)
+
 - **Function**: `handleDrop()` (now async)
 - **Changes**: Only for single file drops (folder drops remain text-only)
 
 **Logic**:
+
 ```javascript
 async function handleDrop(e) {
   // ... existing folder/multi-file logic unchanged ...
@@ -95,7 +103,7 @@ async function handleDrop(e) {
   } else {
     // Single file drop
     const file = files[0];
-    const isImage = file.type.startsWith('image/');
+    const isImage = file.type.startsWith("image/");
 
     if (isImage) {
       // Process image
@@ -107,13 +115,16 @@ async function handleDrop(e) {
 ```
 
 **Why Not Images in Folders**:
+
 - Folder scans are for code vulnerability analysis
 - Images in large folder scans would be overwhelming
 - Single image drops are the primary use case
 
 ### 5. Submit Scan (Updated)
+
 - **Function**: `handleSubmitScan()`
 - **Changes**: Includes images array in API request
+
 ```javascript
 const images = attachedImages.map(img => img.content);
 body: JSON.stringify({
@@ -125,6 +136,7 @@ body: JSON.stringify({
 ```
 
 ### 6. Image Management Functions
+
 - `removeImage(index)` - Remove single image
 - `openLightbox(index)` - Open full-size image view
 - `closeLightbox()` - Close lightbox
@@ -134,22 +146,26 @@ body: JSON.stringify({
 ### 7. UI Components
 
 **Attached Images Display**:
+
 - Shows thumbnail grid
 - Individual remove buttons
 - "Clear All" button
 - Click to open lightbox
 
 **Processing Indicator**:
+
 - Fixed bottom-right corner
 - Animated dots
 - Shows count: "Processing N images..."
 
 **File Input Accept Attribute**:
+
 ```html
 accept="..., image/*,.png,.jpg,.jpeg,.gif"
 ```
 
 **Lightbox**:
+
 - Full-size image view
 - Gallery navigation
 - Zoom, download, close controls
@@ -159,11 +175,13 @@ accept="..., image/*,.png,.jpg,.jpeg,.gif"
 ## 🔗 Integration Points
 
 ### Backend (Already Complete - Phase 1)
+
 - `/api/pentest` endpoint accepts `images` array
 - Vision-specific timeout (300s)
 - Vision context injection in prompts
 
 ### Frontend Components (Reused from Phase 2)
+
 - `ImageThumbnail` - Thumbnail display with metadata
 - `ImageLightbox` - Full-size viewer with navigation
 - `image-processor.js` - Validation and processing utilities
@@ -173,6 +191,7 @@ accept="..., image/*,.png,.jpg,.jpeg,.gif"
 ## 🎯 User Flows
 
 ### Flow 1: Single Image + Code
+
 1. User pastes code in "Paste Code" tab
 2. User switches to "Upload File" tab
 3. User uploads an image showing vulnerability
@@ -181,6 +200,7 @@ accept="..., image/*,.png,.jpg,.jpeg,.gif"
 6. AI analyzes code + image together
 
 ### Flow 2: Mixed Upload (Text + Images)
+
 1. User selects multiple files: `auth.js`, `error-screenshot.png`, `config.js`
 2. System separates: 2 text files + 1 image
 3. Text files combine: `── File: auth.js ──\n...\n\n── File: config.js ──\n...`
@@ -188,6 +208,7 @@ accept="..., image/*,.png,.jpg,.jpeg,.gif"
 5. User submits → AI gets combined text + image array
 
 ### Flow 3: Folder Scan (Text Only)
+
 1. User drags folder into drop zone
 2. System recursively scans `.js`, `.py`, `.java` files
 3. Combines up to 80 files
@@ -198,26 +219,29 @@ accept="..., image/*,.png,.jpg,.jpeg,.gif"
 
 ## 📊 Code Statistics
 
-| Metric | Value |
-|--------|-------|
-| Lines Added | ~170 |
-| Functions Modified | 5 |
-| Functions Added | 4 |
-| State Variables Added | 5 |
-| UI Components Added | 2 |
-| Build Status | ✅ Success |
+| Metric                | Value      |
+| --------------------- | ---------- |
+| Lines Added           | ~170       |
+| Functions Modified    | 5          |
+| Functions Added       | 4          |
+| State Variables Added | 5          |
+| UI Components Added   | 2          |
+| Build Status          | ✅ Success |
 
 ---
 
 ## 🧪 Testing
 
 ### Build Test
+
 ```bash
 npm run build
 ```
+
 **Result**: ✅ SUCCESS (no errors)
 
 ### Manual Testing Required
+
 - [ ] Upload single image with code
 - [ ] Upload multiple files (mix of text + images)
 - [ ] Drag-drop single image
@@ -233,6 +257,7 @@ npm run build
 ## 🔒 Security
 
 All security measures inherited from Phase 0 & Phase 2:
+
 - ✅ EXIF metadata stripping (automatic via canvas)
 - ✅ Canvas re-encoding destroys embedded scripts
 - ✅ MIME type whitelist (PNG, JPEG, GIF only)
@@ -246,12 +271,14 @@ All security measures inherited from Phase 0 & Phase 2:
 ## 🚀 Performance Considerations
 
 **Multi-File Upload Performance**:
+
 - Images process asynchronously (doesn't block text file reading)
 - Each image increments/decrements `processingImages` counter
 - User gets real-time feedback via processing indicator
 - Text files combine in parallel with image processing
 
 **Folder Scan Performance**:
+
 - Images intentionally excluded to maintain performance
 - Recursive folder scans already limited to 80 files
 - Adding image processing to folder scans would be impractical
@@ -261,6 +288,7 @@ All security measures inherited from Phase 0 & Phase 2:
 ## 📝 Next Steps
 
 **Phase 9.3**: Add image detection to FileBrowser
+
 - Display image thumbnails in file list
 - Preview images before attaching to chat
 - Icon badges for image files
@@ -272,6 +300,7 @@ All security measures inherited from Phase 0 & Phase 2:
 ## ✅ Phase 9.2 Sign-Off
 
 **Checklist**:
+
 - ✅ Imports added
 - ✅ State management implemented
 - ✅ File upload handler separates images from text

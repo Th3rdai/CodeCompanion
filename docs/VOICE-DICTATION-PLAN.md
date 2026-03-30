@@ -6,12 +6,12 @@
 
 **Existing building blocks**
 
-| Asset | Role |
-|-------|------|
-| `src/components/DictateButton.jsx` | Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`), `continuous: true`, appends via `onResult(text)` |
-| `CreateWizard.jsx` | ✅ Dictation on step 1–2 fields, output path; ❌ **Step 3 stage name / purpose** (two `<input>`s per row) — **no mic** |
-| `BuildWizard.jsx` | ✅ Same pattern as Create (verify parity with Create step 3) |
-| `ReviewPanel.jsx` | ✅ Dictation on **Paste code** textarea only |
+| Asset                              | Role                                                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `src/components/DictateButton.jsx` | Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`), `continuous: true`, appends via `onResult(text)`     |
+| `CreateWizard.jsx`                 | ✅ Dictation on step 1–2 fields, output path; ❌ **Step 3 stage name / purpose** (two `<input>`s per row) — **no mic** |
+| `BuildWizard.jsx`                  | ✅ Same pattern as Create (verify parity with Create step 3)                                                           |
+| `ReviewPanel.jsx`                  | ✅ Dictation on **Paste code** textarea only                                                                           |
 
 **Browsers:** Chromium & Safari (webkit) generally; Firefox limited. Requires **secure context** (HTTPS or localhost). Electron uses Chromium — OK.
 
@@ -21,25 +21,25 @@
 
 ### High priority (matches your screenshot / daily use)
 
-| Area | File(s) | Fields |
-|------|---------|--------|
+| Area              | File(s)                | Fields                                                                                                                       |
+| ----------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Builder modes** | `BaseBuilderPanel.jsx` | All `config.fields` **`textarea`** and **`text`**; **`TagInput`** inner `<input>`; **revision** `<textarea>` (`reviseInput`) |
-| **Main chat** | `App.jsx` | `#chat-input` textarea |
-| **Create wizard** | `CreateWizard.jsx` | Step 3 **stage name** + **stage purpose** per row |
+| **Main chat**     | `App.jsx`              | `#chat-input` textarea                                                                                                       |
+| **Create wizard** | `CreateWizard.jsx`     | Step 3 **stage name** + **stage purpose** per row                                                                            |
 
 ### Medium priority (other modes / tools)
 
-| Area | File(s) | Notes |
-|------|---------|--------|
-| **Review (full pass)** | `ReviewPanel.jsx` | Grep **all** `textarea` and relevant `input type="text"` (not only “Paste code”); deep-dive / other tabs may lack dictation today |
-| **Security** | `SecurityPanel.jsx` | Pentest / paste / folder text areas and text inputs |
-| **Validate** | `ValidatePanel.jsx` | Path / command text inputs |
-| **GitHub** | `GitHubPanel.jsx` | Repo name, path, description-style fields |
-| **MCP** | `McpClientPanel.jsx`, `McpServerPanel.jsx` | URL, name, args (multiline) where free text |
-| **Build** | `BuildPanel.jsx`, `BuildWizard.jsx` | Free-text fields not yet covered |
-| **Settings** | `SettingsPanel.jsx` | Long text (allowlists, env) — optional; skip **secrets** (tokens) |
-| **Sidebar** | `Sidebar.jsx` (or search component) | Conversation search — optional (short queries) |
-| **Tutorial / handoff** | `ClaudeCodeHandoff.jsx`, etc. | If any multi-line instructions |
+| Area                   | File(s)                                    | Notes                                                                                                                             |
+| ---------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Review (full pass)** | `ReviewPanel.jsx`                          | Grep **all** `textarea` and relevant `input type="text"` (not only “Paste code”); deep-dive / other tabs may lack dictation today |
+| **Security**           | `SecurityPanel.jsx`                        | Pentest / paste / folder text areas and text inputs                                                                               |
+| **Validate**           | `ValidatePanel.jsx`                        | Path / command text inputs                                                                                                        |
+| **GitHub**             | `GitHubPanel.jsx`                          | Repo name, path, description-style fields                                                                                         |
+| **MCP**                | `McpClientPanel.jsx`, `McpServerPanel.jsx` | URL, name, args (multiline) where free text                                                                                       |
+| **Build**              | `BuildPanel.jsx`, `BuildWizard.jsx`        | Free-text fields not yet covered                                                                                                  |
+| **Settings**           | `SettingsPanel.jsx`                        | Long text (allowlists, env) — optional; skip **secrets** (tokens)                                                                 |
+| **Sidebar**            | `Sidebar.jsx` (or search component)        | Conversation search — optional (short queries)                                                                                    |
+| **Tutorial / handoff** | `ClaudeCodeHandoff.jsx`, etc.              | If any multi-line instructions                                                                                                    |
 
 ### Low priority / skip
 
@@ -129,14 +129,14 @@ Optional later: prop **`mode="append" | "replace"`** for search-like fields.
 
 ## 4. Dependencies & risks
 
-| Risk | Mitigation |
-|------|------------|
-| Only one recognition at a time | Stop previous recognition when starting another mic |
-| Large forms, many mics | Same as today — user clicks one field’s mic; optional global “dictating into #id” later |
-| **HTTPS / self-signed** | Speech API still needs mic permission; unrelated to clipboard fixes |
-| **Electron / macOS** | System **microphone** permission may be required once — note in BUILD.md / Settings (Phase C) |
-| **Mobile / iOS Safari** | Speech support varies; **v1 scope: desktop Chrome + Electron** unless explicitly expanded |
-| **i18n** | Start with `en-US`; add Settings dropdown later |
+| Risk                           | Mitigation                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| Only one recognition at a time | Stop previous recognition when starting another mic                                           |
+| Large forms, many mics         | Same as today — user clicks one field’s mic; optional global “dictating into #id” later       |
+| **HTTPS / self-signed**        | Speech API still needs mic permission; unrelated to clipboard fixes                           |
+| **Electron / macOS**           | System **microphone** permission may be required once — note in BUILD.md / Settings (Phase C) |
+| **Mobile / iOS Safari**        | Speech support varies; **v1 scope: desktop Chrome + Electron** unless explicitly expanded     |
+| **i18n**                       | Start with `en-US`; add Settings dropdown later                                               |
 
 ---
 
@@ -154,12 +154,12 @@ Optional later: prop **`mode="append" | "replace"`** for search-like fields.
 
 ## 6. Suggested order of work
 
-1. `BaseBuilderPanel.jsx` (fixes the screen in your screenshot).  
-2. `App.jsx` chat.  
-3. Create/Build wizard step 3.  
-4. Security → Validate → GitHub → MCP → Build panel.  
+1. `BaseBuilderPanel.jsx` (fixes the screen in your screenshot).
+2. `App.jsx` chat.
+3. Create/Build wizard step 3.
+4. Security → Validate → GitHub → MCP → Build panel.
 5. Polish `DictateButton` + docs.
 
 ---
 
-*This plan assumes reuse of `DictateButton`; no new npm dependency required for v1.*
+_This plan assumes reuse of `DictateButton`; no new npm dependency required for v1._

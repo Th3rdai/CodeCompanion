@@ -2,15 +2,15 @@
 
 Quick map of **network/API hardening**, assessment artifacts, and related env vars for **Code Companion** maintainers.
 
-| Topic | Document / code |
-|--------|------------------|
-| **Environment variables** (`CC_BIND_ALL`, `CC_API_SECRET`, `VITE_CC_API_KEY`, CORS, rate limits) | [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) |
-| **Vulnerability reporting & threat model** | [../SECURITY.md](../SECURITY.md) |
-| **Static pen-test report (OWASP) + remediations log** | [PENTEST-REPORT-CodeCompanion-Static-Analysis.md](./PENTEST-REPORT-CodeCompanion-Static-Analysis.md) |
-| **Releases, electron-updater, code-signing env** | [RELEASES-AND-UPDATES.md](./RELEASES-AND-UPDATES.md), [BUILD.md](../BUILD.md) (macOS / Windows / Linux), [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) (`MAC_*`, `WIN_*` / `CSC_*`, `LINUX_GPG_*`) |
-| **Server middleware & path allowlists** | `lib/security-helpers.js`, `server.js` |
-| **SPA authenticated fetch (optional LAN)** | `src/lib/api-fetch.js` |
-| **SCA (dependency audit)** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — `npm audit --audit-level=critical` on push/PR; run `npm audit` locally for full report |
+| Topic                                                                                            | Document / code                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Environment variables** (`CC_BIND_ALL`, `CC_API_SECRET`, `VITE_CC_API_KEY`, CORS, rate limits) | [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md)                                                                                                                                                      |
+| **Vulnerability reporting & threat model**                                                       | [../SECURITY.md](../SECURITY.md)                                                                                                                                                                            |
+| **Static pen-test report (OWASP) + remediations log**                                            | [PENTEST-REPORT-CodeCompanion-Static-Analysis.md](./PENTEST-REPORT-CodeCompanion-Static-Analysis.md)                                                                                                        |
+| **Releases, electron-updater, code-signing env**                                                 | [RELEASES-AND-UPDATES.md](./RELEASES-AND-UPDATES.md), [BUILD.md](../BUILD.md) (macOS / Windows / Linux), [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) (`MAC_*`, `WIN_*` / `CSC_*`, `LINUX_GPG_*`) |
+| **Server middleware & path allowlists**                                                          | `lib/security-helpers.js`, `server.js`                                                                                                                                                                      |
+| **SPA authenticated fetch (optional LAN)**                                                       | `src/lib/api-fetch.js`                                                                                                                                                                                      |
+| **SCA (dependency audit)**                                                                       | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — `npm audit --audit-level=critical` on push/PR; run `npm audit` locally for full report                                                          |
 
 ## Defaults (2026-03+)
 

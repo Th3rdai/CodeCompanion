@@ -14,18 +14,21 @@ Reviews become reusable and actionable. Every finding has a copy-pasteable promp
 ## Implementation Decisions
 
 ### Fix Prompt Format
+
 - Natural-language prompts, NOT code snippets — transform findings into "Ask your AI to fix:" instructions the user pastes into Cursor/ChatGPT/Replit
 - Generic tool reference ("your AI tool"), not tool-specific — no settings needed
 - LLM-generated during review — add `fixPrompt` field to the review JSON schema so the LLM writes context-aware natural-language prompts
 - Include file/function context when available — if user uploaded a file or browsed a folder, the prompt references it ("In your server.js file, please fix..."); falls back to generic for pasted code
 
 ### Review History
+
 - Sidebar integration — saved reviews appear in the existing sidebar history list, filterable by mode; clicking reopens the full report card
 - Full report card JSON saved — complete structured data (grades, findings, fixPrompts, topPriority) plus original code and file name
 - Auto-save on review completion — save immediately when report card loads; toast confirmation; user can delete from history
 - Resume deep-dive conversations — save deep-dive messages; when reopened, user sees report card AND can continue asking questions
 
 ### Model Warning Behavior
+
 - Enhanced pre-review warning — keep existing amber text + suggest a better model from user's installed Ollama models with "Continue anyway" / "Switch" buttons
 - Empirical tier list — maintain a hardcoded list of known strong/adequate/weak models; falls back to parameter-based detection for unknown models
 - Auto-switch on click — "Switch" button immediately changes the model selector to the suggested model
@@ -34,6 +37,7 @@ Reviews become reusable and actionable. Every finding has a copy-pasteable promp
 - Best-available suggestion logic — check user's installed models against tier list, suggest highest-tier available; if none strong, suggest best adequate; if none, just warn without switch button
 
 ### Copy/Action Mechanics
+
 - One-click copy per finding AND bulk "Copy All Fix Prompts" button at top of report card
 - Fix prompt in visually distinct block — highlighted box (like blockquote) below finding explanation with copy button; clear visual separation
 - Action-oriented toast — "Copied! Paste this into your AI tool to fix it." (friendly-teacher tone, guides next step)
@@ -41,6 +45,7 @@ Reviews become reusable and actionable. Every finding has a copy-pasteable promp
 - Toast auto-dismiss after 3-5 seconds per UX guidelines
 
 ### Claude's Discretion
+
 - Exact layout spacing and padding for fix prompt blocks
 - How to integrate review history into existing sidebar data model
 - Whether to store reviews in same history directory or separate reviews directory
@@ -59,9 +64,11 @@ Reviews become reusable and actionable. Every finding has a copy-pasteable promp
 </specifics>
 
 <code_context>
+
 ## Existing Code Insights
 
 ### Reusable Assets
+
 - `CopyFixButton` component in ReportCard.jsx — already copies suggestedFix to clipboard; can be extended to copy fixPrompt instead
 - `getModelCapabilityWarning()` in ReviewPanel.jsx — already detects small models by parameter count; needs tier list upgrade
 - `lib/history.js` — full conversation history system with save/load/list/archive; saves JSON files with UUID, title, mode, model, timestamps
@@ -70,12 +77,14 @@ Reviews become reusable and actionable. Every finding has a copy-pasteable promp
 - Existing report card export (Markdown + JSON) — can inform how saved reviews are structured
 
 ### Established Patterns
+
 - State machine in ReviewPanel.jsx: 'input' | 'loading' | 'report' | 'fallback' | 'deep-dive' — saved reviews would restore to 'report' state
 - Sidebar.jsx shows conversation history filtered by mode — review history follows same pattern
 - Structured JSON schema with Zod validation (Phase 1) — fixPrompt field adds to existing schema
 - Lucide React icons throughout (Phase 3 decision) — use for copy/clipboard icons
 
 ### Integration Points
+
 - `/api/review` endpoint — must include fixPrompt in structured JSON schema response
 - `lib/review.js` — review system prompt needs fixPrompt generation instructions
 - `lib/history.js` — needs to handle review-type conversations with reportCard data
@@ -93,5 +102,5 @@ None — discussion stayed within phase scope
 
 ---
 
-*Phase: 04-actionable-guidance*
-*Context gathered: 2026-03-14*
+_Phase: 04-actionable-guidance_
+_Context gathered: 2026-03-14_

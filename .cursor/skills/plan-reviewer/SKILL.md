@@ -26,12 +26,12 @@ Read the plan. Check for:
 
 For each issue:
 
-| Field | Content |
-|-------|---------|
-| Severity | critical / major / minor |
-| Description | What is wrong or missing |
-| Impact | If unfixed |
-| Suggested fix | Concrete next step |
+| Field         | Content                  |
+| ------------- | ------------------------ |
+| Severity      | critical / major / minor |
+| Description   | What is wrong or missing |
+| Impact        | If unfixed               |
+| Suggested fix | Concrete next step       |
 
 ### 3. Improve
 
@@ -62,12 +62,12 @@ Produce (or revise into) markdown with:
 
 ## Decision tree
 
-| Plan type | Emphasis |
-|-----------|----------|
-| High-level only | Feasibility, missing detail, expand into concrete steps |
-| Detailed steps | Correctness, dependencies, data flow, optimizations |
+| Plan type              | Emphasis                                                |
+| ---------------------- | ------------------------------------------------------- |
+| High-level only        | Feasibility, missing detail, expand into concrete steps |
+| Detailed steps         | Correctness, dependencies, data flow, optimizations     |
 | Incomplete / ambiguous | Request clarification; do not pretend gaps are resolved |
-| Already strong | Subtle risks, completeness, small optimizations |
+| Already strong         | Subtle risks, completeness, small optimizations         |
 
 ## Guardrails
 

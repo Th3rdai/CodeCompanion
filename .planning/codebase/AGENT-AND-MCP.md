@@ -4,14 +4,14 @@
 
 ## Components
 
-| File | Responsibility |
-|------|------------------|
-| `lib/tool-call-handler.js` | Parses `TOOL_CALL: server_id.tool_name({...})` from model text, executes tools, builds combined tools prompt for chat |
-| `lib/builtin-agent-tools.js` | Local tools without MCP (e.g. `run_terminal_cmd`, office generation hooks as used by agent); allowlist/blocklist via `config.agentTerminal` |
-| `lib/mcp-client-manager.js` | Connects external MCP servers: **stdio** (with `lib/spawn-path.js` env merge), **http** (streamable), **sse**; HTTP→SSE fallback on Method Not Allowed |
-| `lib/mcp-api-routes.js` | REST CRUD for MCP clients + server toggles; `recordToolCall` stats (in-memory) |
-| `mcp-server.js` | Stdio entry for **built-in** MCP server (tools registered via `mcp/tools.js`) |
-| `server.js` | Wires `McpClientManager` + `ToolCallHandler`; `/api/chat` tool loop; `app.all('/mcp')` for HTTP MCP |
+| File                         | Responsibility                                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `lib/tool-call-handler.js`   | Parses `TOOL_CALL: server_id.tool_name({...})` from model text, executes tools, builds combined tools prompt for chat                                  |
+| `lib/builtin-agent-tools.js` | Local tools without MCP (e.g. `run_terminal_cmd`, office generation hooks as used by agent); allowlist/blocklist via `config.agentTerminal`            |
+| `lib/mcp-client-manager.js`  | Connects external MCP servers: **stdio** (with `lib/spawn-path.js` env merge), **http** (streamable), **sse**; HTTP→SSE fallback on Method Not Allowed |
+| `lib/mcp-api-routes.js`      | REST CRUD for MCP clients + server toggles; `recordToolCall` stats (in-memory)                                                                         |
+| `mcp-server.js`              | Stdio entry for **built-in** MCP server (tools registered via `mcp/tools.js`)                                                                          |
+| `server.js`                  | Wires `McpClientManager` + `ToolCallHandler`; `/api/chat` tool loop; `app.all('/mcp')` for HTTP MCP                                                    |
 
 ## How `/api/chat` uses tools
 
@@ -28,7 +28,7 @@ If **no** tools are configured, chat uses **`chatStream`** only (true token stre
 
 ## MCP server (incoming)
 
-Tools for *other* clients connecting to Code Companion: `server.js` registers MCP SDK `McpServer` + `StreamableHTTPServerTransport` on **`/mcp`** (`registerAllTools` from `mcp/tools.js`). Separate from outbound MCP **client** connections.
+Tools for _other_ clients connecting to Code Companion: `server.js` registers MCP SDK `McpServer` + `StreamableHTTPServerTransport` on **`/mcp`** (`registerAllTools` from `mcp/tools.js`). Separate from outbound MCP **client** connections.
 
 ## Configuration touchpoints
 
@@ -43,4 +43,4 @@ Tools for *other* clients connecting to Code Companion: `server.js` registers MC
 
 ---
 
-*Agent/MCP analysis: 2025-03-21*
+_Agent/MCP analysis: 2025-03-21_

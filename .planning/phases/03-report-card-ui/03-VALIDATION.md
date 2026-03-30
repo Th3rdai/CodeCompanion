@@ -15,13 +15,13 @@ created: 2026-03-14
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | Playwright 1.x (E2E + component tests) |
-| **Config file** | playwright.config.js (Wave 0 installs if missing) |
-| **Quick run command** | `npm run test:ui` |
-| **Full suite command** | `npm run test` |
-| **Estimated runtime** | ~15 seconds |
+| Property               | Value                                             |
+| ---------------------- | ------------------------------------------------- |
+| **Framework**          | Playwright 1.x (E2E + component tests)            |
+| **Config file**        | playwright.config.js (Wave 0 installs if missing) |
+| **Quick run command**  | `npm run test:ui`                                 |
+| **Full suite command** | `npm run test`                                    |
+| **Estimated runtime**  | ~15 seconds                                       |
 
 ---
 
@@ -36,14 +36,14 @@ created: 2026-03-14
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 0 | REVW-08 | component | `npm run test:ui` | ❌ W0 | ⬜ pending |
-| 03-01-02 | 01 | 1 | REVW-08 | E2E | `npm run test:ui` | ❌ W0 | ⬜ pending |
-| 03-02-01 | 02 | 0 | REVW-05, REVW-07, REVW-09 | component | `npm run test:ui` | ❌ W0 | ⬜ pending |
-| 03-02-02 | 02 | 1 | REVW-05, REVW-07, REVW-09 | E2E | `npm run test:ui` | ❌ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement               | Test Type | Automated Command | File Exists | Status     |
+| -------- | ---- | ---- | ------------------------- | --------- | ----------------- | ----------- | ---------- |
+| 03-01-01 | 01   | 0    | REVW-08                   | component | `npm run test:ui` | ❌ W0       | ⬜ pending |
+| 03-01-02 | 01   | 1    | REVW-08                   | E2E       | `npm run test:ui` | ❌ W0       | ⬜ pending |
+| 03-02-01 | 02   | 0    | REVW-05, REVW-07, REVW-09 | component | `npm run test:ui` | ❌ W0       | ⬜ pending |
+| 03-02-02 | 02   | 1    | REVW-05, REVW-07, REVW-09 | E2E       | `npm run test:ui` | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -60,11 +60,11 @@ created: 2026-03-14
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Encouraging message tone feels friendly | REVW-08 | Subjective tone assessment | Read loading messages in dev tools; confirm friendly-teacher tone matches Phase 2 persona |
-| Color-coded grades accessible without color vision | REVW-07 | Requires visual inspection with color filters | Use Chrome DevTools "Emulate vision deficiencies" → Protanopia/Deuteranopia; verify icons + labels + letter badges visible |
-| Deep-dive button affordance is obvious | REVW-05 | Subjective UX assessment | Show report card to vibe-coder user; confirm they know how to drill into a category without instructions |
+| Behavior                                           | Requirement | Why Manual                                    | Test Instructions                                                                                                          |
+| -------------------------------------------------- | ----------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Encouraging message tone feels friendly            | REVW-08     | Subjective tone assessment                    | Read loading messages in dev tools; confirm friendly-teacher tone matches Phase 2 persona                                  |
+| Color-coded grades accessible without color vision | REVW-07     | Requires visual inspection with color filters | Use Chrome DevTools "Emulate vision deficiencies" → Protanopia/Deuteranopia; verify icons + labels + letter badges visible |
+| Deep-dive button affordance is obvious             | REVW-05     | Subjective UX assessment                      | Show report card to vibe-coder user; confirm they know how to drill into a category without instructions                   |
 
 ---
 

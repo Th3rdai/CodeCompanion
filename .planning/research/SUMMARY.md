@@ -20,6 +20,7 @@ The primary risks are not technical but experiential. Vibe coders abandon tools 
 The existing stack requires only one addition. Ollama's `/api/chat` endpoint supports `format` as either `"json"` (generic valid JSON) or a full JSON Schema object (constrained decoding to an exact structure). The latter is required for the report card — it constrains every field to the expected type and enum values, eliminating freeform drift. Zod is already installed (^4.3.6) and serves as a server-side validation safety net after parsing. `zod-to-json-schema` bridges the Zod schema definition to Ollama's `format` parameter, creating a single source of truth for both LLM constraint and server validation. Optional polish-phase libraries (recharts, framer-motion) are explicitly deferred from MVP — letter grades with Tailwind color classes ship faster and are sufficient.
 
 **Core technologies:**
+
 - Ollama `format` with JSON Schema: structured report card generation — native constrained decoding, zero post-hoc parsing fragility. Verified from official Ollama API docs.
 - Zod ^4.3.6 (already installed): server-side validation safety net — catches edge cases where even constrained output drifts.
 - zod-to-json-schema ~^3.24: schema bridge — single Zod definition drives both LLM constraint and server validation. Zod v4 compat needs install-time verification.
@@ -30,6 +31,7 @@ The existing stack requires only one addition. Ollama's `/api/chat` endpoint sup
 The target user cannot read code, cannot interpret "race condition" or "line 47," and will not fix anything manually — they copy-paste prompts to Cursor. The product's niche is the safety net between AI code generation and deployment. Features must be designed for that workflow end-to-end.
 
 **Must have (table stakes):**
+
 - Visual report card with letter grades (A-F) — core value prop, at-a-glance quality signal for non-technical users
 - Category breakdown (Bugs, Security, Readability, Completeness, Performance) — users need dimensional context
 - Overall grade — single answer to "is this code okay?"
@@ -41,6 +43,7 @@ The target user cannot read code, cannot interpret "race condition" or "line 47,
 - Friendly-teacher tone across ALL modes — tone consistency shapes entire product perception
 
 **Should have (competitive):**
+
 - "What to ask your AI to fix" copy-pasteable prompts — uniquely matches the vibe coder workflow; key differentiator
 - Color-coded grade visualization (A=green, F=red) — instant visual feedback with zero implementation cost (Tailwind classes)
 - Model capability tiers with gentle warnings — prevents first-impression failure on small models
@@ -48,6 +51,7 @@ The target user cannot read code, cannot interpret "race condition" or "line 47,
 - Privacy-first messaging — trust signal against cloud alternatives; zero implementation cost
 
 **Defer (v2+):**
+
 - Multi-file project review — requires chunking, aggregation, context window management
 - Before/after comparison — needs review storage, diffing, trend visualization
 - Beginner onboarding wizard — add after core review is validated
@@ -59,6 +63,7 @@ The target user cannot read code, cannot interpret "race condition" or "line 47,
 The architecture follows a structured-then-conversational two-call pattern. Call 1: `POST /api/review-report` (new endpoint, non-streaming) calls a new `chatCompleteStructured()` function with the JSON Schema in the `format` parameter and returns parsed JSON. Call 2: `POST /api/chat` (existing SSE endpoint, unchanged) receives the report card serialized as prior assistant context and streams conversational explanation. These two paths must never be merged — they have incompatible requirements. The frontend follows the existing mode-switching pattern: `ReviewPanel` replaces the chat area the same way `CreateWizard` and `DashboardPanel` already do.
 
 **Major components:**
+
 1. `chatCompleteStructured()` in `ollama-client.js` — new function adding `format` param support; extension of the existing non-streaming `chatComplete` call
 2. `lib/review-schemas.js` — Zod schema defining report card shape plus JSON Schema export via `zod-to-json-schema`
 3. `lib/review-service.js` — orchestrates prompt building, structured Ollama call, Zod validation, three-tier fallback (schema -> prompt-only -> default report)
@@ -136,22 +141,24 @@ Based on combined research, the build order is architecturally constrained botto
 ### Research Flags
 
 Phases likely needing deeper research during planning:
+
 - **Phase 5 (Integration / Model Guidance):** Model capability detection via `details.parameter_size` from Ollama `/api/tags` needs verification against the version deployed at `http://HOST_IP:11424`. Structured output behavior on models under 7B is LOW confidence — requires hands-on testing with models users actually run (llama3.2:3b, phi3, gemma2).
 - **Phase 6 (History):** Current `saveConversation` format needs inspection to confirm the correct extension pattern for structured review data. Read the existing history schema before designing the new `type` field.
 
 Phases with standard patterns (skip research-phase):
+
 - **Phase 1 (Backend Foundation):** Ollama `format` with JSON Schema is verified from official docs. Implementation pattern is fully specified in STACK.md and ARCHITECTURE.md. Proceed directly to build.
 - **Phase 3 (System Prompts):** Pure prompt engineering. No technical unknowns. One focused session.
 - **Phase 4 (Report Card UI):** Pure React component work following established codebase patterns. GradeCard and ReportCard are presentation-only with no novel architecture.
 
 ## Confidence Assessment
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Stack | HIGH | Ollama `format` with JSON Schema verified from official API docs on GitHub. Existing deps confirmed from `package.json`. Only gap: `zod-to-json-schema` Zod v4 compat needs install-time check. |
-| Features | MEDIUM | Feature list derived from codebase analysis and domain expertise. Competitor analysis (ChatGPT, SonarQube positioning) is training data only — not independently verified. Core feature set is unambiguous. |
-| Architecture | HIGH | Two-call pattern is well-supported by existing codebase. Non-streaming Ollama calls already present in `server.js` (git review route, lines 704-745). Build order is unambiguous. Component boundaries are clear. |
-| Pitfalls | MEDIUM-HIGH | Critical pitfalls derived from direct codebase inspection and verified Ollama API behavior. Small-model structured output under 7B is LOW confidence — needs empirical testing. |
+| Area         | Confidence  | Notes                                                                                                                                                                                                             |
+| ------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stack        | HIGH        | Ollama `format` with JSON Schema verified from official API docs on GitHub. Existing deps confirmed from `package.json`. Only gap: `zod-to-json-schema` Zod v4 compat needs install-time check.                   |
+| Features     | MEDIUM      | Feature list derived from codebase analysis and domain expertise. Competitor analysis (ChatGPT, SonarQube positioning) is training data only — not independently verified. Core feature set is unambiguous.       |
+| Architecture | HIGH        | Two-call pattern is well-supported by existing codebase. Non-streaming Ollama calls already present in `server.js` (git review route, lines 704-745). Build order is unambiguous. Component boundaries are clear. |
+| Pitfalls     | MEDIUM-HIGH | Critical pitfalls derived from direct codebase inspection and verified Ollama API behavior. Small-model structured output under 7B is LOW confidence — needs empirical testing.                                   |
 
 **Overall confidence:** MEDIUM-HIGH
 
@@ -165,18 +172,22 @@ Phases with standard patterns (skip research-phase):
 ## Sources
 
 ### Primary (HIGH confidence)
+
 - Ollama API documentation — `github.com/ollama/ollama/blob/main/docs/api.md` — `format` parameter accepts full JSON Schema on both `/api/generate` and `/api/chat`. Constrained decoding confirmed in official structured output examples.
 - Existing codebase — `server.js`, `lib/ollama-client.js`, `lib/prompts.js`, `src/App.jsx`, `src/components/GitHubPanel.jsx` — direct inspection confirming existing patterns, dependency versions, and mode-switching architecture.
 
 ### Secondary (MEDIUM confidence)
+
 - zod-to-json-schema ^3.24 — Zod v4 compatibility from training data. Verify at install time.
 - Domain expertise — vibe coder UX patterns, local LLM structured output reliability, non-technical user mental models. Multiple consistent signals across training data.
 - recharts ^2.15 + React 19 compatibility — training data only. Deferred from MVP.
 
 ### Tertiary (LOW confidence)
+
 - Competitor analysis (ChatGPT, SonarQube, CodeRabbit positioning) — training data only. Verify specific claims before using in marketing copy.
 - Small model (<7B) behavior with Ollama constrained decoding — LOW confidence. Requires empirical testing on target hardware before finalizing fallback strategy.
 
 ---
-*Research completed: 2026-03-13*
-*Ready for roadmap: yes*
+
+_Research completed: 2026-03-13_
+_Ready for roadmap: yes_

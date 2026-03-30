@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 /**
  * Connection status indicator dot
@@ -10,14 +10,12 @@ export default function ConnectionDot({ connected }) {
     <div className="flex items-center gap-2">
       <div
         className={`w-2.5 h-2.5 rounded-full ${
-          connected
-            ? 'bg-green-500 animate-pulse'
-            : 'bg-red-500'
+          connected ? "bg-green-500 animate-pulse" : "bg-red-500"
         }`}
-        title={connected ? 'Connected to Ollama' : 'Ollama disconnected'}
+        title={connected ? "Connected to Ollama" : "Ollama disconnected"}
       />
       <span className="text-xs text-slate-400">
-        {connected ? 'Connected' : 'Disconnected'}
+        {connected ? "Connected" : "Disconnected"}
       </span>
     </div>
   );

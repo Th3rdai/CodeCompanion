@@ -1,23 +1,51 @@
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 // Repo-root .env (OLLAMA_API_KEY, etc.) — loaded before config; existing process.env wins
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-const https = require('https');
-const os = require('os');
-const { Readable } = require('stream');
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+const https = require("https");
+const os = require("os");
+const { Readable } = require("stream");
 
 // ── Lib imports ──────────────────────────────────────
-const { createLogger } = require('./lib/logger');
-const { initConfig, getConfig, updateConfig } = require('./lib/config');
-const { initHistory, listConversations, getConversation, saveConversation, deleteConversation } = require('./lib/history');
-const { initMemory, addMemory, getMemories, getMemory, updateMemory, deleteMemory, searchMemories, getStats: getMemoryStats, extractAndStore, buildMemoryContext } = require('./lib/memory');
-const { SYSTEM_PROMPTS } = require('./lib/prompts');
-const { listModels, checkConnection, chatStream, chatComplete, embed, effectiveOllamaApiKey } = require('./lib/ollama-client');
-const { resolveAutoModel, mergeAutoModelMap, DEFAULT_AUTO_MODEL_MAP } = require('./lib/auto-model');
+const { createLogger } = require("./lib/logger");
+const { initConfig, getConfig, updateConfig } = require("./lib/config");
+const {
+  initHistory,
+  listConversations,
+  getConversation,
+  saveConversation,
+  deleteConversation,
+} = require("./lib/history");
+const {
+  initMemory,
+  addMemory,
+  getMemories,
+  getMemory,
+  updateMemory,
+  deleteMemory,
+  searchMemories,
+  getStats: getMemoryStats,
+  extractAndStore,
+  buildMemoryContext,
+} = require("./lib/memory");
+const { SYSTEM_PROMPTS } = require("./lib/prompts");
+const {
+  listModels,
+  checkConnection,
+  chatStream,
+  chatComplete,
+  embed,
+  effectiveOllamaApiKey,
+} = require("./lib/ollama-client");
+const {
+  resolveAutoModel,
+  mergeAutoModelMap,
+  DEFAULT_AUTO_MODEL_MAP,
+} = require("./lib/auto-model");
 
 function ollamaAuthOpts(cfg) {
   const k = effectiveOllamaApiKey(cfg);
@@ -26,10 +54,10 @@ function ollamaAuthOpts(cfg) {
 
 /** When UI sends model "auto", resolve to a concrete name from autoModelMap + Ollama tags. */
 async function resolveIfAutoModel(model, mode, estimatedTokens, config) {
-  if (model !== 'auto') return model;
+  if (model !== "auto") return model;
   try {
     const r = await resolveAutoModel({
-      requestedModel: 'auto',
+      requestedModel: "auto",
       mode,
       estimatedTokens: estimatedTokens || 0,
       config,
@@ -39,17 +67,27 @@ async function resolveIfAutoModel(model, mode, estimatedTokens, config) {
     return r.resolved;
   } catch {
     const m = mergeAutoModelMap(config.autoModelMap);
-    return m[mode] || m.chat || 'llama3.2';
+    return m[mode] || m.chat || "llama3.2";
   }
 }
-const { buildFileTree, readProjectFile, saveProjectFile, isWithinBasePath, isTextFile, TEXT_EXTENSIONS, IGNORE_DIRS, readFolderFiles, isConvertibleDocument } = require('./lib/file-browser');
+const {
+  buildFileTree,
+  readProjectFile,
+  saveProjectFile,
+  isWithinBasePath,
+  isTextFile,
+  TEXT_EXTENSIONS,
+  IGNORE_DIRS,
+  readFolderFiles,
+  isConvertibleDocument,
+} = require("./lib/file-browser");
 
 /** Avoid re-walking the project tree on every chat (large repos were blocking the event loop). */
 const PROJECT_PROMPT_CACHE_TTL_MS = 60_000;
-let _projectPromptCache = { folder: '', at: 0, prompt: '' };
+let _projectPromptCache = { folder: "", at: 0, prompt: "" };
 
 function getCachedProjectPrompt(projectFolder) {
-  if (!projectFolder || !fs.existsSync(projectFolder)) return '';
+  if (!projectFolder || !fs.existsSync(projectFolder)) return "";
   const now = Date.now();
   if (
     _projectPromptCache.folder === projectFolder &&
@@ -59,30 +97,35 @@ function getCachedProjectPrompt(projectFolder) {
   }
   try {
     const { tree } = buildFileTree(projectFolder, 3);
-    function flattenTree(nodes, prefix = '') {
+    function flattenTree(nodes, prefix = "") {
       const lines = [];
       for (const n of nodes || []) {
-        if (n.type === 'file') lines.push(prefix + n.path);
+        if (n.type === "file") lines.push(prefix + n.path);
         else lines.push(...flattenTree(n.children, prefix));
       }
       return lines;
     }
     const fileList = flattenTree(tree);
     if (fileList.length === 0) {
-      _projectPromptCache = { folder: projectFolder, at: now, prompt: '' };
-      return '';
+      _projectPromptCache = { folder: projectFolder, at: now, prompt: "" };
+      return "";
     }
-    const prompt = `\n\n---\nPROJECT FOLDER: ${projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join('\n')}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ''}`;
+    const prompt = `\n\n---\nPROJECT FOLDER: ${projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join("\n")}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ""}`;
     _projectPromptCache = { folder: projectFolder, at: now, prompt };
     return prompt;
   } catch {
-    return '';
+    return "";
   }
 }
-const { scaffoldProject } = require('./lib/icm-scaffolder');
-const { scaffoldBuildProject } = require('./lib/build-scaffolder');
-const GsdBridge = require('./lib/gsd-bridge');
-const { validateProjects, addProject, getProject, removeProject } = require('./lib/build-registry');
+const { scaffoldProject } = require("./lib/icm-scaffolder");
+const { scaffoldBuildProject } = require("./lib/build-scaffolder");
+const GsdBridge = require("./lib/gsd-bridge");
+const {
+  validateProjects,
+  addProject,
+  getProject,
+  removeProject,
+} = require("./lib/build-registry");
 const {
   cloneRepo,
   deleteClonedRepo,
@@ -98,63 +141,86 @@ const {
   getGitDiff,
   getMergePreview,
   resolveConflictFile,
-} = require('./lib/github');
-const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
-const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
-const { registerAllTools } = require('./mcp/tools');
-const McpClientManager = require('./lib/mcp-client-manager');
-const ToolCallHandler = require('./lib/tool-call-handler');
-const { createMcpApiRoutes } = require('./lib/mcp-api-routes');
-const { reviewCode } = require('./lib/review');
-const { pentestCode, pentestFolder } = require('./lib/pentest');
-const { scanProjectForValidation, generateValidateCommand } = require('./lib/validate');
-const { scoreContent } = require('./lib/builder-score');
-const { checkConnection: checkDocling, convertDocument: convertDoc, effectiveDoclingApiKey } = require('./lib/docling-client');
-const { canConvertBuiltin, convertBuiltin } = require('./lib/builtin-doc-converter');
-const { startDocling, stopDocling } = require('./lib/docling-starter');
+} = require("./lib/github");
+const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
+const {
+  StreamableHTTPServerTransport,
+} = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
+const { registerAllTools } = require("./mcp/tools");
+const McpClientManager = require("./lib/mcp-client-manager");
+const ToolCallHandler = require("./lib/tool-call-handler");
+const { createMcpApiRoutes } = require("./lib/mcp-api-routes");
+const { reviewCode } = require("./lib/review");
+const { pentestCode, pentestFolder } = require("./lib/pentest");
+const {
+  scanProjectForValidation,
+  generateValidateCommand,
+} = require("./lib/validate");
+const { scoreContent } = require("./lib/builder-score");
+const {
+  checkConnection: checkDocling,
+  convertDocument: convertDoc,
+  effectiveDoclingApiKey,
+} = require("./lib/docling-client");
+const {
+  canConvertBuiltin,
+  convertBuiltin,
+} = require("./lib/builtin-doc-converter");
+const { startDocling, stopDocling } = require("./lib/docling-starter");
 
 const app = express();
 // Default localhost-only; set CC_BIND_ALL=1 or HOST=0.0.0.0 for LAN access (see docs/ENVIRONMENT_VARIABLES.md)
 const HOST =
   process.env.HOST ||
-  (process.env.CC_BIND_ALL === '1' ? '0.0.0.0' : '127.0.0.1');
-const DEBUG = process.env.DEBUG === '1' || process.env.DEBUG === 'true';
+  (process.env.CC_BIND_ALL === "1" ? "0.0.0.0" : "127.0.0.1");
+const DEBUG = process.env.DEBUG === "1" || process.env.DEBUG === "true";
 
 // HTTPS: use cert/server.crt + cert/server.key if present (self-signed or otherwise)
 // Set FORCE_HTTP=1 to disable HTTPS (e.g. for rate-limit test or local validation)
-const certPath = path.join(__dirname, 'cert', 'server.crt');
-const keyPath = path.join(__dirname, 'cert', 'server.key');
-const useHttps = process.env.FORCE_HTTP !== '1' && fs.existsSync(certPath) && fs.existsSync(keyPath);
+const certPath = path.join(__dirname, "cert", "server.crt");
+const keyPath = path.join(__dirname, "cert", "server.key");
+const useHttps =
+  process.env.FORCE_HTTP !== "1" &&
+  fs.existsSync(certPath) &&
+  fs.existsSync(keyPath);
 
 function maskSensitiveValue(value) {
-  if (!value) return '';
-  if (typeof value !== 'string') return '[REDACTED]';
-  if (value.length <= 4) return '****';
+  if (!value) return "";
+  if (typeof value !== "string") return "[REDACTED]";
+  if (value.length <= 4) return "****";
   return `${value.slice(0, 2)}****${value.slice(-2)}`;
 }
 
 function sanitizeConfigForClient(config) {
   const safe = { ...config };
-  safe.githubTokenConfigured = Boolean(safe.githubToken || (safe.githubTokens && safe.githubTokens.length));
-  if ('githubToken' in safe) delete safe.githubToken;
+  safe.githubTokenConfigured = Boolean(
+    safe.githubToken || (safe.githubTokens && safe.githubTokens.length),
+  );
+  if ("githubToken" in safe) delete safe.githubToken;
   // Send token metadata (label, username, avatar) but strip actual token values
   if (safe.githubTokens) {
-    safe.githubTokens = safe.githubTokens.map(t => ({
-      label: t.label || '', username: t.username || '', avatar: t.avatar || '',
+    safe.githubTokens = safe.githubTokens.map((t) => ({
+      label: t.label || "",
+      username: t.username || "",
+      avatar: t.avatar || "",
     }));
   }
 
   delete safe.license;
 
-  if (safe.mcpServers && typeof safe.mcpServers === 'object') {
+  if (safe.mcpServers && typeof safe.mcpServers === "object") {
     const clonedServers = {};
     for (const [name, server] of Object.entries(safe.mcpServers)) {
       const cloned = { ...server };
-      if (cloned.env && typeof cloned.env === 'object') {
+      if (cloned.env && typeof cloned.env === "object") {
         const maskedEnv = {};
         for (const [k, v] of Object.entries(cloned.env)) {
           const lower = String(k).toLowerCase();
-          const looksSensitive = lower.includes('token') || lower.includes('secret') || lower.includes('password') || lower.includes('key');
+          const looksSensitive =
+            lower.includes("token") ||
+            lower.includes("secret") ||
+            lower.includes("password") ||
+            lower.includes("key");
           maskedEnv[k] = looksSensitive ? maskSensitiveValue(v) : v;
         }
         cloned.env = maskedEnv;
@@ -168,12 +234,12 @@ function sanitizeConfigForClient(config) {
   if (safe.docling) {
     safe.docling = {
       ...safe.docling,
-      apiKey: effectiveDoclingApiKey(config) ? '••••••••' : '',
+      apiKey: effectiveDoclingApiKey(config) ? "••••••••" : "",
     };
   }
 
   if (safe.ollamaApiKey) {
-    safe.ollamaApiKey = '••••••••';
+    safe.ollamaApiKey = "••••••••";
   }
 
   safe.autoModelMap = mergeAutoModelMap(safe.autoModelMap);
@@ -183,16 +249,20 @@ function sanitizeConfigForClient(config) {
 }
 
 function getClientAddress(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0].trim();
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) {
+    return forwarded.split(",")[0].trim();
   }
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+  return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
 function createRateLimiter({ name, max, windowMs, methods }) {
   const buckets = new Map();
-  const allowedMethods = new Set((methods || ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).map(m => String(m).toUpperCase()));
+  const allowedMethods = new Set(
+    (methods || ["GET", "POST", "PUT", "PATCH", "DELETE"]).map((m) =>
+      String(m).toUpperCase(),
+    ),
+  );
   const safeMax = Math.max(1, Number(max) || 1);
   const safeWindowMs = Math.max(1000, Number(windowMs) || 60000);
 
@@ -211,8 +281,10 @@ function createRateLimiter({ name, max, windowMs, methods }) {
 
     if (record.count >= safeMax) {
       const retryAfter = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
-      res.setHeader('Retry-After', String(retryAfter));
-      return res.status(429).json({ error: 'Too many requests', code: 'RATE_LIMITED', retryAfter });
+      res.setHeader("Retry-After", String(retryAfter));
+      return res
+        .status(429)
+        .json({ error: "Too many requests", code: "RATE_LIMITED", retryAfter });
     }
 
     record.count += 1;
@@ -234,30 +306,45 @@ const {
   resolveFolderInput,
   assertLocalPathForGitPush,
   isAllowedGitHubRemoteUrl,
-} = require('./lib/security-helpers');
+} = require("./lib/security-helpers");
 const requireLocalOrApiKey = createRequireLocalOrApiKey({ log });
 
 // ── Port configuration ───────────────────────────────
 // Priority: process.env.PORT > config.preferredPort > 8900
 const config = getConfig();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : (config.preferredPort || 8900);
+const PORT = process.env.PORT
+  ? parseInt(process.env.PORT, 10)
+  : config.preferredPort || 8900;
 
 // ── Initialize MCP Client Manager ────────────────────
 const mcpClientManager = new McpClientManager({ log, debug });
-const toolCallHandler = new ToolCallHandler(mcpClientManager, { log, debug, getConfig });
+const toolCallHandler = new ToolCallHandler(mcpClientManager, {
+  log,
+  debug,
+  getConfig,
+});
 
 // ── Mount MCP API routes ─────────────────────────────
-const { CLIENT_INTERNAL_ERROR, STREAM_INTERNAL_ERROR } = require('./lib/client-errors');
+const {
+  CLIENT_INTERNAL_ERROR,
+  STREAM_INTERNAL_ERROR,
+} = require("./lib/client-errors");
 const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
-  getConfig, updateConfig, mcpClientManager, log, debug, requireLocalOrApiKey,
+  getConfig,
+  updateConfig,
+  mcpClientManager,
+  log,
+  debug,
+  requireLocalOrApiKey,
 });
 
 // Vision chat sends base64 in JSON — 5mb is too small (browser shows "Failed to fetch" when body is rejected).
 function jsonBodyLimit(req) {
-  if (!['POST', 'PUT', 'PATCH'].includes(req.method || '')) return '5mb';
-  const p = req.path || '';
-  if (p === '/api/chat' || p === '/api/review' || p.startsWith('/api/pentest')) return '50mb';
-  return '5mb';
+  if (!["POST", "PUT", "PATCH"].includes(req.method || "")) return "5mb";
+  const p = req.path || "";
+  if (p === "/api/chat" || p === "/api/review" || p.startsWith("/api/pentest"))
+    return "50mb";
+  return "5mb";
 }
 app.use((req, res, next) => {
   express.json({ limit: jsonBodyLimit(req) })(req, res, next);
@@ -265,81 +352,96 @@ app.use((req, res, next) => {
 
 // Per-request CSP nonce (scripts in index.html must match; no unsafe-inline for script-src)
 app.use((_req, res, next) => {
-  res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  res.locals.cspNonce = crypto.randomBytes(16).toString("base64");
   next();
 });
 
 // Serve Vite production build (dist/) if available, fallback to legacy public/
-const distDir = path.join(__dirname, 'dist');
-const publicDir = path.join(__dirname, 'public');
+const distDir = path.join(__dirname, "dist");
+const publicDir = path.join(__dirname, "public");
 const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
 
 function injectCspNonceIntoHtml(html, nonce) {
   if (!nonce) return html;
-  return html.replace(/<script(?![^>]*\snonce=)/gi, `<script nonce="${nonce}" `);
+  return html.replace(
+    /<script(?![^>]*\snonce=)/gi,
+    `<script nonce="${nonce}" `,
+  );
 }
 
 function sendSpaIndexHtml(res) {
-  const indexPath = path.join(staticDir, 'index.html');
+  const indexPath = path.join(staticDir, "index.html");
   if (!fs.existsSync(indexPath)) return false;
-  let html = fs.readFileSync(indexPath, 'utf8');
+  let html = fs.readFileSync(indexPath, "utf8");
   html = injectCspNonceIntoHtml(html, res.locals.cspNonce);
-  res.type('html').send(html);
+  res.type("html").send(html);
   return true;
 }
 
 // ── Security Event Logger ────────────────────────────
 function logSecurity(event, details = {}) {
-  log('SECURITY', `[${event}] ${JSON.stringify({ ...details, ip: details.ip || 'local', ts: new Date().toISOString() })}`);
+  log(
+    "SECURITY",
+    `[${event}] ${JSON.stringify({ ...details, ip: details.ip || "local", ts: new Date().toISOString() })}`,
+  );
 }
 
 // ── Security Headers & CORS ─────────────────────────
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.cspNonce}'`],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'", "http://localhost:*", "http://127.0.0.1:*", "https://prod.spline.design"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      frameSrc: ["'none'"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", (req, res) => `'nonce-${res.locals.cspNonce}'`],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: [
+          "'self'",
+          "http://localhost:*",
+          "http://127.0.0.1:*",
+          "https://prod.spline.design",
+        ],
+        imgSrc: ["'self'", "data:", "blob:"],
+        frameSrc: ["'none'"],
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false, // Allow Spline 3D scenes
-}));
+    crossOriginEmbedderPolicy: false, // Allow Spline 3D scenes
+  }),
+);
 app.use(cors(createCorsOptions())); // localhost / 127.0.0.1 by default; CC_CORS_ALLOW_LAN=1 or CC_ALLOWED_ORIGINS for LAN
 
 // When serving HTTP only, clear HSTS so browsers don't upgrade to HTTPS
 app.use((_req, res, next) => {
-  if (!useHttps && _req.get('x-forwarded-proto') !== 'https') {
-    res.setHeader('Strict-Transport-Security', 'max-age=0');
+  if (!useHttps && _req.get("x-forwarded-proto") !== "https") {
+    res.setHeader("Strict-Transport-Security", "max-age=0");
   }
   next();
 });
 
 // HTML shell must include per-request nonces (do not serve raw index.html from static)
-app.get(['/', '/index.html'], (req, res, next) => {
+app.get(["/", "/index.html"], (req, res, next) => {
   if (sendSpaIndexHtml(res)) return;
   next();
 });
 
-app.use(express.static(staticDir, {
-  index: false,
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    }
-  }
-}));
+app.use(
+  express.static(staticDir, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
+    },
+  }),
+);
 
 // ── Request logging middleware ───────────────────────
 
 app.use((req, res, next) => {
   const start = Date.now();
-  res.on('finish', () => {
+  res.on("finish", () => {
     const duration = Date.now() - start;
-    log('INFO', `${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+    log("INFO", `${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
   });
   next();
 });
@@ -347,42 +449,136 @@ app.use((req, res, next) => {
 const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
 const CHAT_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CHAT || 30);
 const CREATE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CREATE || 12);
-const GITHUB_CLONE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_GITHUB_CLONE || 6);
-const MCP_TEST_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MCP_TEST || 12);
+const GITHUB_CLONE_RATE_LIMIT_MAX = Number(
+  process.env.RATE_LIMIT_MAX_GITHUB_CLONE || 6,
+);
+const MCP_TEST_RATE_LIMIT_MAX = Number(
+  process.env.RATE_LIMIT_MAX_MCP_TEST || 12,
+);
 const REVIEW_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_REVIEW || 20);
 const SCORE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_SCORE || 20);
 const MEMORY_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MEMORY || 30);
 
-app.use('/api/chat', createRateLimiter({ name: 'chat', max: CHAT_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/create-project', createRateLimiter({ name: 'create-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/build-project', createRateLimiter({ name: 'build-project', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/build/projects', createRateLimiter({ name: 'build-registry', max: CREATE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'DELETE'] }));
-app.use('/api/github/clone', createRateLimiter({ name: 'github-clone', max: GITHUB_CLONE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/mcp/clients/test-connection', createRateLimiter({ name: 'mcp-test-connection', max: MCP_TEST_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/review', createRateLimiter({ name: 'review', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/pentest', createRateLimiter({ name: 'pentest', max: REVIEW_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/score', createRateLimiter({ name: 'score', max: SCORE_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/tutorial-suggestions', createRateLimiter({ name: 'tutorial-suggestions', max: 20, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST'] }));
-app.use('/api/memory', createRateLimiter({ name: 'memory', max: MEMORY_RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, methods: ['POST', 'PUT', 'DELETE'] }));
-
-const API_GLOBAL_RATE_MAX = Number(process.env.RATE_LIMIT_MAX_API_GLOBAL || 300);
 app.use(
-  '/api',
+  "/api/chat",
   createRateLimiter({
-    name: 'api-global',
+    name: "chat",
+    max: CHAT_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/create-project",
+  createRateLimiter({
+    name: "create-project",
+    max: CREATE_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/build-project",
+  createRateLimiter({
+    name: "build-project",
+    max: CREATE_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/build/projects",
+  createRateLimiter({
+    name: "build-registry",
+    max: CREATE_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST", "DELETE"],
+  }),
+);
+app.use(
+  "/api/github/clone",
+  createRateLimiter({
+    name: "github-clone",
+    max: GITHUB_CLONE_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/mcp/clients/test-connection",
+  createRateLimiter({
+    name: "mcp-test-connection",
+    max: MCP_TEST_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/review",
+  createRateLimiter({
+    name: "review",
+    max: REVIEW_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/pentest",
+  createRateLimiter({
+    name: "pentest",
+    max: REVIEW_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/score",
+  createRateLimiter({
+    name: "score",
+    max: SCORE_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/tutorial-suggestions",
+  createRateLimiter({
+    name: "tutorial-suggestions",
+    max: 20,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST"],
+  }),
+);
+app.use(
+  "/api/memory",
+  createRateLimiter({
+    name: "memory",
+    max: MEMORY_RATE_LIMIT_MAX,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    methods: ["POST", "PUT", "DELETE"],
+  }),
+);
+
+const API_GLOBAL_RATE_MAX = Number(
+  process.env.RATE_LIMIT_MAX_API_GLOBAL || 300,
+);
+app.use(
+  "/api",
+  createRateLimiter({
+    name: "api-global",
     max: API_GLOBAL_RATE_MAX,
     windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  })
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  }),
 );
 
 // ── MCP Management API routes ────────────────────────
-app.use('/api', mcpApiRouter);
+app.use("/api", mcpApiRouter);
 
 // ── GET /api/config ──────────────────────────────────
 
-app.get('/api/config', (req, res) => {
-  debug('Config requested');
+app.get("/api/config", (req, res) => {
+  debug("Config requested");
   const fullCfg = getConfig();
   // Don't keep a stale projectFolder that no longer exists — fall back to user home
   if (fullCfg.projectFolder && !fs.existsSync(fullCfg.projectFolder)) {
@@ -396,55 +592,66 @@ app.get('/api/config', (req, res) => {
 
 // ── POST /api/config ─────────────────────────────────
 
-app.post('/api/config', requireLocalOrApiKey, (req, res) => {
+app.post("/api/config", requireLocalOrApiKey, (req, res) => {
   const { ollamaUrl, projectFolder, icmTemplatePath } = req.body;
   const config = getConfig();
 
   // Brand assets
   if (req.body.brandAssets !== undefined) {
-    config.brandAssets = Array.isArray(req.body.brandAssets) ? req.body.brandAssets : [];
-    log('INFO', `Brand assets updated: ${config.brandAssets.length} item(s)`);
+    config.brandAssets = Array.isArray(req.body.brandAssets)
+      ? req.body.brandAssets
+      : [];
+    log("INFO", `Brand assets updated: ${config.brandAssets.length} item(s)`);
   }
 
   if (icmTemplatePath !== undefined) {
-    const val = typeof icmTemplatePath === 'string' ? icmTemplatePath.trim() : '';
+    const val =
+      typeof icmTemplatePath === "string" ? icmTemplatePath.trim() : "";
     if (val) {
       const resolved = resolveFolder(val);
-      if (resolved && fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+      if (
+        resolved &&
+        fs.existsSync(resolved) &&
+        fs.statSync(resolved).isDirectory()
+      ) {
         config.icmTemplatePath = resolved;
-        log('INFO', `icmTemplatePath set to: ${config.icmTemplatePath}`);
+        log("INFO", `icmTemplatePath set to: ${config.icmTemplatePath}`);
       } else {
-        config.icmTemplatePath = '';
-        log('WARN', `icmTemplatePath ignored (not a directory or missing): ${val}`);
+        config.icmTemplatePath = "";
+        log(
+          "WARN",
+          `icmTemplatePath ignored (not a directory or missing): ${val}`,
+        );
       }
     } else {
-      config.icmTemplatePath = '';
+      config.icmTemplatePath = "";
     }
   }
 
   if (ollamaUrl) {
-    config.ollamaUrl = ollamaUrl.replace(/\/+$/, '');
-    log('INFO', `Ollama URL changed to: ${config.ollamaUrl}`);
+    config.ollamaUrl = ollamaUrl.replace(/\/+$/, "");
+    log("INFO", `Ollama URL changed to: ${config.ollamaUrl}`);
   }
 
   if (req.body.ollamaApiKey !== undefined) {
     const v = req.body.ollamaApiKey;
-    if (typeof v === 'string') {
+    if (typeof v === "string") {
       const t = v.trim();
-      if (t === '') {
-        config.ollamaApiKey = '';
-        log('INFO', 'Ollama API key cleared');
+      if (t === "") {
+        config.ollamaApiKey = "";
+        log("INFO", "Ollama API key cleared");
       } else if (!/^•+$/.test(t)) {
         config.ollamaApiKey = t;
-        log('INFO', 'Ollama API key updated');
+        log("INFO", "Ollama API key updated");
       }
     }
   }
 
   // Default model for MCP and API calls
   if (req.body.selectedModel !== undefined) {
-    config.selectedModel = req.body.selectedModel || '';
-    if (config.selectedModel) log('INFO', `Default model set to: ${config.selectedModel}`);
+    config.selectedModel = req.body.selectedModel || "";
+    if (config.selectedModel)
+      log("INFO", `Default model set to: ${config.selectedModel}`);
   }
 
   // Review timeout
@@ -452,7 +659,7 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     const timeout = parseInt(req.body.reviewTimeoutSec, 10);
     if (timeout >= 60 && timeout <= 600) {
       config.reviewTimeoutSec = timeout;
-      log('INFO', `Review timeout set to: ${config.reviewTimeoutSec}s`);
+      log("INFO", `Review timeout set to: ${config.reviewTimeoutSec}s`);
     }
   }
 
@@ -461,7 +668,7 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     const timeout = parseInt(req.body.chatTimeoutSec, 10);
     if (timeout >= 30 && timeout <= 600) {
       config.chatTimeoutSec = timeout;
-      log('INFO', `Chat timeout set to: ${config.chatTimeoutSec}s`);
+      log("INFO", `Chat timeout set to: ${config.chatTimeoutSec}s`);
     }
   }
 
@@ -470,14 +677,17 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     const ctx = parseInt(req.body.numCtx, 10);
     if (ctx >= 0 && ctx <= 1048576) {
       config.numCtx = ctx;
-      log('INFO', `num_ctx set to: ${config.numCtx}${ctx === 0 ? ' (model default)' : ''}`);
+      log(
+        "INFO",
+        `num_ctx set to: ${config.numCtx}${ctx === 0 ? " (model default)" : ""}`,
+      );
     }
   }
 
   // Auto-adjust context for large payloads
   if (req.body.autoAdjustContext !== undefined) {
     config.autoAdjustContext = !!req.body.autoAdjustContext;
-    log('INFO', `Auto-adjust context: ${config.autoAdjustContext}`);
+    log("INFO", `Auto-adjust context: ${config.autoAdjustContext}`);
   }
 
   // Preferred port (takes effect on next server restart)
@@ -485,7 +695,10 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
     const port = parseInt(req.body.preferredPort, 10);
     if (port >= 1024 && port <= 65535) {
       config.preferredPort = port;
-      log('INFO', `Preferred port set to: ${config.preferredPort} (takes effect on restart)`);
+      log(
+        "INFO",
+        `Preferred port set to: ${config.preferredPort} (takes effect on restart)`,
+      );
     }
   }
 
@@ -493,62 +706,82 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
   if (req.body.imageSupport !== undefined) {
     config.imageSupport = {
       ...config.imageSupport,
-      ...req.body.imageSupport
+      ...req.body.imageSupport,
     };
-    log('INFO', `Image support updated:`, config.imageSupport);
+    log("INFO", `Image support updated:`, config.imageSupport);
   }
 
   // Docling (document conversion) configuration
   if (req.body.docling !== undefined) {
     const prev = config.docling || {};
     config.docling = { ...prev, ...req.body.docling };
-    if (config.docling.url) config.docling.url = config.docling.url.replace(/\/+$/, '');
-    log('INFO', `Docling config updated: ${config.docling.url}`);
+    if (config.docling.url)
+      config.docling.url = config.docling.url.replace(/\/+$/, "");
+    log("INFO", `Docling config updated: ${config.docling.url}`);
   }
 
   // Memory configuration
   if (req.body.memory !== undefined) {
     const prev = config.memory || {};
     config.memory = { ...prev, ...req.body.memory };
-    log('INFO', `Memory config updated: enabled=${config.memory.enabled}, model=${config.memory.embeddingModel || 'auto'}`);
+    log(
+      "INFO",
+      `Memory config updated: enabled=${config.memory.enabled}, model=${config.memory.embeddingModel || "auto"}`,
+    );
   }
 
   // Agent terminal configuration
   if (req.body.agentTerminal !== undefined) {
-    config.agentTerminal = { ...config.agentTerminal, ...req.body.agentTerminal };
-    log('INFO', `Agent terminal config updated: enabled=${config.agentTerminal.enabled}`);
+    config.agentTerminal = {
+      ...config.agentTerminal,
+      ...req.body.agentTerminal,
+    };
+    log(
+      "INFO",
+      `Agent terminal config updated: enabled=${config.agentTerminal.enabled}`,
+    );
   }
 
   // Auto model map (per-mode defaults when UI uses "Auto")
-  if (req.body.autoModelMap !== undefined && typeof req.body.autoModelMap === 'object') {
+  if (
+    req.body.autoModelMap !== undefined &&
+    typeof req.body.autoModelMap === "object"
+  ) {
     config.autoModelMap = mergeAutoModelMap(req.body.autoModelMap);
-    log('INFO', 'autoModelMap updated');
+    log("INFO", "autoModelMap updated");
   }
 
   if (projectFolder !== undefined) {
     if (projectFolder) {
-      log('INFO', `Config projectFolder received: "${projectFolder}"`);
+      log("INFO", `Config projectFolder received: "${projectFolder}"`);
       const resolvedFolder = resolveFolder(projectFolder);
       if (!resolvedFolder) {
-        return res.status(400).json({ error: 'Folder does not exist' });
+        return res.status(400).json({ error: "Folder does not exist" });
       }
       const stat = fs.statSync(resolvedFolder);
       if (!stat.isDirectory()) {
-        return res.status(400).json({ error: 'projectFolder must be a directory' });
+        return res
+          .status(400)
+          .json({ error: "projectFolder must be a directory" });
       }
       // F-01 fix: restrict to allowed roots (same as Create/Build scaffold)
-      const { getWritableRoots, isUnderRoot } = require('./lib/icm-scaffolder');
+      const { getWritableRoots, isUnderRoot } = require("./lib/icm-scaffolder");
       const allowedRoots = getWritableRoots(config);
       if (!isUnderRoot(resolvedFolder, allowedRoots)) {
-        log('WARN', `Blocked projectFolder outside allowed roots: ${resolvedFolder}`);
-        return res.status(403).json({ error: 'Folder is outside allowed directories' });
+        log(
+          "WARN",
+          `Blocked projectFolder outside allowed roots: ${resolvedFolder}`,
+        );
+        return res
+          .status(403)
+          .json({ error: "Folder is outside allowed directories" });
       }
       config.projectFolder = resolvedFolder;
     } else {
       // Empty / clear → reset to user home (default browse root until changed again)
       config.projectFolder = os.homedir() || process.cwd();
     }
-    log('INFO', `Project folder set to: ${config.projectFolder || '(none)'}`);
+    log("INFO", `Project folder set to: ${config.projectFolder || "(none)"}`);
   }
 
   updateConfig(config);
@@ -557,10 +790,10 @@ app.post('/api/config', requireLocalOrApiKey, (req, res) => {
 
 // ── GET /api/models ──────────────────────────────────
 
-app.get('/api/models', async (req, res) => {
+app.get("/api/models", async (req, res) => {
   const config = getConfig();
   const url = `${config.ollamaUrl}/api/tags`;
-  debug('Fetching models', { url });
+  debug("Fetching models", { url });
 
   try {
     const controller = new AbortController();
@@ -569,24 +802,30 @@ app.get('/api/models', async (req, res) => {
     const models = await listModels(config.ollamaUrl, ollamaAuthOpts(config));
     clearTimeout(timeout);
 
-    log('INFO', `Models loaded: ${models.length} found`);
-    debug('Model list', models.map(m => m.name));
+    log("INFO", `Models loaded: ${models.length} found`);
+    debug(
+      "Model list",
+      models.map((m) => m.name),
+    );
     res.json({ models, ollamaUrl: config.ollamaUrl, connected: true });
   } catch (err) {
-    log('ERROR', `Cannot reach Ollama at ${url}`, { error: err.message, cause: err.cause?.message });
+    log("ERROR", `Cannot reach Ollama at ${url}`, {
+      error: err.message,
+      cause: err.cause?.message,
+    });
     res.status(503).json({
-      error: 'Cannot reach Ollama',
-      detail: 'Connection failed',
+      error: "Cannot reach Ollama",
+      detail: "Connection failed",
       ollamaUrl: config.ollamaUrl,
-      connected: false
+      connected: false,
     });
   }
 });
 
 // ── Docling health check ─────────────────────────────
-app.get('/api/docling/health', async (req, res) => {
+app.get("/api/docling/health", async (req, res) => {
   const config = getConfig();
-  const url = config.docling?.url || 'http://127.0.0.1:5002';
+  const url = config.docling?.url || "http://127.0.0.1:5002";
   const apiKey = effectiveDoclingApiKey(config);
 
   try {
@@ -594,49 +833,91 @@ app.get('/api/docling/health', async (req, res) => {
     if (result.connected) {
       res.json({ connected: true, version: result.version, doclingUrl: url });
     } else {
-      log('WARN', 'Docling not connected', { detail: result.error, doclingUrl: url });
-      res.status(503).json({ connected: false, detail: 'Service unavailable', doclingUrl: url });
+      log("WARN", "Docling not connected", {
+        detail: result.error,
+        doclingUrl: url,
+      });
+      res.status(503).json({
+        connected: false,
+        detail: "Service unavailable",
+        doclingUrl: url,
+      });
     }
   } catch (err) {
-    log('WARN', 'Docling health check failed', { error: err.message, doclingUrl: url });
-    res.status(503).json({ connected: false, detail: 'Health check failed', doclingUrl: url });
+    log("WARN", "Docling health check failed", {
+      error: err.message,
+      doclingUrl: url,
+    });
+    res.status(503).json({
+      connected: false,
+      detail: "Health check failed",
+      doclingUrl: url,
+    });
   }
 });
 
 // ── Document conversion (Docling → built-in fallback) ─
-app.post('/api/convert-document',
-  express.json({ limit: '50mb' }),
-  createRateLimiter({ name: 'convert', max: 10, windowMs: 60000, methods: ['POST'] }),
+app.post(
+  "/api/convert-document",
+  express.json({ limit: "50mb" }),
+  createRateLimiter({
+    name: "convert",
+    max: 10,
+    windowMs: 60000,
+    methods: ["POST"],
+  }),
   async (req, res) => {
     const config = getConfig();
     const { content, filename } = req.body;
 
     if (!content || !filename) {
-      return res.status(400).json({ error: 'Missing content or filename' });
+      return res.status(400).json({ error: "Missing content or filename" });
     }
 
     const ext = path.extname(filename).toLowerCase();
-    const ALLOWED = new Set(['.pdf','.pptx','.docx','.xlsx','.xls','.csv','.doc','.ppt','.odt','.ods','.odp','.rtf','.latex','.tex','.epub']);
+    const ALLOWED = new Set([
+      ".pdf",
+      ".pptx",
+      ".docx",
+      ".xlsx",
+      ".xls",
+      ".csv",
+      ".doc",
+      ".ppt",
+      ".odt",
+      ".ods",
+      ".odp",
+      ".rtf",
+      ".latex",
+      ".tex",
+      ".epub",
+    ]);
     if (!ALLOWED.has(ext)) {
       return res.status(400).json({ error: `Unsupported file type: ${ext}` });
     }
 
     let buffer;
     try {
-      buffer = Buffer.from(content, 'base64');
+      buffer = Buffer.from(content, "base64");
     } catch {
-      return res.status(400).json({ error: 'Invalid base64 content' });
+      return res.status(400).json({ error: "Invalid base64 content" });
     }
 
     const maxBytes = (config.docling?.maxFileSizeMB || 50) * 1024 * 1024;
     if (buffer.length > maxBytes) {
-      return res.status(413).json({ error: `File too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB (max ${config.docling?.maxFileSizeMB || 50}MB)` });
+      return res.status(413).json({
+        error: `File too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB (max ${config.docling?.maxFileSizeMB || 50}MB)`,
+      });
     }
 
-    log('INFO', `Converting document: ${filename} (${(buffer.length / 1024).toFixed(1)}KB)`);
+    log(
+      "INFO",
+      `Converting document: ${filename} (${(buffer.length / 1024).toFixed(1)}KB)`,
+    );
 
     const mkResponse = (result, converter) => ({
-      markdown: result.markdown, filename,
+      markdown: result.markdown,
+      filename,
       originalSize: buffer.length,
       markdownSize: result.markdown.length,
       truncated: result.truncated || false,
@@ -650,30 +931,39 @@ app.post('/api/convert-document',
     if (config.docling?.enabled) {
       try {
         const result = await convertDoc(
-          config.docling.url, effectiveDoclingApiKey(config), buffer, filename,
+          config.docling.url,
+          effectiveDoclingApiKey(config),
+          buffer,
+          filename,
           {
-            outputFormat: config.docling.outputFormat || 'md',
+            outputFormat: config.docling.outputFormat || "md",
             ocr: config.docling.ocr !== false,
-            ocrEngine: config.docling.ocrEngine || 'easyocr',
+            ocrEngine: config.docling.ocrEngine || "easyocr",
             timeoutSec: config.docling.timeoutSec || 120,
-          }
+          },
         );
-        return res.json(mkResponse(result, 'docling'));
+        return res.json(mkResponse(result, "docling"));
       } catch (err) {
-        const isConn = err.message?.includes('ECONNREFUSED') || err.message?.includes('fetch failed');
-        log('WARN', `Docling ${isConn ? 'unreachable' : 'error'} for ${filename}: ${err.message}`);
+        const isConn =
+          err.message?.includes("ECONNREFUSED") ||
+          err.message?.includes("fetch failed");
+        log(
+          "WARN",
+          `Docling ${isConn ? "unreachable" : "error"} for ${filename}: ${err.message}`,
+        );
         // Fall through to built-in for supported formats
         if (!canConvertBuiltin(filename)) {
           if (isConn) {
             return res.status(503).json({
               error: `${ext.slice(1).toUpperCase()} files require Docling for conversion`,
               detail: `Cannot reach Docling at ${config.docling.url}. Built-in conversion supports PDF, DOCX, and XLSX only.`,
-              setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
+              setupHint:
+                'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
             });
           }
           return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
         }
-        log('INFO', `Falling back to built-in converter for ${filename}`);
+        log("INFO", `Falling back to built-in converter for ${filename}`);
       }
     }
 
@@ -681,126 +971,173 @@ app.post('/api/convert-document',
     if (canConvertBuiltin(filename)) {
       try {
         const result = await convertBuiltin(buffer, filename);
-        return res.json(mkResponse(result, 'builtin'));
+        return res.json(mkResponse(result, "builtin"));
       } catch (err) {
-        log('ERROR', `Built-in conversion failed: ${filename}`, { error: err.message });
+        log("ERROR", `Built-in conversion failed: ${filename}`, {
+          error: err.message,
+        });
         return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
       }
     }
 
     // ── Unsupported format without Docling ──
     const reason = !config.docling?.enabled
-      ? 'Document conversion (Docling) is disabled in Settings'
-      : 'Cannot reach the Docling server';
+      ? "Document conversion (Docling) is disabled in Settings"
+      : "Cannot reach the Docling server";
     return res.status(503).json({
       error: `${ext.slice(1).toUpperCase()} files require Docling for conversion`,
       detail: `${reason}. Built-in conversion supports PDF, DOCX, and XLSX only.`,
-      setupHint: 'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
+      setupHint:
+        'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
     });
-  }
+  },
 );
 
 // ── File export (all formats) ─────────────────────────
-const { generateOfficeFile, SUPPORTED_FORMATS: OFFICE_FORMATS, FORMAT_META } = require('./lib/office-generator');
+const {
+  generateOfficeFile,
+  SUPPORTED_FORMATS: OFFICE_FORMATS,
+  FORMAT_META,
+} = require("./lib/office-generator");
 
-app.get('/api/export/formats', (_req, res) => res.json(FORMAT_META));
+app.get("/api/export/formats", (_req, res) => res.json(FORMAT_META));
 
-app.post('/api/generate-office',
-  express.json({ limit: '10mb' }),
-  createRateLimiter({ name: 'office-gen', max: 30, windowMs: 60000, methods: ['POST'] }),
+app.post(
+  "/api/generate-office",
+  express.json({ limit: "10mb" }),
+  createRateLimiter({
+    name: "office-gen",
+    max: 30,
+    windowMs: 60000,
+    methods: ["POST"],
+  }),
   async (req, res) => {
     const { content, filename } = req.body;
     if (!content || !filename) {
-      return res.status(400).json({ error: 'Missing content or filename' });
+      return res.status(400).json({ error: "Missing content or filename" });
     }
     const ext = path.extname(filename).toLowerCase();
     if (!OFFICE_FORMATS.has(ext)) {
       return res.status(400).json({ error: `Unsupported format: ${ext}` });
     }
     try {
-      log('INFO', `Generating ${ext} file: ${filename} (${content.length} chars input)`);
-      const result = await generateOfficeFile(content, filename, req.body.options);
-      log('INFO', `Generated ${filename}: ${(result.size / 1024).toFixed(1)}KB in ${result.processingTime}s`);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      log(
+        "INFO",
+        `Generating ${ext} file: ${filename} (${content.length} chars input)`,
+      );
+      const result = await generateOfficeFile(
+        content,
+        filename,
+        req.body.options,
+      );
+      log(
+        "INFO",
+        `Generated ${filename}: ${(result.size / 1024).toFixed(1)}KB in ${result.processingTime}s`,
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`,
+      );
       const mimeTypes = {
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        '.csv': 'text/csv',
-        '.pdf': 'application/pdf',
-        '.odt': 'application/vnd.oasis.opendocument.text',
-        '.ods': 'application/vnd.oasis.opendocument.spreadsheet',
-        '.html': 'text/html',
-        '.json': 'application/json',
-        '.md': 'text/markdown',
-        '.txt': 'text/plain',
+        ".docx":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xlsx":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".pptx":
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".csv": "text/csv",
+        ".pdf": "application/pdf",
+        ".odt": "application/vnd.oasis.opendocument.text",
+        ".ods": "application/vnd.oasis.opendocument.spreadsheet",
+        ".html": "text/html",
+        ".json": "application/json",
+        ".md": "text/markdown",
+        ".txt": "text/plain",
       };
-      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      res.setHeader(
+        "Content-Type",
+        mimeTypes[ext] || "application/octet-stream",
+      );
       res.send(result.buffer);
     } catch (err) {
-      log('ERROR', `Export failed: ${filename}`, { error: err.message });
+      log("ERROR", `Export failed: ${filename}`, { error: err.message });
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
-  }
+  },
 );
 
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
-app.post('/api/chat', async (req, res) => {
+app.post("/api/chat", async (req, res) => {
   const { model: reqModel, messages, mode, images } = req.body;
 
   if (!reqModel || !messages || !mode) {
-    log('ERROR', 'Chat request missing fields', { model: !!reqModel, messages: !!messages, mode: !!mode });
-    return res.status(400).json({ error: 'Missing model, messages, or mode' });
+    log("ERROR", "Chat request missing fields", {
+      model: !!reqModel,
+      messages: !!messages,
+      mode: !!mode,
+    });
+    return res.status(400).json({ error: "Missing model, messages, or mode" });
   }
 
   let model = reqModel;
 
   // Validate images array if present
   if (images && !Array.isArray(images)) {
-    log('ERROR', 'Images must be an array');
-    return res.status(400).json({ error: 'Images must be an array' });
+    log("ERROR", "Images must be an array");
+    return res.status(400).json({ error: "Images must be an array" });
   }
   if (images && images.length > 10) {
-    log('ERROR', `Too many images: ${images.length}`, { limit: 10 });
-    return res.status(400).json({ error: 'Maximum 10 images per message' });
+    log("ERROR", `Too many images: ${images.length}`, { limit: 10 });
+    return res.status(400).json({ error: "Maximum 10 images per message" });
   }
 
   const systemPrompt = SYSTEM_PROMPTS[mode];
   if (!systemPrompt) {
-    log('ERROR', `Unknown mode: ${mode}`);
+    log("ERROR", `Unknown mode: ${mode}`);
     return res.status(400).json({ error: `Unknown mode: ${mode}` });
   }
 
-  log('INFO', `Chat request: model=${model} mode=${mode} messages=${messages.length}`, {
-    imageCount: images?.length || 0
-  });
+  log(
+    "INFO",
+    `Chat request: model=${model} mode=${mode} messages=${messages.length}`,
+    {
+      imageCount: images?.length || 0,
+    },
+  );
 
   const config = getConfig();
 
-  let memoryPrompt = '';
+  let memoryPrompt = "";
   let memoryMeta = null;
 
   const totalCharsEstimate = messages.reduce(
-    (s, m) => s + (typeof m.content === 'string' ? m.content.length : 0),
-    0
+    (s, m) => s + (typeof m.content === "string" ? m.content.length : 0),
+    0,
   );
   const estimatedTokensPre = Math.ceil(totalCharsEstimate / 3.5);
   const hasImages = images && images.length > 0;
   // Check if user uploaded images earlier in this conversation (not MCP-generated ones)
-  const historyHasUserImages = !hasImages && messages.some(m =>
-    m.role === 'user' && Array.isArray(m.images) && m.images.length > 0
-  );
+  const historyHasUserImages =
+    !hasImages &&
+    messages.some(
+      (m) =>
+        m.role === "user" && Array.isArray(m.images) && m.images.length > 0,
+    );
 
-  const embModel = config.memory?.embeddingModel || 'nomic-embed-text';
+  const embModel = config.memory?.embeddingModel || "nomic-embed-text";
   const memoryPromise = config.memory?.enabled
-    ? buildMemoryContext(config.ollamaUrl, embModel, messages, config).catch((err) => {
-        log('WARN', 'Memory retrieval failed, proceeding without', { error: err.message });
-        return { prompt: '', memories: null };
-      })
-    : Promise.resolve({ prompt: '', memories: null });
+    ? buildMemoryContext(config.ollamaUrl, embModel, messages, config).catch(
+        (err) => {
+          log("WARN", "Memory retrieval failed, proceeding without", {
+            error: err.message,
+          });
+          return { prompt: "", memories: null };
+        },
+      )
+    : Promise.resolve({ prompt: "", memories: null });
 
-  if (model === 'auto') {
+  if (model === "auto") {
     try {
       const [r, memCtx] = await Promise.all([
         resolveAutoModel({
@@ -815,80 +1152,120 @@ app.post('/api/chat', async (req, res) => {
         memoryPromise,
       ]);
       model = r.resolved;
-      memoryPrompt = memCtx.prompt || '';
+      memoryPrompt = memCtx.prompt || "";
       memoryMeta = memCtx.memories;
-      log('INFO', `Auto-model resolved: mode=${mode} → ${model}`);
+      log("INFO", `Auto-model resolved: mode=${mode} → ${model}`);
     } catch (err) {
-      log('WARN', 'Auto-model resolution failed', { error: err.message });
+      log("WARN", "Auto-model resolution failed", { error: err.message });
       const m = mergeAutoModelMap(config.autoModelMap);
-      model = m[mode] || m.chat || 'llama3.2';
+      model = m[mode] || m.chat || "llama3.2";
       const memCtx = await memoryPromise;
-      memoryPrompt = memCtx.prompt || '';
+      memoryPrompt = memCtx.prompt || "";
       memoryMeta = memCtx.memories;
     }
   } else {
     const memCtx = await memoryPromise;
-    memoryPrompt = memCtx.prompt || '';
+    memoryPrompt = memCtx.prompt || "";
     memoryMeta = memCtx.memories;
   }
 
   // Append brand assets context if configured
   const brandAssets = config.brandAssets || [];
-  const brandPrompt = brandAssets.length > 0
-    ? `\n\n---\nBRAND ASSETS: The user has configured these brand/logo/image files. Use them when creating, building, generating reports, or producing diagrams that need branding:\n${brandAssets.map(a => `- ${a.label || 'Asset'}: ${a.path}${a.description ? ' — ' + a.description : ''}`).join('\n')}`
-    : '';
+  const brandPrompt =
+    brandAssets.length > 0
+      ? `\n\n---\nBRAND ASSETS: The user has configured these brand/logo/image files. Use them when creating, building, generating reports, or producing diagrams that need branding:\n${brandAssets.map((a) => `- ${a.label || "Asset"}: ${a.path}${a.description ? " — " + a.description : ""}`).join("\n")}`
+      : "";
 
   // Inject project folder context (cached — large repos were slow on every message)
   const projectPrompt = getCachedProjectPrompt(config.projectFolder);
 
   // Set client key for intra-request terminal rate limiting
-  toolCallHandler.clientKey = req.ip || req.connection?.remoteAddress || 'unknown';
+  toolCallHandler.clientKey =
+    req.ip || req.connection?.remoteAddress || "unknown";
 
   // Append agent tool descriptions (MCP clients + builtin tools)
   const toolsPrompt = toolCallHandler.buildToolsPrompt();
   const hasAgentTools = toolsPrompt.length > 0;
 
   // Inject vision-specific prompt when images are present
-  const visionPrompt = (images && images.length > 0)
-    ? `\n\n---\nIMAGES: The user has attached ${images.length} image(s). Analyze them carefully and reference them in your response when relevant.`
-    : '';
+  const visionPrompt =
+    images && images.length > 0
+      ? `\n\n---\nIMAGES: The user has attached ${images.length} image(s). Analyze them carefully and reference them in your response when relevant.`
+      : "";
 
-  const enrichedSystemPrompt = systemPrompt + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt + visionPrompt;
+  const enrichedSystemPrompt =
+    systemPrompt +
+    brandPrompt +
+    projectPrompt +
+    memoryPrompt +
+    toolsPrompt +
+    visionPrompt;
 
   if (hasAgentTools) {
-    debug('Agent tools injected into system prompt', { toolsLength: toolsPrompt.length });
+    debug("Agent tools injected into system prompt", {
+      toolsLength: toolsPrompt.length,
+    });
   }
 
   // Strip base64 image data from message history — prevents 400 errors on cloud models
   // Images were already rendered client-side; AI doesn't need megabytes of base64 in follow-ups
-  const BASE64_IMG_RE = /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
+  const BASE64_IMG_RE =
+    /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
   const currentMsgHasImages = images && images.length > 0;
   const cleanedMessages = messages.map((m, i) => {
-    const isLastUserMsg = (i === messages.length - 1) && m.role === 'user';
+    const isLastUserMsg = i === messages.length - 1 && m.role === "user";
     let cleaned = m;
     // Strip base64 markdown images
-    if (m.content && typeof m.content === 'string' && BASE64_IMG_RE.test(m.content)) {
-      cleaned = { ...cleaned, content: cleaned.content.replace(BASE64_IMG_RE, '[earlier image was shown to user]') };
+    if (
+      m.content &&
+      typeof m.content === "string" &&
+      BASE64_IMG_RE.test(m.content)
+    ) {
+      cleaned = {
+        ...cleaned,
+        content: cleaned.content.replace(
+          BASE64_IMG_RE,
+          "[earlier image was shown to user]",
+        ),
+      };
     }
     // Strip images arrays from historical messages — only keep on current message
     // so non-vision models don't get 400 errors from Ollama
     if (Array.isArray(m.images) && m.images.length > 0 && !isLastUserMsg) {
       const { images: _dropped, ...rest } = cleaned;
-      cleaned = { ...rest, content: (rest.content || '') + '\n[User previously shared an image here]' };
+      cleaned = {
+        ...rest,
+        content:
+          (rest.content || "") + "\n[User previously shared an image here]",
+      };
     }
     return cleaned;
   });
 
   // If client already sent a system message (e.g. review deep-dive), use it instead of the default
-  const clientHasSystem = cleanedMessages.some(m => m.role === 'system');
+  const clientHasSystem = cleanedMessages.some((m) => m.role === "system");
   const fullMessages = clientHasSystem
-    ? cleanedMessages.map(m => m.role === 'system'
-        ? { role: 'system', content: m.content + brandPrompt + projectPrompt + memoryPrompt + toolsPrompt + visionPrompt }
-        : m)
-    : [{ role: 'system', content: enrichedSystemPrompt }, ...cleanedMessages];
+    ? cleanedMessages.map((m) =>
+        m.role === "system"
+          ? {
+              role: "system",
+              content:
+                m.content +
+                brandPrompt +
+                projectPrompt +
+                memoryPrompt +
+                toolsPrompt +
+                visionPrompt,
+            }
+          : m,
+      )
+    : [{ role: "system", content: enrichedSystemPrompt }, ...cleanedMessages];
 
   // ── Compute Ollama options (num_ctx, timeout) with auto-adjustment ──
-  const totalChars = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
+  const totalChars = fullMessages.reduce(
+    (sum, m) => sum + (m.content?.length || 0),
+    0,
+  );
   const estimatedTokens = Math.ceil(totalChars / 3.5); // rough chars-to-tokens ratio
   let effectiveNumCtx = config.numCtx || 0;
   let effectiveTimeoutMs = (config.chatTimeoutSec || 120) * 1000;
@@ -898,12 +1275,18 @@ app.post('/api/chat', async (req, res) => {
     const needed = estimatedTokens + 2048;
     if (needed > effectiveNumCtx) {
       effectiveNumCtx = Math.min(needed, 524288); // cap at 512K
-      log('INFO', `Auto-adjusted num_ctx to ${effectiveNumCtx} (content ~${estimatedTokens} tokens)`);
+      log(
+        "INFO",
+        `Auto-adjusted num_ctx to ${effectiveNumCtx} (content ~${estimatedTokens} tokens)`,
+      );
     }
     // Auto-boost timeout for large contexts: +60s per 32K tokens beyond 8K
     if (estimatedTokens > 8192) {
       const extraSec = Math.ceil((estimatedTokens - 8192) / 32768) * 60;
-      effectiveTimeoutMs = Math.max(effectiveTimeoutMs, (120 + extraSec) * 1000);
+      effectiveTimeoutMs = Math.max(
+        effectiveTimeoutMs,
+        (120 + extraSec) * 1000,
+      );
       effectiveTimeoutMs = Math.min(effectiveTimeoutMs, 600000); // cap at 10 min
     }
   }
@@ -913,13 +1296,13 @@ app.post('/api/chat', async (req, res) => {
   };
 
   // Set up SSE
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
   const chatAbortController = new AbortController();
-  req.on('close', () => {
+  req.on("close", () => {
     chatAbortController.abort();
   });
 
@@ -933,32 +1316,36 @@ app.post('/api/chat', async (req, res) => {
     sendEvent({
       memoryContext: {
         count: memoryMeta.length,
-        items: memoryMeta.map(m => ({ type: m.type, content: m.content }))
-      }
+        items: memoryMeta.map((m) => ({ type: m.type, content: m.content })),
+      },
     });
   }
 
-  if (reqModel === 'auto') {
+  if (reqModel === "auto") {
     sendEvent({ resolvedModel: model });
   }
 
   try {
-    debug('Calling Ollama chat', { url: config.ollamaUrl, model, hasAgentTools });
+    debug("Calling Ollama chat", {
+      url: config.ollamaUrl,
+      model,
+      hasAgentTools,
+    });
 
     // ── Tool-call loop (when agent tools are available) ──
     // Use chatComplete for rounds that may contain tool calls, then stream the final response.
     if (hasAgentTools) {
       let loopMessages = [...fullMessages];
       const MAX_ROUNDS = 5;
-      let finalText = '';
+      let finalText = "";
 
       for (let round = 0; round < MAX_ROUNDS; round++) {
         debug(`Tool-call round ${round + 1}/${MAX_ROUNDS}`);
 
         if (chatAbortController.signal.aborted || res.writableEnded) {
-          log('INFO', 'Chat aborted (client disconnected) during tool loop');
+          log("INFO", "Chat aborted (client disconnected) during tool loop");
           if (!res.writableEnded) {
-            res.write('data: [DONE]\n\n');
+            res.write("data: [DONE]\n\n");
             res.end();
           }
           return;
@@ -966,80 +1353,138 @@ app.post('/api/chat', async (req, res) => {
 
         let responseText;
         try {
-          responseText = await chatComplete(config.ollamaUrl, model, loopMessages, effectiveTimeoutMs, images || [], {
-            ...ollamaOptions,
-            abortSignal: chatAbortController.signal,
-          });
+          responseText = await chatComplete(
+            config.ollamaUrl,
+            model,
+            loopMessages,
+            effectiveTimeoutMs,
+            images || [],
+            {
+              ...ollamaOptions,
+              abortSignal: chatAbortController.signal,
+            },
+          );
         } catch (err) {
-          if (err.name === 'AbortError' || chatAbortController.signal.aborted) {
-            log('INFO', `Chat aborted during chatComplete (round ${round + 1})`);
+          if (err.name === "AbortError" || chatAbortController.signal.aborted) {
+            log(
+              "INFO",
+              `Chat aborted during chatComplete (round ${round + 1})`,
+            );
             if (!res.writableEnded) {
-              res.write('data: [DONE]\n\n');
+              res.write("data: [DONE]\n\n");
               res.end();
             }
             return;
           }
-          log('ERROR', `Ollama chatComplete failed (round ${round + 1})`, { error: err.message });
+          log("ERROR", `Ollama chatComplete failed (round ${round + 1})`, {
+            error: err.message,
+          });
           // Phase 6: Vision-specific error messages
           const msg = err.message.toLowerCase();
-          if (msg.includes('timeout') || msg.includes('timed out')) {
-            sendEvent({ error: images?.length > 0
-              ? 'Request timed out. Vision models can take longer - try fewer images.'
-              : 'Request timed out. Try a shorter message or fewer images.' });
-          } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
-            sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
-          } else if (msg.includes('500')) {
-            const totalLen = loopMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
-            sendEvent({ error: totalLen > 30000
-              ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document or a model with a larger context window.`
-              : STREAM_INTERNAL_ERROR });
+          if (msg.includes("timeout") || msg.includes("timed out")) {
+            sendEvent({
+              error:
+                images?.length > 0
+                  ? "Request timed out. Vision models can take longer - try fewer images."
+                  : "Request timed out. Try a shorter message or fewer images.",
+            });
+          } else if (
+            msg.includes("context") &&
+            (msg.includes("window") ||
+              msg.includes("length") ||
+              msg.includes("exceeded"))
+          ) {
+            sendEvent({
+              error:
+                "Context window exceeded. Try reducing message history or images.",
+            });
+          } else if (msg.includes("500")) {
+            const totalLen = loopMessages.reduce(
+              (sum, m) => sum + (m.content?.length || 0),
+              0,
+            );
+            sendEvent({
+              error:
+                totalLen > 30000
+                  ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document or a model with a larger context window.`
+                  : STREAM_INTERNAL_ERROR,
+            });
           } else {
             sendEvent({ error: STREAM_INTERNAL_ERROR });
           }
-          res.write('data: [DONE]\n\n');
+          res.write("data: [DONE]\n\n");
           return res.end();
         }
 
         // Check for tool calls
-        debug('Ollama response (first 500 chars)', { text: responseText.substring(0, 500) });
+        debug("Ollama response (first 500 chars)", {
+          text: responseText.substring(0, 500),
+        });
         const toolCalls = toolCallHandler.parseToolCalls(responseText);
 
         if (toolCalls.length === 0) {
           // No tool calls — this is the final response
-          debug('No TOOL_CALL patterns found, returning as final text');
+          debug("No TOOL_CALL patterns found, returning as final text");
           finalText = responseText;
           break;
         }
 
         // Execute tool calls and build results
-        log('INFO', `Round ${round + 1}: found ${toolCalls.length} tool call(s)`);
-        sendEvent({ toolCallRound: round + 1, toolCalls: toolCalls.map(t => `${t.serverId}.${t.toolName}`) });
+        log(
+          "INFO",
+          `Round ${round + 1}: found ${toolCalls.length} tool call(s)`,
+        );
+        sendEvent({
+          toolCallRound: round + 1,
+          toolCalls: toolCalls.map((t) => `${t.serverId}.${t.toolName}`),
+        });
 
-        let toolResults = '';
+        let toolResults = "";
         for (const call of toolCalls) {
           if (chatAbortController.signal.aborted || res.writableEnded) {
-            log('INFO', 'Chat aborted before tool execution');
+            log("INFO", "Chat aborted before tool execution");
             if (!res.writableEnded) {
-              res.write('data: [DONE]\n\n');
+              res.write("data: [DONE]\n\n");
               res.end();
             }
             return;
           }
-          debug('Executing tool call', { server: call.serverId, tool: call.toolName });
-          const result = await toolCallHandler.executeTool(call.serverId, call.toolName, call.args);
+          debug("Executing tool call", {
+            server: call.serverId,
+            tool: call.toolName,
+          });
+          const result = await toolCallHandler.executeTool(
+            call.serverId,
+            call.toolName,
+            call.args,
+          );
           if (result.success) {
             const parts = result.result?.content || [];
-            const textParts = parts.filter(c => c.type === 'text').map(c => c.text);
-            const imageParts = parts.filter(c => c.type === 'image');
-            debug('MCP tool result', { tool: `${call.serverId}.${call.toolName}`, textParts: textParts.length, imageParts: imageParts.length, partTypes: parts.map(p => p.type), resultKeys: Object.keys(result.result || {}) });
-            let content = textParts.join('\n') || JSON.stringify(result.result);
+            const textParts = parts
+              .filter((c) => c.type === "text")
+              .map((c) => c.text);
+            const imageParts = parts.filter((c) => c.type === "image");
+            debug("MCP tool result", {
+              tool: `${call.serverId}.${call.toolName}`,
+              textParts: textParts.length,
+              imageParts: imageParts.length,
+              partTypes: parts.map((p) => p.type),
+              resultKeys: Object.keys(result.result || {}),
+            });
+            let content = textParts.join("\n") || JSON.stringify(result.result);
             // Stream images directly to client; do NOT embed base64 in AI context (wastes tokens)
             for (const img of imageParts) {
-              const mimeType = img.mimeType || 'image/png';
+              const mimeType = img.mimeType || "image/png";
               const data = img.data; // base64
               if (data) {
                 // Send image to client for immediate rendering
-                sendEvent({ toolImage: { mimeType, data, tool: `${call.serverId}.${call.toolName}` } });
+                sendEvent({
+                  toolImage: {
+                    mimeType,
+                    data,
+                    tool: `${call.serverId}.${call.toolName}`,
+                  },
+                });
                 content += `\n[IMAGE_DELIVERED: image was rendered in the chat for the user. Describe what was generated. If the user asks for changes, call generate_image again with a revised prompt.]`;
               }
             }
@@ -1052,12 +1497,18 @@ app.post('/api/chat', async (req, res) => {
         // Feed tool results back as assistant + tool-result messages.
         // Strip everything after the first TOOL_CALL — models sometimes hallucinate
         // fake results after the call pattern, which confuses subsequent rounds.
-        const firstToolIdx = responseText.indexOf('TOOL_CALL:');
-        const cleanedResponse = firstToolIdx >= 0 ? responseText.slice(0, firstToolIdx).trim() : responseText;
+        const firstToolIdx = responseText.indexOf("TOOL_CALL:");
+        const cleanedResponse =
+          firstToolIdx >= 0
+            ? responseText.slice(0, firstToolIdx).trim()
+            : responseText;
         if (cleanedResponse) {
-          loopMessages.push({ role: 'assistant', content: cleanedResponse });
+          loopMessages.push({ role: "assistant", content: cleanedResponse });
         }
-        loopMessages.push({ role: 'user', content: `Tool results:\n${toolResults}\n\nPresent these results to the user. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.` });
+        loopMessages.push({
+          role: "user",
+          content: `Tool results:\n${toolResults}\n\nPresent these results to the user. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.`,
+        });
       }
 
       // Stream the final text as SSE tokens (word by word for UX)
@@ -1072,46 +1523,59 @@ app.post('/api/chat', async (req, res) => {
         }
       }
       if (!res.writableEnded) {
-        res.write('data: [DONE]\n\n');
+        res.write("data: [DONE]\n\n");
         res.end();
       }
-      log('INFO', `Chat complete (tool-call mode): ${finalText.length} chars`);
+      log("INFO", `Chat complete (tool-call mode): ${finalText.length} chars`);
       return;
     }
 
     // ── Standard streaming path (no agent tools) ──
     let reader = null;
-    const ollamaRes = await chatStream(config.ollamaUrl, model, fullMessages, images || [], {
-      ...ollamaOptions,
-      abortSignal: chatAbortController.signal,
-    });
+    const ollamaRes = await chatStream(
+      config.ollamaUrl,
+      model,
+      fullMessages,
+      images || [],
+      {
+        ...ollamaOptions,
+        abortSignal: chatAbortController.signal,
+      },
+    );
 
-    debug('Ollama chat response', { status: ollamaRes.status, ok: ollamaRes.ok });
+    debug("Ollama chat response", {
+      status: ollamaRes.status,
+      ok: ollamaRes.ok,
+    });
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      log('ERROR', `Ollama chat error: ${ollamaRes.status}`, { body: errText });
+      log("ERROR", `Ollama chat error: ${ollamaRes.status}`, { body: errText });
       // Provide helpful context for common Ollama errors
       let userError;
       if (ollamaRes.status === 500) {
-        const totalLen = fullMessages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
-        userError = totalLen > 30000
-          ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document, reduce conversation history, or use a model with a larger context window.`
-          : STREAM_INTERNAL_ERROR;
+        const totalLen = fullMessages.reduce(
+          (sum, m) => sum + (m.content?.length || 0),
+          0,
+        );
+        userError =
+          totalLen > 30000
+            ? `Ollama error: the message content (~${(totalLen / 1024).toFixed(0)} KB) likely exceeds the model's context window. Try a shorter document, reduce conversation history, or use a model with a larger context window.`
+            : STREAM_INTERNAL_ERROR;
       } else {
         userError = `Ollama returned HTTP ${ollamaRes.status}. Check the model name and try again.`;
       }
       sendEvent({ error: userError });
-      res.write('data: [DONE]\n\n');
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
 
     reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let tokenCount = 0;
 
-    debug('Starting stream read loop');
+    debug("Starting stream read loop");
 
     async function readStream() {
       try {
@@ -1119,7 +1583,7 @@ app.post('/api/chat', async (req, res) => {
           const { done, value } = await reader.read();
 
           if (done) {
-            debug('Stream ended', { tokensStreamed: tokenCount });
+            debug("Stream ended", { tokensStreamed: tokenCount });
             if (buffer.trim()) {
               try {
                 const parsed = JSON.parse(buffer);
@@ -1128,22 +1592,29 @@ app.post('/api/chat', async (req, res) => {
                   tokenCount++;
                 }
                 if (parsed.done) {
-                  sendEvent({ done: true, total_duration: parsed.total_duration, eval_count: parsed.eval_count });
+                  sendEvent({
+                    done: true,
+                    total_duration: parsed.total_duration,
+                    eval_count: parsed.eval_count,
+                  });
                 }
               } catch (e) {
-                debug('Failed to parse final buffer', { buffer, error: e.message });
+                debug("Failed to parse final buffer", {
+                  buffer,
+                  error: e.message,
+                });
               }
             }
             if (!res.writableEnded) {
-              res.write('data: [DONE]\n\n');
+              res.write("data: [DONE]\n\n");
               res.end();
             }
-            log('INFO', `Chat complete: ${tokenCount} tokens streamed`);
+            log("INFO", `Chat complete: ${tokenCount} tokens streamed`);
             break;
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (const line of lines) {
@@ -1155,41 +1626,62 @@ app.post('/api/chat', async (req, res) => {
                 tokenCount++;
               }
               if (parsed.done) {
-                debug('Ollama signaled done', { total_duration: parsed.total_duration, eval_count: parsed.eval_count });
-                sendEvent({ done: true, total_duration: parsed.total_duration, eval_count: parsed.eval_count });
-                res.write('data: [DONE]\n\n');
+                debug("Ollama signaled done", {
+                  total_duration: parsed.total_duration,
+                  eval_count: parsed.eval_count,
+                });
+                sendEvent({
+                  done: true,
+                  total_duration: parsed.total_duration,
+                  eval_count: parsed.eval_count,
+                });
+                res.write("data: [DONE]\n\n");
                 res.end();
-                log('INFO', `Chat complete: ${tokenCount} tokens streamed`);
+                log("INFO", `Chat complete: ${tokenCount} tokens streamed`);
                 return;
               }
             } catch (e) {
-              debug('Failed to parse stream chunk', { line: line.substring(0, 100), error: e.message });
+              debug("Failed to parse stream chunk", {
+                line: line.substring(0, 100),
+                error: e.message,
+              });
             }
           }
         }
       } catch (err) {
-        if (err.name === 'AbortError' || chatAbortController.signal.aborted) {
-          debug('Stream read aborted (client stopped)');
+        if (err.name === "AbortError" || chatAbortController.signal.aborted) {
+          debug("Stream read aborted (client stopped)");
           if (!res.writableEnded) {
-            res.write('data: [DONE]\n\n');
+            res.write("data: [DONE]\n\n");
             res.end();
           }
           return;
         }
-        log('ERROR', 'Stream read error', { error: err.message });
+        log("ERROR", "Stream read error", { error: err.message });
         if (!res.writableEnded) {
           // Phase 6: Vision-specific error messages
           const msg = err.message.toLowerCase();
-          if (msg.includes('timeout') || msg.includes('timed out')) {
-            sendEvent({ error: images?.length > 0
-              ? 'Request timed out. Vision models can take longer - try fewer images.'
-              : 'Request timed out. Try a shorter message or fewer images.' });
-          } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
-            sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
+          if (msg.includes("timeout") || msg.includes("timed out")) {
+            sendEvent({
+              error:
+                images?.length > 0
+                  ? "Request timed out. Vision models can take longer - try fewer images."
+                  : "Request timed out. Try a shorter message or fewer images.",
+            });
+          } else if (
+            msg.includes("context") &&
+            (msg.includes("window") ||
+              msg.includes("length") ||
+              msg.includes("exceeded"))
+          ) {
+            sendEvent({
+              error:
+                "Context window exceeded. Try reducing message history or images.",
+            });
           } else {
             sendEvent({ error: STREAM_INTERNAL_ERROR });
           }
-          res.write('data: [DONE]\n\n');
+          res.write("data: [DONE]\n\n");
           res.end();
         }
       }
@@ -1197,85 +1689,105 @@ app.post('/api/chat', async (req, res) => {
 
     readStream();
 
-    req.on('close', () => {
-      debug('Client disconnected during stream');
+    req.on("close", () => {
+      debug("Client disconnected during stream");
       chatAbortController.abort();
       reader?.cancel?.().catch(() => {});
     });
-
   } catch (err) {
-    if (err.name === 'AbortError' || chatAbortController.signal.aborted) {
-      log('INFO', 'Chat connection aborted');
+    if (err.name === "AbortError" || chatAbortController.signal.aborted) {
+      log("INFO", "Chat connection aborted");
       if (!res.writableEnded) {
-        res.write('data: [DONE]\n\n');
+        res.write("data: [DONE]\n\n");
         res.end();
       }
       return;
     }
-    log('ERROR', `Chat connection failed`, { error: err.message, cause: err.cause?.message });
+    log("ERROR", `Chat connection failed`, {
+      error: err.message,
+      cause: err.cause?.message,
+    });
     // Phase 6: Vision-specific error messages
     const msg = err.message.toLowerCase();
-    if (msg.includes('timeout') || msg.includes('timed out')) {
-      sendEvent({ error: images?.length > 0
-        ? 'Request timed out. Vision models can take longer - try fewer images.'
-        : 'Request timed out. Try a shorter message or fewer images.' });
-    } else if (msg.includes('context') && (msg.includes('window') || msg.includes('length') || msg.includes('exceeded'))) {
-      sendEvent({ error: 'Context window exceeded. Try reducing message history or images.' });
-    } else if (msg.includes('econnrefused') || msg.includes('enotfound')) {
-      sendEvent({ error: 'Cannot connect to Ollama. Please check that Ollama is running.' });
+    if (msg.includes("timeout") || msg.includes("timed out")) {
+      sendEvent({
+        error:
+          images?.length > 0
+            ? "Request timed out. Vision models can take longer - try fewer images."
+            : "Request timed out. Try a shorter message or fewer images.",
+      });
+    } else if (
+      msg.includes("context") &&
+      (msg.includes("window") ||
+        msg.includes("length") ||
+        msg.includes("exceeded"))
+    ) {
+      sendEvent({
+        error:
+          "Context window exceeded. Try reducing message history or images.",
+      });
+    } else if (msg.includes("econnrefused") || msg.includes("enotfound")) {
+      sendEvent({
+        error: "Cannot connect to Ollama. Please check that Ollama is running.",
+      });
     } else {
       sendEvent({ error: STREAM_INTERNAL_ERROR });
     }
-    res.write('data: [DONE]\n\n');
+    res.write("data: [DONE]\n\n");
     res.end();
   }
 });
 
 // ── POST /api/review (structured report card) ────────
 
-app.post('/api/review', async (req, res) => {
+app.post("/api/review", async (req, res) => {
   const { model: reqModel, code, filename, images } = req.body;
 
   if (!reqModel || !code) {
-    log('ERROR', 'Review request missing fields', { model: !!reqModel, code: !!code });
-    return res.status(400).json({ error: 'Missing model or code' });
+    log("ERROR", "Review request missing fields", {
+      model: !!reqModel,
+      code: !!code,
+    });
+    return res.status(400).json({ error: "Missing model or code" });
   }
 
   let model = reqModel;
 
   // Validate images array if present
   if (images && !Array.isArray(images)) {
-    log('ERROR', 'Images must be an array');
-    return res.status(400).json({ error: 'Images must be an array' });
+    log("ERROR", "Images must be an array");
+    return res.status(400).json({ error: "Images must be an array" });
   }
   if (images && images.length > 10) {
-    log('ERROR', `Too many images: ${images.length}`, { limit: 10 });
-    return res.status(400).json({ error: 'Maximum 10 images per message' });
+    log("ERROR", `Too many images: ${images.length}`, { limit: 10 });
+    return res.status(400).json({ error: "Maximum 10 images per message" });
   }
 
-  log('INFO', `Review request: model=${model} code=${code.length} chars`, {
-    imageCount: images?.length || 0
+  log("INFO", `Review request: model=${model} code=${code.length} chars`, {
+    imageCount: images?.length || 0,
   });
 
   const config = getConfig();
 
-  if (model === 'auto') {
+  if (model === "auto") {
     try {
       const estimatedTokens = Math.ceil(code.length / 3.5);
       const r = await resolveAutoModel({
         requestedModel: model,
-        mode: 'review',
+        mode: "review",
         estimatedTokens,
         config,
         ollamaUrl: config.ollamaUrl,
         ollamaOpts: ollamaAuthOpts(config),
       });
       model = r.resolved;
-      log('INFO', `Auto-model resolved: mode=review → ${model}`);
+      log("INFO", `Auto-model resolved: mode=review → ${model}`);
     } catch (err) {
-      log('WARN', 'Auto-model resolution failed (review)', { error: err.message });
+      log("WARN", "Auto-model resolution failed (review)", {
+        error: err.message,
+      });
       const m = mergeAutoModelMap(config.autoModelMap);
-      model = m.review || m.chat || 'llama3.2';
+      model = m.review || m.chat || "llama3.2";
     }
   }
 
@@ -1289,19 +1801,19 @@ app.post('/api/review', async (req, res) => {
       ollamaApiKey: effectiveOllamaApiKey(config),
     });
 
-    if (result.type === 'report-card') {
+    if (result.type === "report-card") {
       // Structured output succeeded — return JSON
-      log('INFO', `Review complete: overall grade ${result.data.overallGrade}`);
+      log("INFO", `Review complete: overall grade ${result.data.overallGrade}`);
       const payload = { ...result };
-      if (reqModel === 'auto') payload.resolvedModel = model;
+      if (reqModel === "auto") payload.resolvedModel = model;
       return res.json(payload);
     }
 
     // Chat fallback — stream via SSE
-    log('INFO', `Review fallback to chat mode: ${result.error}`);
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    log("INFO", `Review fallback to chat mode: ${result.error}`);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
     function sendEvent(data) {
@@ -1312,22 +1824,26 @@ app.post('/api/review', async (req, res) => {
     sendEvent({
       fallback: true,
       reason: result.error,
-      ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+      ...(reqModel === "auto" ? { resolvedModel: model } : {}),
     });
 
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      log('ERROR', `Ollama fallback error: ${ollamaRes.status}`, { body: errText });
-      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
-      res.write('data: [DONE]\n\n');
+      log("ERROR", `Ollama fallback error: ${ollamaRes.status}`, {
+        body: errText,
+      });
+      sendEvent({
+        error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
+      });
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
 
     // Stream the fallback response (same pattern as /api/chat)
     const reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let tokenCount = 0;
 
     async function readStream() {
@@ -1345,18 +1861,23 @@ app.post('/api/review', async (req, res) => {
                 if (parsed.done) {
                   sendEvent({ done: true });
                 }
-              } catch (e) { /* ignore parse error on final buffer */ }
+              } catch (e) {
+                /* ignore parse error on final buffer */
+              }
             }
             if (!res.writableEnded) {
-              res.write('data: [DONE]\n\n');
+              res.write("data: [DONE]\n\n");
               res.end();
             }
-            log('INFO', `Review fallback complete: ${tokenCount} tokens streamed`);
+            log(
+              "INFO",
+              `Review fallback complete: ${tokenCount} tokens streamed`,
+            );
             break;
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (const line of lines) {
@@ -1369,19 +1890,24 @@ app.post('/api/review', async (req, res) => {
               }
               if (parsed.done) {
                 sendEvent({ done: true });
-                res.write('data: [DONE]\n\n');
+                res.write("data: [DONE]\n\n");
                 res.end();
-                log('INFO', `Review fallback complete: ${tokenCount} tokens streamed`);
+                log(
+                  "INFO",
+                  `Review fallback complete: ${tokenCount} tokens streamed`,
+                );
                 return;
               }
-            } catch (e) { /* ignore parse error */ }
+            } catch (e) {
+              /* ignore parse error */
+            }
           }
         }
       } catch (err) {
-        log('ERROR', 'Review fallback stream error', { error: err.message });
+        log("ERROR", "Review fallback stream error", { error: err.message });
         if (!res.writableEnded) {
           sendEvent({ error: STREAM_INTERNAL_ERROR });
-          res.write('data: [DONE]\n\n');
+          res.write("data: [DONE]\n\n");
           res.end();
         }
       }
@@ -1389,12 +1915,11 @@ app.post('/api/review', async (req, res) => {
 
     readStream();
 
-    req.on('close', () => {
+    req.on("close", () => {
       reader.cancel().catch(() => {});
     });
-
   } catch (err) {
-    log('ERROR', 'Review failed completely', { error: err.message });
+    log("ERROR", "Review failed completely", { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
@@ -1402,49 +1927,54 @@ app.post('/api/review', async (req, res) => {
 });
 
 // ── POST /api/pentest (OWASP security analysis) ────────
-app.post('/api/pentest', async (req, res) => {
+app.post("/api/pentest", async (req, res) => {
   const { model: reqModel, code, filename, images } = req.body;
 
   if (!reqModel || !code) {
-    log('ERROR', 'Pentest request missing fields', { model: !!reqModel, code: !!code });
-    return res.status(400).json({ error: 'Missing model or code' });
+    log("ERROR", "Pentest request missing fields", {
+      model: !!reqModel,
+      code: !!code,
+    });
+    return res.status(400).json({ error: "Missing model or code" });
   }
 
   let model = reqModel;
 
   // Validate images array if present
   if (images && !Array.isArray(images)) {
-    log('ERROR', 'Images must be an array');
-    return res.status(400).json({ error: 'Images must be an array' });
+    log("ERROR", "Images must be an array");
+    return res.status(400).json({ error: "Images must be an array" });
   }
   if (images && images.length > 10) {
-    log('ERROR', `Too many images: ${images.length}`, { limit: 10 });
-    return res.status(400).json({ error: 'Maximum 10 images per message' });
+    log("ERROR", `Too many images: ${images.length}`, { limit: 10 });
+    return res.status(400).json({ error: "Maximum 10 images per message" });
   }
 
-  log('INFO', `Pentest request: model=${model} code=${code.length} chars`, {
-    imageCount: images?.length || 0
+  log("INFO", `Pentest request: model=${model} code=${code.length} chars`, {
+    imageCount: images?.length || 0,
   });
 
   const config = getConfig();
 
-  if (model === 'auto') {
+  if (model === "auto") {
     try {
       const estimatedTokens = Math.ceil(code.length / 3.5);
       const r = await resolveAutoModel({
         requestedModel: model,
-        mode: 'pentest',
+        mode: "pentest",
         estimatedTokens,
         config,
         ollamaUrl: config.ollamaUrl,
         ollamaOpts: ollamaAuthOpts(config),
       });
       model = r.resolved;
-      log('INFO', `Auto-model resolved: mode=pentest → ${model}`);
+      log("INFO", `Auto-model resolved: mode=pentest → ${model}`);
     } catch (err) {
-      log('WARN', 'Auto-model resolution failed (pentest)', { error: err.message });
+      log("WARN", "Auto-model resolution failed (pentest)", {
+        error: err.message,
+      });
       const m = mergeAutoModelMap(config.autoModelMap);
-      model = m.pentest || m.chat || 'llama3.2';
+      model = m.pentest || m.chat || "llama3.2";
     }
   }
 
@@ -1455,19 +1985,22 @@ app.post('/api/pentest', async (req, res) => {
       ollamaApiKey: effectiveOllamaApiKey(config),
     });
 
-    if (result.type === 'security-report') {
+    if (result.type === "security-report") {
       // Structured output succeeded — return JSON
-      log('INFO', `Pentest complete: overall grade ${result.data.overallGrade}`);
+      log(
+        "INFO",
+        `Pentest complete: overall grade ${result.data.overallGrade}`,
+      );
       const payload = { ...result };
-      if (reqModel === 'auto') payload.resolvedModel = model;
+      if (reqModel === "auto") payload.resolvedModel = model;
       return res.json(payload);
     }
 
     // Chat fallback — stream via SSE
-    log('INFO', `Pentest fallback to chat mode: ${result.error}`);
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    log("INFO", `Pentest fallback to chat mode: ${result.error}`);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
     function sendEvent(data) {
@@ -1478,22 +2011,26 @@ app.post('/api/pentest', async (req, res) => {
     sendEvent({
       fallback: true,
       reason: result.error,
-      ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+      ...(reqModel === "auto" ? { resolvedModel: model } : {}),
     });
 
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      log('ERROR', `Ollama pentest fallback error: ${ollamaRes.status}`, { body: errText });
-      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
-      res.write('data: [DONE]\n\n');
+      log("ERROR", `Ollama pentest fallback error: ${ollamaRes.status}`, {
+        body: errText,
+      });
+      sendEvent({
+        error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
+      });
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
 
     // Stream the fallback response (same pattern as /api/review)
     const reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let tokenCount = 0;
 
     async function readStream() {
@@ -1511,18 +2048,23 @@ app.post('/api/pentest', async (req, res) => {
                 if (parsed.done) {
                   sendEvent({ done: true });
                 }
-              } catch (e) { /* ignore parse error on final buffer */ }
+              } catch (e) {
+                /* ignore parse error on final buffer */
+              }
             }
             if (!res.writableEnded) {
-              res.write('data: [DONE]\n\n');
+              res.write("data: [DONE]\n\n");
               res.end();
             }
-            log('INFO', `Pentest fallback complete: ${tokenCount} tokens streamed`);
+            log(
+              "INFO",
+              `Pentest fallback complete: ${tokenCount} tokens streamed`,
+            );
             break;
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (const line of lines) {
@@ -1535,19 +2077,24 @@ app.post('/api/pentest', async (req, res) => {
               }
               if (parsed.done) {
                 sendEvent({ done: true });
-                res.write('data: [DONE]\n\n');
+                res.write("data: [DONE]\n\n");
                 res.end();
-                log('INFO', `Pentest fallback complete: ${tokenCount} tokens streamed`);
+                log(
+                  "INFO",
+                  `Pentest fallback complete: ${tokenCount} tokens streamed`,
+                );
                 return;
               }
-            } catch (e) { /* ignore parse error */ }
+            } catch (e) {
+              /* ignore parse error */
+            }
           }
         }
       } catch (err) {
-        log('ERROR', 'Pentest fallback stream error', { error: err.message });
+        log("ERROR", "Pentest fallback stream error", { error: err.message });
         if (!res.writableEnded) {
           sendEvent({ error: STREAM_INTERNAL_ERROR });
-          res.write('data: [DONE]\n\n');
+          res.write("data: [DONE]\n\n");
           res.end();
         }
       }
@@ -1555,12 +2102,11 @@ app.post('/api/pentest', async (req, res) => {
 
     readStream();
 
-    req.on('close', () => {
+    req.on("close", () => {
       reader.cancel().catch(() => {});
     });
-
   } catch (err) {
-    log('ERROR', 'Pentest failed completely', { error: err.message });
+    log("ERROR", "Pentest failed completely", { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
@@ -1568,34 +2114,36 @@ app.post('/api/pentest', async (req, res) => {
 });
 
 // ── POST /api/pentest/remediate (generate fixed code from findings) ──
-app.post('/api/pentest/remediate', async (req, res) => {
+app.post("/api/pentest/remediate", async (req, res) => {
   const { model: reqModel, code, filename, findings } = req.body;
 
   if (!reqModel || !code || !findings) {
-    return res.status(400).json({ error: 'Missing model, code, or findings' });
+    return res.status(400).json({ error: "Missing model, code, or findings" });
   }
 
   const config = getConfig();
   let model = reqModel;
-  if (model === 'auto') {
+  if (model === "auto") {
     try {
-      const estimatedTokens = Math.ceil((code.length + String(findings).length) / 3.5);
+      const estimatedTokens = Math.ceil(
+        (code.length + String(findings).length) / 3.5,
+      );
       const r = await resolveAutoModel({
         requestedModel: model,
-        mode: 'pentest',
+        mode: "pentest",
         estimatedTokens,
         config,
         ollamaUrl: config.ollamaUrl,
         ollamaOpts: ollamaAuthOpts(config),
       });
       model = r.resolved;
-      log('INFO', `Auto-model resolved: mode=pentest (remediate) → ${model}`);
+      log("INFO", `Auto-model resolved: mode=pentest (remediate) → ${model}`);
     } catch (err) {
       const m = mergeAutoModelMap(config.autoModelMap);
-      model = m.pentest || m.chat || 'llama3.2';
+      model = m.pentest || m.chat || "llama3.2";
     }
   }
-  log('INFO', `Remediate request: model=${model} code=${code.length} chars`);
+  log("INFO", `Remediate request: model=${model} code=${code.length} chars`);
 
   const systemPrompt = `You are a senior security engineer. The user will provide code that was scanned for security vulnerabilities, along with the findings. Your job is to:
 
@@ -1615,37 +2163,45 @@ Format your response EXACTLY as follows:
 If there are multiple files, repeat the FILE/END_FILE block for each.
 Important: Include the COMPLETE file content in each block, not just the changed lines.`;
 
-  const userContent = `Here is the code to remediate:\n\nFilename: ${filename || 'unknown'}\n\n\`\`\`\n${code}\n\`\`\`\n\nSecurity findings:\n${findings}`;
+  const userContent = `Here is the code to remediate:\n\nFilename: ${filename || "unknown"}\n\n\`\`\`\n${code}\n\`\`\`\n\nSecurity findings:\n${findings}`;
 
   try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
     function sendEvent(data) {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
     }
 
-    if (reqModel === 'auto') {
+    if (reqModel === "auto") {
       sendEvent({ resolvedModel: model });
     }
 
-    const ollamaRes = await chatStream(config.ollamaUrl, model, [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userContent }
-    ], [], ollamaAuthOpts(config));
+    const ollamaRes = await chatStream(
+      config.ollamaUrl,
+      model,
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      [],
+      ollamaAuthOpts(config),
+    );
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
-      res.write('data: [DONE]\n\n');
+      sendEvent({
+        error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
+      });
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
 
     const reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let tokenCount = 0;
 
     async function readStream() {
@@ -1656,43 +2212,57 @@ Important: Include the COMPLETE file content in each block, not just the changed
             if (buffer.trim()) {
               try {
                 const parsed = JSON.parse(buffer);
-                if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+                if (parsed.message?.content) {
+                  sendEvent({ token: parsed.message.content });
+                  tokenCount++;
+                }
               } catch {}
             }
-            if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
-            log('INFO', `Remediate complete: ${tokenCount} tokens`);
+            if (!res.writableEnded) {
+              res.write("data: [DONE]\n\n");
+              res.end();
+            }
+            log("INFO", `Remediate complete: ${tokenCount} tokens`);
             break;
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
               const parsed = JSON.parse(line);
-              if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              if (parsed.message?.content) {
+                sendEvent({ token: parsed.message.content });
+                tokenCount++;
+              }
               if (parsed.done) {
                 sendEvent({ done: true });
-                res.write('data: [DONE]\n\n');
+                res.write("data: [DONE]\n\n");
                 res.end();
-                log('INFO', `Remediate complete: ${tokenCount} tokens`);
+                log("INFO", `Remediate complete: ${tokenCount} tokens`);
                 return;
               }
             } catch {}
           }
         }
       } catch (err) {
-        if (!res.writableEnded) { sendEvent({ error: STREAM_INTERNAL_ERROR }); res.write('data: [DONE]\n\n'); res.end(); }
+        if (!res.writableEnded) {
+          sendEvent({ error: STREAM_INTERNAL_ERROR });
+          res.write("data: [DONE]\n\n");
+          res.end();
+        }
       }
     }
 
     readStream();
-    req.on('close', () => { reader.cancel().catch(() => {}); });
-
+    req.on("close", () => {
+      reader.cancel().catch(() => {});
+    });
   } catch (err) {
-    log('ERROR', 'Remediate failed', { error: err.message });
+    log("ERROR", "Remediate failed", { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
@@ -1700,9 +2270,9 @@ Important: Include the COMPLETE file content in each block, not just the changed
 });
 
 // ── POST /api/pentest/folder/preview (list files that would be scanned) ──
-app.post('/api/pentest/folder/preview', async (req, res) => {
+app.post("/api/pentest/folder/preview", async (req, res) => {
   const { folder } = req.body;
-  if (!folder) return res.status(400).json({ error: 'Missing folder' });
+  if (!folder) return res.status(400).json({ error: "Missing folder" });
 
   try {
     const { files, totalSize, skipped } = readFolderFiles(folder, {
@@ -1710,7 +2280,7 @@ app.post('/api/pentest/folder/preview', async (req, res) => {
       maxTotalSize: 2 * 1024 * 1024,
     });
     res.json({
-      files: files.map(f => ({ path: f.path, size: f.size })),
+      files: files.map((f) => ({ path: f.path, size: f.size })),
       totalSize,
       skipped,
       folder,
@@ -1721,11 +2291,11 @@ app.post('/api/pentest/folder/preview', async (req, res) => {
 });
 
 // ── POST /api/pentest/folder (scan a folder recursively) ──
-app.post('/api/pentest/folder', async (req, res) => {
+app.post("/api/pentest/folder", async (req, res) => {
   const { model: reqModel, folder } = req.body;
 
   if (!reqModel || !folder) {
-    return res.status(400).json({ error: 'Missing model or folder' });
+    return res.status(400).json({ error: "Missing model or folder" });
   }
 
   const config = getConfig();
@@ -1737,48 +2307,62 @@ app.post('/api/pentest/folder', async (req, res) => {
     });
 
     if (files.length === 0) {
-      return res.status(400).json({ error: 'No scannable text files found in folder' });
+      return res
+        .status(400)
+        .json({ error: "No scannable text files found in folder" });
     }
 
     let model = reqModel;
-    if (model === 'auto') {
+    if (model === "auto") {
       try {
-        const totalChars = files.reduce((s, f) => s + (f.content?.length || 0), 0);
+        const totalChars = files.reduce(
+          (s, f) => s + (f.content?.length || 0),
+          0,
+        );
         const estimatedTokens = Math.ceil(totalChars / 3.5);
         const r = await resolveAutoModel({
           requestedModel: model,
-          mode: 'pentest',
+          mode: "pentest",
           estimatedTokens,
           config,
           ollamaUrl: config.ollamaUrl,
           ollamaOpts: ollamaAuthOpts(config),
         });
         model = r.resolved;
-        log('INFO', `Auto-model resolved: mode=pentest (folder) → ${model}`);
+        log("INFO", `Auto-model resolved: mode=pentest (folder) → ${model}`);
       } catch (err) {
         const m = mergeAutoModelMap(config.autoModelMap);
-        model = m.pentest || m.chat || 'llama3.2';
+        model = m.pentest || m.chat || "llama3.2";
       }
     }
 
-    log('INFO', `Pentest folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ''}`);
+    log(
+      "INFO",
+      `Pentest folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ""}`,
+    );
 
     const result = await pentestFolder(config.ollamaUrl, model, files, {
       ollamaApiKey: effectiveOllamaApiKey(config),
     });
 
-    if (result.type === 'security-report') {
-      log('INFO', `Pentest folder complete: overall grade ${result.data.overallGrade}`);
-      const payload = { ...result, meta: { fileCount: files.length, totalSize, skipped, folder } };
-      if (reqModel === 'auto') payload.resolvedModel = model;
+    if (result.type === "security-report") {
+      log(
+        "INFO",
+        `Pentest folder complete: overall grade ${result.data.overallGrade}`,
+      );
+      const payload = {
+        ...result,
+        meta: { fileCount: files.length, totalSize, skipped, folder },
+      };
+      if (reqModel === "auto") payload.resolvedModel = model;
       return res.json(payload);
     }
 
     // Chat fallback — stream via SSE
-    log('INFO', `Pentest folder fallback to chat mode: ${result.error}`);
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    log("INFO", `Pentest folder fallback to chat mode: ${result.error}`);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
     function sendEvent(data) {
@@ -1789,20 +2373,22 @@ app.post('/api/pentest/folder', async (req, res) => {
       fallback: true,
       reason: result.error,
       meta: { fileCount: files.length, totalSize, skipped },
-      ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+      ...(reqModel === "auto" ? { resolvedModel: model } : {}),
     });
 
     const ollamaRes = result.stream;
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
-      res.write('data: [DONE]\n\n');
+      sendEvent({
+        error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
+      });
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
 
     const reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let tokenCount = 0;
 
     async function readStream() {
@@ -1813,27 +2399,39 @@ app.post('/api/pentest/folder', async (req, res) => {
             if (buffer.trim()) {
               try {
                 const parsed = JSON.parse(buffer);
-                if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+                if (parsed.message?.content) {
+                  sendEvent({ token: parsed.message.content });
+                  tokenCount++;
+                }
                 if (parsed.done) sendEvent({ done: true });
               } catch {}
             }
-            if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
-            log('INFO', `Pentest folder fallback complete: ${tokenCount} tokens`);
+            if (!res.writableEnded) {
+              res.write("data: [DONE]\n\n");
+              res.end();
+            }
+            log(
+              "INFO",
+              `Pentest folder fallback complete: ${tokenCount} tokens`,
+            );
             break;
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
               const parsed = JSON.parse(line);
-              if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              if (parsed.message?.content) {
+                sendEvent({ token: parsed.message.content });
+                tokenCount++;
+              }
               if (parsed.done) {
                 sendEvent({ done: true });
-                res.write('data: [DONE]\n\n');
+                res.write("data: [DONE]\n\n");
                 res.end();
                 return;
               }
@@ -1841,15 +2439,20 @@ app.post('/api/pentest/folder', async (req, res) => {
           }
         }
       } catch (err) {
-        if (!res.writableEnded) { sendEvent({ error: STREAM_INTERNAL_ERROR }); res.write('data: [DONE]\n\n'); res.end(); }
+        if (!res.writableEnded) {
+          sendEvent({ error: STREAM_INTERNAL_ERROR });
+          res.write("data: [DONE]\n\n");
+          res.end();
+        }
       }
     }
 
     readStream();
-    req.on('close', () => { reader.cancel().catch(() => {}); });
-
+    req.on("close", () => {
+      reader.cancel().catch(() => {});
+    });
   } catch (err) {
-    log('ERROR', 'Pentest folder failed', { error: err.message });
+    log("ERROR", "Pentest folder failed", { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
@@ -1857,13 +2460,16 @@ app.post('/api/pentest/folder', async (req, res) => {
 });
 
 // ── POST /api/validate/scan (discover validation tools in a project) ──
-app.post('/api/validate/scan', async (req, res) => {
+app.post("/api/validate/scan", async (req, res) => {
   const { folder } = req.body;
-  if (!folder) return res.status(400).json({ error: 'Missing folder' });
+  if (!folder) return res.status(400).json({ error: "Missing folder" });
 
   try {
     const result = scanProjectForValidation(folder);
-    log('INFO', `Validate scan: ${folder} — lang=${result.language} framework=${result.framework}`);
+    log(
+      "INFO",
+      `Validate scan: ${folder} — lang=${result.language} framework=${result.framework}`,
+    );
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -1871,60 +2477,72 @@ app.post('/api/validate/scan', async (req, res) => {
 });
 
 // ── POST /api/validate/generate (generate validate.md via AI) ──
-app.post('/api/validate/generate', async (req, res) => {
+app.post("/api/validate/generate", async (req, res) => {
   const { model: reqModel, folder, scanResult } = req.body;
   if (!reqModel || !folder || !scanResult) {
-    return res.status(400).json({ error: 'Missing model, folder, or scanResult' });
+    return res
+      .status(400)
+      .json({ error: "Missing model, folder, or scanResult" });
   }
 
   const config = getConfig();
   let model = reqModel;
-  if (model === 'auto') {
+  if (model === "auto") {
     try {
-      const estimatedTokens = Math.ceil(JSON.stringify(scanResult).length / 3.5);
+      const estimatedTokens = Math.ceil(
+        JSON.stringify(scanResult).length / 3.5,
+      );
       const r = await resolveAutoModel({
         requestedModel: model,
-        mode: 'validate',
+        mode: "validate",
         estimatedTokens,
         config,
         ollamaUrl: config.ollamaUrl,
         ollamaOpts: ollamaAuthOpts(config),
       });
       model = r.resolved;
-      log('INFO', `Auto-model resolved: mode=validate → ${model}`);
+      log("INFO", `Auto-model resolved: mode=validate → ${model}`);
     } catch (err) {
       const m = mergeAutoModelMap(config.autoModelMap);
-      model = m.validate || m.chat || 'llama3.2';
+      model = m.validate || m.chat || "llama3.2";
     }
   }
-  log('INFO', `Validate generate: model=${model} folder=${folder}`);
+  log("INFO", `Validate generate: model=${model} folder=${folder}`);
 
   try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
     function sendEvent(data) {
       if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
     }
 
-    if (reqModel === 'auto') {
+    if (reqModel === "auto") {
       sendEvent({ resolvedModel: model });
     }
 
-    const ollamaRes = await generateValidateCommand(config.ollamaUrl, model, folder, scanResult, ollamaAuthOpts(config));
+    const ollamaRes = await generateValidateCommand(
+      config.ollamaUrl,
+      model,
+      folder,
+      scanResult,
+      ollamaAuthOpts(config),
+    );
 
     if (!ollamaRes.ok) {
       const errText = await ollamaRes.text();
-      sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
-      res.write('data: [DONE]\n\n');
+      sendEvent({
+        error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
+      });
+      res.write("data: [DONE]\n\n");
       return res.end();
     }
 
     const reader = ollamaRes.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let tokenCount = 0;
 
     async function readStream() {
@@ -1935,43 +2553,57 @@ app.post('/api/validate/generate', async (req, res) => {
             if (buffer.trim()) {
               try {
                 const parsed = JSON.parse(buffer);
-                if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+                if (parsed.message?.content) {
+                  sendEvent({ token: parsed.message.content });
+                  tokenCount++;
+                }
               } catch {}
             }
-            if (!res.writableEnded) { res.write('data: [DONE]\n\n'); res.end(); }
-            log('INFO', `Validate generate complete: ${tokenCount} tokens`);
+            if (!res.writableEnded) {
+              res.write("data: [DONE]\n\n");
+              res.end();
+            }
+            log("INFO", `Validate generate complete: ${tokenCount} tokens`);
             break;
           }
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
+          const lines = buffer.split("\n");
           buffer = lines.pop();
 
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
               const parsed = JSON.parse(line);
-              if (parsed.message?.content) { sendEvent({ token: parsed.message.content }); tokenCount++; }
+              if (parsed.message?.content) {
+                sendEvent({ token: parsed.message.content });
+                tokenCount++;
+              }
               if (parsed.done) {
                 sendEvent({ done: true });
-                res.write('data: [DONE]\n\n');
+                res.write("data: [DONE]\n\n");
                 res.end();
-                log('INFO', `Validate generate complete: ${tokenCount} tokens`);
+                log("INFO", `Validate generate complete: ${tokenCount} tokens`);
                 return;
               }
             } catch {}
           }
         }
       } catch (err) {
-        if (!res.writableEnded) { sendEvent({ error: STREAM_INTERNAL_ERROR }); res.write('data: [DONE]\n\n'); res.end(); }
+        if (!res.writableEnded) {
+          sendEvent({ error: STREAM_INTERNAL_ERROR });
+          res.write("data: [DONE]\n\n");
+          res.end();
+        }
       }
     }
 
     readStream();
-    req.on('close', () => { reader.cancel().catch(() => {}); });
-
+    req.on("close", () => {
+      reader.cancel().catch(() => {});
+    });
   } catch (err) {
-    log('ERROR', 'Validate generate failed', { error: err.message });
+    log("ERROR", "Validate generate failed", { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
@@ -1979,69 +2611,81 @@ app.post('/api/validate/generate', async (req, res) => {
 });
 
 // ── POST /api/validate/install (write validate.md to IDE command path) ──
-app.post('/api/validate/install', requireLocalOrApiKey, (req, res) => {
+app.post("/api/validate/install", requireLocalOrApiKey, (req, res) => {
   const { projectFolder, content, targets } = req.body;
   // targets is an array of relative paths like ['.claude/commands/validate.md', ...]
 
   if (!projectFolder || !content || !targets?.length) {
-    return res.status(400).json({ error: 'Missing projectFolder, content, or targets' });
+    return res
+      .status(400)
+      .json({ error: "Missing projectFolder, content, or targets" });
   }
 
   const config = getConfig();
   const resolvedProject = resolveFolderInput(projectFolder);
   if (!resolvedProject) {
-    return res.status(400).json({ error: 'Invalid projectFolder path' });
+    return res.status(400).json({ error: "Invalid projectFolder path" });
   }
   const allowed = assertResolvedPathUnderAllowedRoots(resolvedProject, config);
   if (!allowed.ok) {
-    log('WARN', 'validate/install blocked — projectFolder outside allowed roots');
+    log(
+      "WARN",
+      "validate/install blocked — projectFolder outside allowed roots",
+    );
     return res.status(403).json({ error: allowed.error });
   }
 
   const absFolder = resolvedProject;
   if (!fs.existsSync(absFolder)) {
-    return res.status(400).json({ error: 'Project folder not found' });
+    return res.status(400).json({ error: "Project folder not found" });
   }
 
   const results = [];
   for (const target of targets) {
     const targetPath = path.join(absFolder, target);
     // Security: ensure it's within the project folder
-    if (!targetPath.startsWith(absFolder + path.sep) && targetPath !== absFolder) {
-      results.push({ target, success: false, error: 'Path traversal blocked' });
+    if (
+      !targetPath.startsWith(absFolder + path.sep) &&
+      targetPath !== absFolder
+    ) {
+      results.push({ target, success: false, error: "Path traversal blocked" });
       continue;
     }
     try {
       const dir = path.dirname(targetPath);
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(targetPath, content, 'utf8');
+      fs.writeFileSync(targetPath, content, "utf8");
       results.push({ target, success: true });
-      log('INFO', `Validate installed: ${targetPath}`);
+      log("INFO", `Validate installed: ${targetPath}`);
     } catch (err) {
-      results.push({ target, success: false, error: 'Write failed' });
+      results.push({ target, success: false, error: "Write failed" });
     }
   }
 
-  res.json({ results, installed: results.filter(r => r.success).length });
+  res.json({ results, installed: results.filter((r) => r.success).length });
 });
 
 // ── POST /api/score (builder mode scoring) ────────────
 
-app.post('/api/score', async (req, res) => {
+app.post("/api/score", async (req, res) => {
   const { model: reqModel, mode, content, metadata } = req.body;
 
   if (!reqModel || !content || !mode) {
-    return res.status(400).json({ error: 'model, mode, and content are required' });
+    return res
+      .status(400)
+      .json({ error: "model, mode, and content are required" });
   }
 
-  const validModes = ['prompting', 'skillz', 'agentic', 'planner'];
+  const validModes = ["prompting", "skillz", "agentic", "planner"];
   if (!validModes.includes(mode)) {
-    return res.status(400).json({ error: `Invalid mode. Must be one of: ${validModes.join(', ')}` });
+    return res.status(400).json({
+      error: `Invalid mode. Must be one of: ${validModes.join(", ")}`,
+    });
   }
 
   const config = getConfig();
   let model = reqModel;
-  if (model === 'auto') {
+  if (model === "auto") {
     try {
       const estimatedTokens = Math.ceil(content.length / 3.5);
       const r = await resolveAutoModel({
@@ -2053,31 +2697,44 @@ app.post('/api/score', async (req, res) => {
         ollamaOpts: ollamaAuthOpts(config),
       });
       model = r.resolved;
-      log('INFO', `Auto-model resolved: mode=${mode} (score) → ${model}`);
+      log("INFO", `Auto-model resolved: mode=${mode} (score) → ${model}`);
     } catch (err) {
       const m = mergeAutoModelMap(config.autoModelMap);
-      model = m[mode] || m.chat || 'llama3.2';
+      model = m[mode] || m.chat || "llama3.2";
     }
   }
 
-  log('INFO', `Score request: model=${model} mode=${mode} content=${content.length} chars`);
+  log(
+    "INFO",
+    `Score request: model=${model} mode=${mode} content=${content.length} chars`,
+  );
 
   try {
-    const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-    const result = await scoreContent(ollamaUrl, model, mode, content, metadata, ollamaAuthOpts(config));
+    const ollamaUrl = config.ollamaUrl || "http://localhost:11434";
+    const result = await scoreContent(
+      ollamaUrl,
+      model,
+      mode,
+      content,
+      metadata,
+      ollamaAuthOpts(config),
+    );
 
-    if (result.type === 'score-card') {
-      log('INFO', `Score complete: overall grade ${result.data?.overallGrade || 'N/A'}`);
+    if (result.type === "score-card") {
+      log(
+        "INFO",
+        `Score complete: overall grade ${result.data?.overallGrade || "N/A"}`,
+      );
       const payload = { ...result };
-      if (reqModel === 'auto') payload.resolvedModel = model;
+      if (reqModel === "auto") payload.resolvedModel = model;
       return res.json(payload);
     }
 
     // Fallback: stream response
-    if (result.type === 'chat-fallback') {
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
+    if (result.type === "chat-fallback") {
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
 
       const sendEvent = (data) => {
         if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -2085,46 +2742,59 @@ app.post('/api/score', async (req, res) => {
       sendEvent({
         fallback: true,
         reason: result.error,
-        ...(reqModel === 'auto' ? { resolvedModel: model } : {}),
+        ...(reqModel === "auto" ? { resolvedModel: model } : {}),
       });
 
       // Stream the response (result.stream is a fetch Response)
       const ollamaRes = result.stream;
-      if (!ollamaRes || typeof ollamaRes.ok !== 'boolean') {
-        log('ERROR', 'Score fallback: invalid stream (not a Response)', { hasStream: !!result.stream });
-        sendEvent({ error: 'Invalid response from model' });
-        res.write('data: [DONE]\n\n');
+      if (!ollamaRes || typeof ollamaRes.ok !== "boolean") {
+        log("ERROR", "Score fallback: invalid stream (not a Response)", {
+          hasStream: !!result.stream,
+        });
+        sendEvent({ error: "Invalid response from model" });
+        res.write("data: [DONE]\n\n");
         return res.end();
       }
       if (!ollamaRes.ok) {
         const errText = await ollamaRes.text();
-        log('ERROR', `Ollama score fallback error: ${ollamaRes.status}`, { body: errText });
-        sendEvent({ error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.` });
-        res.write('data: [DONE]\n\n');
+        log("ERROR", `Ollama score fallback error: ${ollamaRes.status}`, {
+          body: errText,
+        });
+        sendEvent({
+          error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
+        });
+        res.write("data: [DONE]\n\n");
         return res.end();
       }
 
       const body = ollamaRes.body;
-      if (!body || typeof body.getReader !== 'function') {
-        log('ERROR', 'Score fallback: response has no readable body', { hasBody: !!body });
-        sendEvent({ error: 'Model returned a response that cannot be streamed' });
-        res.write('data: [DONE]\n\n');
+      if (!body || typeof body.getReader !== "function") {
+        log("ERROR", "Score fallback: response has no readable body", {
+          hasBody: !!body,
+        });
+        sendEvent({
+          error: "Model returned a response that cannot be streamed",
+        });
+        res.write("data: [DONE]\n\n");
         return res.end();
       }
 
       // Use Readable.fromWeb for robust consumption (avoids "not async iterable" with some Node/cloud responses)
       const nodeStream = Readable.fromWeb(body);
       const decoder = new TextDecoder();
-      let buf = '';
+      let buf = "";
       for await (const chunk of nodeStream) {
-        buf += Buffer.isBuffer(chunk) ? chunk.toString('utf8') : decoder.decode(chunk);
-        const lines = buf.split('\n');
-        buf = lines.pop() || '';
+        buf += Buffer.isBuffer(chunk)
+          ? chunk.toString("utf8")
+          : decoder.decode(chunk);
+        const lines = buf.split("\n");
+        buf = lines.pop() || "";
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
             const parsed = JSON.parse(line);
-            if (parsed.message?.content) sendEvent({ token: parsed.message.content });
+            if (parsed.message?.content)
+              sendEvent({ token: parsed.message.content });
             if (parsed.done) sendEvent({ done: true });
           } catch {}
         }
@@ -2132,15 +2802,16 @@ app.post('/api/score', async (req, res) => {
       if (buf.trim()) {
         try {
           const parsed = JSON.parse(buf);
-          if (parsed.message?.content) sendEvent({ token: parsed.message.content });
+          if (parsed.message?.content)
+            sendEvent({ token: parsed.message.content });
           if (parsed.done) sendEvent({ done: true });
         } catch {}
       }
-      res.write('data: [DONE]\n\n');
+      res.write("data: [DONE]\n\n");
       res.end();
     }
   } catch (err) {
-    log('ERROR', 'Score endpoint failed', { error: err.message });
+    log("ERROR", "Score endpoint failed", { error: err.message });
     if (!res.headersSent) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
@@ -2153,218 +2824,262 @@ app.post('/api/score', async (req, res) => {
 let ideLauncher = null;
 try {
   if (process.env.CC_DATA_DIR || process.versions.electron) {
-    ideLauncher = require('./electron/ide-launcher');
+    ideLauncher = require("./electron/ide-launcher");
   }
 } catch (err) {
   // Not in Electron mode or module not found - will use legacy macOS commands
-  console.log('[IDE Launcher] Running in dev mode, using macOS-only commands');
+  console.log("[IDE Launcher] Running in dev mode, using macOS-only commands");
 }
 
 // ── Launch Claude Code in Terminal ────────────────────
 
 // F-06 fix: validate folder path for IDE launch — reject dangerous characters
 function _validateIDEFolder(folder) {
-  if (!folder || typeof folder !== 'string') return false;
+  if (!folder || typeof folder !== "string") return false;
   // Reject newlines, semicolons, pipes, backticks, $() — shell metacharacters
   if (/[\n\r;|`$]/.test(folder)) return false;
   return fs.existsSync(folder);
 }
 
-app.post('/api/launch-claude-code', async (req, res) => {
+app.post("/api/launch-claude-code", async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
-  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
+  if (!folder)
+    return res.status(400).json({ error: "No project folder specified" });
+  if (!_validateIDEFolder(folder))
+    return res.status(400).json({ error: "Invalid folder path" });
 
   try {
     if (ideLauncher) {
-      await ideLauncher.launchIDE('claude-code', folder);
-      log('INFO', `Launched Claude Code in: ${folder}`);
+      await ideLauncher.launchIDE("claude-code", folder);
+      log("INFO", `Launched Claude Code in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      // F-06 fix: use execFile with args array instead of shell string interpolation
-      const { execFile } = require('child_process');
-      execFile('open', ['-a', 'Terminal', folder], { stdio: 'ignore' }, () => {});
-      log('INFO', `Launched Claude Code in: ${folder} (macOS only)`);
+      // Launch claude CLI in a new Terminal tab via osascript
+      const { execFile } = require("child_process");
+      const safeFolder = folder.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const script = `tell application "Terminal"\n  activate\n  do script "cd " & quoted form of "${safeFolder}" & " && claude"\nend tell`;
+      execFile("osascript", ["-e", script], { stdio: "ignore" }, () => {});
+      log("INFO", `Launched Claude Code in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
   } catch (err) {
-    log('ERROR', 'launch-claude-code failed', { error: err.message });
+    log("ERROR", "launch-claude-code failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // ── Launch Cursor in project folder ──────────────────
 
-app.post('/api/launch-cursor', async (req, res) => {
+app.post("/api/launch-cursor", async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
-  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
+  if (!folder)
+    return res.status(400).json({ error: "No project folder specified" });
+  if (!_validateIDEFolder(folder))
+    return res.status(400).json({ error: "Invalid folder path" });
 
   try {
     if (ideLauncher) {
-      await ideLauncher.launchIDE('cursor', folder);
-      log('INFO', `Launched Cursor in: ${folder}`);
+      await ideLauncher.launchIDE("cursor", folder);
+      log("INFO", `Launched Cursor in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      const cursorCli = '/Applications/Cursor.app/Contents/Resources/app/bin/cursor';
+      const cursorCli =
+        "/Applications/Cursor.app/Contents/Resources/app/bin/cursor";
       if (fs.existsSync(cursorCli)) {
-        const { execFile } = require('child_process');
-        execFile(cursorCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+        const { execFile } = require("child_process");
+        execFile(cursorCli, [folder], {
+          detached: true,
+          stdio: "ignore",
+        }).unref();
       } else {
-        const { execSync } = require('child_process');
+        const { execSync } = require("child_process");
         execSync(`open -a "Cursor" "${folder}"`);
       }
-      log('INFO', `Launched Cursor in: ${folder} (macOS only)`);
+      log("INFO", `Launched Cursor in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
   } catch (err) {
-    log('ERROR', 'launch-cursor failed', { error: err.message });
+    log("ERROR", "launch-cursor failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // ── Launch Windsurf in project folder ─────────────────
 
-app.post('/api/launch-windsurf', async (req, res) => {
+app.post("/api/launch-windsurf", async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
-  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
+  if (!folder)
+    return res.status(400).json({ error: "No project folder specified" });
+  if (!_validateIDEFolder(folder))
+    return res.status(400).json({ error: "Invalid folder path" });
 
   try {
     if (ideLauncher) {
-      await ideLauncher.launchIDE('windsurf', folder);
-      log('INFO', `Launched Windsurf in: ${folder}`);
+      await ideLauncher.launchIDE("windsurf", folder);
+      log("INFO", `Launched Windsurf in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      const { execFile } = require('child_process');
-      const windsurfCli = '/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf';
+      const { execFile } = require("child_process");
+      const windsurfCli =
+        "/Applications/Windsurf.app/Contents/Resources/app/bin/windsurf";
       if (fs.existsSync(windsurfCli)) {
-        execFile(windsurfCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+        execFile(windsurfCli, [folder], {
+          detached: true,
+          stdio: "ignore",
+        }).unref();
       } else {
-        const { execSync } = require('child_process');
+        const { execSync } = require("child_process");
         execSync(`open -a "Windsurf" "${folder}"`);
       }
-      log('INFO', `Launched Windsurf in: ${folder} (macOS only)`);
+      log("INFO", `Launched Windsurf in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
   } catch (err) {
-    log('ERROR', 'launch-windsurf failed', { error: err.message });
+    log("ERROR", "launch-windsurf failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // ── Launch VS Code in project folder ──────────────────
 
-app.post('/api/launch-vscode', async (req, res) => {
+app.post("/api/launch-vscode", async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
-  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
+  if (!folder)
+    return res.status(400).json({ error: "No project folder specified" });
+  if (!_validateIDEFolder(folder))
+    return res.status(400).json({ error: "Invalid folder path" });
 
   try {
     if (ideLauncher) {
-      await ideLauncher.launchIDE('vscode', folder);
-      log('INFO', `Launched VS Code in: ${folder}`);
+      await ideLauncher.launchIDE("vscode", folder);
+      log("INFO", `Launched VS Code in: ${folder}`);
       res.json({ success: true, folder });
     } else {
-      const { execFile, execSync } = require('child_process');
+      const { execFile, execSync } = require("child_process");
       // Try 'code' CLI first — works on all platforms when VS Code adds it to PATH
       // (Install via: VS Code → Cmd Palette → "Shell Command: Install 'code' command in PATH")
       try {
-        execFile('code', [folder], { detached: true, stdio: 'ignore', shell: process.platform === 'win32' }).unref();
+        execFile("code", [folder], {
+          detached: true,
+          stdio: "ignore",
+          shell: process.platform === "win32",
+        }).unref();
       } catch {
         // Fallback: platform-specific app bundle paths
-        if (process.platform === 'darwin') {
-          const bundleCli = '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+        if (process.platform === "darwin") {
+          const bundleCli =
+            "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code";
           if (fs.existsSync(bundleCli)) {
-            execFile(bundleCli, [folder], { detached: true, stdio: 'ignore' }).unref();
+            execFile(bundleCli, [folder], {
+              detached: true,
+              stdio: "ignore",
+            }).unref();
           } else {
             execSync(`open -a "Visual Studio Code" "${folder}"`);
           }
         } else {
-          throw new Error('VS Code "code" command not found in PATH. Open VS Code → Command Palette → "Shell Command: Install \'code\' command in PATH"');
+          throw new Error(
+            'VS Code "code" command not found in PATH. Open VS Code → Command Palette → "Shell Command: Install \'code\' command in PATH"',
+          );
         }
       }
-      log('INFO', `Launched VS Code in: ${folder} (${process.platform})`);
+      log("INFO", `Launched VS Code in: ${folder} (${process.platform})`);
       res.json({ success: true, folder });
     }
   } catch (err) {
-    log('ERROR', 'launch-vscode failed', { error: err.message });
+    log("ERROR", "launch-vscode failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // ── Launch OpenCode in project folder ─────────────────
 
-app.post('/api/launch-opencode', async (req, res) => {
+app.post("/api/launch-opencode", async (req, res) => {
   const { projectPath } = req.body;
   const folder = projectPath || getConfig().projectFolder;
-  if (!folder) return res.status(400).json({ error: 'No project folder specified' });
-  if (!_validateIDEFolder(folder)) return res.status(400).json({ error: 'Invalid folder path' });
+  if (!folder)
+    return res.status(400).json({ error: "No project folder specified" });
+  if (!_validateIDEFolder(folder))
+    return res.status(400).json({ error: "Invalid folder path" });
 
   try {
     if (ideLauncher) {
-      await ideLauncher.launchIDE('opencode', folder);
-      log('INFO', `Launched OpenCode in: ${folder}`);
+      await ideLauncher.launchIDE("opencode", folder);
+      log("INFO", `Launched OpenCode in: ${folder}`);
       res.json({ success: true, folder });
     } else {
       // F-06 fix: use execFile instead of shell string interpolation
-      const { execFile } = require('child_process');
-      execFile('open', ['-a', 'Terminal', folder], { stdio: 'ignore' }, () => {});
-      log('INFO', `Launched OpenCode in: ${folder} (macOS only)`);
+      const { execFile } = require("child_process");
+      execFile(
+        "open",
+        ["-a", "Terminal", folder],
+        { stdio: "ignore" },
+        () => {},
+      );
+      log("INFO", `Launched OpenCode in: ${folder} (macOS only)`);
       res.json({ success: true, folder });
     }
   } catch (err) {
-    log('ERROR', 'launch-opencode failed', { error: err.message });
+    log("ERROR", "launch-opencode failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // ── Conversation History ─────────────────────────────
 
-app.get('/api/history', (req, res) => {
+app.get("/api/history", (req, res) => {
   try {
     const conversations = listConversations();
     res.json(conversations);
   } catch (err) {
-    log('ERROR', 'Failed to load history', { error: err.message });
+    log("ERROR", "Failed to load history", { error: err.message });
     res.json([]);
   }
 });
 
-app.get('/api/history/:id', (req, res) => {
+app.get("/api/history/:id", (req, res) => {
   try {
     const data = getConversation(req.params.id);
     res.json(data);
   } catch (err) {
-    const status = err.message.includes('Invalid conversation id') ? 400 : 404;
-    res.status(status).json({ error: status === 404 ? 'Not found' : err.message });
+    const status = err.message.includes("Invalid conversation id") ? 400 : 404;
+    res
+      .status(status)
+      .json({ error: status === 404 ? "Not found" : err.message });
   }
 });
 
-app.post('/api/history', async (req, res) => {
+app.post("/api/history", async (req, res) => {
   try {
     const id = saveConversation(req.body);
-    debug('Conversation saved', { id });
+    debug("Conversation saved", { id });
     res.json({ id });
 
     // Fire-and-forget memory extraction (non-blocking — response already sent)
     const config = getConfig();
-    if (config.memory?.enabled && config.memory?.autoExtract
-        && req.body.messages?.length >= 4) {
-      const embModel = config.memory.embeddingModel || 'nomic-embed-text';
+    if (
+      config.memory?.enabled &&
+      config.memory?.autoExtract &&
+      req.body.messages?.length >= 4
+    ) {
+      const embModel = config.memory.embeddingModel || "nomic-embed-text";
       (async () => {
         let memModel = req.body.model;
-        if (memModel === 'auto') {
+        if (memModel === "auto") {
           try {
             const msgs = req.body.messages || [];
-            const totalChars = msgs.reduce((s, m) => s + (typeof m.content === 'string' ? m.content.length : 0), 0);
+            const totalChars = msgs.reduce(
+              (s, m) =>
+                s + (typeof m.content === "string" ? m.content.length : 0),
+              0,
+            );
             const r = await resolveAutoModel({
-              requestedModel: 'auto',
-              mode: req.body.mode || 'chat',
+              requestedModel: "auto",
+              mode: req.body.mode || "chat",
               estimatedTokens: Math.ceil(totalChars / 3.5),
               config,
               ollamaUrl: config.ollamaUrl,
@@ -2373,37 +3088,57 @@ app.post('/api/history', async (req, res) => {
             memModel = r.resolved;
           } catch {
             const m = mergeAutoModelMap(config.autoModelMap);
-            memModel = m[req.body.mode || 'chat'] || m.chat || 'llama3.2';
+            memModel = m[req.body.mode || "chat"] || m.chat || "llama3.2";
           }
         }
-        await extractAndStore(config.ollamaUrl, memModel, embModel, req.body, config);
-      })().catch(err => log('WARN', 'Memory extraction failed', { error: err.message }));
+        await extractAndStore(
+          config.ollamaUrl,
+          memModel,
+          embModel,
+          req.body,
+          config,
+        );
+      })().catch((err) =>
+        log("WARN", "Memory extraction failed", { error: err.message }),
+      );
     }
   } catch (err) {
-    const status = err.message.includes('Invalid conversation id') ? 400 : 500;
-    res.status(status).json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
+    const status = err.message.includes("Invalid conversation id") ? 400 : 500;
+    res
+      .status(status)
+      .json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
   }
 });
 
-app.delete('/api/history/:id', (req, res) => {
+app.delete("/api/history/:id", (req, res) => {
   try {
     deleteConversation(req.params.id);
-    debug('Conversation deleted', { id: req.params.id });
+    debug("Conversation deleted", { id: req.params.id });
     res.json({ ok: true });
   } catch (err) {
     let status = 500;
-    if (err.message.includes('Invalid conversation id')) status = 400;
-    else if (err.message === 'Conversation not found') status = 404;
-    res.status(status).json({ error: status === 404 ? 'Not found' : status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
+    if (err.message.includes("Invalid conversation id")) status = 400;
+    else if (err.message === "Conversation not found") status = 404;
+    res.status(status).json({
+      error:
+        status === 404
+          ? "Not found"
+          : status === 400
+            ? err.message
+            : CLIENT_INTERNAL_ERROR,
+    });
   }
 });
 
 // Batch delete — single request instead of N individual DELETEs (avoids rate limiting)
-app.post('/api/history/batch-delete', (req, res) => {
+app.post("/api/history/batch-delete", (req, res) => {
   const { ids } = req.body;
-  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids must be a non-empty array' });
-  if (ids.length > 200) return res.status(400).json({ error: 'Maximum 200 deletions per batch' });
-  let ok = 0, failed = 0;
+  if (!Array.isArray(ids) || ids.length === 0)
+    return res.status(400).json({ error: "ids must be a non-empty array" });
+  if (ids.length > 200)
+    return res.status(400).json({ error: "Maximum 200 deletions per batch" });
+  let ok = 0,
+    failed = 0;
   for (const id of ids) {
     try {
       deleteConversation(id);
@@ -2412,66 +3147,72 @@ app.post('/api/history/batch-delete', (req, res) => {
       failed++;
     }
   }
-  log('INFO', `Batch delete: ${ok} deleted, ${failed} failed`);
+  log("INFO", `Batch delete: ${ok} deleted, ${failed} failed`);
   res.json({ ok, failed });
 });
 
 // ── Memory API ──────────────────────────────────────
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function validateMemoryId(req, res) {
   const { id } = req.params;
   if (!id || !UUID_REGEX.test(id)) {
-    res.status(400).json({ error: 'Invalid memory id' });
+    res.status(400).json({ error: "Invalid memory id" });
     return null;
   }
   return id;
 }
 
-app.get('/api/memory/stats', (req, res) => {
+app.get("/api/memory/stats", (req, res) => {
   try {
     res.json(getMemoryStats());
   } catch (err) {
-    log('ERROR', 'Failed to get memory stats', { error: err.message });
+    log("ERROR", "Failed to get memory stats", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
-app.get('/api/memory/models', async (req, res) => {
+app.get("/api/memory/models", async (req, res) => {
   try {
     const config = getConfig();
     const models = await listModels(config.ollamaUrl, ollamaAuthOpts(config));
-    const embeddingModels = models.filter(m =>
-      /embed|bert|minilm/i.test(m.family || '')
+    const embeddingModels = models.filter((m) =>
+      /embed|bert|minilm/i.test(m.family || ""),
     );
     res.json(embeddingModels);
   } catch (err) {
-    log('ERROR', 'Failed to list embedding models', { error: err.message });
+    log("ERROR", "Failed to list embedding models", { error: err.message });
     res.json([]);
   }
 });
 
-app.get('/api/memory/search', async (req, res) => {
+app.get("/api/memory/search", async (req, res) => {
   try {
     const q = req.query.q;
-    if (!q || typeof q !== 'string' || !q.trim()) {
-      return res.status(400).json({ error: 'Query parameter q is required' });
+    if (!q || typeof q !== "string" || !q.trim()) {
+      return res.status(400).json({ error: "Query parameter q is required" });
     }
     const config = getConfig();
-    const embModel = config.memory?.embeddingModel || 'nomic-embed-text';
-    const queryEmbedding = await embed(config.ollamaUrl, q.trim(), embModel, ollamaAuthOpts(config));
+    const embModel = config.memory?.embeddingModel || "nomic-embed-text";
+    const queryEmbedding = await embed(
+      config.ollamaUrl,
+      q.trim(),
+      embModel,
+      ollamaAuthOpts(config),
+    );
     const results = searchMemories(queryEmbedding, 10, 0.3);
     // Strip embeddings from response to reduce payload
     const cleaned = results.map(({ embedding, ...rest }) => rest);
     res.json(cleaned);
   } catch (err) {
-    log('ERROR', 'Memory search failed', { error: err.message });
+    log("ERROR", "Memory search failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
-app.get('/api/memory', (req, res) => {
+app.get("/api/memory", (req, res) => {
   try {
     const typeFilter = req.query.type || null;
     let memories = getMemories(typeFilter ? { type: typeFilter } : undefined);
@@ -2487,79 +3228,88 @@ app.get('/api/memory', (req, res) => {
     const cleaned = memories.map(({ embedding, ...rest }) => rest);
     res.json({ memories: cleaned, total, page, limit });
   } catch (err) {
-    log('ERROR', 'Failed to list memories', { error: err.message });
+    log("ERROR", "Failed to list memories", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
-app.post('/api/memory', async (req, res) => {
+app.post("/api/memory", async (req, res) => {
   try {
     const { type, content, source, confidence } = req.body;
-    if (!content || typeof content !== 'string' || !content.trim()) {
-      return res.status(400).json({ error: 'content is required' });
+    if (!content || typeof content !== "string" || !content.trim()) {
+      return res.status(400).json({ error: "content is required" });
     }
-    const validTypes = ['fact', 'pattern', 'project', 'summary'];
+    const validTypes = ["fact", "pattern", "project", "summary"];
     if (type && !validTypes.includes(type)) {
-      return res.status(400).json({ error: `type must be one of: ${validTypes.join(', ')}` });
+      return res
+        .status(400)
+        .json({ error: `type must be one of: ${validTypes.join(", ")}` });
     }
 
     // Generate embedding
     let embeddingVec = null;
-    let embModel = '';
+    let embModel = "";
     try {
       const config = getConfig();
-      embModel = config.memory?.embeddingModel || 'nomic-embed-text';
-      embeddingVec = await embed(config.ollamaUrl, content.trim(), embModel, ollamaAuthOpts(config));
+      embModel = config.memory?.embeddingModel || "nomic-embed-text";
+      embeddingVec = await embed(
+        config.ollamaUrl,
+        content.trim(),
+        embModel,
+        ollamaAuthOpts(config),
+      );
     } catch (embErr) {
-      log('WARN', 'Embedding generation failed for new memory', { error: embErr.message });
+      log("WARN", "Embedding generation failed for new memory", {
+        error: embErr.message,
+      });
     }
 
     const memory = addMemory({
-      type: type || 'fact',
+      type: type || "fact",
       content: content.trim(),
       source: source || null,
       embedding: embeddingVec,
       embeddingModel: embModel,
-      confidence: typeof confidence === 'number' ? confidence : 0.5,
+      confidence: typeof confidence === "number" ? confidence : 0.5,
     });
 
     const { embedding, ...cleaned } = memory;
     res.json(cleaned);
   } catch (err) {
-    log('ERROR', 'Failed to add memory', { error: err.message });
+    log("ERROR", "Failed to add memory", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
-app.put('/api/memory/:id', (req, res) => {
+app.put("/api/memory/:id", (req, res) => {
   const id = validateMemoryId(req, res);
   if (!id) return;
 
   try {
     const updated = updateMemory(id, req.body);
     if (!updated) {
-      return res.status(404).json({ error: 'Memory not found' });
+      return res.status(404).json({ error: "Memory not found" });
     }
     const { embedding, ...cleaned } = updated;
     res.json(cleaned);
   } catch (err) {
-    log('ERROR', 'Failed to update memory', { error: err.message });
+    log("ERROR", "Failed to update memory", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
-app.delete('/api/memory/:id', (req, res) => {
+app.delete("/api/memory/:id", (req, res) => {
   const id = validateMemoryId(req, res);
   if (!id) return;
 
   try {
     const deleted = deleteMemory(id);
     if (!deleted) {
-      return res.status(404).json({ error: 'Memory not found' });
+      return res.status(404).json({ error: "Memory not found" });
     }
     res.json({ ok: true });
   } catch (err) {
-    log('ERROR', 'Failed to delete memory', { error: err.message });
+    log("ERROR", "Failed to delete memory", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
@@ -2567,18 +3317,27 @@ app.delete('/api/memory/:id', (req, res) => {
 // ── File Browser API ─────────────────────────────────
 
 // Directories to skip when searching for folders by name
-const FOLDER_SEARCH_SKIP = new Set(['.Trash', '.Trashes', 'Library', 'node_modules', '.git', '.cache', '.npm', '.nvm']);
+const FOLDER_SEARCH_SKIP = new Set([
+  ".Trash",
+  ".Trashes",
+  "Library",
+  "node_modules",
+  ".git",
+  ".cache",
+  ".npm",
+  ".nvm",
+]);
 
 // Search common directories for a folder by name (1-2 levels deep)
 function findFolderByName(name) {
   const searchRoots = [
     os.homedir(),
-    path.join(os.homedir(), 'AI_Dev'),
-    path.join(os.homedir(), 'Projects'),
-    path.join(os.homedir(), 'Developer'),
-    path.join(os.homedir(), 'Documents'),
-    path.join(os.homedir(), 'Desktop'),
-    path.join(os.homedir(), 'Docker'),
+    path.join(os.homedir(), "AI_Dev"),
+    path.join(os.homedir(), "Projects"),
+    path.join(os.homedir(), "Developer"),
+    path.join(os.homedir(), "Documents"),
+    path.join(os.homedir(), "Desktop"),
+    path.join(os.homedir(), "Docker"),
     __dirname,
   ];
   for (const root of searchRoots) {
@@ -2586,8 +3345,10 @@ function findFolderByName(name) {
     try {
       // Skip if the match is inside a blocked directory
       if (FOLDER_SEARCH_SKIP.has(path.basename(root))) continue;
-      if (candidate.split(path.sep).some(seg => FOLDER_SEARCH_SKIP.has(seg))) continue;
-      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+      if (candidate.split(path.sep).some((seg) => FOLDER_SEARCH_SKIP.has(seg)))
+        continue;
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory())
+        return candidate;
     } catch {}
   }
   // Second pass: check one level deeper in each root
@@ -2600,7 +3361,8 @@ function findFolderByName(name) {
         if (FOLDER_SEARCH_SKIP.has(child.name)) continue;
         const candidate = path.join(root, child.name, name);
         try {
-          if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) return candidate;
+          if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory())
+            return candidate;
         } catch {}
       }
     } catch {}
@@ -2610,23 +3372,26 @@ function findFolderByName(name) {
 
 // Resolve a folder path: expand ~, resolve relative, search by name if needed
 function resolveFolder(folder) {
-  if (folder.startsWith('~')) folder = path.join(os.homedir(), folder.slice(1));
+  if (folder.startsWith("~")) folder = path.join(os.homedir(), folder.slice(1));
   folder = path.resolve(folder);
   if (fs.existsSync(folder)) return folder;
   return findFolderByName(path.basename(folder));
 }
 
 // GET /api/files/tree — list directory structure
-app.get('/api/files/tree', (req, res) => {
+app.get("/api/files/tree", (req, res) => {
   const config = getConfig();
   let folder = req.query.folder || config.projectFolder;
-  if (!folder) return res.status(400).json({ error: 'No project folder configured' });
+  if (!folder)
+    return res.status(400).json({ error: "No project folder configured" });
   folder = resolveFolder(folder);
-  if (!folder) return res.status(404).json({ error: 'Folder not found' });
+  if (!folder) return res.status(404).json({ error: "Folder not found" });
 
   const allowedCheck = assertResolvedPathUnderAllowedRoots(folder, config);
   if (!allowedCheck.ok) {
-    log('WARN', 'files/tree blocked — folder outside allowed roots', { folder });
+    log("WARN", "files/tree blocked — folder outside allowed roots", {
+      folder,
+    });
     return res.status(403).json({ error: allowedCheck.error });
   }
 
@@ -2634,190 +3399,323 @@ app.get('/api/files/tree', (req, res) => {
   const maxDepth = Number.isNaN(depth) ? 3 : Math.min(Math.max(depth, 1), 6);
 
   try {
-    debug('Building file tree', { folder, maxDepth });
+    debug("Building file tree", { folder, maxDepth });
     const result = buildFileTree(folder, maxDepth);
     res.json(result);
   } catch (err) {
-    log('ERROR', 'Failed to build file tree', { error: err.message });
+    log("ERROR", "Failed to build file tree", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // GET /api/files/read — read file contents (folder from config, or optional query param for validation/testing)
-app.get('/api/files/read', (req, res) => {
+app.get("/api/files/read", (req, res) => {
   const config = getConfig();
   const filePath = req.query.path;
-  let folder = req.query.folder ? path.resolve(req.query.folder) : config.projectFolder;
+  let folder = req.query.folder
+    ? path.resolve(req.query.folder)
+    : config.projectFolder;
 
-  if (!filePath || !folder) return res.status(400).json({ error: 'Missing path or project folder' });
+  if (!filePath || !folder)
+    return res.status(400).json({ error: "Missing path or project folder" });
 
   // When folder override is used, restrict to project folder or app root (for validation/same-machine use)
   if (req.query.folder) {
     const allowedRoots = [config.projectFolder, __dirname].filter(Boolean);
     const absFolder = path.resolve(folder);
-    const allowed = allowedRoots.some(root => absFolder === path.resolve(root) || absFolder.startsWith(path.resolve(root) + path.sep));
-    if (!allowed) return res.status(403).json({ error: 'Access denied' });
+    const allowed = allowedRoots.some(
+      (root) =>
+        absFolder === path.resolve(root) ||
+        absFolder.startsWith(path.resolve(root) + path.sep),
+    );
+    if (!allowed) return res.status(403).json({ error: "Access denied" });
   }
 
   try {
     const result = readProjectFile(folder, filePath);
-    debug('File read', { path: filePath, size: result.size });
+    debug("File read", { path: filePath, size: result.size });
     res.json(result);
   } catch (err) {
-    if (err.message.includes('Path traversal')) {
-      log('ERROR', 'Path traversal attempt blocked', { filePath, folder });
-      return res.status(403).json({ error: 'Access denied' });
+    if (err.message.includes("Path traversal")) {
+      log("ERROR", "Path traversal attempt blocked", { filePath, folder });
+      return res.status(403).json({ error: "Access denied" });
     }
-    const status = err.message === 'File not found' ? 404 : err.message === 'Not a file' ? 400 : 500;
-    log('ERROR', 'Failed to read file', { path: filePath, error: err.message, status });
+    const status =
+      err.message === "File not found"
+        ? 404
+        : err.message === "Not a file"
+          ? 400
+          : 500;
+    log("ERROR", "Failed to read file", {
+      path: filePath,
+      error: err.message,
+      status,
+    });
     res.status(status).json({
-      error: status === 500 ? CLIENT_INTERNAL_ERROR : (status === 404 ? 'Not found' : err.message),
+      error:
+        status === 500
+          ? CLIENT_INTERNAL_ERROR
+          : status === 404
+            ? "Not found"
+            : err.message,
     });
   }
 });
 
 // ── Raw file read (for document conversion from File Browser) ──
-app.get('/api/files/read-raw', (req, res) => {
+app.get("/api/files/read-raw", (req, res) => {
   const config = getConfig();
   const folder = config.projectFolder;
   const relativePath = req.query.path;
 
   if (!folder || !relativePath) {
-    return res.status(400).json({ error: 'Missing folder or path' });
+    return res.status(400).json({ error: "Missing folder or path" });
   }
 
   const absPath = path.resolve(folder, relativePath);
   if (!absPath.startsWith(path.resolve(folder))) {
-    return res.status(403).json({ error: 'Path traversal blocked' });
+    return res.status(403).json({ error: "Path traversal blocked" });
   }
 
   if (!fs.existsSync(absPath)) {
-    return res.status(404).json({ error: 'File not found' });
+    return res.status(404).json({ error: "File not found" });
   }
 
   const stat = fs.statSync(absPath);
   const maxBytes = (config.docling?.maxFileSizeMB || 50) * 1024 * 1024;
   if (stat.size > maxBytes) {
-    return res.status(413).json({ error: `File too large: ${(stat.size / 1024 / 1024).toFixed(1)}MB` });
+    return res.status(413).json({
+      error: `File too large: ${(stat.size / 1024 / 1024).toFixed(1)}MB`,
+    });
   }
 
-  res.setHeader('Content-Type', 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${path.basename(absPath)}"`);
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${path.basename(absPath)}"`,
+  );
   fs.createReadStream(absPath).pipe(res);
 });
 
 // POST /api/files/save — save content back to file with .bak backup
-app.post('/api/files/save', requireLocalOrApiKey, (req, res) => {
+app.post("/api/files/save", requireLocalOrApiKey, (req, res) => {
   const { filePath, folder, content } = req.body;
 
   if (!filePath || !folder || content === undefined) {
-    return res.status(400).json({ error: 'Missing filePath, folder, or content' });
+    return res
+      .status(400)
+      .json({ error: "Missing filePath, folder, or content" });
   }
 
   const config = getConfig();
   const resolvedFolder = resolveFolderInput(folder);
   if (!resolvedFolder) {
-    return res.status(400).json({ error: 'Invalid folder path' });
+    return res.status(400).json({ error: "Invalid folder path" });
   }
   const allowed = assertResolvedPathUnderAllowedRoots(resolvedFolder, config);
   if (!allowed.ok) {
-    log('WARN', 'files/save blocked — folder outside allowed roots', { folder });
+    log("WARN", "files/save blocked — folder outside allowed roots", {
+      folder,
+    });
     return res.status(403).json({ error: allowed.error });
   }
 
   try {
     const result = saveProjectFile(resolvedFolder, filePath, content);
-    log('INFO', 'File saved', { path: filePath, size: result.size, backedUp: result.backedUp });
+    log("INFO", "File saved", {
+      path: filePath,
+      size: result.size,
+      backedUp: result.backedUp,
+    });
     res.json({ success: true, ...result });
   } catch (err) {
-    if (err.message.includes('Path traversal')) {
-      log('ERROR', 'Path traversal attempt blocked on save', { filePath, folder });
-      return res.status(403).json({ error: 'Access denied' });
+    if (err.message.includes("Path traversal")) {
+      log("ERROR", "Path traversal attempt blocked on save", {
+        filePath,
+        folder,
+      });
+      return res.status(403).json({ error: "Access denied" });
     }
-    log('ERROR', 'Failed to save file', { path: filePath, error: err.message });
+    log("ERROR", "Failed to save file", { path: filePath, error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // POST /api/files/upload — receive uploaded file content (sent as text from browser)
-app.post('/api/files/upload', (req, res) => {
+app.post("/api/files/upload", (req, res) => {
   const { name, content } = req.body;
-  if (!name || content === undefined) return res.status(400).json({ error: 'Missing name or content' });
-  debug('File uploaded via chat', { name, size: content.length });
+  if (!name || content === undefined)
+    return res.status(400).json({ error: "Missing name or content" });
+  debug("File uploaded via chat", { name, size: content.length });
   res.json({ name, size: content.length, content });
 });
 
 // ── POST /api/create-project (ICM scaffold) ───────────
-app.post('/api/create-project', (req, res) => {
-  log('INFO', 'create-project body keys: ' + Object.keys(req.body || {}).join(', '));
-  const { name, description, role, audience, tone, stages, outputRoot, overwrite, makerEnabled } = req.body;
+app.post("/api/create-project", (req, res) => {
+  log(
+    "INFO",
+    "create-project body keys: " + Object.keys(req.body || {}).join(", "),
+  );
+  const {
+    name,
+    description,
+    role,
+    audience,
+    tone,
+    stages,
+    outputRoot,
+    overwrite,
+    makerEnabled,
+  } = req.body;
   if (!name || !outputRoot) {
-    log('WARN', `create-project missing fields — name: "${name}", outputRoot: "${outputRoot}"`);
-    return res.status(400).json({ success: false, error: 'name and outputRoot are required', code: 'MISSING_FIELDS' });
+    log(
+      "WARN",
+      `create-project missing fields — name: "${name}", outputRoot: "${outputRoot}"`,
+    );
+    return res.status(400).json({
+      success: false,
+      error: "name and outputRoot are required",
+      code: "MISSING_FIELDS",
+    });
   }
   const config = getConfig();
   try {
     const result = scaffoldProject(
-      { name, description, role, audience, tone, stages, outputRoot, overwrite: overwrite === true, makerEnabled: makerEnabled === true },
-      config
+      {
+        name,
+        description,
+        role,
+        audience,
+        tone,
+        stages,
+        outputRoot,
+        overwrite: overwrite === true,
+        makerEnabled: makerEnabled === true,
+      },
+      config,
     );
     if (result.success) {
-      log('INFO', `ICM project created: ${result.projectPath}`);
+      log("INFO", `ICM project created: ${result.projectPath}`);
       return res.status(201).json(result);
     }
-    const code = result.code || 'SCAFFOLD_FAILED';
-    const status = code === 'PATH_OUTSIDE_ROOT' ? 403 : code === 'ALREADY_EXISTS' ? 409 : 400;
-    return res.status(status).json({ success: false, error: result.errors?.[0] || 'Scaffold failed', code });
+    const code = result.code || "SCAFFOLD_FAILED";
+    const status =
+      code === "PATH_OUTSIDE_ROOT"
+        ? 403
+        : code === "ALREADY_EXISTS"
+          ? 409
+          : 400;
+    return res.status(status).json({
+      success: false,
+      error: result.errors?.[0] || "Scaffold failed",
+      code,
+    });
   } catch (err) {
-    log('ERROR', 'create-project failed', { error: err.message });
-    return res.status(500).json({ success: false, error: CLIENT_INTERNAL_ERROR, code: 'SERVER_ERROR' });
+    log("ERROR", "create-project failed", { error: err.message });
+    return res.status(500).json({
+      success: false,
+      error: CLIENT_INTERNAL_ERROR,
+      code: "SERVER_ERROR",
+    });
+  }
+});
+
+// ── GET /api/cre8/prp-prompt — return generate-prp.md content for chat pre-fill ─────
+app.get("/api/cre8/prp-prompt", (_req, res) => {
+  const prpPath = path.join(
+    os.homedir(),
+    "AI_Dev",
+    "CRE8",
+    ".claude",
+    "commands",
+    "generate-prp.md",
+  );
+  try {
+    if (!fs.existsSync(prpPath)) {
+      return res.status(404).json({ error: "generate-prp.md not found" });
+    }
+    const content = fs.readFileSync(prpPath, "utf8");
+    res.json({ content });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 // ── POST /api/build-project (GSD + ICM scaffold) ─────
-app.post('/api/build-project', (req, res) => {
-  const { name, description, outputRoot, audience, tone, overwrite } = req.body || {};
+app.post("/api/build-project", (req, res) => {
+  const { name, description, outputRoot, audience, tone, overwrite } =
+    req.body || {};
   if (!name || !outputRoot) {
-    return res.status(400).json({ success: false, error: 'name and outputRoot are required', code: 'MISSING_FIELDS' });
+    return res.status(400).json({
+      success: false,
+      error: "name and outputRoot are required",
+      code: "MISSING_FIELDS",
+    });
   }
   const config = getConfig();
   try {
     const result = scaffoldBuildProject(
-      { name, description, outputRoot, audience, tone, overwrite: overwrite === true },
-      config
+      {
+        name,
+        description,
+        outputRoot,
+        audience,
+        tone,
+        overwrite: overwrite === true,
+      },
+      config,
     );
     if (result.success) {
-      log('INFO', `Build project created: ${result.projectPath}`);
+      log("INFO", `Build project created: ${result.projectPath}`);
       return res.status(201).json(result);
     }
-    const code = result.code || 'SCAFFOLD_FAILED';
-    const status = code === 'PATH_OUTSIDE_ROOT' ? 403 : code === 'ALREADY_EXISTS' ? 409 : 400;
-    return res.status(status).json({ success: false, error: result.errors?.[0] || 'Scaffold failed', code });
+    const code = result.code || "SCAFFOLD_FAILED";
+    const status =
+      code === "PATH_OUTSIDE_ROOT"
+        ? 403
+        : code === "ALREADY_EXISTS"
+          ? 409
+          : 400;
+    return res.status(status).json({
+      success: false,
+      error: result.errors?.[0] || "Scaffold failed",
+      code,
+    });
   } catch (err) {
-    log('ERROR', 'build-project failed', { error: err.message });
-    return res.status(500).json({ success: false, error: CLIENT_INTERNAL_ERROR, code: 'SERVER_ERROR' });
+    log("ERROR", "build-project failed", { error: err.message });
+    return res.status(500).json({
+      success: false,
+      error: CLIENT_INTERNAL_ERROR,
+      code: "SERVER_ERROR",
+    });
   }
 });
 
 // ── POST /api/tutorial-suggestions (contextual suggestions from project info) ─
-app.post('/api/tutorial-suggestions', async (req, res) => {
+app.post("/api/tutorial-suggestions", async (req, res) => {
   const { name, description, role, mode, model } = req.body || {};
-  const validModes = ['create', 'build'];
+  const validModes = ["create", "build"];
   if (!mode || !validModes.includes(mode)) {
-    return res.status(400).json({ error: 'mode is required and must be "create" or "build"' });
+    return res
+      .status(400)
+      .json({ error: 'mode is required and must be "create" or "build"' });
   }
   if (!name && !description) {
-    return res.status(400).json({ error: 'At least one of name or description is required' });
+    return res
+      .status(400)
+      .json({ error: "At least one of name or description is required" });
   }
   const config = getConfig();
-  const ollamaUrl = config.ollamaUrl || 'http://localhost:11434';
-  let selectedModel = model || config.selectedModel || 'llama3.2';
-  if (selectedModel === 'auto') {
+  const ollamaUrl = config.ollamaUrl || "http://localhost:11434";
+  let selectedModel = model || config.selectedModel || "llama3.2";
+  if (selectedModel === "auto") {
     try {
       const r = await resolveAutoModel({
-        requestedModel: 'auto',
-        mode: mode || 'create',
-        estimatedTokens: Math.ceil(((name || '').length + (description || '').length + 400) / 3.5),
+        requestedModel: "auto",
+        mode: mode || "create",
+        estimatedTokens: Math.ceil(
+          ((name || "").length + (description || "").length + 400) / 3.5,
+        ),
         config,
         ollamaUrl: config.ollamaUrl,
         ollamaOpts: ollamaAuthOpts(config),
@@ -2825,15 +3723,15 @@ app.post('/api/tutorial-suggestions', async (req, res) => {
       selectedModel = r.resolved;
     } catch {
       const m = mergeAutoModelMap(config.autoModelMap);
-      selectedModel = m[mode || 'create'] || m.chat || 'llama3.2';
+      selectedModel = m[mode || "create"] || m.chat || "llama3.2";
     }
   }
 
   const prompt = `You are helping fill out a project wizard. The user has already entered:
 
-Project name: ${(name || '').trim() || '(none)'}
-Description: ${(description || '').trim() || '(none)'}
-${mode === 'create' && role ? `AI role: ${role.trim()}` : ''}
+Project name: ${(name || "").trim() || "(none)"}
+Description: ${(description || "").trim() || "(none)"}
+${mode === "create" && role ? `AI role: ${role.trim()}` : ""}
 
 Respond with ONLY a single JSON object, no markdown or explanation, with these exact keys:
 - "audience": one short sentence describing who will use or benefit from this project (e.g. "Home cooks and people tracking nutrition")
@@ -2843,21 +3741,28 @@ Respond with ONLY a single JSON object, no markdown or explanation, with these e
 Example: {"audience":"Developers and technical writers","tone":"Professional","outputRoot":"~/AI_Dev/"}`;
 
   try {
-    const text = await chatComplete(ollamaUrl, selectedModel, [
-      { role: 'user', content: prompt }
-    ], 15000, [], ollamaAuthOpts(config));
-    const raw = text.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
-    const parsed = JSON.parse(raw || '{}');
-    const audience = typeof parsed.audience === 'string' ? parsed.audience.trim() : null;
-    const tone = typeof parsed.tone === 'string' ? parsed.tone.trim() : null;
-    const outputRoot = typeof parsed.outputRoot === 'string' ? parsed.outputRoot.trim() : null;
+    const text = await chatComplete(
+      ollamaUrl,
+      selectedModel,
+      [{ role: "user", content: prompt }],
+      15000,
+      [],
+      ollamaAuthOpts(config),
+    );
+    const raw = text.replace(/^[^{]*/, "").replace(/[^}]*$/, "");
+    const parsed = JSON.parse(raw || "{}");
+    const audience =
+      typeof parsed.audience === "string" ? parsed.audience.trim() : null;
+    const tone = typeof parsed.tone === "string" ? parsed.tone.trim() : null;
+    const outputRoot =
+      typeof parsed.outputRoot === "string" ? parsed.outputRoot.trim() : null;
     res.json({
       audience: audience || undefined,
       tone: tone || undefined,
-      outputRoot: outputRoot || undefined
+      outputRoot: outputRoot || undefined,
     });
   } catch (err) {
-    log('WARN', 'tutorial-suggestions failed', { error: err.message });
+    log("WARN", "tutorial-suggestions failed", { error: err.message });
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
@@ -2867,56 +3772,66 @@ Example: {"audience":"Developers and technical writers","tone":"Professional","o
 // Helper: resolve project from registry by ID and validate
 function _resolveBuildProject(req, res) {
   const project = getProject(dataRoot, req.params.id);
-  if (!project) return res.status(404).json({ error: 'Project not found in registry' });
-  if (!require('fs').existsSync(project.path)) {
-    return res.status(404).json({ error: 'Project directory missing', path: project.path });
+  if (!project)
+    return res.status(404).json({ error: "Project not found in registry" });
+  if (!require("fs").existsSync(project.path)) {
+    return res
+      .status(404)
+      .json({ error: "Project directory missing", path: project.path });
   }
   return project;
 }
 
-app.get('/api/build/projects', (req, res) => {
+app.get("/api/build/projects", (req, res) => {
   const projects = validateProjects(dataRoot);
   res.json(projects);
 });
 
-app.post('/api/build/projects/register', (req, res) => {
+app.post("/api/build/projects/register", (req, res) => {
   const { name, projectPath } = req.body || {};
   if (!name || !projectPath) {
-    return res.status(400).json({ error: 'name and projectPath are required' });
+    return res.status(400).json({ error: "name and projectPath are required" });
   }
   const id = addProject(dataRoot, { name, projectPath });
   res.json({ success: true, id });
 });
 
 // Import existing project by path (auto-scaffolds .planning/ if missing)
-app.post('/api/build/projects', (req, res) => {
+app.post("/api/build/projects", (req, res) => {
   const { path: importPath, name } = req.body || {};
   if (!importPath) {
-    return res.status(400).json({ error: 'path is required' });
+    return res.status(400).json({ error: "path is required" });
   }
-  const resolved = require('path').resolve(importPath.replace(/^~/, require('os').homedir()));
+  const resolved = require("path").resolve(
+    importPath.replace(/^~/, require("os").homedir()),
+  );
   if (!fs.existsSync(resolved)) {
-    return res.status(404).json({ error: 'Folder not found' });
+    return res.status(404).json({ error: "Folder not found" });
   }
   // F-03 fix: restrict import path to allowed roots
-  const { getWritableRoots, isUnderRoot } = require('./lib/icm-scaffolder');
+  const { getWritableRoots, isUnderRoot } = require("./lib/icm-scaffolder");
   const config = getConfig();
   if (!isUnderRoot(resolved, getWritableRoots(config))) {
-    log('WARN', `Blocked build import outside allowed roots: ${resolved}`);
-    return res.status(403).json({ error: 'Path is outside allowed directories' });
+    log("WARN", `Blocked build import outside allowed roots: ${resolved}`);
+    return res
+      .status(403)
+      .json({ error: "Path is outside allowed directories" });
   }
   const projectName = name || path.basename(resolved);
   let scaffolded = false;
 
   // Auto-scaffold .planning/ if missing
-  if (!fs.existsSync(path.join(resolved, '.planning'))) {
+  if (!fs.existsSync(path.join(resolved, ".planning"))) {
     try {
-      const { scaffoldPlanning } = require('./lib/build-scaffolder');
+      const { scaffoldPlanning } = require("./lib/build-scaffolder");
       scaffoldPlanning(resolved, projectName);
       scaffolded = true;
-      log('INFO', `Auto-scaffolded .planning/ for imported project: ${resolved}`);
+      log(
+        "INFO",
+        `Auto-scaffolded .planning/ for imported project: ${resolved}`,
+      );
     } catch (err) {
-      log('ERROR', `Failed to scaffold .planning/ for import: ${err.message}`);
+      log("ERROR", `Failed to scaffold .planning/ for import: ${err.message}`);
       return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   }
@@ -2925,13 +3840,13 @@ app.post('/api/build/projects', (req, res) => {
   res.json({ success: true, id, scaffolded });
 });
 
-app.delete('/api/build/projects/:id', (req, res) => {
+app.delete("/api/build/projects/:id", (req, res) => {
   const removed = removeProject(dataRoot, req.params.id);
-  if (!removed) return res.status(404).json({ error: 'Project not found' });
+  if (!removed) return res.status(404).json({ error: "Project not found" });
   res.json({ success: true });
 });
 
-app.get('/api/build/projects/:id/state', (req, res) => {
+app.get("/api/build/projects/:id/state", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
@@ -2942,7 +3857,7 @@ app.get('/api/build/projects/:id/state', (req, res) => {
   }
 });
 
-app.get('/api/build/projects/:id/roadmap', (req, res) => {
+app.get("/api/build/projects/:id/roadmap", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
@@ -2953,7 +3868,7 @@ app.get('/api/build/projects/:id/roadmap', (req, res) => {
   }
 });
 
-app.get('/api/build/projects/:id/progress', (req, res) => {
+app.get("/api/build/projects/:id/progress", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
@@ -2964,7 +3879,7 @@ app.get('/api/build/projects/:id/progress', (req, res) => {
   }
 });
 
-app.get('/api/build/projects/:id/phase/:n', (req, res) => {
+app.get("/api/build/projects/:id/phase/:n", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
@@ -2976,8 +3891,16 @@ app.get('/api/build/projects/:id/phase/:n', (req, res) => {
 });
 
 // POST /api/build/projects/:id/next-action — AI-powered "What's Next" recommendation
-app.use('/api/build/projects/:id/next-action', createRateLimiter({ name: 'build-next-action', max: 10, windowMs: 60000, methods: ['POST'] }));
-app.post('/api/build/projects/:id/next-action', async (req, res) => {
+app.use(
+  "/api/build/projects/:id/next-action",
+  createRateLimiter({
+    name: "build-next-action",
+    max: 10,
+    windowMs: 60000,
+    methods: ["POST"],
+  }),
+);
+app.post("/api/build/projects/:id/next-action", async (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
@@ -2988,50 +3911,74 @@ app.post('/api/build/projects/:id/next-action', async (req, res) => {
 
     const stateStr = JSON.stringify(state).slice(0, 2000);
     let model = req.body.model || config.selectedModel;
-    if (!model) model = 'llama3.2';
-    model = await resolveIfAutoModel(model, 'build', Math.ceil(stateStr.length / 3.5), config);
+    if (!model) model = "llama3.2";
+    model = await resolveIfAutoModel(
+      model,
+      "build",
+      Math.ceil(stateStr.length / 3.5),
+      config,
+    );
     const messages = [
       {
-        role: 'system',
-        content: 'You are a friendly project coach. Given the project state, suggest the single most important next action. Be concise (2-3 sentences). Use encouraging, non-technical language. If the project is complete, congratulate them.'
+        role: "system",
+        content:
+          "You are a friendly project coach. Given the project state, suggest the single most important next action. Be concise (2-3 sentences). Use encouraging, non-technical language. If the project is complete, congratulate them.",
       },
       {
-        role: 'user',
-        content: `Project: ${project.name}\nProgress: ${JSON.stringify(progress)}\nState (truncated): ${stateStr}`
-      }
+        role: "user",
+        content: `Project: ${project.name}\nProgress: ${JSON.stringify(progress)}\nState (truncated): ${stateStr}`,
+      },
     ];
 
-    const result = await chatComplete(config.ollamaUrl, model, messages, 30000, [], ollamaAuthOpts(config));
+    const result = await chatComplete(
+      config.ollamaUrl,
+      model,
+      messages,
+      30000,
+      [],
+      ollamaAuthOpts(config),
+    );
     res.json({ action: result, timestamp: new Date().toISOString() });
   } catch (err) {
-    log('ERROR', `next-action failed: ${err.message}`);
+    log("ERROR", `next-action failed: ${err.message}`);
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // POST /api/build/projects/:id/research — SSE stream AI research for a phase
-app.use('/api/build/projects/:id/research', createRateLimiter({ name: 'build-research', max: 5, windowMs: 60000, methods: ['POST'] }));
-app.post('/api/build/projects/:id/research', async (req, res) => {
+app.use(
+  "/api/build/projects/:id/research",
+  createRateLimiter({
+    name: "build-research",
+    max: 5,
+    windowMs: 60000,
+    methods: ["POST"],
+  }),
+);
+app.post("/api/build/projects/:id/research", async (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
 
   let aborted = false;
-  req.on('close', () => { aborted = true; });
+  req.on("close", () => {
+    aborted = true;
+  });
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
   function sendEvent(data) {
-    if (!aborted && !res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (!aborted && !res.writableEnded)
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
   }
 
   try {
     const config = getConfig();
     const phaseNumber = req.body.phaseNumber;
     if (!phaseNumber) {
-      sendEvent({ error: 'phaseNumber is required' });
+      sendEvent({ error: "phaseNumber is required" });
       return res.end();
     }
 
@@ -3042,26 +3989,36 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
     const stateStr = JSON.stringify(state).slice(0, 3000);
     const roadmapStr = JSON.stringify(roadmap.phases || roadmap).slice(0, 3000);
     let model = req.body.model || config.selectedModel;
-    if (!model) model = 'llama3.2';
+    if (!model) model = "llama3.2";
     model = await resolveIfAutoModel(
       model,
-      'build',
+      "build",
       Math.ceil((stateStr.length + roadmapStr.length) / 3.5),
-      config
+      config,
     );
 
     const messages = [
       {
-        role: 'system',
-        content: 'You are a technical researcher preparing context for project planning. Given the project state and roadmap, research phase ' + phaseNumber + '. Identify: 1) What needs to be built, 2) Key technical decisions, 3) Dependencies and risks, 4) Suggested approach. Be thorough but concise. Use markdown formatting.'
+        role: "system",
+        content:
+          "You are a technical researcher preparing context for project planning. Given the project state and roadmap, research phase " +
+          phaseNumber +
+          ". Identify: 1) What needs to be built, 2) Key technical decisions, 3) Dependencies and risks, 4) Suggested approach. Be thorough but concise. Use markdown formatting.",
       },
       {
-        role: 'user',
-        content: `Project: ${project.name}\nPhase: ${phaseNumber}\n\nState (truncated):\n${stateStr}\n\nRoadmap phases (truncated):\n${roadmapStr}`
-      }
+        role: "user",
+        content: `Project: ${project.name}\nPhase: ${phaseNumber}\n\nState (truncated):\n${stateStr}\n\nRoadmap phases (truncated):\n${roadmapStr}`,
+      },
     ];
 
-    const result = await chatComplete(config.ollamaUrl, model, messages, 180000, [], ollamaAuthOpts(config));
+    const result = await chatComplete(
+      config.ollamaUrl,
+      model,
+      messages,
+      180000,
+      [],
+      ollamaAuthOpts(config),
+    );
 
     // Stream result progressively as words
     const words = result.split(/(\s+)/);
@@ -3072,36 +4029,47 @@ app.post('/api/build/projects/:id/research', async (req, res) => {
 
     if (!aborted) sendEvent({ done: true });
   } catch (err) {
-    log('ERROR', `build-research failed: ${err.message}`);
+    log("ERROR", `build-research failed: ${err.message}`);
     sendEvent({ error: STREAM_INTERNAL_ERROR });
   }
   if (!res.writableEnded) res.end();
 });
 
 // POST /api/build/projects/:id/plan — SSE stream AI plan for a phase with write-after-validate
-app.use('/api/build/projects/:id/plan', createRateLimiter({ name: 'build-plan', max: 5, windowMs: 60000, methods: ['POST'] }));
-app.post('/api/build/projects/:id/plan', async (req, res) => {
+app.use(
+  "/api/build/projects/:id/plan",
+  createRateLimiter({
+    name: "build-plan",
+    max: 5,
+    windowMs: 60000,
+    methods: ["POST"],
+  }),
+);
+app.post("/api/build/projects/:id/plan", async (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
 
   let aborted = false;
-  req.on('close', () => { aborted = true; });
+  req.on("close", () => {
+    aborted = true;
+  });
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
   function sendEvent(data) {
-    if (!aborted && !res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (!aborted && !res.writableEnded)
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
   }
 
   try {
     const config = getConfig();
     const phaseNumber = req.body.phaseNumber;
-    const researchContext = req.body.researchContext || '';
+    const researchContext = req.body.researchContext || "";
     if (!phaseNumber) {
-      sendEvent({ error: 'phaseNumber is required' });
+      sendEvent({ error: "phaseNumber is required" });
       return res.end();
     }
 
@@ -3110,26 +4078,36 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
 
     const stateStr = JSON.stringify(state).slice(0, 3000);
     let model = req.body.model || config.selectedModel;
-    if (!model) model = 'llama3.2';
+    if (!model) model = "llama3.2";
     model = await resolveIfAutoModel(
       model,
-      'build',
+      "build",
       Math.ceil((stateStr.length + researchContext.length) / 3.5),
-      config
+      config,
     );
 
     const messages = [
       {
-        role: 'system',
-        content: 'You are a project planner. Given the research context and project state, create a concrete plan for phase ' + phaseNumber + '. Include: 1) Phase goal, 2) Tasks with specific file paths and actions, 3) Success criteria, 4) Estimated complexity. Format as markdown with clear headings.'
+        role: "system",
+        content:
+          "You are a project planner. Given the research context and project state, create a concrete plan for phase " +
+          phaseNumber +
+          ". Include: 1) Phase goal, 2) Tasks with specific file paths and actions, 3) Success criteria, 4) Estimated complexity. Format as markdown with clear headings.",
       },
       {
-        role: 'user',
-        content: `Project: ${project.name}\nPhase: ${phaseNumber}\n\nResearch context:\n${researchContext.slice(0, 4000)}\n\nState (truncated):\n${stateStr}`
-      }
+        role: "user",
+        content: `Project: ${project.name}\nPhase: ${phaseNumber}\n\nResearch context:\n${researchContext.slice(0, 4000)}\n\nState (truncated):\n${stateStr}`,
+      },
     ];
 
-    const result = await chatComplete(config.ollamaUrl, model, messages, 180000, [], ollamaAuthOpts(config));
+    const result = await chatComplete(
+      config.ollamaUrl,
+      model,
+      messages,
+      180000,
+      [],
+      ollamaAuthOpts(config),
+    );
 
     // Stream result progressively as words
     const words = result.split(/(\s+)/);
@@ -3139,57 +4117,67 @@ app.post('/api/build/projects/:id/plan', async (req, res) => {
     }
 
     // Write-after-validate
-    const validated = result.length > 100 && result.trim().startsWith('#') && result.trim().length > 0;
+    const validated =
+      result.length > 100 &&
+      result.trim().startsWith("#") &&
+      result.trim().length > 0;
     let written = false;
 
     if (validated && req.body.writeToFile) {
       try {
-        const planningDir = path.join(project.path, '.planning', 'phases');
-        const targetPath = path.join(planningDir, `phase-${phaseNumber}-ai-plan.md`);
+        const planningDir = path.join(project.path, ".planning", "phases");
+        const targetPath = path.join(
+          planningDir,
+          `phase-${phaseNumber}-ai-plan.md`,
+        );
         // Validate path is within project
         if (isWithinBasePath(targetPath, project.path)) {
           // Ensure directory exists
           fs.mkdirSync(path.dirname(targetPath), { recursive: true });
           // Atomic write: temp file then rename
           const tmpPath = targetPath + `.tmp.${process.pid}`;
-          fs.writeFileSync(tmpPath, result, 'utf-8');
+          fs.writeFileSync(tmpPath, result, "utf-8");
           fs.renameSync(tmpPath, targetPath);
           written = true;
         } else {
-          log('WARN', `Blocked write outside project: ${targetPath}`);
+          log("WARN", `Blocked write outside project: ${targetPath}`);
         }
       } catch (writeErr) {
-        log('ERROR', `Failed to write plan: ${writeErr.message}`);
+        log("ERROR", `Failed to write plan: ${writeErr.message}`);
       }
     }
 
     if (!aborted) sendEvent({ done: true, validated, written });
   } catch (err) {
-    log('ERROR', `build-plan failed: ${err.message}`);
+    log("ERROR", `build-plan failed: ${err.message}`);
     sendEvent({ error: STREAM_INTERNAL_ERROR });
   }
   if (!res.writableEnded) res.end();
 });
 
-
 // ── Planning File Viewer API ─────────────────────────
 
 const PLANNING_FILE_WHITELIST = [
-  'ROADMAP.md', 'REQUIREMENTS.md', 'STATE.md', 'CONTEXT.md',
-  'PROJECT.md', 'RETROSPECTIVE.md', 'config.json'
+  "ROADMAP.md",
+  "REQUIREMENTS.md",
+  "STATE.md",
+  "CONTEXT.md",
+  "PROJECT.md",
+  "RETROSPECTIVE.md",
+  "config.json",
 ];
 
 // GET /api/build/projects/:id/files — list available planning files
-app.get('/api/build/projects/:id/files', (req, res) => {
+app.get("/api/build/projects/:id/files", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
-    const planningDir = path.join(project.path, '.planning');
+    const planningDir = path.join(project.path, ".planning");
     if (!fs.existsSync(planningDir)) {
       return res.json({ files: [] });
     }
     const entries = fs.readdirSync(planningDir);
-    const files = PLANNING_FILE_WHITELIST.filter(f => entries.includes(f));
+    const files = PLANNING_FILE_WHITELIST.filter((f) => entries.includes(f));
     res.json({ files });
   } catch (err) {
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -3197,23 +4185,23 @@ app.get('/api/build/projects/:id/files', (req, res) => {
 });
 
 // GET /api/build/projects/:id/files/:filename — read a planning file
-app.get('/api/build/projects/:id/files/:filename', (req, res) => {
+app.get("/api/build/projects/:id/files/:filename", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   const { filename } = req.params;
   if (!PLANNING_FILE_WHITELIST.includes(filename)) {
-    return res.status(403).json({ error: 'File not in whitelist' });
+    return res.status(403).json({ error: "File not in whitelist" });
   }
-  const fullPath = path.join(project.path, '.planning', filename);
-  const basePath = path.join(project.path, '.planning');
+  const fullPath = path.join(project.path, ".planning", filename);
+  const basePath = path.join(project.path, ".planning");
   if (!isWithinBasePath(basePath, fullPath)) {
-    return res.status(403).json({ error: 'Path traversal blocked' });
+    return res.status(403).json({ error: "Path traversal blocked" });
   }
   if (!fs.existsSync(fullPath)) {
-    return res.status(404).json({ error: 'File not found' });
+    return res.status(404).json({ error: "File not found" });
   }
   try {
-    const content = fs.readFileSync(fullPath, 'utf-8');
+    const content = fs.readFileSync(fullPath, "utf-8");
     res.json({ content, filename });
   } catch (err) {
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -3221,25 +4209,27 @@ app.get('/api/build/projects/:id/files/:filename', (req, res) => {
 });
 
 // PUT /api/build/projects/:id/files/:filename — write a planning file (atomic)
-app.put('/api/build/projects/:id/files/:filename', (req, res) => {
+app.put("/api/build/projects/:id/files/:filename", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   const { filename } = req.params;
   if (!PLANNING_FILE_WHITELIST.includes(filename)) {
-    return res.status(403).json({ error: 'File not in whitelist' });
+    return res.status(403).json({ error: "File not in whitelist" });
   }
-  const fullPath = path.join(project.path, '.planning', filename);
-  const basePath = path.join(project.path, '.planning');
+  const fullPath = path.join(project.path, ".planning", filename);
+  const basePath = path.join(project.path, ".planning");
   if (!isWithinBasePath(basePath, fullPath)) {
-    return res.status(403).json({ error: 'Path traversal blocked' });
+    return res.status(403).json({ error: "Path traversal blocked" });
   }
   const { content } = req.body || {};
-  if (!content || typeof content !== 'string') {
-    return res.status(400).json({ error: 'content must be a non-empty string' });
+  if (!content || typeof content !== "string") {
+    return res
+      .status(400)
+      .json({ error: "content must be a non-empty string" });
   }
   try {
-    const tmpPath = fullPath + '.tmp.' + process.pid;
-    fs.writeFileSync(tmpPath, content, 'utf-8');
+    const tmpPath = fullPath + ".tmp." + process.pid;
+    fs.writeFileSync(tmpPath, content, "utf-8");
     fs.renameSync(tmpPath, fullPath);
     res.json({ success: true, filename });
   } catch (err) {
@@ -3250,31 +4240,50 @@ app.put('/api/build/projects/:id/files/:filename', (req, res) => {
 // ── GitHub Integration API ───────────────────────────
 
 // POST /api/github/clone — clone a repo by URL
-app.post('/api/github/clone', (req, res) => {
-  const { url: repoUrl } = req.body;
-  if (!repoUrl) return res.status(400).json({ error: 'Missing repo URL' });
+app.post("/api/github/clone", (req, res) => {
+  const { url: repoUrl, destination } = req.body;
+  if (!repoUrl) return res.status(400).json({ error: "Missing repo URL" });
 
   const config = getConfig();
   // Resolve token by repo owner if multi-PAT configured
-  const { parseGitHubUrl } = require('./lib/github');
+  const { parseGitHubUrl } = require("./lib/github");
   const parsed = parseGitHubUrl(repoUrl);
-  const token = resolveToken(config, parsed?.owner || config.activeGithubAccount);
+  const token = resolveToken(
+    config,
+    parsed?.owner || config.activeGithubAccount,
+  );
 
-  log('INFO', `Cloning GitHub repo: ${repoUrl}`);
-  const result = cloneRepo(dataRoot, repoUrl, token);
+  // Validate destination exists if provided
+  if (destination) {
+    const destResolved = path.resolve(destination);
+    if (!fs.existsSync(destResolved)) {
+      return res
+        .status(400)
+        .json({ error: `Destination folder does not exist: ${destination}` });
+    }
+  }
+
+  log(
+    "INFO",
+    `Cloning GitHub repo: ${repoUrl}${destination ? ` → ${destination}` : ""}`,
+  );
+  const result = cloneRepo(dataRoot, repoUrl, token, { destination });
 
   if (result.success) {
-    log('INFO', `Clone success: ${result.owner}/${result.repo} → ${result.localPath}`);
-    debug('Clone result', result);
+    log(
+      "INFO",
+      `Clone success: ${result.owner}/${result.repo} → ${result.localPath}`,
+    );
+    debug("Clone result", result);
   } else {
-    log('ERROR', `Clone failed: ${result.error}`);
+    log("ERROR", `Clone failed: ${result.error}`);
   }
 
   res.json(result);
 });
 
 // GET /api/github/repos — list cloned repos
-app.get('/api/github/repos', (req, res) => {
+app.get("/api/github/repos", (req, res) => {
   try {
     const repos = listClonedRepos(dataRoot);
     res.json({ repos });
@@ -3284,40 +4293,44 @@ app.get('/api/github/repos', (req, res) => {
 });
 
 // DELETE /api/github/repos/:dirName — delete a cloned repo
-app.delete('/api/github/repos/:dirName', (req, res) => {
+app.delete("/api/github/repos/:dirName", (req, res) => {
   const result = deleteClonedRepo(dataRoot, req.params.dirName);
   res.json(result);
 });
 
 // POST /api/github/open — set a cloned repo as the active project folder
-app.post('/api/github/open', (req, res) => {
+app.post("/api/github/open", (req, res) => {
   const { dirName } = req.body;
-  if (!dirName) return res.status(400).json({ error: 'Missing dirName' });
+  if (!dirName) return res.status(400).json({ error: "Missing dirName" });
   if (!/^[a-zA-Z0-9_.-]+--[a-zA-Z0-9_.-]+$/.test(dirName)) {
-    return res.status(400).json({ error: 'Invalid dirName' });
+    return res.status(400).json({ error: "Invalid dirName" });
   }
 
-  const reposRoot = path.resolve(dataRoot, 'github-repos');
+  const reposRoot = path.resolve(dataRoot, "github-repos");
   const fullPath = path.resolve(reposRoot, dirName);
   if (!isWithinBasePath(reposRoot, fullPath)) {
-    return res.status(403).json({ error: 'Access denied' });
+    return res.status(403).json({ error: "Access denied" });
   }
-  if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'Cloned repo not found' });
+  if (!fs.existsSync(fullPath))
+    return res.status(404).json({ error: "Cloned repo not found" });
 
   const config = getConfig();
   config.projectFolder = fullPath;
   updateConfig(config);
 
-  log('INFO', `Project folder set to cloned repo: ${fullPath}`);
+  log("INFO", `Project folder set to cloned repo: ${fullPath}`);
   res.json({ success: true, projectFolder: fullPath });
 });
 
 // GET /api/github/browse — list user's GitHub repos (requires token)
-app.get('/api/github/browse', async (req, res) => {
+app.get("/api/github/browse", async (req, res) => {
   const config = getConfig();
-  const tokenOwner = req.query.owner || config.activeGithubAccount || '';
+  const tokenOwner = req.query.owner || config.activeGithubAccount || "";
   const token = resolveToken(config, tokenOwner);
-  if (!token) return res.status(401).json({ error: 'No GitHub token configured. Add one in Settings → GitHub.' });
+  if (!token)
+    return res.status(401).json({
+      error: "No GitHub token configured. Add one in Settings → GitHub.",
+    });
 
   try {
     const page = parseInt(req.query.page) || 1;
@@ -3329,7 +4342,7 @@ app.get('/api/github/browse', async (req, res) => {
 });
 
 // POST /api/github/token — validate and save GitHub token (supports multi-PAT)
-app.post('/api/github/token', requireLocalOrApiKey, async (req, res) => {
+app.post("/api/github/token", requireLocalOrApiKey, async (req, res) => {
   const { token, label, remove } = req.body;
   const config = getConfig();
   if (!config.githubTokens) config.githubTokens = [];
@@ -3337,46 +4350,64 @@ app.post('/api/github/token', requireLocalOrApiKey, async (req, res) => {
   // Remove a token by label/username
   if (remove) {
     const removeLower = remove.toLowerCase();
-    config.githubTokens = config.githubTokens.filter(t =>
-      (t.label || '').toLowerCase() !== removeLower &&
-      (t.username || '').toLowerCase() !== removeLower
+    config.githubTokens = config.githubTokens.filter(
+      (t) =>
+        (t.label || "").toLowerCase() !== removeLower &&
+        (t.username || "").toLowerCase() !== removeLower,
     );
     // Also clear legacy token if it matches the removed one
-    if (!config.githubTokens.length) config.githubToken = '';
+    if (!config.githubTokens.length) config.githubToken = "";
     else config.githubToken = config.githubTokens[0].token;
     updateConfig(config);
-    return res.json({ valid: true, message: `Token "${remove}" removed`, tokens: getAllTokens(config).map(t => ({ label: t.label, username: t.username, avatar: t.avatar })) });
+    return res.json({
+      valid: true,
+      message: `Token "${remove}" removed`,
+      tokens: getAllTokens(config).map((t) => ({
+        label: t.label,
+        username: t.username,
+        avatar: t.avatar,
+      })),
+    });
   }
 
   if (!token) {
     // Clear all tokens
-    config.githubToken = '';
+    config.githubToken = "";
     config.githubTokens = [];
     updateConfig(config);
-    return res.json({ valid: true, message: 'All tokens cleared' });
+    return res.json({ valid: true, message: "All tokens cleared" });
   }
 
   const result = await validateTokenCached(token);
   if (result.valid) {
     const entryLabel = label || result.username;
-    const entry = { label: entryLabel, token, username: result.username, avatar: result.avatar || '' };
+    const entry = {
+      label: entryLabel,
+      token,
+      username: result.username,
+      avatar: result.avatar || "",
+    };
     // Replace if same label exists; allow multiple tokens for same username with different labels
-    const idx = config.githubTokens.findIndex(t =>
-      (t.label || '').toLowerCase() === entryLabel.toLowerCase()
+    const idx = config.githubTokens.findIndex(
+      (t) => (t.label || "").toLowerCase() === entryLabel.toLowerCase(),
     );
     if (idx >= 0) config.githubTokens[idx] = entry;
     else config.githubTokens.push(entry);
     // Keep legacy field in sync (first token)
     config.githubToken = config.githubTokens[0].token;
     updateConfig(config);
-    log('INFO', `GitHub token saved for user: ${result.username}`);
-    result.tokens = config.githubTokens.map(t => ({ label: t.label, username: t.username, avatar: t.avatar }));
+    log("INFO", `GitHub token saved for user: ${result.username}`);
+    result.tokens = config.githubTokens.map((t) => ({
+      label: t.label,
+      username: t.username,
+      avatar: t.avatar,
+    }));
   }
   res.json(result);
 });
 
 // GET /api/github/token/status — check if tokens are configured (multi-PAT)
-app.get('/api/github/token/status', requireLocalOrApiKey, async (req, res) => {
+app.get("/api/github/token/status", requireLocalOrApiKey, async (req, res) => {
   const config = getConfig();
   const tokens = getAllTokens(config);
   if (!tokens.length) return res.json({ configured: false, tokens: [] });
@@ -3388,73 +4419,97 @@ app.get('/api/github/token/status', requireLocalOrApiKey, async (req, res) => {
     configured: true,
     ...active,
     activeAccount: activeLabel,
-    tokens: tokens.map(t => ({ label: t.label, username: t.username, avatar: t.avatar })),
+    tokens: tokens.map((t) => ({
+      label: t.label,
+      username: t.username,
+      avatar: t.avatar,
+    })),
   });
 });
 
 // POST /api/github/active-account — switch active GitHub account
-app.post('/api/github/active-account', requireLocalOrApiKey, (req, res) => {
+app.post("/api/github/active-account", requireLocalOrApiKey, (req, res) => {
   const { label } = req.body;
-  if (!label) return res.status(400).json({ error: 'Missing label' });
+  if (!label) return res.status(400).json({ error: "Missing label" });
   const config = getConfig();
   config.activeGithubAccount = label;
   updateConfig(config);
-  log('INFO', `Active GitHub account switched to: ${label}`);
+  log("INFO", `Active GitHub account switched to: ${label}`);
   res.json({ success: true, activeAccount: label });
 });
 
 // POST /api/github/create — create a new GitHub repo
-app.post('/api/github/create', async (req, res) => {
+app.post("/api/github/create", async (req, res) => {
   const config = getConfig();
-  const token = resolveToken(config, req.body?.owner || config.activeGithubAccount);
-  if (!token) return res.status(401).json({ error: 'GitHub token not configured. Add one in Settings → GitHub.' });
+  const token = resolveToken(
+    config,
+    req.body?.owner || config.activeGithubAccount,
+  );
+  if (!token)
+    return res.status(401).json({
+      error: "GitHub token not configured. Add one in Settings → GitHub.",
+    });
 
   const { name, description, isPrivate } = req.body || {};
-  if (!name) return res.status(400).json({ error: 'Repository name is required' });
+  if (!name)
+    return res.status(400).json({ error: "Repository name is required" });
 
   try {
     const result = await createRepo(token, name, { description, isPrivate });
     if (result.success) {
-      log('INFO', `GitHub repo created: ${result.fullName}`);
+      log("INFO", `GitHub repo created: ${result.fullName}`);
     } else {
-      log('ERROR', `GitHub create failed: ${result.error}`);
+      log("ERROR", `GitHub create failed: ${result.error}`);
     }
     res.status(result.success ? 201 : 400).json(result);
   } catch (err) {
-    log('ERROR', `GitHub create error: ${err.message}`);
+    log("ERROR", `GitHub create error: ${err.message}`);
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
 
 // POST /api/github/push — init local repo and push to remote
-app.post('/api/github/push', requireLocalOrApiKey, (req, res) => {
+app.post("/api/github/push", requireLocalOrApiKey, (req, res) => {
   const config = getConfig();
-  const { parseGitHubUrl } = require('./lib/github');
-  const parsed = parseGitHubUrl(req.body?.remoteUrl || '');
-  const token = resolveToken(config, parsed?.owner || config.activeGithubAccount);
-  if (!token) return res.status(401).json({ error: 'GitHub token not configured' });
+  const { parseGitHubUrl } = require("./lib/github");
+  const parsed = parseGitHubUrl(req.body?.remoteUrl || "");
+  const token = resolveToken(
+    config,
+    parsed?.owner || config.activeGithubAccount,
+  );
+  if (!token)
+    return res.status(401).json({ error: "GitHub token not configured" });
 
   const { localPath, remoteUrl, commitMessage, branch } = req.body || {};
-  if (!localPath || !remoteUrl) return res.status(400).json({ error: 'localPath and remoteUrl are required' });
+  if (!localPath || !remoteUrl)
+    return res
+      .status(400)
+      .json({ error: "localPath and remoteUrl are required" });
   if (!isAllowedGitHubRemoteUrl(remoteUrl)) {
-    return res.status(400).json({ error: 'remoteUrl must be a github.com HTTPS or git@github.com SSH URL' });
+    return res.status(400).json({
+      error: "remoteUrl must be a github.com HTTPS or git@github.com SSH URL",
+    });
   }
   const pathCheck = assertLocalPathForGitPush(localPath, config);
   if (!pathCheck.ok) {
     return res.status(403).json({ error: pathCheck.error });
   }
-  if (!fs.existsSync(pathCheck.resolved)) return res.status(404).json({ error: 'Local path does not exist' });
+  if (!fs.existsSync(pathCheck.resolved))
+    return res.status(404).json({ error: "Local path does not exist" });
 
   try {
-    const result = initAndPush(pathCheck.resolved, remoteUrl, token, { commitMessage, branch });
+    const result = initAndPush(pathCheck.resolved, remoteUrl, token, {
+      commitMessage,
+      branch,
+    });
     if (result.success) {
-      log('INFO', `Pushed to GitHub: ${remoteUrl}`);
+      log("INFO", `Pushed to GitHub: ${remoteUrl}`);
     } else {
-      log('ERROR', `Push failed: ${result.error}`);
+      log("ERROR", `Push failed: ${result.error}`);
     }
     res.json(result);
   } catch (err) {
-    log('ERROR', `Push error: ${err.message}`);
+    log("ERROR", `Push error: ${err.message}`);
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
 });
@@ -3468,7 +4523,7 @@ function getConfiguredGitRepoPathOrRespond(res) {
   if (!folder || !fs.existsSync(folder)) {
     res.status(400).json({
       error:
-        'No project folder configured, or it no longer exists. Set **Project folder** in Settings (General), then open GitHub → VCS → Refresh.',
+        "No project folder configured, or it no longer exists. Set **Project folder** in Settings (General), then open GitHub → VCS → Refresh.",
     });
     return null;
   }
@@ -3476,30 +4531,30 @@ function getConfiguredGitRepoPathOrRespond(res) {
 }
 
 function assertSafeRepoFilePath(repoPath, filePath) {
-  if (!filePath) return '';
+  if (!filePath) return "";
   const abs = path.resolve(repoPath, filePath);
   const root = path.resolve(repoPath);
   if (abs !== root && !abs.startsWith(root + path.sep)) {
-    throw new Error('Path outside repository');
+    throw new Error("Path outside repository");
   }
-  return path.relative(root, abs) || '.';
+  return path.relative(root, abs) || ".";
 }
 
 // GET /api/git/status — branch, ahead/behind, changed files (requires git repo)
-app.get('/api/git/status', (req, res) => {
+app.get("/api/git/status", (req, res) => {
   const repoPath = getConfiguredGitRepoPathOrRespond(res);
   if (!repoPath) return;
   try {
     const data = getGitStatus(repoPath);
     res.json({ ...data, repoPath });
   } catch (err) {
-    log('WARN', `git status: ${err.message}`, { repoPath });
+    log("WARN", `git status: ${err.message}`, { repoPath });
     res.status(400).json({ error: err.message });
   }
 });
 
 // POST /api/git/branch — create branch { name, checkout? }
-app.post('/api/git/branch', (req, res) => {
+app.post("/api/git/branch", (req, res) => {
   const repoPath = getConfiguredGitRepoPathOrRespond(res);
   if (!repoPath) return;
   try {
@@ -3507,44 +4562,46 @@ app.post('/api/git/branch', (req, res) => {
     const result = createBranch(repoPath, name, checkout !== false);
     res.json(result);
   } catch (err) {
-    log('WARN', `git branch: ${err.message}`, { repoPath });
+    log("WARN", `git branch: ${err.message}`, { repoPath });
     res.status(400).json({ error: err.message });
   }
 });
 
 // GET /api/git/diff — optional ?file= relative path
-app.get('/api/git/diff', (req, res) => {
+app.get("/api/git/diff", (req, res) => {
   const repoPath = getConfiguredGitRepoPathOrRespond(res);
   if (!repoPath) return;
   try {
-    let rel = '';
+    let rel = "";
     if (req.query.file) {
       rel = assertSafeRepoFilePath(repoPath, String(req.query.file));
     }
     const { diff } = getGitDiff(repoPath, rel);
     res.json({ diff });
   } catch (err) {
-    log('WARN', `git diff: ${err.message}`, { repoPath });
-    res.status(400).json({ error: err.message, diff: '' });
+    log("WARN", `git diff: ${err.message}`, { repoPath });
+    res.status(400).json({ error: err.message, diff: "" });
   }
 });
 
 // POST /api/git/merge-preview — { sourceBranch, targetRef? }
-app.post('/api/git/merge-preview', (req, res) => {
+app.post("/api/git/merge-preview", (req, res) => {
   const repoPath = getConfiguredGitRepoPathOrRespond(res);
   if (!repoPath) return;
   try {
-    const { sourceBranch, targetRef = 'HEAD' } = req.body || {};
+    const { sourceBranch, targetRef = "HEAD" } = req.body || {};
     const preview = getMergePreview(repoPath, sourceBranch, targetRef);
     res.json(preview);
   } catch (err) {
-    log('WARN', `git merge-preview: ${err.message}`, { repoPath });
-    res.status(400).json({ error: err.message, hasConflicts: false, preview: '' });
+    log("WARN", `git merge-preview: ${err.message}`, { repoPath });
+    res
+      .status(400)
+      .json({ error: err.message, hasConflicts: false, preview: "" });
   }
 });
 
 // POST /api/git/resolve — { filePath, strategy: 'ours' | 'theirs' }
-app.post('/api/git/resolve', (req, res) => {
+app.post("/api/git/resolve", (req, res) => {
   const repoPath = getConfiguredGitRepoPathOrRespond(res);
   if (!repoPath) return;
   try {
@@ -3553,76 +4610,89 @@ app.post('/api/git/resolve', (req, res) => {
     const result = resolveConflictFile(repoPath, rel, strategy);
     res.json(result);
   } catch (err) {
-    log('WARN', `git resolve: ${err.message}`, { repoPath });
+    log("WARN", `git resolve: ${err.message}`, { repoPath });
     res.status(400).json({ error: err.message });
   }
 });
 
 // POST /api/git/review — AI review of working-tree diff { model?, filePath? }
-app.post('/api/git/review', async (req, res) => {
+app.post("/api/git/review", async (req, res) => {
   const repoPath = getConfiguredGitRepoPathOrRespond(res);
   if (!repoPath) return;
   try {
     const config = getConfig();
     let model = req.body?.model || config.selectedModel;
     if (!model) {
-      return res.status(400).json({ error: 'No model selected', review: '' });
+      return res.status(400).json({ error: "No model selected", review: "" });
     }
-    let rel = '';
+    let rel = "";
     if (req.body?.filePath) {
       rel = assertSafeRepoFilePath(repoPath, String(req.body.filePath));
     }
     const { diff } = getGitDiff(repoPath, rel);
     const maxLen = 120000;
     const truncated = diff.length > maxLen;
-    const diffBody = truncated ? `${diff.slice(0, maxLen)}\n\n[…truncated…]` : diff;
-    if (model === 'auto') {
+    const diffBody = truncated
+      ? `${diff.slice(0, maxLen)}\n\n[…truncated…]`
+      : diff;
+    if (model === "auto") {
       try {
         const r = await resolveAutoModel({
-          requestedModel: 'auto',
-          mode: 'chat',
+          requestedModel: "auto",
+          mode: "chat",
           estimatedTokens: Math.ceil(diffBody.length / 3.5),
           config,
           ollamaUrl: config.ollamaUrl,
           ollamaOpts: ollamaAuthOpts(config),
         });
         model = r.resolved;
-        log('INFO', `Auto-model resolved: git review → ${model}`);
+        log("INFO", `Auto-model resolved: git review → ${model}`);
       } catch {
         const m = mergeAutoModelMap(config.autoModelMap);
-        model = m.chat || 'llama3.2';
+        model = m.chat || "llama3.2";
       }
     }
     const messages = [
       {
-        role: 'system',
+        role: "system",
         content:
-          'You are a friendly code reviewer. Review the git diff below. Note risks, bugs, and style issues in plain language. Use short sections and bullet points.',
+          "You are a friendly code reviewer. Review the git diff below. Note risks, bugs, and style issues in plain language. Use short sections and bullet points.",
       },
       {
-        role: 'user',
-        content: `Git diff (working tree)${rel ? ` for file: ${rel}` : ' (all changes)'}:\n\n\`\`\`diff\n${diffBody}\n\`\`\``,
+        role: "user",
+        content: `Git diff (working tree)${rel ? ` for file: ${rel}` : " (all changes)"}:\n\n\`\`\`diff\n${diffBody}\n\`\`\``,
       },
     ];
-    const review = await chatComplete(config.ollamaUrl, model, messages, 120000, [], ollamaAuthOpts(config));
+    const review = await chatComplete(
+      config.ollamaUrl,
+      model,
+      messages,
+      120000,
+      [],
+      ollamaAuthOpts(config),
+    );
     res.json({ review, truncated });
   } catch (err) {
-    log('ERROR', `git review: ${err.message}`, { repoPath });
-    res.status(500).json({ error: CLIENT_INTERNAL_ERROR, review: '' });
+    log("ERROR", `git review: ${err.message}`, { repoPath });
+    res.status(500).json({ error: CLIENT_INTERNAL_ERROR, review: "" });
   }
 });
 
 // ── GET /api/logs ────────────────────────────────────
 
-app.get('/api/logs', requireLocalOrApiKey, (req, res) => {
-  const type = req.query.type === 'debug' ? 'debug.log' : 'app.log';
+app.get("/api/logs", requireLocalOrApiKey, (req, res) => {
+  const type = req.query.type === "debug" ? "debug.log" : "app.log";
   const lines = parseInt(req.query.lines) || 50;
   const logPath = path.join(logDir, type);
   try {
     if (!fs.existsSync(logPath)) return res.json({ lines: [], file: type });
-    const content = fs.readFileSync(logPath, 'utf8');
-    const allLines = content.split('\n').filter(Boolean);
-    res.json({ lines: allLines.slice(-lines), file: type, total: allLines.length });
+    const content = fs.readFileSync(logPath, "utf8");
+    const allLines = content.split("\n").filter(Boolean);
+    res.json({
+      lines: allLines.slice(-lines),
+      file: type,
+      total: allLines.length,
+    });
   } catch (err) {
     res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
   }
@@ -3634,48 +4704,61 @@ app.get('/api/logs', requireLocalOrApiKey, (req, res) => {
 function createMcpServer() {
   const config = getConfig();
   const disabledTools = config.mcpServer?.disabledTools || [];
-  const mcpServer = new McpServer({ name: 'code-companion-mcp', version: '1.0.0' });
-  registerAllTools(mcpServer, {
-    getConfig, log, debug,
-    listModels, chatComplete, checkConnection,
-    buildFileTree, readProjectFile, listConversations
-  }, disabledTools);
+  const mcpServer = new McpServer({
+    name: "code-companion-mcp",
+    version: "1.0.0",
+  });
+  registerAllTools(
+    mcpServer,
+    {
+      getConfig,
+      log,
+      debug,
+      listModels,
+      chatComplete,
+      checkConnection,
+      buildFileTree,
+      readProjectFile,
+      listConversations,
+    },
+    disabledTools,
+  );
   return mcpServer;
 }
 
 // Place AFTER all /api/* routes but BEFORE SPA fallback
-app.all('/mcp', requireLocalOrApiKey, async (req, res) => {
+app.all("/mcp", requireLocalOrApiKey, async (req, res) => {
   try {
     const config = getConfig();
     if (config.mcpServer?.httpEnabled === false) {
-      return res.status(503).json({ error: 'MCP server is disabled' });
+      return res.status(503).json({ error: "MCP server is disabled" });
     }
     const mcpServer = createMcpServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
-      enableJsonResponse: true
+      enableJsonResponse: true,
     });
-    res.on('close', () => transport.close());
+    res.on("close", () => transport.close());
     await mcpServer.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (err) {
-    log('ERROR', 'MCP request failed', { error: err.message });
+    log("ERROR", "MCP request failed", { error: err.message });
     if (!res.headersSent) {
-      res.status(500).json({ error: 'MCP server error' });
+      res.status(500).json({ error: "MCP server error" });
     }
   }
 });
 
 // ── Graceful shutdown ────────────────────────────────
-process.on('SIGINT', async () => {
-  log('INFO', 'Shutting down — disconnecting MCP clients...');
+process.on("SIGINT", async () => {
+  log("INFO", "Shutting down — disconnecting MCP clients...");
   await mcpClientManager.disconnectAll();
   stopDocling(log);
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-  log('INFO', 'Shutting down (SIGTERM) — cleaning up...');
+process.on("SIGTERM", async () => {
+  log("INFO", "Shutting down (SIGTERM) — cleaning up...");
   await mcpClientManager.disconnectAll();
   stopDocling(log);
   process.exit(0);
@@ -3683,9 +4766,9 @@ process.on('SIGTERM', async () => {
 
 // ── SPA Fallback (must be after all API routes) ──────
 
-app.get('*', (req, res) => {
+app.get("*", (req, res) => {
   if (sendSpaIndexHtml(res)) return;
-  res.status(404).send('Not found');
+  res.status(404).send("Not found");
 });
 
 // ── Start ────────────────────────────────────────────
@@ -3695,27 +4778,31 @@ function getLocalNetworkUrl() {
     const nets = os.networkInterfaces();
     for (const name of Object.keys(nets)) {
       for (const net of nets[name] || []) {
-        if (net.family === 'IPv4' && !net.internal) return `${useHttps ? 'https' : 'http'}://${net.address}:${PORT}`;
+        if (net.family === "IPv4" && !net.internal)
+          return `${useHttps ? "https" : "http"}://${net.address}:${PORT}`;
       }
     }
   } catch (_) {}
   return null;
 }
 
-const proto = useHttps ? 'https' : 'http';
-const http = require('http');
+const proto = useHttps ? "https" : "http";
+const http = require("http");
 
 // ── Start docling-serve if enabled ───────────────────
 (async () => {
   const config = getConfig();
   const doclingResult = await startDocling(config, log);
   if (doclingResult.managed) {
-    log('INFO', `Docling server managed by Code Companion at ${doclingResult.url}`);
-  } else if (doclingResult.reason === 'already-running') {
-    log('INFO', `Docling server already running at ${doclingResult.url}`);
-  } else if (doclingResult.reason === 'not-installed') {
+    log(
+      "INFO",
+      `Docling server managed by Code Companion at ${doclingResult.url}`,
+    );
+  } else if (doclingResult.reason === "already-running") {
+    log("INFO", `Docling server already running at ${doclingResult.url}`);
+  } else if (doclingResult.reason === "not-installed") {
     // Already logged by startDocling
-  } else if (doclingResult.reason === 'disabled') {
+  } else if (doclingResult.reason === "disabled") {
     // User disabled it — silent
   }
 })();
@@ -3723,18 +4810,23 @@ const http = require('http');
 let serverInstance;
 
 if (useHttps) {
-  serverInstance = https.createServer({ cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) }, app);
+  serverInstance = https.createServer(
+    { cert: fs.readFileSync(certPath), key: fs.readFileSync(keyPath) },
+    app,
+  );
 
   // Also start an HTTP server on PORT+1 that redirects to HTTPS on PORT.
   // Users with old http://localhost:PORT bookmarks can update to the new URL.
   const HTTP_REDIRECT_PORT = PORT + 1;
-  http.createServer((req, res) => {
-    const host = (req.headers.host || `localhost:${PORT}`).split(':')[0];
-    res.writeHead(301, { Location: `https://${host}:${PORT}${req.url}` });
-    res.end();
-  }).listen(HTTP_REDIRECT_PORT, HOST, () => {
-    log('INFO', `HTTP→HTTPS redirect on port ${HTTP_REDIRECT_PORT}`);
-  });
+  http
+    .createServer((req, res) => {
+      const host = (req.headers.host || `localhost:${PORT}`).split(":")[0];
+      res.writeHead(301, { Location: `https://${host}:${PORT}${req.url}` });
+      res.end();
+    })
+    .listen(HTTP_REDIRECT_PORT, HOST, () => {
+      log("INFO", `HTTP→HTTPS redirect on port ${HTTP_REDIRECT_PORT}`);
+    });
 } else {
   serverInstance = http.createServer(app);
 }
@@ -3742,52 +4834,77 @@ if (useHttps) {
 const server = serverInstance.listen(PORT, HOST, () => {
   const config = getConfig();
   const localUrl = `${proto}://localhost:${PORT}`;
-  const remoteUrl = HOST === '0.0.0.0' ? getLocalNetworkUrl() : null;
-  log('INFO', `Th3rdAI Code Companion started on ${localUrl}${useHttps ? ' (HTTPS)' : ''}`);
-  if (remoteUrl) log('INFO', `Remote access: ${remoteUrl}`);
-  log('INFO', `Ollama endpoint: ${config.ollamaUrl}`);
-  log('INFO', `History dir: ${path.join(dataRoot, 'history')}`);
-  log('INFO', `Log dir: ${logDir}`);
-  log('INFO', `MCP HTTP server: enabled at /mcp`);
-  log('INFO', `Debug mode: ${DEBUG ? 'ON' : 'OFF (set DEBUG=1 to enable console debug output)'}`);
-  console.log(`\n  Th3rdAI Code Companion running at ${localUrl}${useHttps ? ' (HTTPS — accept the self-signed cert warning in your browser)' : ''}`);
+  const remoteUrl = HOST === "0.0.0.0" ? getLocalNetworkUrl() : null;
+  log(
+    "INFO",
+    `Th3rdAI Code Companion started on ${localUrl}${useHttps ? " (HTTPS)" : ""}`,
+  );
+  if (remoteUrl) log("INFO", `Remote access: ${remoteUrl}`);
+  log("INFO", `Ollama endpoint: ${config.ollamaUrl}`);
+  log("INFO", `History dir: ${path.join(dataRoot, "history")}`);
+  log("INFO", `Log dir: ${logDir}`);
+  log("INFO", `MCP HTTP server: enabled at /mcp`);
+  log(
+    "INFO",
+    `Debug mode: ${DEBUG ? "ON" : "OFF (set DEBUG=1 to enable console debug output)"}`,
+  );
+  console.log(
+    `\n  Th3rdAI Code Companion running at ${localUrl}${useHttps ? " (HTTPS — accept the self-signed cert warning in your browser)" : ""}`,
+  );
   if (remoteUrl) console.log(`  Remote access: ${remoteUrl}`);
   console.log(`  Ollama endpoint: ${config.ollamaUrl}`);
   console.log(`  MCP HTTP server: /mcp`);
   console.log(`  Logs: ${logDir}`);
   console.log(`  Tip: run with DEBUG=1 for verbose console output`);
-  if (!useHttps) console.log(`  Tip: add cert/server.crt + cert/server.key to enable HTTPS`);
-  if (useHttps)  console.log(`  SSL issues? Clear HSTS for localhost at chrome://net-internals/#hsts`);
+  if (!useHttps)
+    console.log(`  Tip: add cert/server.crt + cert/server.key to enable HTTPS`);
+  if (useHttps)
+    console.log(
+      `  SSL issues? Clear HSTS for localhost at chrome://net-internals/#hsts`,
+    );
   console.log();
 
   // Notify Electron parent process that server is ready
   if (process.send) {
-    process.send({ type: 'server-ready', port: PORT });
+    process.send({ type: "server-ready", port: PORT });
   }
 
   // Auto-connect configured MCP clients
-  const autoClients = (config.mcpClients || []).filter(c => c.autoConnect);
+  const autoClients = (config.mcpClients || []).filter((c) => c.autoConnect);
   if (autoClients.length > 0) {
-    log('INFO', `Auto-connecting ${autoClients.length} MCP client(s)...`);
+    log("INFO", `Auto-connecting ${autoClients.length} MCP client(s)...`);
     for (const clientConfig of autoClients) {
-      mcpClientManager.connect(clientConfig).then(tools => {
-        log('INFO', `Auto-connected: ${clientConfig.name} (${tools.length} tools)`);
-      }).catch(err => {
-        log('ERROR', `Auto-connect failed for ${clientConfig.name}: ${err.message}`);
-      });
+      mcpClientManager
+        .connect(clientConfig)
+        .then((tools) => {
+          log(
+            "INFO",
+            `Auto-connected: ${clientConfig.name} (${tools.length} tools)`,
+          );
+        })
+        .catch((err) => {
+          log(
+            "ERROR",
+            `Auto-connect failed for ${clientConfig.name}: ${err.message}`,
+          );
+        });
     }
   }
 });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`\n  Port ${PORT} is already in use. Stop the process using it, or use a different port:\n`);
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(
+      `\n  Port ${PORT} is already in use. Stop the process using it, or use a different port:\n`,
+    );
     console.error(`    PORT=8903 node server.js\n`);
-    console.error(`  To stop whatever is on port ${PORT}:  lsof -ti:${PORT} | xargs kill\n`);
+    console.error(
+      `  To stop whatever is on port ${PORT}:  lsof -ti:${PORT} | xargs kill\n`,
+    );
   } else {
-    console.error('Server error:', err);
+    console.error("Server error:", err);
   }
-  log('ERROR', `Server failed: ${err.message}`);
+  log("ERROR", `Server failed: ${err.message}`);
   process.exit(1);
 });
 

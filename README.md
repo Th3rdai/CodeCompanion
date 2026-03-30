@@ -54,18 +54,21 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 ### Install & Run
 
 **Option A — One command (install + build + start):**
+
 ```bash
 cd AIApp-CodeCompanion
 ./deploy.sh
 ```
 
 **Option B — Manual steps:**
+
 ```bash
 cd AIApp-CodeCompanion
 npm install
 npm run build
 ./startup.sh
 ```
+
 (For development with hot reload, use `npm run dev` instead of `npm run build` + `./startup.sh`.)
 
 Open [http://localhost:8900](http://localhost:8900) in your browser. **SSL errors on localhost?** Use [http://127.0.0.1:8900](http://127.0.0.1:8900) or clear HSTS for `localhost` (Chrome: `chrome://net-internals/#hsts`). **Optional HTTPS:** Add `cert/server.crt` and `cert/server.key` (see `cert/README.txt`) and restart; then use `https://localhost:8900` and accept the self-signed cert in the browser.
@@ -75,6 +78,7 @@ Open [http://localhost:8900](http://localhost:8900) in your browser. **SSL error
 **Network binding (security default):** The server **defaults to `127.0.0.1`** (localhost-only). To accept connections from other devices on the LAN, set **`CC_BIND_ALL=1`** or **`HOST=0.0.0.0`** before starting (see [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)). On startup, when bound to all interfaces, the server logs a **Remote access:** URL (e.g. `http://192.168.1.5:8900`). Sensitive Settings/API routes accept requests from **loopback** only unless you set **`CC_API_SECRET`** on the server and (for browser UIs opened by IP) **`VITE_CC_API_KEY`** at build time to match — see [SECURITY.md](SECURITY.md) and [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md). Use **http** (not https) unless you added `cert/` files — otherwise `https://` will cause SSL errors. Clear HSTS for the host if the browser forces HTTPS (Chrome: `chrome://net-internals/#hsts`). Ensure the host firewall allows inbound TCP on your chosen port (default **8900** unless overridden).
 
 **Remote access not working?**
+
 1. **From the other device** run: `curl -s -o /dev/null -w "%{http_code}" http://HOST_IP:8900/api/config` (replace `HOST_IP` with the Mac's IP, e.g. `192.168.1.5`). If you get `200`, the server is reachable; if connection refused or timeout, the host is blocking it.
 2. **On the Mac (host):** macOS Firewall often blocks incoming connections. Open **System Settings → Network → Firewall → Options**, then either add **Node** to “Allow incoming connections” or turn firewall off temporarily to test. If Node isn’t listed, run once: `./scripts/allow-remote-access.sh` (or the `socketfilterfw --add` command in that script), then in Firewall Options set that app to “Allow incoming” and restart the app.
 3. Use **http://** (not https) and the exact URL from the server’s “Remote access:” line.
@@ -107,37 +111,37 @@ npm run audit:security  # npm audit — fails on critical advisories (same gate 
 
 ### More documentation
 
-| Doc | Contents |
-|-----|----------|
-| [SECURITY.md](SECURITY.md) | How to report vulnerabilities; security and privacy design |
-| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md) | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc. |
-| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md) | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing |
-| [docs/TESTING.md](docs/TESTING.md) | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | “Failed to fetch”, MCP clients / `.cc-config.json` paths, log files, Ollama errors in logs |
-| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md) | What `IDE_COMMANDS/` is and pointer to full README there |
-| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf)) | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater |
-| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations) |
+| Doc                                                                                                          | Contents                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| [SECURITY.md](SECURITY.md)                                                                                   | How to report vulnerabilities; security and privacy design                                                            |
+| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)                                               | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc. |
+| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md)                                                   | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing      |
+| [docs/TESTING.md](docs/TESTING.md)                                                                           | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes                                      |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                                                           | “Failed to fetch”, MCP clients / `.cc-config.json` paths, log files, Ollama errors in logs                            |
+| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                              |
+| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                |
+| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                     |
 
 ## User Guide
 
 ### Modes at a glance
 
-| Mode | What it does |
-|------|----------------|
-| **Chat** | General conversation about code, building with AI, or anything else. |
-| **Explain This** | Paste code and get a step-by-step walkthrough in plain English. |
-| **Safety Check** | Spot potential bugs and security issues before they cause trouble. |
-| **Clean Up** | Get refactoring suggestions and copy-pasteable prompts to improve code. |
-| **Code → Plain English** | Turn code or technical text into language anyone can understand. |
-| **Idea → Code Spec** | Describe what you want built and get clear instructions for your AI coding tool. |
-| **Diagram** | Describe a system, process, or relationship and get a Mermaid diagram (flowchart, sequence, ER, etc.). Export as Source, SVG, or PNG. |
-| **Security** | OWASP-style static code analysis. Paste or upload code (or point at a file/folder), get a structured report with severity bands and remediation. Export as Copy, .md, .html, or **PDF** (opens print dialog — choose “Save as PDF”). |
-| **Review** | Full code report card with letter grades (A–F) for bugs, security, readability, and completeness. Export as Markdown or JSON. |
-| **Prompting** | Craft and score AI prompts (TÂCHES methodology). Load from file, revise with AI, download. |
-| **Skillz** | Build and score SKILL.md files for Claude Code (Agent Skills Spec). Load, revise, export. |
-| **Agentic** | Design and score AI agent definitions (CrewAI/LangGraph style). Load, revise, export. |
-| **Create** | 5-step wizard to scaffold a new project with ICM/MAKER framework support. Voice dictation on fields. |
-| **Build** | Start a GSD+ICM project: scaffold planning and stages, then manage it from the Build dashboard. |
+| Mode                     | What it does                                                                                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Chat**                 | General conversation about code, building with AI, or anything else.                                                                                                                                                                 |
+| **Explain This**         | Paste code and get a step-by-step walkthrough in plain English.                                                                                                                                                                      |
+| **Safety Check**         | Spot potential bugs and security issues before they cause trouble.                                                                                                                                                                   |
+| **Clean Up**             | Get refactoring suggestions and copy-pasteable prompts to improve code.                                                                                                                                                              |
+| **Code → Plain English** | Turn code or technical text into language anyone can understand.                                                                                                                                                                     |
+| **Idea → Code Spec**     | Describe what you want built and get clear instructions for your AI coding tool.                                                                                                                                                     |
+| **Diagram**              | Describe a system, process, or relationship and get a Mermaid diagram (flowchart, sequence, ER, etc.). Export as Source, SVG, or PNG.                                                                                                |
+| **Security**             | OWASP-style static code analysis. Paste or upload code (or point at a file/folder), get a structured report with severity bands and remediation. Export as Copy, .md, .html, or **PDF** (opens print dialog — choose “Save as PDF”). |
+| **Review**               | Full code report card with letter grades (A–F) for bugs, security, readability, and completeness. Export as Markdown or JSON.                                                                                                        |
+| **Prompting**            | Craft and score AI prompts (TÂCHES methodology). Load from file, revise with AI, download.                                                                                                                                           |
+| **Skillz**               | Build and score SKILL.md files for Claude Code (Agent Skills Spec). Load, revise, export.                                                                                                                                            |
+| **Agentic**              | Design and score AI agent definitions (CrewAI/LangGraph style). Load, revise, export.                                                                                                                                                |
+| **Create**               | 5-step wizard to scaffold a new project with ICM/MAKER framework support. Voice dictation on fields.                                                                                                                                 |
+| **Build**                | Start a GSD+ICM project: scaffold planning and stages, then manage it from the Build dashboard.                                                                                                                                      |
 
 ### Tutorial (Build & Create)
 
@@ -148,11 +152,13 @@ In **Create** or **Build** mode, click **Tutorial** above the wizard to open the
 Code Companion supports image uploads in **Chat**, **Review**, and **Security** modes when using an Ollama vision model (llava, bakllava, minicpm-v, etc.).
 
 **Getting Started:**
+
 1. Install a vision model: `ollama pull llava`
 2. Select the vision model from the dropdown in Code Companion
 3. Upload images via drag-and-drop, file picker (📎), or clipboard paste (Cmd+V / Ctrl+V)
 
 **Features:**
+
 - **Automatic security hardening** — EXIF metadata (GPS, timestamps) stripped, embedded scripts destroyed
 - **Smart processing** — Images auto-resize to 2048px, compress, generate thumbnails
 - **Duplicate detection** — SHA-256 hashing prevents accidental duplicate uploads
@@ -160,12 +166,14 @@ Code Companion supports image uploads in **Chat**, **Review**, and **Security** 
 - **Privacy warning** — First-time upload shows privacy notice (don't upload sensitive info)
 
 **Use Cases:**
+
 - **Chat mode**: Share screenshots of bugs, design mockups, error messages, or code snippets for AI analysis
 - **Review mode**: Attach screenshots showing visual bugs alongside your code for comprehensive reviews
 - **Security mode**: Include error logs, configuration screenshots, or vulnerability proof-of-concept images
 
 **Settings:**
 Configure image support in Settings → Image Support:
+
 - Enable/disable image uploads
 - Max file size (1-50 MB, default 25MB)
 - Max images per message (1-20, default 10)
@@ -210,19 +218,19 @@ Configure image support in Settings → Image Support:
 
 Th3rdAI Code Companion exposes 11 tools via MCP that other AI agents can use:
 
-| Tool | Description |
-|------|-------------|
-| `codecompanion_chat` | General PM conversational mode |
-| `codecompanion_explain` | Explain code in plain English |
-| `codecompanion_find_bugs` | Review code for bugs and security issues |
-| `codecompanion_refactor` | Suggest refactoring improvements |
-| `codecompanion_tech_to_biz` | Translate technical content to business language |
-| `codecompanion_biz_to_tech` | Translate business requirements to technical specs |
-| `codecompanion_list_models` | List available Ollama models |
-| `codecompanion_get_status` | Check connection status and config |
-| `codecompanion_browse_files` | List project file tree |
-| `codecompanion_read_file` | Read a file from the project folder |
-| `codecompanion_list_conversations` | List saved conversation history |
+| Tool                               | Description                                        |
+| ---------------------------------- | -------------------------------------------------- |
+| `codecompanion_chat`               | General PM conversational mode                     |
+| `codecompanion_explain`            | Explain code in plain English                      |
+| `codecompanion_find_bugs`          | Review code for bugs and security issues           |
+| `codecompanion_refactor`           | Suggest refactoring improvements                   |
+| `codecompanion_tech_to_biz`        | Translate technical content to business language   |
+| `codecompanion_biz_to_tech`        | Translate business requirements to technical specs |
+| `codecompanion_list_models`        | List available Ollama models                       |
+| `codecompanion_get_status`         | Check connection status and config                 |
+| `codecompanion_browse_files`       | List project file tree                             |
+| `codecompanion_read_file`          | Read a file from the project folder                |
+| `codecompanion_list_conversations` | List saved conversation history                    |
 
 ### HTTP Transport
 
@@ -382,14 +390,14 @@ Settings are stored in `.cc-config.json`:
 
 Code Companion works out of the box with no environment variables. These are optional overrides:
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `PORT` | `8900` | Server port |
-| `HOST` | `0.0.0.0` | Bind address |
-| `DEBUG` | off | Set `DEBUG=1` for verbose console output |
-| `FORCE_HTTP` | off | Set `FORCE_HTTP=1` to disable HTTPS even when certs exist |
-| `CC_DATA_DIR` | project root | Data directory (set automatically in Electron) |
-| `CC_ALLOW_AGENT_TERMINAL` | off | Allow agent terminal tools on network-exposed servers |
+| Variable                  | Default      | Purpose                                                   |
+| ------------------------- | ------------ | --------------------------------------------------------- |
+| `PORT`                    | `8900`       | Server port                                               |
+| `HOST`                    | `0.0.0.0`    | Bind address                                              |
+| `DEBUG`                   | off          | Set `DEBUG=1` for verbose console output                  |
+| `FORCE_HTTP`              | off          | Set `FORCE_HTTP=1` to disable HTTPS even when certs exist |
+| `CC_DATA_DIR`             | project root | Data directory (set automatically in Electron)            |
+| `CC_ALLOW_AGENT_TERMINAL` | off          | Allow agent terminal tools on network-exposed servers     |
 
 All settings (Ollama URL, project folder, MCP clients, etc.) are configured in the Settings panel and persisted to `.cc-config.json`.
 
@@ -399,14 +407,15 @@ All settings (Ollama URL, project folder, MCP clients, etc.) are configured in t
 
 ## Testing
 
-| Command | What it runs |
-|---------|-------------|
-| `npm test` | All Playwright tests (UI + E2E) |
+| Command             | What it runs                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `npm test`          | All Playwright tests (UI + E2E)                                                                              |
 | `npm run test:unit` | Node.js unit tests (`node:test`) — builder scoring, pentest schemas, rate limiting, spawn-path, MCP security |
-| `npm run test:ui` | Playwright UI component tests — onboarding, glossary, report card, input methods, builders |
-| `npm run test:e2e` | Playwright E2E tests — full review workflow with browser + server |
+| `npm run test:ui`   | Playwright UI component tests — onboarding, glossary, report card, input methods, builders                   |
+| `npm run test:e2e`  | Playwright E2E tests — full review workflow with browser + server                                            |
 
 Test files are in `tests/` organized by type:
+
 - `tests/unit/` — Pure logic tests (no browser)
 - `tests/ui/` — Playwright browser tests for individual components
 - `tests/e2e/` — Full user journey tests
@@ -416,12 +425,12 @@ Test files are in `tests/` organized by type:
 
 The `IDE_COMMANDS/` directory contains slash commands that are automatically copied into new projects created via Create or Build mode. They're installed to all supported IDEs:
 
-| IDE | Install path |
-|-----|-------------|
-| Claude Code | `.claude/commands/` |
-| Cursor | `.cursor/commands/` and `.cursor/prompts/` |
-| VS Code | `.github/prompts/` |
-| OpenCode | `.opencode/commands/` |
+| IDE         | Install path                               |
+| ----------- | ------------------------------------------ |
+| Claude Code | `.claude/commands/`                        |
+| Cursor      | `.cursor/commands/` and `.cursor/prompts/` |
+| VS Code     | `.github/prompts/`                         |
+| OpenCode    | `.opencode/commands/`                      |
 
 Use **Install All** in Validate mode to install `validate.md` across all IDEs at once.
 
@@ -430,5 +439,5 @@ Use **Install All** in Validate mode to install `validate.md` across all IDEs at
 **Th3rdAI — personal & non-commercial use only.**
 You may use Code Companion for personal learning and non-commercial projects. **Commercial use** (business use, paid services, redistribution for profit, etc.) **requires a separate written agreement** from Th3rdAI.
 
-- Full terms: see [`LICENSE`](LICENSE) in this repository.  
+- Full terms: see [`LICENSE`](LICENSE) in this repository.
 - Commercial licensing: **james@th3rdai.com** · **https://www.th3rdai.com**

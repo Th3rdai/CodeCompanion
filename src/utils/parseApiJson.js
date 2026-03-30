@@ -10,14 +10,14 @@ export async function parseApiJson(res) {
   const text = await res.text();
   const trimmed = text.trimStart();
   if (!trimmed) return {};
-  if (trimmed.startsWith('<')) {
+  if (trimmed.startsWith("<")) {
     throw new Error(
-      'Server returned a web page instead of API data. Restart the app after updates, and if you use a reverse proxy, forward /api/* to the Code Companion Node server (see BUILD.md).'
+      "Server returned a web page instead of API data. Restart the app after updates, and if you use a reverse proxy, forward /api/* to the Code Companion Node server (see BUILD.md).",
     );
   }
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error('Invalid response from server (not valid JSON).');
+    throw new Error("Invalid response from server (not valid JSON).");
   }
 }

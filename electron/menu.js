@@ -1,4 +1,4 @@
-const { Menu, shell } = require('electron');
+const { Menu, shell } = require("electron");
 
 /**
  * Creates the application menu
@@ -15,56 +15,56 @@ function createMenu(options = {}) {
     ...(reloadAppHome
       ? [
           {
-            label: 'Go to app home',
-            accelerator: process.platform === 'darwin' ? 'Alt+Command+H' : 'Ctrl+Shift+H',
+            label: "Go to app home",
+            accelerator:
+              process.platform === "darwin" ? "Alt+Command+H" : "Ctrl+Shift+H",
             click: () => reloadAppHome(),
           },
-          { type: 'separator' },
+          { type: "separator" },
         ]
       : []),
-    { role: 'reload' },
-    { role: 'forceReload' },
-    { role: 'toggleDevTools' },
-    { type: 'separator' },
-    { role: 'resetZoom' },
-    { role: 'zoomIn' },
-    { role: 'zoomOut' },
-    { type: 'separator' },
-    { role: 'togglefullscreen' },
+    { role: "reload" },
+    { role: "forceReload" },
+    { role: "toggleDevTools" },
+    { type: "separator" },
+    { role: "resetZoom" },
+    { role: "zoomIn" },
+    { role: "zoomOut" },
+    { type: "separator" },
+    { role: "togglefullscreen" },
   ];
 
   const template = [
     {
-      label: 'Edit',
+      label: "Edit",
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
       ],
     },
     {
-      label: 'View',
+      label: "View",
       submenu: viewSubmenu,
     },
     {
-      label: 'Window',
-      submenu: [
-        { role: 'minimize' },
-        { role: 'close' },
-      ],
+      label: "Window",
+      submenu: [{ role: "minimize" }, { role: "close" }],
     },
     {
-      label: 'Help',
+      label: "Help",
       submenu: [
         {
-          label: 'Learn More',
+          label: "Learn More",
           click: async () => {
             // TODO: Update with actual GitHub repo URL when available
-            await shell.openExternal('https://github.com/th3rdai/code-companion');
+            await shell.openExternal(
+              "https://github.com/th3rdai/code-companion",
+            );
           },
         },
       ],

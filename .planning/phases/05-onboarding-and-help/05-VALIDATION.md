@@ -15,13 +15,13 @@ created: 2026-03-14
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | Playwright 1.58.2 (E2E + Component Testing) |
-| **Config file** | playwright.config.js (E2E), playwright-ct.config.js (Component) |
-| **Quick run command** | `npm run test:ui` |
-| **Full suite command** | `npm test` |
-| **Estimated runtime** | ~45 seconds |
+| Property               | Value                                                           |
+| ---------------------- | --------------------------------------------------------------- |
+| **Framework**          | Playwright 1.58.2 (E2E + Component Testing)                     |
+| **Config file**        | playwright.config.js (E2E), playwright-ct.config.js (Component) |
+| **Quick run command**  | `npm run test:ui`                                               |
+| **Full suite command** | `npm test`                                                      |
+| **Estimated runtime**  | ~45 seconds                                                     |
 
 ---
 
@@ -36,15 +36,15 @@ created: 2026-03-14
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 05-01-01 | 01 | 1 | UX-01, UX-04 | component | `npm run test:ui -- OnboardingWizard.spec.jsx` | ❌ W0 | ⬜ pending |
-| 05-01-02 | 01 | 1 | UX-01 | manual | Manual localStorage verification | N/A | ⬜ pending |
-| 05-02-01 | 02 | 1 | UX-03 | component | `npm run test:ui -- JargonGlossary.spec.jsx` | ❌ W0 | ⬜ pending |
-| 05-02-02 | 02 | 1 | UX-01, UX-03, UX-04 | E2E + component | `npm test -- tests/ui/` | ❌ W0 | ⬜ pending |
-| 05-02-03 | 02 | 1 | UX-04 | E2E | `npm test -- tests/ui/privacy-banner.spec.js` | ❌ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement         | Test Type       | Automated Command                              | File Exists | Status     |
+| -------- | ---- | ---- | ------------------- | --------------- | ---------------------------------------------- | ----------- | ---------- |
+| 05-01-01 | 01   | 1    | UX-01, UX-04        | component       | `npm run test:ui -- OnboardingWizard.spec.jsx` | ❌ W0       | ⬜ pending |
+| 05-01-02 | 01   | 1    | UX-01               | manual          | Manual localStorage verification               | N/A         | ⬜ pending |
+| 05-02-01 | 02   | 1    | UX-03               | component       | `npm run test:ui -- JargonGlossary.spec.jsx`   | ❌ W0       | ⬜ pending |
+| 05-02-02 | 02   | 1    | UX-01, UX-03, UX-04 | E2E + component | `npm test -- tests/ui/`                        | ❌ W0       | ⬜ pending |
+| 05-02-03 | 02   | 1    | UX-04               | E2E             | `npm test -- tests/ui/privacy-banner.spec.js`  | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -56,16 +56,16 @@ created: 2026-03-14
 - [ ] `tests/ui/glossary.spec.js` — E2E test for glossary panel open/close/search (UX-03)
 - [ ] `tests/ui/privacy-banner.spec.js` — E2E test for banner visibility and dismissal (UX-04)
 
-*Framework install: None needed — Playwright 1.58.2 already installed (package.json)*
+_Framework install: None needed — Playwright 1.58.2 already installed (package.json)_
 
 ---
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| Onboarding localStorage persistence | UX-01 | localStorage state inspection requires DevTools | 1. Clear localStorage via Console: `localStorage.removeItem('th3rdai_onboarding_complete')` 2. Refresh browser 3. Complete wizard 4. Refresh again 5. Verify wizard does NOT reappear |
-| Privacy banner localStorage persistence | UX-04 | localStorage state inspection requires DevTools | 1. Clear localStorage via Console: `localStorage.removeItem('th3rdai_privacy_banner_dismissed')` 2. Refresh browser 3. Dismiss banner 4. Refresh again 5. Verify banner does NOT reappear |
+| Behavior                                | Requirement | Why Manual                                      | Test Instructions                                                                                                                                                                         |
+| --------------------------------------- | ----------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Onboarding localStorage persistence     | UX-01       | localStorage state inspection requires DevTools | 1. Clear localStorage via Console: `localStorage.removeItem('th3rdai_onboarding_complete')` 2. Refresh browser 3. Complete wizard 4. Refresh again 5. Verify wizard does NOT reappear     |
+| Privacy banner localStorage persistence | UX-04       | localStorage state inspection requires DevTools | 1. Clear localStorage via Console: `localStorage.removeItem('th3rdai_privacy_banner_dismissed')` 2. Refresh browser 3. Dismiss banner 4. Refresh again 5. Verify banner does NOT reappear |
 
 ---
 

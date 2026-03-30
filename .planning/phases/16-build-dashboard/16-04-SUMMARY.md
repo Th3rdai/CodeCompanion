@@ -22,7 +22,8 @@ affects: [16-build-dashboard]
 # Tech tracking
 tech-stack:
   added: []
-  patterns: [clipboard-api-with-toast, loading-skeleton-pulse, friendly-error-cards]
+  patterns:
+    [clipboard-api-with-toast, loading-skeleton-pulse, friendly-error-cards]
 
 key-files:
   created:
@@ -59,6 +60,7 @@ completed: 2026-03-15
 - **Files modified:** 3
 
 ## Accomplishments
+
 - ClaudeCodeHandoff component shows context-aware GSD slash commands (cd, new-project, plan-phase, execute-phase, verify-work, research-phase) based on project state
 - Copy buttons use Clipboard API with per-card feedback state and toast confirmation
 - Error states throughout dashboard show friendly messages with AlertTriangle icon and retry buttons
@@ -74,11 +76,13 @@ Each task was committed atomically:
 2. **Task 2: Wire handoff into BuildSimpleView, thread props from App.jsx, polish error states** - `84b036a` (feat)
 
 ## Files Created/Modified
+
 - `src/components/ClaudeCodeHandoff.jsx` - Context-aware GSD slash commands panel with copy buttons
 - `src/components/BuildSimpleView.jsx` - Added ClaudeCodeHandoff import, loading skeleton, polished error cards
 - `src/App.jsx` - Added selectedModel and ollamaConnected props to BuildPanel render
 
 ## Decisions Made
+
 - Context-aware command list derived from projectData phases/plans state rather than static list
 - Friendly network error message ("Could not reach the server") instead of raw fetch error
 - Loading skeleton with pulsing glass cards for null projectData instead of empty space
@@ -89,18 +93,22 @@ Each task was committed atomically:
 None - plan executed exactly as written.
 
 ## Issues Encountered
+
 None
 
 ## User Setup Required
+
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Build Dashboard feature complete (Plans 00-04)
 - All views functional: project list, simple view (What's Next, research/plan, handoff), advanced view (phase accordion, file viewer)
 - Ready for end-to-end testing and integration verification
 
 ---
-*Phase: 16-build-dashboard*
-*Completed: 2026-03-15*
+
+_Phase: 16-build-dashboard_
+_Completed: 2026-03-15_
 
 ## Self-Check: PASSED

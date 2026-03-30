@@ -19,14 +19,14 @@
 
 ## 2. Issues and gaps
 
-| Severity | Description | Impact | Suggested fix |
-|----------|-------------|--------|----------------|
-| **Major** | **§4.4.8 “non-local” server** for `CC_ALLOW_AGENT_TERMINAL` is undefined | Feature might ship disabled always, or enabled unsafely | Define rule: e.g. treat as local if `req.socket` is loopback **or** `HOST` is `127.0.0.1`/`::1` **or** env `CC_TRUST_LOCAL_SERVER=1`; document in BUILD.md |
+| Severity  | Description                                                                                                 | Impact                                                      | Suggested fix                                                                                                                                                                             |
+| --------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Major** | **§4.4.8 “non-local” server** for `CC_ALLOW_AGENT_TERMINAL` is undefined                                    | Feature might ship disabled always, or enabled unsafely     | Define rule: e.g. treat as local if `req.socket` is loopback **or** `HOST` is `127.0.0.1`/`::1` **or** env `CC_TRUST_LOCAL_SERVER=1`; document in BUILD.md                                |
 | **Major** | **`input` fallback** (§4.3): whitespace split into `command`/`args` can widen attack surface vs strict JSON | Model or parser could smuggle tokens past JSON expectations | Prefer **reject** when only `{input: "..."}` for terminal tool in v1, or require explicit `command` + `args` and log `input` path as **major** risk with extra blocklist on joined string |
-| **Minor** | §1 promises **“real-time UI feedback”** while §4.7 marks streaming **optional** after v1 | Marketing mismatch | Change §1 to: “clear feedback (result after run); optional live stream in v1.1” |
-| **Minor** | **`timeoutMs`** (tool args) vs **`maxTimeoutSec`** (config) — two knobs | Implementer confusion | Cap tool arg with `min(timeoutMs, maxTimeoutSec * 1000)` and document in §4.10 |
-| **Minor** | **Line numbers** in §2 (~L493, etc.) drift | Wrong navigation | Add: “Locate by searching `hasExternalTools` / `buildToolsPrompt`” |
-| **Minor** | Playwright E2E assumes **`node` on PATH** in test env | Flaky CI | Use `process.execPath` or skip if `agentTerminal` unsupported in packaged binary test |
+| **Minor** | §1 promises **“real-time UI feedback”** while §4.7 marks streaming **optional** after v1                    | Marketing mismatch                                          | Change §1 to: “clear feedback (result after run); optional live stream in v1.1”                                                                                                           |
+| **Minor** | **`timeoutMs`** (tool args) vs **`maxTimeoutSec`** (config) — two knobs                                     | Implementer confusion                                       | Cap tool arg with `min(timeoutMs, maxTimeoutSec * 1000)` and document in §4.10                                                                                                            |
+| **Minor** | **Line numbers** in §2 (~L493, etc.) drift                                                                  | Wrong navigation                                            | Add: “Locate by searching `hasExternalTools` / `buildToolsPrompt`”                                                                                                                        |
+| **Minor** | Playwright E2E assumes **`node` on PATH** in test env                                                       | Flaky CI                                                    | Use `process.execPath` or skip if `agentTerminal` unsupported in packaged binary test                                                                                                     |
 
 ---
 
@@ -61,45 +61,45 @@
 
 ## 6. Error handling
 
-| Failure | Behavior |
-|---------|----------|
-| `agentTerminal.enabled === false` | No tools in prompt; `builtin.*` returns disabled error text to model |
-| Allowlist / blocklist / cwd | Tool error string in MCP shape; model can explain to user |
-| Timeout | SIGTERM → grace → SIGKILL / Windows equivalent; truncated output note |
-| Spawn ENOENT | Clear “command not found” in tool result |
-| Rate limit exceeded | Tool error; suggest retry later |
+| Failure                           | Behavior                                                              |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `agentTerminal.enabled === false` | No tools in prompt; `builtin.*` returns disabled error text to model  |
+| Allowlist / blocklist / cwd       | Tool error string in MCP shape; model can explain to user             |
+| Timeout                           | SIGTERM → grace → SIGKILL / Windows equivalent; truncated output note |
+| Spawn ENOENT                      | Clear “command not found” in tool result                              |
+| Rate limit exceeded               | Tool error; suggest retry later                                       |
 
 ---
 
 ## 7. Testing strategy (aligned with CLIPLAN §6)
 
-| Layer | Focus |
-|-------|--------|
-| Unit | Path escape, lists, timeout, env whitelist, ANSI, truncation, `input` handling policy |
-| Integration | Mock `chatComplete` returning `TOOL_CALL: builtin.run_terminal_cmd(...)` |
-| E2E | Opt-in + safe command; robust `node` resolution |
+| Layer       | Focus                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------- |
+| Unit        | Path escape, lists, timeout, env whitelist, ANSI, truncation, `input` handling policy |
+| Integration | Mock `chatComplete` returning `TOOL_CALL: builtin.run_terminal_cmd(...)`              |
+| E2E         | Opt-in + safe command; robust `node` resolution                                       |
 
 ---
 
 ## 8. Risk assessment
 
-| Risk | Mitigation |
-|------|------------|
-| `shell: true` + weak validation | Allowlist basename + arg metachar blocklist + no freeform shell |
-| Orphan children on Windows | Document + `taskkill /T` path |
-| Prompt “act immediately” | §4.6 split or softened prompt — **mandatory** |
-| Remote RCE if UI hits shared server | `CC_ALLOW_AGENT_TERMINAL` + bind/loopback policy |
-| Memory growth (rate limit map) | TTL eviction |
+| Risk                                | Mitigation                                                      |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `shell: true` + weak validation     | Allowlist basename + arg metachar blocklist + no freeform shell |
+| Orphan children on Windows          | Document + `taskkill /T` path                                   |
+| Prompt “act immediately”            | §4.6 split or softened prompt — **mandatory**                   |
+| Remote RCE if UI hits shared server | `CC_ALLOW_AGENT_TERMINAL` + bind/loopback policy                |
+| Memory growth (rate limit map)      | TTL eviction                                                    |
 
 ---
 
 ## 9. Self-check (plan-reviewer)
 
-1. **Implementer questions:** Resolved except explicit **non-local** definition and **`input`** policy — **must decide in code review before merge.**  
-2. **Beginning / middle / end:** Yes — phases 0→4.  
-3. **Edge cases:** Largely covered; Windows and `input` need explicit decisions.  
+1. **Implementer questions:** Resolved except explicit **non-local** definition and **`input`** policy — **must decide in code review before merge.**
+2. **Beginning / middle / end:** Yes — phases 0→4.
+3. **Edge cases:** Largely covered; Windows and `input` need explicit decisions.
 4. **Feasible:** Yes within stated effort estimates if streaming deferred per §4.7.
 
 ---
 
-*Generated using the **plan-reviewer** skill workflow.*
+_Generated using the **plan-reviewer** skill workflow._

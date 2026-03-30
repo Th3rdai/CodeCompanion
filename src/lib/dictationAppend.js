@@ -12,8 +12,8 @@
  * @returns {string}
  */
 export function joinAppend(current, chunk) {
-  const a = String(current ?? '').trimEnd();
-  const b = String(chunk ?? '').trim();
+  const a = String(current ?? "").trimEnd();
+  const b = String(chunk ?? "").trim();
   if (!b) return a;
   if (!a) return b;
   return `${a} ${b}`;

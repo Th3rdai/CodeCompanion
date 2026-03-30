@@ -2,7 +2,8 @@
 phase: 06-desktop-app
 plan: 03
 subsystem: desktop-packaging
-tags: [electron-builder, auto-update, github-releases, landing-page, distribution]
+tags:
+  [electron-builder, auto-update, github-releases, landing-page, distribution]
 completed: 2026-03-14
 duration: 209
 tech_stack:
@@ -67,6 +68,7 @@ metrics:
 ## What Was Built
 
 ### 1. electron-builder Configuration (electron-builder.config.js)
+
 - **macOS:** DMG installer + ZIP archive
 - **Windows:** NSIS installer (user-configurable path) + ZIP archive
 - **Linux:** AppImage + ZIP archive
@@ -76,6 +78,7 @@ metrics:
 - **DMG Background:** resources/dmg-background.png with drag-to-Applications layout
 
 ### 2. Auto-Updater with Pre-Update Backup (electron/updater.js)
+
 - **Integration:** electron-updater library with GitHub Releases backend
 - **Startup Check:** Calls `checkForUpdatesAndNotify()` on app launch
 - **Update Available Event:** Sends IPC to renderer with update info
@@ -86,12 +89,14 @@ metrics:
 - **Logging:** Uses electron-log for file-based logging
 
 ### 3. App Branding Assets
+
 - **Icon (1024x1024):** Code bracket `</>` symbol in rounded square with indigo-to-purple gradient
 - **DMG Background (660x400):** Light gradient with "Code Companion" title and "Drag to Applications" instruction
 - **Pipeline:** SVG sources → Node.js sharp conversion → PNG outputs
 - **Conversion Script:** resources/convert-icons.js (run once, outputs checked into repo)
 
 ### 4. GitHub Pages Landing Page (landing/index.html)
+
 - **Design:** Single-page, gradient background, inline CSS (no build step)
 - **Hero Section:** "Code Companion" heading, tagline, description
 - **Download Buttons:** Three platform buttons (macOS DMG, Windows EXE, Linux AppImage) + portable ZIP link
@@ -101,10 +106,12 @@ metrics:
 - **Typography:** System fonts for fast load
 
 ### 5. Integration into Electron Main Process
+
 - **electron/main.js:** Imports and calls `initAutoUpdater(mainWindow, dataDir)` after server spawn
 - **electron/preload.js:** Exposes IPC handlers to renderer (`checkForUpdates`, `restartForUpdate`, `onUpdateAvailable`, `onUpdateDownloaded`)
 
 ### 6. Build Scripts (package.json)
+
 - `electron:build` → Build all platforms using electron-builder.config.js
 - `electron:build:mac` → macOS only
 - `electron:build:win` → Windows only
@@ -113,15 +120,19 @@ metrics:
 ## Architecture Decisions
 
 ### Why Pre-Update Backup?
+
 Auto-updates are convenient but risky. Creating a backup before `quitAndInstall()` ensures users can recover if an update breaks something. Uses the existing `createBackup()` function from data-manager.js for consistency.
 
 ### Why ZIP on All Platforms?
+
 Some users prefer portable apps or can't run installers (corporate policies, permissions issues). Including ZIP archives alongside installers provides maximum flexibility.
 
 ### Why SVG Source Icons?
+
 SVG files are version-controllable, editable, and resolution-independent. The Node.js conversion script ensures consistent PNG output without requiring ImageMagick or other CLI tools.
 
 ### Why Inline CSS for Landing Page?
+
 GitHub Pages deployment is trivial with inline CSS — no build step, no dependencies, instant publish. System fonts ensure fast page load without web font fetching.
 
 ## Deviations from Plan
@@ -131,6 +142,7 @@ None — plan executed exactly as written.
 ## Technical Details
 
 ### Auto-Update Flow
+
 1. App launches → `initAutoUpdater(win, dataDir)` called
 2. Auto-updater checks GitHub Releases for new version
 3. If update available → `update-available` IPC sent to renderer
@@ -139,17 +151,21 @@ None — plan executed exactly as written.
 6. User clicks "Restart" → `autoUpdater.quitAndInstall()` → app restarts with new version
 
 ### Build Output (electron-builder)
+
 - macOS: `release/Code-Companion-{version}.dmg`, `release/Code-Companion-{version}-mac.zip`
 - Windows: `release/Code-Companion-Setup-{version}.exe`, `release/Code-Companion-{version}-win.zip`
 - Linux: `release/Code-Companion-{version}.AppImage`, `release/Code-Companion-{version}-linux.zip`
 
 ### Icon Requirements Met
+
 - **1024x1024 PNG:** ✓ (resources/icon.png)
 - **electron-builder auto-conversion:** ✓ (creates .icns for macOS, .ico for Windows)
 - **DMG background:** ✓ (660x400 PNG with branding)
 
 ### Landing Page Download Links
+
 Uses GitHub Releases latest redirect pattern:
+
 - `https://github.com/th3rdai/code-companion/releases/latest/download/Code-Companion-mac.dmg`
 - `https://github.com/th3rdai/code-companion/releases/latest/download/Code-Companion-Setup.exe`
 - `https://github.com/th3rdai/code-companion/releases/latest/download/Code-Companion.AppImage`
@@ -160,6 +176,7 @@ Uses GitHub Releases latest redirect pattern:
 ## Testing Notes
 
 ### Build Verification
+
 ```bash
 npm run electron:build:mac    # Test DMG and ZIP creation
 npm run electron:build:win    # Test NSIS and ZIP (requires Windows or Wine)
@@ -167,6 +184,7 @@ npm run electron:build:linux  # Test AppImage and ZIP
 ```
 
 ### Auto-Update Testing
+
 1. Publish a test release to GitHub (e.g., v1.0.1)
 2. Run app built from v1.0.0
 3. Verify update-available notification appears
@@ -176,6 +194,7 @@ npm run electron:build:linux  # Test AppImage and ZIP
 7. Verify app version is now v1.0.1
 
 ### Landing Page Verification
+
 ```bash
 # Serve locally
 cd landing
@@ -187,16 +206,19 @@ python3 -m http.server 8000
 ## Integration Points
 
 ### Requires
+
 - `electron/data-manager.js` → `createBackup(dataDir)` function (from Plan 06-01)
 - `electron/main.js` → mainWindow and dataDir available in startApp()
 
 ### Provides
+
 - Auto-update lifecycle for future releases
 - Distributable installers for all three platforms
 - Landing page for public download
 - App branding assets
 
 ### Affects
+
 - **Release Workflow:** Must publish to GitHub Releases with proper version tags
 - **First-Run UX:** Users will encounter unsigned app warnings (documented in landing page)
 - **Data Safety:** Pre-update backups ensure recovery if updates fail
@@ -229,6 +251,7 @@ python3 -m http.server 8000
 Verifying all claims in this SUMMARY...
 
 ### Files Exist
+
 - electron-builder.config.js: ✓
 - electron/updater.js: ✓
 - resources/icon.png: ✓ (1024x1024 PNG)
@@ -236,10 +259,12 @@ Verifying all claims in this SUMMARY...
 - landing/index.html: ✓
 
 ### Commits Exist
+
 - 92d0b84 (Task 1 - electron-builder config and auto-updater): ✓
 - 3d0ceef (Task 2 - landing page): ✓
 
 ### Functionality Verified
+
 - electron-builder config includes mac/win/linux targets with zip: ✓
 - Auto-updater calls createBackup before update: ✓
 - Landing page has download links for all platforms: ✓ (5 matches found)
@@ -250,6 +275,7 @@ Verifying all claims in this SUMMARY...
 ## Summary
 
 Plan 06-03 successfully implemented cross-platform distribution infrastructure:
+
 - **electron-builder** configured for DMG, NSIS, AppImage, and ZIP archives
 - **Auto-updater** integrated with GitHub Releases and pre-update backup safety net
 - **App branding** created with SVG-to-PNG pipeline

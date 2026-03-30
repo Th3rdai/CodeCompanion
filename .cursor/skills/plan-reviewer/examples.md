@@ -32,8 +32,8 @@
 
 ## What-if scenarios
 
-| Situation | Response |
-|-----------|----------|
-| Conflicting requirements | Surface conflict; ask for priority or compromise |
-| Non-technical reader | Short executive summary + technical section |
-| Non-code project | Same sections: feasibility, milestones, risks, verification |
+| Situation                | Response                                                    |
+| ------------------------ | ----------------------------------------------------------- |
+| Conflicting requirements | Surface conflict; ask for priority or compromise            |
+| Non-technical reader     | Short executive summary + technical section                 |
+| Non-code project         | Same sections: feasibility, milestones, risks, verification |

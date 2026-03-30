@@ -1,18 +1,18 @@
-import { useEffect, useRef } from 'react';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import { useEffect, useRef } from "react";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
-export default function OrbitingBadge({ status = 'online', size = 40 }) {
+export default function OrbitingBadge({ status = "online", size = 40 }) {
   const { enabled, theme } = use3DEffects();
   const containerRef = useRef(null);
   const animationIdRef = useRef(null);
 
   const getColor = () => {
     switch (status) {
-      case 'online':
-        return '#22c55e';
-      case 'offline':
-        return '#ef4444';
-      case 'streaming':
+      case "online":
+        return "#22c55e";
+      case "offline":
+        return "#ef4444";
+      case "streaming":
         return theme.primary;
       default:
         return theme.primary;
@@ -20,12 +20,15 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
   };
 
   useEffect(() => {
-    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      !enabled ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       return;
     }
 
     const initBadge = async () => {
-      const THREE = await import('three');
+      const THREE = await import("three");
 
       if (!containerRef.current) return;
 
@@ -77,7 +80,7 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
 
       // Pulsing effect for streaming
       const pulse = () => {
-        if (status === 'streaming') {
+        if (status === "streaming") {
           const scale = 0.8 + Math.sin(Date.now() * 0.005) * 0.2;
           glow.scale.set(scale, scale, scale);
         }
@@ -132,7 +135,7 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
     const cleanup = initBadge().then((fn) => fn);
 
     return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
+      if (cleanup && typeof cleanup.then === "function") {
         cleanup.then((fn) => fn?.());
       }
     };
@@ -141,14 +144,16 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
   if (!enabled) {
     const dotColor = getColor();
     return (
-      <span style={{
-        display: 'inline-block',
-        width: 10,
-        height: 10,
-        borderRadius: '50%',
-        backgroundColor: dotColor,
-        boxShadow: `0 0 6px ${dotColor}`,
-      }} />
+      <span
+        style={{
+          display: "inline-block",
+          width: 10,
+          height: 10,
+          borderRadius: "50%",
+          backgroundColor: dotColor,
+          boxShadow: `0 0 6px ${dotColor}`,
+        }}
+      />
     );
   }
 
@@ -158,7 +163,7 @@ export default function OrbitingBadge({ status = 'online', size = 40 }) {
       style={{
         width: size,
         height: size,
-        display: 'inline-block',
+        display: "inline-block",
       }}
     />
   );

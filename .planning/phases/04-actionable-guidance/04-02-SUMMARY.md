@@ -20,7 +20,8 @@ affects: [05-polish, 06-testing]
 # Tech tracking
 tech-stack:
   added: []
-  patterns: [model-tier-detection, suspicion-detection, incremental-history-save]
+  patterns:
+    [model-tier-detection, suspicion-detection, incremental-history-save]
 
 key-files:
   created: []
@@ -59,6 +60,7 @@ completed: 2026-03-14
 - **Files modified:** 4
 
 ## Accomplishments
+
 - Replaced regex-based model warnings with empirical 3-tier system (strong/adequate/weak) covering 40+ model variants
 - Added pre-review warning with "Switch" button that suggests and auto-selects best available installed model
 - Added post-review suspicion banner detecting weak models with suspiciously good grades
@@ -73,12 +75,14 @@ Each task was committed atomically:
 2. **Task 2: Review history persistence with grade badge and deep-dive restore** - `9ecae81` (feat)
 
 ## Files Created/Modified
+
 - `src/components/ReviewPanel.jsx` - MODEL_TIERS, getModelTier(), suggestBetterModel(), pre-review warning with Switch, post-review suspicion banner, deep-dive persistence
 - `src/components/Sidebar.jsx` - Grade badge rendering with color-coded A-F grades
 - `src/App.jsx` - Pass models/onSetSelectedModel/onUpdateReviewDeepDive to ReviewPanel, restore deepDiveMessages on load
 - `lib/history.js` - Extract overallGrade from reviewData in listConversations
 
 ## Decisions Made
+
 - Used empirical MODEL_TIERS object rather than purely regex-based detection for more accurate model classification
 - Parameter-count regex serves as fallback for models not in the tier list
 - Deep-dive messages saved incrementally (after each response) rather than on unmount to prevent data loss
@@ -97,10 +101,12 @@ None
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Review mode now fully persistent with grade badges and model-aware warnings
 - Deep-dive conversations survive browser refresh and history navigation
 - Ready for Phase 5 polish and Phase 6 testing
 
 ---
-*Phase: 04-actionable-guidance*
-*Completed: 2026-03-14*
+
+_Phase: 04-actionable-guidance_
+_Completed: 2026-03-14_

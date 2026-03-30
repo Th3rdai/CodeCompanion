@@ -3,18 +3,18 @@
 **Status:** **Implemented — living reference document**
 **Created:** 2026-03-20  
 **Last review:** 2026-03-23 — `generate_office_file` + `sourcePath` (§4.11)
-**Audience:** Implementing agents, security review, UX  
+**Audience:** Implementing agents, security review, UX
 
 **Post-implementation review:** Verified 2026-03-20 — **`npm run test:unit`** passes (116 tests, 0 failures); acceptance criteria in §8 treated as met for shipped v1 (optional items remain §4.7 / Phase 4).
 
 ### Readiness snapshot
 
-| Area | Verdict |
-|------|---------|
-| Integration points | `server.js` `/api/chat` tool loop + `ToolCallHandler` — confirmed |
-| Security model | Opt-in, cwd, allow/block lists, env whitelist — coherent |
+| Area                           | Verdict                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Integration points             | `server.js` `/api/chat` tool loop + `ToolCallHandler` — confirmed                                 |
+| Security model                 | Opt-in, cwd, allow/block lists, env whitelist — coherent                                          |
 | **Corrections in this review** | §4.3 spawn example (no invalid `timeout`); §4.4.6 rate limit scope; §4.6 model behavior clarified |
-| Optional scope trim | §4.7 streaming SSE can ship **after** Phase 2 “execute + final result” if schedule slips |
+| Optional scope trim            | §4.7 streaming SSE can ship **after** Phase 2 “execute + final result” if schedule slips          |
 
 ---
 
@@ -41,30 +41,30 @@ Enable the **in-app LLM agent** (Ollama chat in Code Companion) to run **approve
 
 ## 2. Current architecture (verified)
 
-| Piece | Location | Detail |
-|-------|----------|--------|
-| Chat SSE endpoint | `server.js` (`app.post('/api/chat', …)`) | Streams tokens via SSE; injects system prompt with tool list — **search** `hasAgentTools` if line numbers drift |
-| Tool call handler | `lib/tool-call-handler.js` L1–85 | Regex: `TOOL_CALL:\s*(\S+?)\.(\S+?)\(([\s\S]*?)\)` parses serverId.toolName(args) |
-| Tool prompt | `tool-call-handler.js` ~L80–104 | `buildToolsPrompt()` → `- serverId.toolName: description` format — search `buildToolsPrompt` |
-| Tool dispatch | `tool-call-handler.js` ~L58–77 | `executeTool()` → `mcpClient.callTool()` — search `executeTool` |
-| Tool loop gate | `server.js` ~L559 | `hasAgentTools = toolsPrompt.length > 0` — loop skipped when false |
-| Tool loop | `server.js` ~L639–721 | `MAX_ROUNDS = 5`, uses `chatComplete` (non-streaming), feeds results back as user messages |
-| MCP client | `lib/mcp-client-manager.js` L108–114 | `callTool()` returns MCP `CallToolResult` shape: `{content: [{type:'text', text:'...'}]}` |
-| Config | `lib/config.js` | `loadConfig()` already **deep-merges** `memory`, `imageSupport`, `docling`; add **`agentTerminal`** the same way. `updateConfig()` still uses shallow `Object.assign` on the root — POST `/api/config` must **merge** `agentTerminal` fields, not replace the whole object unless intentional |
-| Existing exec | `lib/github.js` | Uses `execSync`, `execFileSync` for git ops with path validation + timeouts |
+| Piece             | Location                                 | Detail                                                                                                                                                                                                                                                                                        |
+| ----------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat SSE endpoint | `server.js` (`app.post('/api/chat', …)`) | Streams tokens via SSE; injects system prompt with tool list — **search** `hasAgentTools` if line numbers drift                                                                                                                                                                               |
+| Tool call handler | `lib/tool-call-handler.js` L1–85         | Regex: `TOOL_CALL:\s*(\S+?)\.(\S+?)\(([\s\S]*?)\)` parses serverId.toolName(args)                                                                                                                                                                                                             |
+| Tool prompt       | `tool-call-handler.js` ~L80–104          | `buildToolsPrompt()` → `- serverId.toolName: description` format — search `buildToolsPrompt`                                                                                                                                                                                                  |
+| Tool dispatch     | `tool-call-handler.js` ~L58–77           | `executeTool()` → `mcpClient.callTool()` — search `executeTool`                                                                                                                                                                                                                               |
+| Tool loop gate    | `server.js` ~L559                        | `hasAgentTools = toolsPrompt.length > 0` — loop skipped when false                                                                                                                                                                                                                            |
+| Tool loop         | `server.js` ~L639–721                    | `MAX_ROUNDS = 5`, uses `chatComplete` (non-streaming), feeds results back as user messages                                                                                                                                                                                                    |
+| MCP client        | `lib/mcp-client-manager.js` L108–114     | `callTool()` returns MCP `CallToolResult` shape: `{content: [{type:'text', text:'...'}]}`                                                                                                                                                                                                     |
+| Config            | `lib/config.js`                          | `loadConfig()` already **deep-merges** `memory`, `imageSupport`, `docling`; add **`agentTerminal`** the same way. `updateConfig()` still uses shallow `Object.assign` on the root — POST `/api/config` must **merge** `agentTerminal` fields, not replace the whole object unless intentional |
+| Existing exec     | `lib/github.js`                          | Uses `execSync`, `execFileSync` for git ops with path validation + timeouts                                                                                                                                                                                                                   |
 
-**Critical finding:** The tool prompt at ~L90–94 says *"USE IT IMMEDIATELY — do NOT ask for permission"*. This is **dangerous for terminal commands** and must be overridden.
+**Critical finding:** The tool prompt at ~L90–94 says _"USE IT IMMEDIATELY — do NOT ask for permission"_. This is **dangerous for terminal commands** and must be overridden.
 
 ---
 
 ## 3. Approach: Option B — Builtin tool registry
 
-| Option | Verdict |
-|--------|---------|
-| A. External MCP only | Rejected — poor UX; tool loop off when no MCP |
+| Option                                                | Verdict                                                                      |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------- |
+| A. External MCP only                                  | Rejected — poor UX; tool loop off when no MCP                                |
 | **B. Builtin tool registry** (`serverId = 'builtin'`) | **Selected** — works out of the box; same TOOL_CALL format; single code path |
-| C. Separate `/api/agent/exec` | Rejected — duplicates plumbing |
-| D. Ollama native tools JSON | Rejected — inconsistent support |
+| C. Separate `/api/agent/exec`                         | Rejected — duplicates plumbing                                               |
+| D. Ollama native tools JSON                           | Rejected — inconsistent support                                              |
 
 ---
 
@@ -87,13 +87,13 @@ Enable the **in-app LLM agent** (Ollama chat in Code Companion) to run **approve
 
 **Schema:**
 
-| Field | Type | Default | Notes |
-|-------|------|---------|-------|
-| `command` | string | required | Binary name (e.g. `npm`, `node`, `git`) |
-| `args` | string[] | `[]` | Arguments array — no shell interpolation |
-| `input` | string | — | **Fallback only** — `_parseArgs` may wrap non-JSON as `{input: "..."}`. **Higher risk** than structured JSON. **v1 recommendation:** reject terminal execution when only `input` is present, or apply **strict** blocklist on the full string and treat as experimental — see **`docs/CLIPLAN-plan-review.md`** §2. |
-| `cwd` | string | `config.projectFolder` | Must resolve within projectFolder |
-| `timeoutMs` | number | from config `maxTimeoutSec` | Effective timeout = **min(`timeoutMs` if set, `maxTimeoutSec * 1000`)**, capped at 300000 (5 min) |
+| Field       | Type     | Default                     | Notes                                                                                                                                                                                                                                                                                                               |
+| ----------- | -------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command`   | string   | required                    | Binary name (e.g. `npm`, `node`, `git`)                                                                                                                                                                                                                                                                             |
+| `args`      | string[] | `[]`                        | Arguments array — no shell interpolation                                                                                                                                                                                                                                                                            |
+| `input`     | string   | —                           | **Fallback only** — `_parseArgs` may wrap non-JSON as `{input: "..."}`. **Higher risk** than structured JSON. **v1 recommendation:** reject terminal execution when only `input` is present, or apply **strict** blocklist on the full string and treat as experimental — see **`docs/CLIPLAN-plan-review.md`** §2. |
+| `cwd`       | string   | `config.projectFolder`      | Must resolve within projectFolder                                                                                                                                                                                                                                                                                   |
+| `timeoutMs` | number   | from config `maxTimeoutSec` | Effective timeout = **min(`timeoutMs` if set, `maxTimeoutSec * 1000`)**, capped at 300000 (5 min)                                                                                                                                                                                                                   |
 
 **Execution (Node `child_process.spawn` — real API):**
 
@@ -105,17 +105,17 @@ const proc = spawn(command, args, {
   shell: true, // Required for npm/yarn/npx on Windows (batch/cmd) and many Unix setups
   detached: true, // Often used so the child becomes group leader → `kill(-pid)` can reap npm children (verify per OS)
   env: getWhitelistedEnv(), // §4.5
-  stdio: ['ignore', 'pipe', 'pipe'],
+  stdio: ["ignore", "pipe", "pipe"],
 });
 const timer = setTimeout(() => {
   try {
-    process.kill(-proc.pid, 'SIGTERM');
+    process.kill(-proc.pid, "SIGTERM");
   } catch (_) {
-    proc.kill('SIGTERM');
+    proc.kill("SIGTERM");
   }
   // …after grace, SIGKILL (§4.3 escalation)
 }, timeoutMs);
-proc.on('close', () => clearTimeout(timer));
+proc.on("close", () => clearTimeout(timer));
 ```
 
 **Why `shell: true`:** `npm`, `yarn`, `npx` are often scripts, not single ELF binaries. **`shell: false`** is stricter but breaks common workflows on Windows. Mitigate with **basename allowlist**, **arg metachar blocklist**, and **no arbitrary shell strings** (still pass `command` + `args` array; avoid concatenating a user-controlled one-liner).
@@ -123,12 +123,14 @@ proc.on('close', () => clearTimeout(timer));
 **Cross-platform:** Consider **`cross-spawn`** (already common in Node ecosystems) if raw `spawn` + `shell: true` behaves inconsistently in CI; document the choice in code comments.
 
 **Output processing:**
+
 - Capture stdout + stderr combined (bounded at **256 KB**)
 - **Strip ANSI escape codes** before storing: `output.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')`
 - Record exit code and duration
 - Return MCP-compatible shape: `{content: [{type: 'text', text: '...'}]}`
 
 **Timeout escalation:**
+
 1. `SIGTERM` on timeout (or `proc.kill` if group kill unavailable)
 2. Wait ~3 seconds
 3. `process.kill(-proc.pid, 'SIGKILL')` when POSIX process groups apply — **Windows behavior differs**; use `taskkill /T /F` or `proc.kill` + documented limitation for orphan npm children on Win32
@@ -140,7 +142,7 @@ proc.on('close', () => clearTimeout(timer));
 2. **Working directory:**
    - Default: `config.projectFolder`
    - `cwd` arg must resolve within projectFolder (after `fs.realpathSync`)
-   - If projectFolder unset → **deny** with message: *"Set a project folder in Settings to use the agent terminal"*
+   - If projectFolder unset → **deny** with message: _"Set a project folder in Settings to use the agent terminal"_
 
 3. **Allowlist (v1 default — empty until user configures):**
    - Configurable list in `.cc-config.json` and Settings UI
@@ -167,11 +169,29 @@ When spawning processes, pass only safe env vars:
 ```javascript
 function getWhitelistedEnv() {
   const safe = {};
-  const ALLOW = ['PATH', 'HOME', 'USER', 'SHELL', 'LANG', 'LC_ALL', 'TERM',
-    'NODE_ENV', 'GOPATH', 'GOROOT', 'CARGO_HOME', 'RUSTUP_HOME',
-    'PYTHON', 'PYTHONPATH', 'VIRTUAL_ENV', 'CONDA_DEFAULT_ENV',
-    'npm_config_registry', 'EDITOR',
-    'TMPDIR', 'TMP', 'TEMP'];  // Build tools need temp dirs
+  const ALLOW = [
+    "PATH",
+    "HOME",
+    "USER",
+    "SHELL",
+    "LANG",
+    "LC_ALL",
+    "TERM",
+    "NODE_ENV",
+    "GOPATH",
+    "GOROOT",
+    "CARGO_HOME",
+    "RUSTUP_HOME",
+    "PYTHON",
+    "PYTHONPATH",
+    "VIRTUAL_ENV",
+    "CONDA_DEFAULT_ENV",
+    "npm_config_registry",
+    "EDITOR",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+  ]; // Build tools need temp dirs
   for (const key of ALLOW) {
     if (process.env[key]) safe[key] = process.env[key];
   }
@@ -181,7 +201,7 @@ function getWhitelistedEnv() {
 
 ### 4.6 Tool prompt safety override (resolve tension with MCP text)
 
-The existing MCP block in `buildToolsPrompt()` says *"USE IT IMMEDIATELY — do NOT ask for permission"*. That is **appropriate for read-only MCP tools** but **wrong for terminal execution**.
+The existing MCP block in `buildToolsPrompt()` says _"USE IT IMMEDIATELY — do NOT ask for permission"_. That is **appropriate for read-only MCP tools** but **wrong for terminal execution**.
 
 **Required implementation approach (pick one, document in code):**
 
@@ -209,33 +229,41 @@ TERMINAL TOOL SAFETY:
 
 ```javascript
 // In the tool loop, when executing a terminal command:
-res.write(`data: ${JSON.stringify({
-  toolCallRound: round,
-  terminalCmd: { command, args, cwd },
-  terminalStatus: 'running'
-})}\n\n`);
+res.write(
+  `data: ${JSON.stringify({
+    toolCallRound: round,
+    terminalCmd: { command, args, cwd },
+    terminalStatus: "running",
+  })}\n\n`,
+);
 
 // Stream stdout chunks as they arrive:
-proc.stdout.on('data', (chunk) => {
-  res.write(`data: ${JSON.stringify({
-    terminalOutput: stripAnsi(chunk.toString()),
-    terminalStream: 'stdout'
-  })}\n\n`);
+proc.stdout.on("data", (chunk) => {
+  res.write(
+    `data: ${JSON.stringify({
+      terminalOutput: stripAnsi(chunk.toString()),
+      terminalStream: "stdout",
+    })}\n\n`,
+  );
 });
 
-proc.stderr.on('data', (chunk) => {
-  res.write(`data: ${JSON.stringify({
-    terminalOutput: stripAnsi(chunk.toString()),
-    terminalStream: 'stderr'
-  })}\n\n`);
+proc.stderr.on("data", (chunk) => {
+  res.write(
+    `data: ${JSON.stringify({
+      terminalOutput: stripAnsi(chunk.toString()),
+      terminalStream: "stderr",
+    })}\n\n`,
+  );
 });
 
 // On completion:
-res.write(`data: ${JSON.stringify({
-  terminalStatus: 'done',
-  terminalExitCode: code,
-  terminalDuration: durationMs
-})}\n\n`);
+res.write(
+  `data: ${JSON.stringify({
+    terminalStatus: "done",
+    terminalExitCode: code,
+    terminalDuration: durationMs,
+  })}\n\n`,
+);
 ```
 
 Frontend renders these in a collapsible `<pre>` block within the chat stream.
@@ -245,7 +273,8 @@ Frontend renders these in a collapsible `<pre>` block within the chat stream.
 **`builtin`** must be rejected when saving MCP client config. Add validation in `lib/mcp-api-routes.js` and/or `lib/mcp-client-manager.js`:
 
 ```javascript
-if (id === 'builtin') return res.status(400).json({ error: '"builtin" is a reserved ID' });
+if (id === "builtin")
+  return res.status(400).json({ error: '"builtin" is a reserved ID' });
 ```
 
 ### 4.9 Tool result shape (MCP compatibility)
@@ -258,9 +287,12 @@ return {
   success: true,
   result: {
     content: [
-      { type: 'text', text: `Exit code: ${exitCode}\nDuration: ${duration}ms\n\n${output}` }
-    ]
-  }
+      {
+        type: "text",
+        text: `Exit code: ${exitCode}\nDuration: ${duration}ms\n\n${output}`,
+      },
+    ],
+  },
 };
 ```
 
@@ -279,15 +311,20 @@ agentTerminal: {
 ```
 
 Deep merge in `loadConfig()`:
+
 ```javascript
 agentTerminal: { ...defaults.agentTerminal, ...(saved.agentTerminal || {}) },
 ```
 
 POST `/api/config` handler:
+
 ```javascript
 if (req.body.agentTerminal !== undefined) {
   config.agentTerminal = { ...config.agentTerminal, ...req.body.agentTerminal };
-  log('INFO', `Agent terminal config updated: enabled=${config.agentTerminal.enabled}`);
+  log(
+    "INFO",
+    `Agent terminal config updated: enabled=${config.agentTerminal.enabled}`,
+  );
 }
 ```
 
@@ -345,26 +382,26 @@ See **`lib/builtin-agent-tools.js`**, **`docs/EXPORT-CHAT.md`**, **`tests/unit/b
 
 ## 6. Testing strategy
 
-| Layer | Tests |
-|-------|--------|
-| Unit | `builtin-agent-tools.js` — path escape, blocklist, allowlist, timeout, env whitelist, ANSI strip, output truncation, binary not found, result shape |
-| Integration | `/api/chat` with mocked Ollama returning `TOOL_CALL: builtin.run_terminal_cmd(...)` → assert spawn called with expected argv |
-| E2E | Settings toggle + `node -e "console.log('ok')"` → verify output in chat |
+| Layer       | Tests                                                                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit        | `builtin-agent-tools.js` — path escape, blocklist, allowlist, timeout, env whitelist, ANSI strip, output truncation, binary not found, result shape |
+| Integration | `/api/chat` with mocked Ollama returning `TOOL_CALL: builtin.run_terminal_cmd(...)` → assert spawn called with expected argv                        |
+| E2E         | Settings toggle + `node -e "console.log('ok')"` → verify output in chat                                                                             |
 
 ---
 
 ## 7. Files to modify/create
 
-| File | Change |
-|------|--------|
-| `lib/config.js` | Add `agentTerminal` defaults + deep merge |
-| `lib/builtin-agent-tools.js` | **NEW** — tool registry + execution |
-| `lib/tool-call-handler.js` | Constructor change; merge builtin in `buildToolsPrompt`; route in `executeTool` |
-| `lib/mcp-api-routes.js` | Reject `builtin` as MCP client id |
-| `server.js` | `hasAgentTools` gate; POST config merge for `agentTerminal`; optional SSE terminal stream events (§4.7) |
-| `src/components/SettingsPanel.jsx` | Agent Terminal section |
-| `src/App.jsx` | Chat UI for tool results; **optional** `terminalOutput` / `terminalStatus` SSE (§4.7) |
-| `tests/unit/builtin-agent-tools.test.js` | **NEW** — unit tests |
+| File                                     | Change                                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `lib/config.js`                          | Add `agentTerminal` defaults + deep merge                                                               |
+| `lib/builtin-agent-tools.js`             | **NEW** — tool registry + execution                                                                     |
+| `lib/tool-call-handler.js`               | Constructor change; merge builtin in `buildToolsPrompt`; route in `executeTool`                         |
+| `lib/mcp-api-routes.js`                  | Reject `builtin` as MCP client id                                                                       |
+| `server.js`                              | `hasAgentTools` gate; POST config merge for `agentTerminal`; optional SSE terminal stream events (§4.7) |
+| `src/components/SettingsPanel.jsx`       | Agent Terminal section                                                                                  |
+| `src/App.jsx`                            | Chat UI for tool results; **optional** `terminalOutput` / `terminalStatus` SSE (§4.7)                   |
+| `tests/unit/builtin-agent-tools.test.js` | **NEW** — unit tests                                                                                    |
 
 ---
 
@@ -407,4 +444,4 @@ See **`lib/builtin-agent-tools.js`**, **`docs/EXPORT-CHAT.md`**, **`tests/unit/b
 
 ---
 
-*End of CLIPLAN — update this document as decisions are made.*
+_End of CLIPLAN — update this document as decisions are made._

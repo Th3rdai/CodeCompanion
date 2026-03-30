@@ -29,6 +29,7 @@
 Explore the codebase to understand:
 
 **What validation tools already exist:**
+
 - Linting config: `.eslintrc*`, `.pylintrc`, `ruff.toml`, etc.
 - Type checking: `tsconfig.json`, `mypy.ini`, etc.
 - Style/formatting: `.prettierrc*`, `black`, `.editorconfig`
@@ -36,12 +37,14 @@ Explore the codebase to understand:
 - Package manager scripts: `package.json` scripts, `Makefile`, `pyproject.toml` tools
 
 **What the application does:**
+
 - Frontend: Routes, pages, components, user flows
 - Backend: API endpoints, authentication, database operations
 - Database: Schema, migrations, models
 - Infrastructure: Docker services, dependencies
 
 **How things are currently tested:**
+
 - Existing test files and patterns
 - CI/CD workflows (`.github/workflows/`, etc.)
 - Test commands in package.json or scripts
@@ -49,7 +52,8 @@ Explore the codebase to understand:
 ## Step 2: Generate validate from the example template
 
 **Follow the structure of example-validate.md:**
-- Title and short description for *this* codebase
+
+- Title and short description for _this_ codebase
 - Phase 1: Linting (actual linter commands found in the project)
 - Phase 2: Type Checking (actual type checker commands)
 - Phase 3: Style Checking (actual formatter check commands)
@@ -60,6 +64,7 @@ Explore the codebase to understand:
 **Only include phases that exist in the codebase.** Adapt paths and commands to this project (e.g. no `frontend/`/`backend/` if the project has a different layout).
 
 **E2E (from validation/ultimate_validate_command.md):**
+
 1. Internal APIs - endpoints, DB, commands
 2. External integrations - CLIs, platform APIs
 3. Complete user journeys from docs

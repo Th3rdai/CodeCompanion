@@ -7,15 +7,18 @@ Both auto-start options have been implemented:
 ### Option 1: Server-Level Auto-Start
 
 **What it does:**
+
 - `server.js` automatically starts `docling-serve` when the web server starts
 - Gracefully shuts down docling-serve when the server stops
 - No manual intervention needed
 
 **Files modified:**
+
 - ✅ Created `lib/docling-starter.js` - Auto-start module
 - ✅ Modified `server.js` - Added imports, startup call, shutdown handlers
 
 **How to use:**
+
 ```bash
 node server.js
 ```
@@ -27,23 +30,27 @@ That's it! Docling-serve will start automatically in the background.
 ### Option 2: Enhanced Startup Script
 
 **What it does:**
+
 - `startup.sh` now manages docling-serve lifecycle
 - Stops old instances before starting
 - Reports docling health status
 - Includes docling in the startup summary
 
 **Files modified:**
+
 - ✅ Enhanced `startup.sh` - Added 7 steps (was 6), docling management
 - ✅ Created `start.sh` - Quick start script (minimal output)
 
 **How to use:**
 
 **Full startup with checks:**
+
 ```bash
 ./startup.sh
 ```
 
 **Quick start:**
+
 ```bash
 ./start.sh
 ```
@@ -64,12 +71,14 @@ That's it! Docling-serve will start automatically in the background.
 ### Smart Detection
 
 **Finds docling-serve in:**
+
 - ✅ System PATH
 - ✅ `~/.local/bin/docling-serve` (uv, pipx)
 - ✅ `~/.cargo/bin/docling-serve`
 - ✅ `$UV_TOOL_BIN_DIR/docling-serve`
 
 **Skip conditions:**
+
 - Already running (healthy response on port 5002)
 - Disabled in settings
 - Not installed (shows install instructions)
@@ -105,17 +114,20 @@ $ node -c server.js
 ### First Time Setup
 
 1. **Install docling-serve:**
+
    ```bash
    uv tool install "docling-serve[ui]"
    ```
 
 2. **Verify installation:**
+
    ```bash
    which docling-serve
    # Should show: /Users/yourname/.local/bin/docling-serve
    ```
 
 3. **Start Code Companion:**
+
    ```bash
    ./start.sh
    # or
@@ -136,13 +148,13 @@ $ node -c server.js
 
 **Settings → Docling:**
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| URL | `http://127.0.0.1:5002` | Docling server endpoint |
-| Enabled | `true` | Toggle document conversion |
-| OCR | `true` | Enable optical character recognition |
-| OCR Engine | `easyocr` | OCR engine (easyocr or tesseract) |
-| Max File Size | `50` MB | Maximum document size |
+| Setting       | Default                 | Description                          |
+| ------------- | ----------------------- | ------------------------------------ |
+| URL           | `http://127.0.0.1:5002` | Docling server endpoint              |
+| Enabled       | `true`                  | Toggle document conversion           |
+| OCR           | `true`                  | Enable optical character recognition |
+| OCR Engine    | `easyocr`               | OCR engine (easyocr or tesseract)    |
+| Max File Size | `50` MB                 | Maximum document size                |
 
 ---
 
@@ -151,6 +163,7 @@ $ node -c server.js
 ### "Test Connection Failed: fetch failed"
 
 **Solution:**
+
 ```bash
 # Check if docling is running
 curl http://127.0.0.1:5002/health
@@ -162,6 +175,7 @@ docling-serve run --host 127.0.0.1 --port 5002
 ### "docling-serve not found"
 
 **Solution:**
+
 ```bash
 uv tool install "docling-serve[ui]"
 ```
@@ -169,6 +183,7 @@ uv tool install "docling-serve[ui]"
 ### Port 5002 already in use
 
 **Solution:**
+
 ```bash
 # Find and kill the process
 lsof -ti:5002 | xargs kill
@@ -185,6 +200,7 @@ lsof -ti:5002 | xargs kill
 📖 **Full documentation:** `docs/DOCLING-AUTO-START.md`
 
 Covers:
+
 - Detailed architecture
 - All configuration options
 - Troubleshooting guide
@@ -197,12 +213,14 @@ Covers:
 ## Files Created/Modified
 
 ### Created
+
 - ✅ `lib/docling-starter.js` - Auto-start module
 - ✅ `start.sh` - Quick start script
 - ✅ `docs/DOCLING-AUTO-START.md` - Full documentation
 - ✅ `docs/DOCLING-AUTO-START-SUMMARY.md` - This file
 
 ### Modified
+
 - ✅ `server.js` - Imports, startup, shutdown
 - ✅ `startup.sh` - 7 steps, docling management
 - ✅ `CLAUDE.md` - Updated documentation
@@ -225,6 +243,7 @@ Covers:
 ## Next Steps
 
 1. **Test auto-start:**
+
    ```bash
    # Stop everything
    pkill -f docling-serve

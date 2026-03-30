@@ -16,11 +16,11 @@ Use this guide to add the context-engineering workflow commands to **any** proje
 
 Copy the `.md` command files from the source folder into the paths below **inside your project**. Create parent directories if they don't exist.
 
-| IDE / Product        | Commands location (under project root) |
-|----------------------|----------------------------------------|
-| **Cursor**           | `.cursor/commands/`                     |
-| **Cursor (prompts)** | `.cursor/prompts/` (optional; same content as commands) |
-| **Claude Code**      | `.claude/commands/`                    |
+| IDE / Product        | Commands location (under project root)                   |
+| -------------------- | -------------------------------------------------------- |
+| **Cursor**           | `.cursor/commands/`                                      |
+| **Cursor (prompts)** | `.cursor/prompts/` (optional; same content as commands)  |
+| **Claude Code**      | `.claude/commands/`                                      |
 | **VS Code Copilot**  | `.github/prompts/` (use `.prompt.md` suffix if required) |
 
 ### Files to copy

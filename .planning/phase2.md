@@ -15,9 +15,11 @@ Phase 2 implements the core user-facing image upload and display functionality i
 ## ✅ Completed Tasks
 
 ### Task 2.1: Update Attachment State Structure
+
 **Status**: ✅ Complete
 
 **Changes**:
+
 - Updated `AttachedFiles` component to support both text and image files
 - Images render using `ImageThumbnail` component
 - Text files render as before with file chips
@@ -39,10 +41,12 @@ Phase 2 implements the core user-facing image upload and display functionality i
 ---
 
 ### Task 2.2: Update File Upload Handler
+
 **Status**: ✅ Complete
 **File**: `src/App.jsx` (handleFileUpload function)
 
 **Features**:
+
 - Detects image files via MIME type (`file.type.startsWith('image/')`)
 - Validates images using `validateImage()` from `src/lib/image-processor.js`
 - Processes images (resize, compress, thumbnail generation)
@@ -52,6 +56,7 @@ Phase 2 implements the core user-facing image upload and display functionality i
 - Fetches config from `/api/config` for validation limits
 
 **Processing Flow**:
+
 1. Check if file is image (MIME type)
 2. Increment processing counter
 3. Fetch config from server
@@ -65,10 +70,12 @@ Phase 2 implements the core user-facing image upload and display functionality i
 ---
 
 ### Task 2.3: Add Clipboard Paste Support
+
 **Status**: ✅ Complete
 **File**: `src/App.jsx` (handlePasteImage function)
 
 **Features**:
+
 - New `handlePasteImage()` async function
 - Detects image data in clipboard (`item.type.startsWith('image/')`)
 - Processes pasted screenshots and copied images
@@ -78,6 +85,7 @@ Phase 2 implements the core user-facing image upload and display functionality i
 - Attached to textarea via `onPaste={handlePasteImage}`
 
 **User Experience**:
+
 - Take screenshot → paste into textarea → image attaches automatically
 - Copy image from browser → paste → image attaches
 - Shows toast: "✓ Image pasted from clipboard"
@@ -85,12 +93,15 @@ Phase 2 implements the core user-facing image upload and display functionality i
 ---
 
 ### Task 2.4: Update Attachment Display UI
+
 **Status**: ✅ Complete
 **Files**:
+
 - `src/App.jsx` (AttachedFiles component)
 - Updated file input accept attribute
 
 **Features**:
+
 - Renders `ImageThumbnail` for images
 - Renders traditional file chips for text files
 - Individual remove buttons for each attachment
@@ -101,6 +112,7 @@ Phase 2 implements the core user-facing image upload and display functionality i
   ```
 
 **AttachedFiles Component**:
+
 ```jsx
 function AttachedFiles({ files, onRemove, onImageClick }) {
   return (
@@ -120,37 +132,43 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
 ---
 
 ### Task 2.5: Update Message Sending Logic
+
 **Status**: ✅ Complete
 **File**: `src/App.jsx` (handleSend, buildUserContent functions)
 
 **Changes**:
+
 1. **buildUserContent** - Filters out images (sent separately)
+
    ```javascript
-   const textFiles = files.filter(f => f.type !== 'image' && !f.isImage);
+   const textFiles = files.filter((f) => f.type !== "image" && !f.isImage);
    ```
 
 2. **handleSend** - Extracts images and sends to API
+
    ```javascript
-   const imageFiles = attachedFiles.filter(f => f.type === 'image' || f.isImage);
-   const images = imageFiles.map(img => img.content); // Array of base64 (NO prefix)
+   const imageFiles = attachedFiles.filter(
+     (f) => f.type === "image" || f.isImage,
+   );
+   const images = imageFiles.map((img) => img.content); // Array of base64 (NO prefix)
 
    const userMsg = {
-     role: 'user',
+     role: "user",
      content,
-     ...(images.length > 0 && { images }) // Optional images field
+     ...(images.length > 0 && { images }), // Optional images field
    };
    ```
 
 3. **API Request** - Sends images array
    ```javascript
-   fetch('/api/chat', {
-     method: 'POST',
+   fetch("/api/chat", {
+     method: "POST",
      body: JSON.stringify({
        model: selectedModel,
        mode,
-       messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-       ...(images.length > 0 && { images })
-     })
+       messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+       ...(images.length > 0 && { images }),
+     }),
    });
    ```
 
@@ -159,12 +177,15 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
 ---
 
 ### Task 2.6: Display Images in Chat History
+
 **Status**: ✅ Complete
 **Files**:
+
 - `src/components/MessageBubble.jsx` (updated)
 - `src/App.jsx` (message rendering)
 
 **MessageBubble Updates**:
+
 - Added `images` and `onImageClick` props
 - Renders images in 2-column grid below text content
 - Reconstructs data URI for display (images stored as raw base64)
@@ -172,23 +193,30 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
 - Only user messages show images (assistant messages don't have images)
 
 ```jsx
-{hasImages && (
-  <div className="grid grid-cols-2 gap-2 mt-3">
-    {images.map((imgBase64, idx) => {
-      const src = imgBase64.startsWith('data:') ? imgBase64 : `data:image/jpeg;base64,${imgBase64}`;
-      return (
-        <img
-          src={src}
-          onClick={() => onImageClick(imgBase64, `image-${idx+1}`, images, idx)}
-          className="rounded border cursor-pointer hover:opacity-80"
-        />
-      );
-    })}
-  </div>
-)}
+{
+  hasImages && (
+    <div className="grid grid-cols-2 gap-2 mt-3">
+      {images.map((imgBase64, idx) => {
+        const src = imgBase64.startsWith("data:")
+          ? imgBase64
+          : `data:image/jpeg;base64,${imgBase64}`;
+        return (
+          <img
+            src={src}
+            onClick={() =>
+              onImageClick(imgBase64, `image-${idx + 1}`, images, idx)
+            }
+            className="rounded border cursor-pointer hover:opacity-80"
+          />
+        );
+      })}
+    </div>
+  );
+}
 ```
 
 **App.jsx Rendering**:
+
 ```jsx
 <MessageBubble
   role={msg.role}
@@ -201,15 +229,20 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
 ---
 
 ### Task 2.7: Update Conversation History Storage
+
 **Status**: ✅ Complete
 **File**: `lib/history.js`
 
 **Changes**:
+
 1. **saveConversation** - Added file size warning
+
    ```javascript
-   const sizeInMB = Buffer.byteLength(jsonString, 'utf8') / (1024 * 1024);
+   const sizeInMB = Buffer.byteLength(jsonString, "utf8") / (1024 * 1024);
    if (sizeInMB > 5) {
-     console.warn(`Conversation ${data.id} is large (${sizeInMB.toFixed(1)}MB). Consider archiving.`);
+     console.warn(
+       `Conversation ${data.id} is large (${sizeInMB.toFixed(1)}MB). Consider archiving.`,
+     );
    }
    ```
 
@@ -219,6 +252,7 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
    ```
 
 **Backwards Compatible**:
+
 - Old conversations without `images` field load correctly
 - Optional field doesn't break existing data
 - Images array defaults to undefined (falsy, works in conditionals)
@@ -228,6 +262,7 @@ function AttachedFiles({ files, onRemove, onImageClick }) {
 ## 🔧 New Lightbox Features
 
 ### Lightbox State
+
 ```javascript
 const [lightboxOpen, setLightboxOpen] = useState(false);
 const [lightboxImage, setLightboxImage] = useState(null); // { src, filename }
@@ -235,24 +270,30 @@ const [lightboxIndex, setLightboxIndex] = useState(0);
 ```
 
 ### Lightbox Handlers
+
 - `openLightbox(imageIndex)` - Opens lightbox for attached file
 - `openLightboxFromMessage(base64, filename, images, index)` - Opens from message history
 - `closeLightbox()` - Closes lightbox
 - `navigateLightbox(newIndex)` - Gallery navigation
 
 ### Lightbox Component Usage
+
 ```jsx
-{lightboxOpen && lightboxImage && (
-  <ImageLightbox
-    isOpen={lightboxOpen}
-    onClose={closeLightbox}
-    src={lightboxImage.src}
-    filename={lightboxImage.filename}
-    images={attachedFiles.filter(f => f.type === 'image' || f.isImage).map(f => f.thumbnail)}
-    currentIndex={lightboxIndex}
-    onNavigate={navigateLightbox}
-  />
-)}
+{
+  lightboxOpen && lightboxImage && (
+    <ImageLightbox
+      isOpen={lightboxOpen}
+      onClose={closeLightbox}
+      src={lightboxImage.src}
+      filename={lightboxImage.filename}
+      images={attachedFiles
+        .filter((f) => f.type === "image" || f.isImage)
+        .map((f) => f.thumbnail)}
+      currentIndex={lightboxIndex}
+      onNavigate={navigateLightbox}
+    />
+  );
+}
 ```
 
 ---
@@ -262,17 +303,22 @@ const [lightboxIndex, setLightboxIndex] = useState(0);
 **Status**: ✅ Complete
 
 Shows real-time count of images being processed:
+
 ```jsx
-{processingImages > 0 && (
-  <div className="fixed bottom-4 right-4 z-50 glass-heavy">
-    <div className="flex gap-1">
-      <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
-      <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
-      <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+{
+  processingImages > 0 && (
+    <div className="fixed bottom-4 right-4 z-50 glass-heavy">
+      <div className="flex gap-1">
+        <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+        <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+        <div className="w-2 h-2 bg-indigo-400 rounded-full typing-dot" />
+      </div>
+      <span>
+        Processing {processingImages} image{processingImages > 1 ? "s" : ""}...
+      </span>
     </div>
-    <span>Processing {processingImages} image{processingImages > 1 ? 's' : ''}...</span>
-  </div>
-)}
+  );
+}
 ```
 
 ---
@@ -280,10 +326,12 @@ Shows real-time count of images being processed:
 ## 📦 New Files Created
 
 ### 1. src/lib/image-processor.js (Browser Version)
+
 **Lines**: 265
 **Purpose**: ES6 module version of image processing utilities for frontend
 
 **Exports**:
+
 - `validateImage(file, config)` - Validate image format, size, dimensions
 - `processImage(file, options)` - Resize, compress, generate thumbnail
 - `extractBase64(dataURL)` - Strip data URI prefix
@@ -297,6 +345,7 @@ Shows real-time count of images being processed:
 - `ALLOWED_MIME_TYPES` - ['image/png', 'image/jpeg', 'image/gif']
 
 **Key Differences from lib/ version**:
+
 - Uses ES6 `export` instead of `module.exports`
 - Browser-only (uses Canvas API, Image, FileReader, crypto.subtle)
 - No Node.js dependencies
@@ -306,12 +355,12 @@ Shows real-time count of images being processed:
 
 ## 📁 Files Modified
 
-| File | Changes | Lines Changed |
-|------|---------|---------------|
-| `src/App.jsx` | File upload, paste, lightbox, state | ~150 |
-| `src/components/MessageBubble.jsx` | Image display in messages | ~20 |
-| `lib/history.js` | File size warning | ~10 |
-| `src/components/AttachedFiles.jsx` | (function in App.jsx) Image thumbnails | ~15 |
+| File                               | Changes                                | Lines Changed |
+| ---------------------------------- | -------------------------------------- | ------------- |
+| `src/App.jsx`                      | File upload, paste, lightbox, state    | ~150          |
+| `src/components/MessageBubble.jsx` | Image display in messages              | ~20           |
+| `lib/history.js`                   | File size warning                      | ~10           |
+| `src/components/AttachedFiles.jsx` | (function in App.jsx) Image thumbnails | ~15           |
 
 **Total New Code**: ~265 lines (image-processor.js) + ~195 lines (modifications) = **~460 lines**
 
@@ -320,21 +369,25 @@ Shows real-time count of images being processed:
 ## 🔗 Integration Points
 
 ### With Phase 0 (Foundation)
+
 - ✅ Uses `ImageThumbnail` component for attachment display
 - ✅ Uses `ImageLightbox` component for full-size viewing
 - ✅ Uses browser version of `image-processor.js` utilities
 
 ### With Phase 1 (Backend)
+
 - ✅ Sends images to `/api/chat` endpoint
 - ✅ Fetches config from `/api/config` for validation
 - ✅ Images sent as base64 WITHOUT prefix (as required by Ollama)
 
 ### With Phase 4 (Vision Model Detection)
+
 - ✅ Reads `showVisionWarning` state (already implemented)
 - ✅ Uses `switchToVisionModel()` and `removeAllImages()` helpers (already exist)
 - ✅ Send button disabled when `showVisionWarning` is true
 
 ### With Phase 5 (Settings)
+
 - ✅ Reads `config.imageSupport` from API for validation limits
 - ✅ Uses maxSizeMB, maxDimensionPx, compressionQuality, resizeThreshold
 
@@ -343,15 +396,19 @@ Shows real-time count of images being processed:
 ## 🧪 Testing Performed
 
 ### Build Test
+
 ```bash
 npm run build
 ```
+
 **Result**: ✅ SUCCESS
+
 - No compilation errors
 - All modules transformed correctly
 - Only warnings: chunk size (expected), CSS property (non-blocking)
 
 ### Manual Testing Required
+
 - ⏸️ Upload image via file picker
 - ⏸️ Upload image via drag-and-drop
 - ⏸️ Paste screenshot from clipboard
@@ -368,6 +425,7 @@ npm run build
 ## 🎯 User Flows Enabled
 
 ### Flow 1: Upload and Send Image
+
 1. User clicks "📎 Upload" or drags image into chat
 2. Image validates and processes (shows processing indicator)
 3. Thumbnail appears in attachment area
@@ -377,6 +435,7 @@ npm run build
 7. User can click to view full-size
 
 ### Flow 2: Paste Screenshot
+
 1. User takes screenshot (Cmd+Shift+4 on Mac)
 2. User focuses textarea
 3. User pastes (Cmd+V)
@@ -385,6 +444,7 @@ npm run build
 6. User sends message
 
 ### Flow 3: View Image Gallery
+
 1. User uploads multiple images
 2. Thumbnails display in attachment area
 3. User clicks any thumbnail
@@ -432,6 +492,7 @@ npm run build
 ## 📝 Next Steps (Phase 3)
 
 Phase 3: Chat Message & History is already partially complete! Message display and history storage work. Remaining tasks:
+
 - ⏸️ Lazy loading images when scrolling history
 - ⏸️ Export conversation with images (markdown/JSON)
 - ⏸️ Image compression optimization for storage
@@ -441,6 +502,7 @@ Phase 3: Chat Message & History is already partially complete! Message display a
 ## ✅ Phase 2 Sign-Off
 
 **Checklist**:
+
 - ✅ All 7 tasks completed
 - ✅ Build succeeds with no errors
 - ✅ Integration with Phase 0, 1, 4, 5 confirmed

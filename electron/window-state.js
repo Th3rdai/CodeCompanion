@@ -1,13 +1,13 @@
-const fs = require('fs');
-const path = require('path');
-const { screen } = require('electron');
+const fs = require("fs");
+const path = require("path");
+const { screen } = require("electron");
 
 /**
  * Loads window state from window-state.json
  * Returns defaults if file doesn't exist or if saved bounds are invalid
  */
 function loadWindowState(dataDir) {
-  const stateFile = path.join(dataDir, 'window-state.json');
+  const stateFile = path.join(dataDir, "window-state.json");
   const defaults = {
     width: 1200,
     height: 800,
@@ -16,7 +16,7 @@ function loadWindowState(dataDir) {
 
   try {
     if (fs.existsSync(stateFile)) {
-      const saved = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+      const saved = JSON.parse(fs.readFileSync(stateFile, "utf8"));
 
       // Validate saved bounds are still visible on current displays
       if (saved.x !== undefined && saved.y !== undefined) {
@@ -32,7 +32,9 @@ function loadWindowState(dataDir) {
         });
 
         if (!isVisible) {
-          console.log('[Window State] Saved position is off-screen, using defaults');
+          console.log(
+            "[Window State] Saved position is off-screen, using defaults",
+          );
           return defaults;
         }
       }
@@ -40,7 +42,7 @@ function loadWindowState(dataDir) {
       return { ...defaults, ...saved };
     }
   } catch (err) {
-    console.error('[Window State] Error loading state:', err);
+    console.error("[Window State] Error loading state:", err);
   }
 
   return defaults;
@@ -60,11 +62,11 @@ function saveWindowState(win, dataDir) {
       isMaximized: win.isMaximized(),
     };
 
-    const stateFile = path.join(dataDir, 'window-state.json');
+    const stateFile = path.join(dataDir, "window-state.json");
     fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
-    console.log('[Window State] Saved:', state);
+    console.log("[Window State] Saved:", state);
   } catch (err) {
-    console.error('[Window State] Error saving state:', err);
+    console.error("[Window State] Error saving state:", err);
   }
 }
 

@@ -15,7 +15,8 @@ affects: [03-report-card-ui, 04-actionable-guidance]
 
 tech-stack:
   added: []
-  patterns: [structured-then-fallback, model-size-timeout, dual-response-type-endpoint]
+  patterns:
+    [structured-then-fallback, model-size-timeout, dual-response-type-endpoint]
 
 key-files:
   created: [lib/review.js]
@@ -47,6 +48,7 @@ completed: 2026-03-13
 - **Files modified:** 2
 
 ## Accomplishments
+
 - Created review orchestration module with structured output + chat fallback pattern
 - Added POST /api/review endpoint to server.js with rate limiting
 - Implemented model-size-aware timeout detection from model name
@@ -57,25 +59,31 @@ completed: 2026-03-13
 2. **Task 2: Add POST /api/review endpoint** - `0aaa098` (feat)
 
 ## Files Created/Modified
+
 - `lib/review.js` - Review orchestration: structured attempt -> validate -> fallback to chat
 - `server.js` - Added /api/review endpoint with rate limiting and SSE fallback streaming
 
 ## Decisions Made
+
 - Endpoint uses dual response type: JSON for report card success, SSE for chat fallback
 - Client can detect mode from Content-Type header or `type` field in JSON response
 - Fallback sends `{ fallback: true, reason }` as first SSE event so client knows it's in fallback mode
 
 ## Deviations from Plan
+
 None - plan executed exactly as written
 
 ## Issues Encountered
+
 None
 
 ## Next Phase Readiness
+
 - Backend review engine complete and verifiable via curl
 - Ready for Phase 3 (Report Card UI) to consume /api/review
 - Ready for Phase 2 (Tone Unification) to update review prompts if needed
 
 ---
-*Phase: 01-review-engine*
-*Completed: 2026-03-13*
+
+_Phase: 01-review-engine_
+_Completed: 2026-03-13_

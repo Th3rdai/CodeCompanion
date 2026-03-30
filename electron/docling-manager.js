@@ -1,9 +1,9 @@
-const { spawn, execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const net = require('net');
+const { spawn, execSync } = require("child_process");
+const path = require("path");
+const fs = require("fs");
+const net = require("net");
 
-const LOG_PREFIX = '[Docling]';
+const LOG_PREFIX = "[Docling]";
 
 let doclingProcess = null;
 let managedPort = null;
@@ -16,27 +16,27 @@ let managedPort = null;
 function findDoclingServe() {
   // Try PATH first (works for pip install, uv tool install, pipx, etc.)
   try {
-    const which = process.platform === 'win32' ? 'where' : 'which';
+    const which = process.platform === "win32" ? "where" : "which";
     const result = execSync(`${which} docling-serve`, {
-      encoding: 'utf8',
+      encoding: "utf8",
       timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
     }).trim();
-    if (result) return result.split('\n')[0].trim();
+    if (result) return result.split("\n")[0].trim();
   } catch {
     // not on PATH
   }
 
   // Check common uv/pipx tool locations
-  const home = require('os').homedir();
+  const home = require("os").homedir();
   const candidates = [
-    path.join(home, '.local', 'bin', 'docling-serve'),
-    path.join(home, '.cargo', 'bin', 'docling-serve'), // uv uses cargo-style on some setups
+    path.join(home, ".local", "bin", "docling-serve"),
+    path.join(home, ".cargo", "bin", "docling-serve"), // uv uses cargo-style on some setups
   ];
 
   // uv tool bin directory (if UV_TOOL_BIN_DIR is set)
   if (process.env.UV_TOOL_BIN_DIR) {
-    candidates.unshift(path.join(process.env.UV_TOOL_BIN_DIR, 'docling-serve'));
+    candidates.unshift(path.join(process.env.UV_TOOL_BIN_DIR, "docling-serve"));
   }
 
   for (const candidate of candidates) {
@@ -61,11 +61,11 @@ function findDoclingServe() {
 function isPortInUse(port) {
   return new Promise((resolve) => {
     const server = net.createServer();
-    server.once('error', () => resolve(true));
-    server.once('listening', () => {
+    server.once("error", () => resolve(true));
+    server.once("listening", () => {
       server.close(() => resolve(false));
     });
-    server.listen(port, '127.0.0.1');
+    server.listen(port, "127.0.0.1");
   });
 }
 
@@ -92,11 +92,11 @@ async function isDoclingHealthy(url) {
  * @returns {{ url: string, enabled: boolean }}
  */
 function readDoclingConfig(dataDir) {
-  const defaults = { url: 'http://127.0.0.1:5002', enabled: true };
+  const defaults = { url: "http://127.0.0.1:5002", enabled: true };
   try {
-    const configPath = path.join(dataDir, '.cc-config.json');
+    const configPath = path.join(dataDir, ".cc-config.json");
     if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
       if (config.docling) {
         return {
           url: config.docling.url || defaults.url,
@@ -119,11 +119,11 @@ function parseHostPort(url) {
   try {
     const u = new URL(url);
     return {
-      host: u.hostname || '127.0.0.1',
+      host: u.hostname || "127.0.0.1",
       port: parseInt(u.port, 10) || 5002,
     };
   } catch {
-    return { host: '127.0.0.1', port: 5002 };
+    return { host: "127.0.0.1", port: 5002 };
   }
 }
 
@@ -140,7 +140,7 @@ async function startDocling(dataDir, log = console.log) {
 
   if (!config.enabled) {
     log(`${LOG_PREFIX} Document conversion is disabled in settings`);
-    return { managed: false, url: config.url, reason: 'disabled' };
+    return { managed: false, url: config.url, reason: "disabled" };
   }
 
   const { host, port } = parseHostPort(config.url);
@@ -148,23 +148,29 @@ async function startDocling(dataDir, log = console.log) {
   // Check if something is already running on the target port
   if (await isDoclingHealthy(config.url)) {
     log(`${LOG_PREFIX} Already running at ${config.url}`);
-    return { managed: false, url: config.url, reason: 'already-running' };
+    return { managed: false, url: config.url, reason: "already-running" };
   }
 
   // Find the binary
   const binaryPath = findDoclingServe();
   if (!binaryPath) {
-    log(`${LOG_PREFIX} docling-serve not found on this system — document conversion will be unavailable`);
-    log(`${LOG_PREFIX} Install with: uv tool install "docling-serve[ui]"  or  pip install "docling-serve[ui]"`);
-    return { managed: false, url: config.url, reason: 'not-installed' };
+    log(
+      `${LOG_PREFIX} docling-serve not found on this system — document conversion will be unavailable`,
+    );
+    log(
+      `${LOG_PREFIX} Install with: uv tool install "docling-serve[ui]"  or  pip install "docling-serve[ui]"`,
+    );
+    return { managed: false, url: config.url, reason: "not-installed" };
   }
 
   log(`${LOG_PREFIX} Found binary at ${binaryPath}`);
 
   // Check if port is occupied by something else (not docling)
   if (await isPortInUse(port)) {
-    log(`${LOG_PREFIX} Port ${port} is in use but not responding as docling — skipping auto-start`);
-    return { managed: false, url: config.url, reason: 'port-conflict' };
+    log(
+      `${LOG_PREFIX} Port ${port} is in use but not responding as docling — skipping auto-start`,
+    );
+    return { managed: false, url: config.url, reason: "port-conflict" };
   }
 
   // Spawn docling-serve
@@ -180,39 +186,45 @@ async function startDocling(dataDir, log = console.log) {
       resolve(result);
     };
 
-    const proc = spawn(binaryPath, ['run', '--host', host, '--port', String(port)], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      detached: false,
-      env: { ...process.env },
-    });
+    const proc = spawn(
+      binaryPath,
+      ["run", "--host", host, "--port", String(port)],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+        detached: false,
+        env: { ...process.env },
+      },
+    );
 
     doclingProcess = proc;
     managedPort = port;
 
-    proc.stdout?.on('data', (data) => {
+    proc.stdout?.on("data", (data) => {
       const line = data.toString().trim();
       if (line) console.log(`${LOG_PREFIX} ${line}`);
     });
 
-    proc.stderr?.on('data', (data) => {
+    proc.stderr?.on("data", (data) => {
       const line = data.toString().trim();
       if (line) console.log(`${LOG_PREFIX} ${line}`);
     });
 
-    proc.on('error', (err) => {
+    proc.on("error", (err) => {
       log(`${LOG_PREFIX} Failed to start: ${err.message}`);
       doclingProcess = null;
       managedPort = null;
-      resolveOnce({ managed: false, url: config.url, reason: 'spawn-error' });
+      resolveOnce({ managed: false, url: config.url, reason: "spawn-error" });
     });
 
-    proc.on('exit', (code, signal) => {
-      if (signal !== 'SIGTERM' && signal !== 'SIGINT') {
-        log(`${LOG_PREFIX} Process exited unexpectedly (code=${code}, signal=${signal})`);
+    proc.on("exit", (code, signal) => {
+      if (signal !== "SIGTERM" && signal !== "SIGINT") {
+        log(
+          `${LOG_PREFIX} Process exited unexpectedly (code=${code}, signal=${signal})`,
+        );
       }
       doclingProcess = null;
       managedPort = null;
-      resolveOnce({ managed: false, url: config.url, reason: 'process-died' });
+      resolveOnce({ managed: false, url: config.url, reason: "process-died" });
     });
 
     // Poll for health — docling-serve takes a few seconds to start (model loading)
@@ -224,11 +236,17 @@ async function startDocling(dataDir, log = console.log) {
         log(`${LOG_PREFIX} Ready at ${config.url} (took ~${attempts}s)`);
         resolveOnce({ managed: true, url: config.url });
       } else if (attempts >= maxAttempts) {
-        log(`${LOG_PREFIX} Did not become healthy within ${maxAttempts}s — may still be loading models`);
+        log(
+          `${LOG_PREFIX} Did not become healthy within ${maxAttempts}s — may still be loading models`,
+        );
         // Don't kill it — it might still come up (EasyOCR model download can be slow)
-        resolveOnce({ managed: true, url: config.url, reason: 'slow-start' });
+        resolveOnce({ managed: true, url: config.url, reason: "slow-start" });
       } else if (!doclingProcess || doclingProcess.killed) {
-        resolveOnce({ managed: false, url: config.url, reason: 'process-died' });
+        resolveOnce({
+          managed: false,
+          url: config.url,
+          reason: "process-died",
+        });
       }
     }, 1000);
   });
@@ -242,17 +260,17 @@ function stopDocling(log = console.log) {
   if (!doclingProcess || doclingProcess.killed) return;
 
   log(`${LOG_PREFIX} Shutting down managed process...`);
-  doclingProcess.kill('SIGTERM');
+  doclingProcess.kill("SIGTERM");
 
   // Force kill after 5 seconds
   const forceTimer = setTimeout(() => {
     if (doclingProcess && !doclingProcess.killed) {
       log(`${LOG_PREFIX} Force killing process...`);
-      doclingProcess.kill('SIGKILL');
+      doclingProcess.kill("SIGKILL");
     }
   }, 5000);
 
-  doclingProcess.once('exit', () => clearTimeout(forceTimer));
+  doclingProcess.once("exit", () => clearTimeout(forceTimer));
 }
 
 /**

@@ -1,5 +1,8 @@
-import { BookOpen, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
-import { BUILD_TUTORIAL_STEPS, CREATE_TUTORIAL_STEPS } from '../data/tutorialSteps';
+import { BookOpen, ChevronLeft, ChevronRight, Lightbulb } from "lucide-react";
+import {
+  BUILD_TUTORIAL_STEPS,
+  CREATE_TUTORIAL_STEPS,
+} from "../data/tutorialSteps";
 
 export default function TutorialPanel({
   mode,
@@ -9,18 +12,24 @@ export default function TutorialPanel({
   onClose,
   totalSteps,
 }) {
-  const steps = mode === 'build' ? BUILD_TUTORIAL_STEPS : CREATE_TUTORIAL_STEPS;
+  const steps = mode === "build" ? BUILD_TUTORIAL_STEPS : CREATE_TUTORIAL_STEPS;
   const step = steps[currentStep - 1];
   const canPrev = currentStep > 1;
   const canNext = currentStep < totalSteps;
   const hasPrefill = step?.prefill != null;
 
   return (
-    <div className="glass rounded-xl border border-indigo-500/20 p-4 mb-4" role="region" aria-label="Wizard tutorial">
+    <div
+      className="glass rounded-xl border border-indigo-500/20 p-4 mb-4"
+      role="region"
+      aria-label="Wizard tutorial"
+    >
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 text-indigo-300">
           <BookOpen className="w-4 h-4 shrink-0" aria-hidden />
-          <span className="text-sm font-medium">Tutorial — Step {currentStep} of {totalSteps}</span>
+          <span className="text-sm font-medium">
+            Tutorial — Step {currentStep} of {totalSteps}
+          </span>
         </div>
         {onClose && (
           <button
@@ -36,8 +45,12 @@ export default function TutorialPanel({
 
       {step && (
         <>
-          <h3 className="text-sm font-semibold text-slate-200 mb-2">{step.title}</h3>
-          <p className="text-xs text-slate-400 leading-relaxed mb-4">{step.body}</p>
+          <h3 className="text-sm font-semibold text-slate-200 mb-2">
+            {step.title}
+          </h3>
+          <p className="text-xs text-slate-400 leading-relaxed mb-4">
+            {step.body}
+          </p>
 
           <div className="flex flex-wrap items-center gap-2">
             {hasPrefill && (

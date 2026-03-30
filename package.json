@@ -1,6 +1,6 @@
 {
   "name": "code-companion",
-  "version": "1.5.14",
+  "version": "1.5.15",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
@@ -42,6 +42,11 @@
     "test:e2e": "npx playwright test tests/e2e --project=chromium",
     "test:unit": "node --test tests/unit/*.test.js tests/rate-limit.test.js tests/mcp-security.test.js tests/tone-validation.test.js tests/ui-labels.test.js",
     "test:integration": "node --test tests/integration/api-with-images.test.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --project ./gitnexus-web/tsconfig.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "validate:static": "npm run lint && npm run typecheck && npm run format:check",
     "audit:security": "npm audit --audit-level=critical",
     "mcp": "node mcp-server.js",
     "mcp:test": "node scripts/mcp-stdio-smoke.js",
@@ -98,12 +103,19 @@
     "file-type": "^21.3.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@playwright/experimental-ct-react": "^1.58.2",
     "@playwright/test": "^1.58.2",
     "electron": "41.0.2",
     "electron-builder": "^26.8.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.4.0",
     "patch-package": "^8.0.1",
     "png-to-ico": "^3.0.1",
-    "sharp": "^0.34.5"
+    "prettier": "^3.8.1",
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3"
   }
 }

@@ -12,6 +12,7 @@ completed: 2026-03-14
 Extended the existing tier-only license system to a feature-based model supporting independent mode licensing. Skillz and Agentic are pro-gated; Prompting and Create remain free.
 
 ### Backend (lib/license-manager.js)
+
 - Added `features` array to `_licenseState` and all persistence paths
 - Added `_getProFeatures()` helper deriving pro features from `FEATURE_TIERS` registry
 - Fixed `validateKey()` to accept `{ features: [...] }` payloads (not just `{ tier }`)
@@ -24,21 +25,25 @@ Extended the existing tier-only license system to a feature-based model supporti
 - Exported `getEnabledFeatures()` helper
 
 ### Key Generator (scripts/generate-license-key.js)
+
 - Added `--features` CLI flag (comma-separated, e.g., `--features skillz,agentic`)
 - Feature validation against known list: prompting, skillz, agentic, create
 - Features payload takes precedence over `--tier` when both provided
 - Updated help text with examples
 
 ### Frontend (src/constants/tiers.js, src/App.jsx)
+
 - `isModeLocked(modeId, licenseInfo)` now accepts full licenseInfo object, checks `features.includes(modeId)` then `tier` fallback
 - Mode-lock safety `useEffect` resets to chat when current mode becomes locked
 - Handles Electron lastMode restore race condition (useEffect catches stale mode after license loads)
 - `loadConversation()` guard prevents loading history conversations in locked modes
 
 ### Settings (src/components/SettingsPanel.jsx)
+
 - Shows enabled features list in license status display
 
 ### Server (server.js)
+
 - Added `features` to `sanitizeConfigForClient()` for `/api/config` consistency
 
 ## Verification Results

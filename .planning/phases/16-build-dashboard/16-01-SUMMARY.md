@@ -16,7 +16,11 @@ affects: [16-build-dashboard]
 
 tech-stack:
   added: []
-  patterns: ["BuildHeader/BuildSimpleView component extraction from BuildPanel", "viewMode localStorage persistence pattern"]
+  patterns:
+    [
+      "BuildHeader/BuildSimpleView component extraction from BuildPanel",
+      "viewMode localStorage persistence pattern",
+    ]
 
 key-files:
   created: [src/components/BuildHeader.jsx, src/components/BuildSimpleView.jsx]
@@ -50,6 +54,7 @@ completed: 2026-03-16
 - **Files modified:** 4
 
 ## Accomplishments
+
 - BuildHeader component with color-coded status badge (Complete/In Progress/Not Started), gradient progress bar, and Simple/Advanced segmented toggle using Lucide icons
 - BuildSimpleView with "What's Next" AI recommendation card that handles loading, error, Ollama-offline, and success states with MarkdownContent rendering
 - POST /api/build/projects/:id/next-action endpoint with rate limiting (10 req/min), 30s timeout, and state truncation for small models
@@ -63,12 +68,14 @@ Each task was committed atomically:
 2. **Task 2: Wire BuildPanel to use BuildHeader and viewMode toggle with localStorage** - `3eb3d20` (feat)
 
 ## Files Created/Modified
+
 - `src/components/BuildHeader.jsx` - Status badge, progress bar, simple/advanced toggle with Lucide icons
 - `src/components/BuildSimpleView.jsx` - What's Next AI card, offline state, quick action buttons
 - `server.js` - POST /api/build/projects/:id/next-action with rate limiting and chatComplete
 - `src/components/BuildPanel.jsx` - Integrated BuildHeader/BuildSimpleView, added viewMode state with localStorage
 
 ## Decisions Made
+
 - BuildSimpleView "View Phases" quick action switches to advanced mode rather than navigating to separate view — keeps user in dashboard context
 - chatComplete with 30s timeout to prevent hanging on slow models while allowing adequate generation time
 - State JSON truncated to 2000 chars in next-action prompt to avoid overwhelming small models
@@ -87,10 +94,12 @@ None
 None - no external service configuration required.
 
 ## Next Phase Readiness
+
 - Simple View complete with AI card and quick actions
 - Advanced View temporarily renders existing phase list (Plan 03 will replace with BuildAdvancedView)
 - Ready for Plan 02 (AI Research/Planning endpoints)
 
 ---
-*Phase: 16-build-dashboard*
-*Completed: 2026-03-16*
+
+_Phase: 16-build-dashboard_
+_Completed: 2026-03-16_

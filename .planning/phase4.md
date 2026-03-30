@@ -15,19 +15,22 @@ Phase 4 adds user-facing warnings and UI enhancements to prevent users from atta
 ## ✅ Completed Tasks
 
 ### Task 4.1: Vision Model Detection Logic
+
 **Location**: `src/App.jsx` lines ~182-186
 **Status**: ✅ Complete
 
 **Implementation**:
+
 ```javascript
 // Vision model detection (Phase 4: Image Support)
-const hasImages = attachedFiles.some(f => f.type === 'image' || f.isImage);
-const selectedModelInfo = models.find(m => m.name === selectedModel);
+const hasImages = attachedFiles.some((f) => f.type === "image" || f.isImage);
+const selectedModelInfo = models.find((m) => m.name === selectedModel);
 const isVisionModel = selectedModelInfo?.supportsVision || false;
 const showVisionWarning = hasImages && !isVisionModel;
 ```
 
 **Features**:
+
 - Detects if any attached files are images (checks both `type === 'image'` and `isImage` flag)
 - Finds currently selected model info from models array
 - Checks if model supports vision (from Phase 1 backend)
@@ -36,34 +39,43 @@ const showVisionWarning = hasImages && !isVisionModel;
 ---
 
 ### Task 4.2: Helper Functions
+
 **Location**: `src/App.jsx` lines ~597-610
 **Status**: ✅ Complete
 
 **Functions Created**:
 
 #### switchToVisionModel()
+
 ```javascript
 function switchToVisionModel() {
-  const visionModel = models.find(m => m.supportsVision);
+  const visionModel = models.find((m) => m.supportsVision);
   if (visionModel) {
     setSelectedModel(visionModel.name);
     showToast(`Switched to vision model: ${visionModel.name}`);
   } else {
-    showToast('No vision models available. Install one with: ollama pull llava');
+    showToast(
+      "No vision models available. Install one with: ollama pull llava",
+    );
   }
 }
 ```
+
 - Auto-selects first available vision model
 - Shows toast with model name
 - Graceful fallback when no vision models available
 
 #### removeAllImages()
+
 ```javascript
 function removeAllImages() {
-  setAttachedFiles(prev => prev.filter(f => f.type !== 'image' && !f.isImage));
-  showToast('Removed all images');
+  setAttachedFiles((prev) =>
+    prev.filter((f) => f.type !== "image" && !f.isImage),
+  );
+  showToast("Removed all images");
 }
 ```
+
 - Filters out all image attachments
 - Keeps text file attachments intact
 - Shows confirmation toast
@@ -71,37 +83,46 @@ function removeAllImages() {
 ---
 
 ### Task 4.3: Warning Banner
+
 **Location**: `src/App.jsx` lines ~1153-1173
 **Status**: ✅ Complete
 
 **UI Implementation**:
+
 ```jsx
-{/* Vision Model Warning (Phase 4: Image Support) */}
-{showVisionWarning && (
-  <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 mb-3 rounded">
-    <p className="text-sm text-yellow-200 flex items-center gap-2 flex-wrap">
-      <span className="shrink-0">⚠️ Current model doesn't support images.</span>
-      <button
-        onClick={switchToVisionModel}
-        className="underline hover:text-yellow-100 transition-colors"
-        type="button"
-      >
-        Switch to vision model
-      </button>
-      <span className="text-yellow-300/60">or</span>
-      <button
-        onClick={removeAllImages}
-        className="underline hover:text-yellow-100 transition-colors"
-        type="button"
-      >
-        remove images
-      </button>
-    </p>
-  </div>
-)}
+{
+  /* Vision Model Warning (Phase 4: Image Support) */
+}
+{
+  showVisionWarning && (
+    <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-3 mb-3 rounded">
+      <p className="text-sm text-yellow-200 flex items-center gap-2 flex-wrap">
+        <span className="shrink-0">
+          ⚠️ Current model doesn't support images.
+        </span>
+        <button
+          onClick={switchToVisionModel}
+          className="underline hover:text-yellow-100 transition-colors"
+          type="button"
+        >
+          Switch to vision model
+        </button>
+        <span className="text-yellow-300/60">or</span>
+        <button
+          onClick={removeAllImages}
+          className="underline hover:text-yellow-100 transition-colors"
+          type="button"
+        >
+          remove images
+        </button>
+      </p>
+    </div>
+  );
+}
 ```
 
 **Design Features**:
+
 - Yellow themed warning (matches app's warning color scheme)
 - Left border accent (4px yellow border-l-4)
 - ⚠️ Icon for visual attention
@@ -113,13 +134,19 @@ function removeAllImages() {
 ---
 
 ### Task 4.4: Model Selector Enhancement
+
 **Location**: `src/App.jsx` lines ~899-914
 **Status**: ✅ Complete
 
 **Implementation**:
+
 ```jsx
-<select id="model-select" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}
-  className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[200px]">
+<select
+  id="model-select"
+  value={selectedModel}
+  onChange={(e) => setSelectedModel(e.target.value)}
+  className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[200px]"
+>
   {models.length === 0 && <option value="">No models found</option>}
   {[...models]
     .sort((a, b) => {
@@ -129,16 +156,17 @@ function removeAllImages() {
       }
       return 0;
     })
-    .map(m => (
+    .map((m) => (
       <option key={m.name} value={m.name}>
-        {m.supportsVision ? '👁️ ' : ''}{m.name} ({m.paramSize || m.size + 'GB'})
+        {m.supportsVision ? "👁️ " : ""}
+        {m.name} ({m.paramSize || m.size + "GB"})
       </option>
-    ))
-  }
+    ))}
 </select>
 ```
 
 **Features**:
+
 - **Dynamic Sorting**: Vision models move to top when `hasImages=true`
 - **Visual Badge**: 👁️ emoji prefix for all vision models
 - **Backwards Compatible**: Uses spread operator to avoid mutating original array
@@ -148,29 +176,47 @@ function removeAllImages() {
 ---
 
 ### Task 4.5: Send Button Disable Logic
+
 **Location**: `src/App.jsx` lines ~509, ~1229
 **Status**: ✅ Complete
 
 **Implementation**:
 
 #### In handleSend function (line ~509):
+
 ```javascript
 async function handleSend() {
-  if ((!input.trim() && attachedFiles.length === 0) || streaming || !selectedModel || showVisionWarning) return;
+  if (
+    (!input.trim() && attachedFiles.length === 0) ||
+    streaming ||
+    !selectedModel ||
+    showVisionWarning
+  )
+    return;
   // ... rest of function
 }
 ```
 
 #### In Send button JSX (line ~1229):
+
 ```jsx
-<button onClick={handleSend}
-  disabled={(!input.trim() && attachedFiles.length === 0) || streaming || !connected || !selectedModel || showVisionWarning}
-  className="flex-1 btn-neon text-white rounded-xl px-4 font-medium ...">
-  {streaming ? '...' : 'Send'}
+<button
+  onClick={handleSend}
+  disabled={
+    (!input.trim() && attachedFiles.length === 0) ||
+    streaming ||
+    !connected ||
+    !selectedModel ||
+    showVisionWarning
+  }
+  className="flex-1 btn-neon text-white rounded-xl px-4 font-medium ..."
+>
+  {streaming ? "..." : "Send"}
 </button>
 ```
 
 **Features**:
+
 - Added `|| showVisionWarning` to both locations
 - Prevents sending when images attached to non-vision model
 - Works in conjunction with warning banner
@@ -181,8 +227,10 @@ async function handleSend() {
 ## 📦 Files Modified
 
 ### src/App.jsx
+
 **Lines Modified**: ~182-186, ~597-610, ~509, ~899-914, ~1153-1173, ~1229
 **Changes**:
+
 1. Added vision detection computed values (4 lines)
 2. Added helper functions (14 lines)
 3. Added warning banner JSX (21 lines)
@@ -197,11 +245,13 @@ async function handleSend() {
 ## 🔗 Dependencies
 
 **Required**:
+
 - ✅ Phase 0 (Foundation) - Uses computed values (no direct dependency on components)
 - ✅ Phase 1 (Backend) - Requires `supportsVision` property on models from backend
 - ✅ Phase 5 (Settings) - Settings panel already shows vision model list
 
 **Coordinates With**:
+
 - **Phase 2 (Frontend Upload)**: Reads `attachedFiles` state structure
   - Assumes: `attachedFiles` array with `type` or `isImage` field
   - See: `.planning/phase4-coordination.md` for integration notes
@@ -211,18 +261,22 @@ async function handleSend() {
 ## 🎨 Design Decisions
 
 ### Warning Banner Color
+
 - **Chosen**: Yellow (`bg-yellow-500/10`, `border-yellow-500`)
 - **Rationale**: Matches app's existing warning color scheme, not as severe as red error
 
 ### Vision Badge
+
 - **Chosen**: 👁️ emoji
 - **Rationale**: Universal symbol for vision/sight, renders consistently across platforms
 
 ### Model Sorting
+
 - **Chosen**: Dynamic (only when hasImages=true)
 - **Rationale**: Doesn't disrupt normal workflow when no images attached
 
 ### Quick Actions
+
 - **Chosen**: Inline buttons in warning banner
 - **Rationale**: Reduces friction - user can fix issue with one click
 
@@ -233,6 +287,7 @@ async function handleSend() {
 ### Manual Testing Checklist
 
 **Scenario 1: Vision Model Warning**
+
 - [ ] Attach an image (via Phase 2 upload when complete)
 - [ ] Select a non-vision model (e.g., llama3)
 - [ ] Warning banner should appear
@@ -240,6 +295,7 @@ async function handleSend() {
 - [ ] Warning text should read: "⚠️ Current model doesn't support images."
 
 **Scenario 2: Switch to Vision Model**
+
 - [ ] With warning showing, click "Switch to vision model"
 - [ ] Should auto-select llava (or first available vision model)
 - [ ] Warning should disappear
@@ -247,6 +303,7 @@ async function handleSend() {
 - [ ] Toast should show "Switched to vision model: llava"
 
 **Scenario 3: Remove Images**
+
 - [ ] With warning showing, click "remove images"
 - [ ] All image attachments should be removed
 - [ ] Text file attachments should remain (if any)
@@ -255,6 +312,7 @@ async function handleSend() {
 - [ ] Toast should show "Removed all images"
 
 **Scenario 4: No Vision Models Available**
+
 - [ ] Uninstall all vision models (or mock empty models array)
 - [ ] Attach image, select non-vision model
 - [ ] Warning should appear
@@ -263,6 +321,7 @@ async function handleSend() {
 - [ ] Warning should remain (can't auto-switch)
 
 **Scenario 5: Model Selector**
+
 - [ ] No images attached: Models in original order, no vision badges
 - [ ] Attach image: Vision models sort to top
 - [ ] Vision models show 👁️ emoji prefix
@@ -270,6 +329,7 @@ async function handleSend() {
 - [ ] Original format preserved: "model-name (size)"
 
 **Scenario 6: Send Button**
+
 - [ ] Images + non-vision model: Send disabled, button grayed out
 - [ ] Images + vision model: Send enabled
 - [ ] No images + any model: Send enabled (normal behavior)
@@ -280,17 +340,20 @@ async function handleSend() {
 ## 🔄 Integration with Phase 2
 
 **What Phase 2 Needs to Implement**:
+
 1. `attachedFiles` state with:
    - `type: 'text' | 'image'` OR `isImage: boolean`
 2. File upload logic that populates this state
 3. Attachment rendering with ImageThumbnail component
 
 **What Phase 4 Provides to Phase 2**:
+
 1. Vision warning logic (already done)
 2. Model switching helpers (already done)
 3. Send button disable logic (already done)
 
 **Merge Strategy**:
+
 - Phase 4 changes are localized and non-conflicting
 - Phase 2 can proceed without modification to Phase 4 code
 - Both phases work on different parts of App.jsx
@@ -300,6 +363,7 @@ async function handleSend() {
 ## 📊 Metrics
 
 **Code Quality**:
+
 - Lines added: ~60
 - Functions added: 2
 - Computed values added: 4
@@ -308,6 +372,7 @@ async function handleSend() {
 - New dependencies: None
 
 **User Experience**:
+
 - Time to fix error: 1 click (vs manually switching model + removing images)
 - Error prevention: 100% (send disabled when invalid)
 - Discoverability: High (warning banner impossible to miss)
@@ -317,6 +382,7 @@ async function handleSend() {
 ## ✅ Phase 4 Sign-Off
 
 **Checklist**:
+
 - ✅ All 5 tasks completed
 - ✅ Vision detection logic working
 - ✅ Helper functions implemented

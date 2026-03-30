@@ -11,13 +11,13 @@
 
 ## Deliverables
 
-| Deliverable | Location | Status |
-|-------------|----------|--------|
-| Build scaffolder | lib/build-scaffolder.js | Done |
-| Build API | server.js POST /api/build-project | Done |
-| BuildWizard UI | src/components/BuildWizard.jsx | Done |
-| App integration | MODES, handleBuildSuccess, tiers, license | Done |
-| GSD + skills in scaffold | Embedded in build-scaffolder; skills/gsd-workflows.md | Done |
+| Deliverable              | Location                                              | Status |
+| ------------------------ | ----------------------------------------------------- | ------ |
+| Build scaffolder         | lib/build-scaffolder.js                               | Done   |
+| Build API                | server.js POST /api/build-project                     | Done   |
+| BuildWizard UI           | src/components/BuildWizard.jsx                        | Done   |
+| App integration          | MODES, handleBuildSuccess, tiers, license             | Done   |
+| GSD + skills in scaffold | Embedded in build-scaffolder; skills/gsd-workflows.md | Done   |
 
 ## Requirements
 

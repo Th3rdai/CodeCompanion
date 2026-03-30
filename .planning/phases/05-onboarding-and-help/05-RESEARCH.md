@@ -11,31 +11,37 @@ Phase 5 components already exist and are integrated into the application. The re
 **Primary recommendation:** Update existing component content for vibe-coder tone (analogies, zero jargon, patient explanations) rather than rebuild. Add Ollama troubleshooting to step 2. Replace mode emoji icons with Lucide icons. Verify glossary definitions are vibe-coder-friendly.
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
 
 **Decision 1: Structure**
+
 - Choice: Keep 4-step wizard structure
 - Rationale: Existing flow (Welcome → Connect → Modes → Privacy) covers all requirements
 - Impact: Plans focus on content rewrites, not structural changes
 
 **Decision 2: Welcome Message Framing**
+
 - Choice: Position as "code translator" for vibe coders
 - Rationale: Matches Phase 2 tone shift from PM-focused to vibe-coder-focused
 - Impact: Replace "helps Product Managers" language with "translates AI-generated code into honest reviews"
 
 **Decision 3: Mode Overview Presentation**
+
 - Choice: Show all 8 modes in grid view
 - Rationale: User wants comprehensive overview, not just highlighted subset
 - Impact: Keep existing 8-mode grid, update descriptions to vibe-coder language
 
 **Decision 4: Icon Strategy**
+
 - Choice: Mix emoji (for step indicators) and Lucide icons (for mode grid)
 - Rationale: Emoji conveys friendly tone for steps, Lucide provides professional consistency for modes
 - Impact: Replace mode emoji icons with Lucide (per ui-ux-pro-max skill rule), keep step emoji
 
 **Decision 5: Ollama Setup Detail Level**
+
 - Choice: Add troubleshooting guidance to Ollama setup step
 - Rationale: Vibe coders may not be familiar with local LLM setup
 - Impact: Expand step 2 with common issues (port not responding, no models installed) and fixes
@@ -51,43 +57,45 @@ Phase 5 components already exist and are integrated into the application. The re
 - Generic SaaS onboarding patterns (no account creation, no feature tours beyond first launch)
 - Complex onboarding analytics/funnel tracking
 - Multi-step progressive onboarding (stick to single 4-step wizard)
-</user_constraints>
+  </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|------------------|
-| UX-01 | First-time onboarding flow explaining what Code Companion does and how to use it | Existing OnboardingWizard component with 4-step flow; needs vibe-coder content updates and Ollama troubleshooting expansion |
+| ID    | Description                                                                           | Research Support                                                                                                                                                    |
+| ----- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| UX-01 | First-time onboarding flow explaining what Code Companion does and how to use it      | Existing OnboardingWizard component with 4-step flow; needs vibe-coder content updates and Ollama troubleshooting expansion                                         |
 | UX-03 | Contextual jargon glossary — hover over technical terms for plain-English definitions | Existing JargonGlossary component with 70+ terms, inline highlighting via highlightJargon(), and floating GlossaryPanel; verify definitions are vibe-coder-friendly |
-| UX-04 | Privacy-first messaging visible in UI | Existing PrivacyBanner component (dismissable bottom banner); verify message clarity and prominence |
+| UX-04 | Privacy-first messaging visible in UI                                                 | Existing PrivacyBanner component (dismissable bottom banner); verify message clarity and prominence                                                                 |
+
 </phase_requirements>
 
 ## Standard Stack
 
 ### Core Components (Already Implemented)
 
-| Component | Location | Purpose | Current State |
-|-----------|----------|---------|---------------|
-| OnboardingWizard.jsx | src/components/ | 4-step wizard for first-time users | 80 lines; integrated in App.jsx line 649; uses localStorage persistence |
-| JargonGlossary.jsx | src/components/ | Glossary panel + inline term highlighting | 200+ lines; 70+ terms across 6 categories; integrated in App.jsx line 648 |
-| PrivacyBanner.jsx | src/components/ | Dismissable privacy reassurance | 54 lines; bottom-mounted banner; integrated in App.jsx line 643 |
-| MarkdownContent.jsx | src/components/ | Renders markdown with jargon highlighting | highlightJargon() function for inline tooltips |
+| Component            | Location        | Purpose                                   | Current State                                                             |
+| -------------------- | --------------- | ----------------------------------------- | ------------------------------------------------------------------------- |
+| OnboardingWizard.jsx | src/components/ | 4-step wizard for first-time users        | 80 lines; integrated in App.jsx line 649; uses localStorage persistence   |
+| JargonGlossary.jsx   | src/components/ | Glossary panel + inline term highlighting | 200+ lines; 70+ terms across 6 categories; integrated in App.jsx line 648 |
+| PrivacyBanner.jsx    | src/components/ | Dismissable privacy reassurance           | 54 lines; bottom-mounted banner; integrated in App.jsx line 643           |
+| MarkdownContent.jsx  | src/components/ | Renders markdown with jargon highlighting | highlightJargon() function for inline tooltips                            |
 
 ### Supporting Libraries
 
-| Library | Version | Purpose | Why Used |
-|---------|---------|---------|----------|
-| React | 19.2.4 | Component framework | Project standard |
-| Lucide React | 0.577.0 | Icon library | ui-ux-pro-max skill standard for professional UI |
-| Headless UI | 2.2.9 | Accessible UI primitives | Used for modal/dialog patterns with built-in a11y |
-| Tailwind CSS | 4.2.1 | Utility-first styling | Project standard |
+| Library      | Version | Purpose                  | Why Used                                          |
+| ------------ | ------- | ------------------------ | ------------------------------------------------- |
+| React        | 19.2.4  | Component framework      | Project standard                                  |
+| Lucide React | 0.577.0 | Icon library             | ui-ux-pro-max skill standard for professional UI  |
+| Headless UI  | 2.2.9   | Accessible UI primitives | Used for modal/dialog patterns with built-in a11y |
+| Tailwind CSS | 4.2.1   | Utility-first styling    | Project standard                                  |
 
 ### Storage
 
-| Mechanism | Purpose | Keys Used |
-|-----------|---------|-----------|
-| localStorage | Persist onboarding completion | `th3rdai_onboarding_complete` |
+| Mechanism    | Purpose                          | Keys Used                          |
+| ------------ | -------------------------------- | ---------------------------------- |
+| localStorage | Persist onboarding completion    | `th3rdai_onboarding_complete`      |
 | localStorage | Persist privacy banner dismissal | `th3rdai_privacy_banner_dismissed` |
 
 **Installation:** No new packages required — all dependencies already in package.json
@@ -97,6 +105,7 @@ Phase 5 components already exist and are integrated into the application. The re
 ### Recommended Component Update Pattern
 
 **Current Structure:**
+
 ```
 src/components/
 ├── OnboardingWizard.jsx    # Update: content only
@@ -106,6 +115,7 @@ src/components/
 ```
 
 **Update Strategy:**
+
 1. Content-only updates (no structural changes)
 2. Icon replacements (emoji → Lucide for mode grid only)
 3. Troubleshooting expansion (Ollama step 2)
@@ -142,11 +152,33 @@ src/components/
 ```jsx
 // ADD to step 2 content (after setup instructions)
 <div className="glass rounded-lg p-3 text-xs text-slate-400 space-y-1.5 mt-3">
-  <p><strong className="text-slate-300">Troubleshooting:</strong></p>
+  <p>
+    <strong className="text-slate-300">Troubleshooting:</strong>
+  </p>
   <ul className="list-disc list-inside space-y-1 ml-2">
-    <li><strong>Port not responding?</strong> Make sure Ollama is running (check for the icon in your menu bar)</li>
-    <li><strong>No models installed?</strong> Run <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">ollama list</code> to check, then <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">ollama pull llama3.2</code> to download</li>
-    <li><strong>Connection refused?</strong> Check Settings to verify the Ollama URL matches your setup (default: <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">http://localhost:11434</code>)</li>
+    <li>
+      <strong>Port not responding?</strong> Make sure Ollama is running (check
+      for the icon in your menu bar)
+    </li>
+    <li>
+      <strong>No models installed?</strong> Run{" "}
+      <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+        ollama list
+      </code>{" "}
+      to check, then{" "}
+      <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+        ollama pull llama3.2
+      </code>{" "}
+      to download
+    </li>
+    <li>
+      <strong>Connection refused?</strong> Check Settings to verify the Ollama
+      URL matches your setup (default:{" "}
+      <code className="bg-slate-700/50 px-1.5 py-0.5 rounded text-indigo-300">
+        http://localhost:11434
+      </code>
+      )
+    </li>
   </ul>
 </div>
 ```
@@ -206,9 +238,9 @@ import { MessageCircle, Lightbulb, ArrowRightLeft, Bug, Sparkles, FileCheck, Wre
 ```jsx
 // OnboardingWizard.jsx lines 158-162
 function handleKeyDown(e) {
-  if (e.key === 'ArrowRight' || e.key === 'Enter') goNext();
-  if (e.key === 'ArrowLeft') goBack();
-  if (e.key === 'Escape') finish();
+  if (e.key === "ArrowRight" || e.key === "Enter") goNext();
+  if (e.key === "ArrowLeft") goBack();
+  if (e.key === "Escape") finish();
 }
 ```
 
@@ -226,13 +258,13 @@ function handleKeyDown(e) {
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Modal/dialog overlays | Custom backdrop + focus trap | Headless UI Dialog/Modal | Already in project (2.2.9); handles focus trap, ARIA, keyboard navigation out of box |
-| Tooltip positioning | Custom viewport math | Built-in tooltip pattern | MarkdownContent.jsx already has working tooltip positioning (lines 181-195) |
-| Keyboard navigation | Custom event handlers from scratch | Extend existing pattern | OnboardingWizard.jsx already implements arrow key navigation (lines 158-162) |
-| Icon library | Mix of emoji + custom SVGs | Lucide React (0.577.0) | Project standard; 1000+ consistent icons; tree-shakeable |
-| LocalStorage persistence | Custom storage abstraction | Direct localStorage with try/catch | Simple, no dependencies; existing pattern works (see OnboardingWizard.jsx line 107) |
+| Problem                  | Don't Build                        | Use Instead                        | Why                                                                                  |
+| ------------------------ | ---------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| Modal/dialog overlays    | Custom backdrop + focus trap       | Headless UI Dialog/Modal           | Already in project (2.2.9); handles focus trap, ARIA, keyboard navigation out of box |
+| Tooltip positioning      | Custom viewport math               | Built-in tooltip pattern           | MarkdownContent.jsx already has working tooltip positioning (lines 181-195)          |
+| Keyboard navigation      | Custom event handlers from scratch | Extend existing pattern            | OnboardingWizard.jsx already implements arrow key navigation (lines 158-162)         |
+| Icon library             | Mix of emoji + custom SVGs         | Lucide React (0.577.0)             | Project standard; 1000+ consistent icons; tree-shakeable                             |
+| LocalStorage persistence | Custom storage abstraction         | Direct localStorage with try/catch | Simple, no dependencies; existing pattern works (see OnboardingWizard.jsx line 107)  |
 
 **Key insight:** All infrastructure exists and works. Custom solutions for these problems would duplicate existing, tested code and violate project patterns.
 
@@ -246,14 +278,15 @@ function handleKeyDown(e) {
 **Warning signs:** User reports "onboarding shows every time I open the app"
 
 **Prevention check:**
+
 ```jsx
 // DO NOT CHANGE THIS KEY
-const STORAGE_KEY = 'th3rdai_onboarding_complete'; // Line 3
+const STORAGE_KEY = "th3rdai_onboarding_complete"; // Line 3
 
 // DO NOT CHANGE THIS FUNCTION
 export function isOnboardingComplete() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    return localStorage.getItem(STORAGE_KEY) === "true";
   } catch {
     return false;
   }
@@ -268,6 +301,7 @@ export function isOnboardingComplete() {
 **Warning signs:** Mode grid shows emoji icons (💬, 💡, 🐛, etc.)
 
 **Prevention check:**
+
 ```jsx
 // STEP INDICATORS (lines 21, 42, 76, 102) — KEEP EMOJI
 { icon: '👋', title: 'Welcome' }  // OK
@@ -285,6 +319,7 @@ export function isOnboardingComplete() {
 **Warning signs:** Tab key doesn't reach tooltip triggers, screen reader doesn't announce definitions
 
 **Current implementation (already correct):**
+
 - Tooltips appear on hover (MarkdownContent.jsx lines 153-169)
 - GlossaryPanel opens via keyboard-accessible button (App.jsx toolbar)
 - Modal has proper ARIA (role="dialog", aria-modal="true")
@@ -299,6 +334,7 @@ export function isOnboardingComplete() {
 **Warning signs:** Banner blocks main content, user can't access app without dismissing
 
 **Current implementation (already correct):**
+
 ```jsx
 // PrivacyBanner.jsx line 36-53 — Bottom banner, dismissable
 <div className="glass border-t border-indigo-500/20 px-4 py-2.5 flex items-center gap-3">
@@ -316,6 +352,7 @@ export function isOnboardingComplete() {
 **Warning signs:** Step 2 content exceeds 200 words, scroll required to read full step
 
 **Prevention check:**
+
 ```jsx
 // GOOD — 3 common issues only
 <ul className="list-disc list-inside space-y-1 ml-2">
@@ -343,9 +380,9 @@ Verified patterns from official sources and project code:
 ```jsx
 // Source: OnboardingWizard.jsx lines 158-172 (existing implementation)
 function handleKeyDown(e) {
-  if (e.key === 'ArrowRight' || e.key === 'Enter') goNext();
-  if (e.key === 'ArrowLeft') goBack();
-  if (e.key === 'Escape') finish();
+  if (e.key === "ArrowRight" || e.key === "Enter") goNext();
+  if (e.key === "ArrowLeft") goBack();
+  if (e.key === "Escape") finish();
 }
 
 return (
@@ -363,6 +400,7 @@ return (
 ```
 
 **Why this works:**
+
 - tabIndex={0} makes div focusable
 - role="dialog" + aria-modal="true" announces to screen readers
 - Arrow keys, Enter, Escape all work without mouse
@@ -374,7 +412,7 @@ return (
 // Source: MarkdownContent.jsx lines 153-195 (existing implementation)
 const handleMouseOver = useCallback((e) => {
   const target = e.target;
-  if (target.classList?.contains('jargon-term')) {
+  if (target.classList?.contains("jargon-term")) {
     const key = target.dataset.jargonKey;
     const entry = GLOSSARY[key];
     if (entry) {
@@ -391,21 +429,24 @@ const handleMouseOver = useCallback((e) => {
 }, []);
 
 // Render tooltip
-{tooltip && (
-  <div
-    className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in pointer-events-none"
-    style={{
-      left: Math.min(Math.max(tooltip.x, 140), window.innerWidth - 140),
-      top: Math.max(tooltip.y - 8, 8),
-      transform: 'translate(-50%, -100%)',
-    }}
-  >
-    {/* Tooltip content */}
-  </div>
-)}
+{
+  tooltip && (
+    <div
+      className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in pointer-events-none"
+      style={{
+        left: Math.min(Math.max(tooltip.x, 140), window.innerWidth - 140),
+        top: Math.max(tooltip.y - 8, 8),
+        transform: "translate(-50%, -100%)",
+      }}
+    >
+      {/* Tooltip content */}
+    </div>
+  );
+}
 ```
 
 **Why this works:**
+
 - Event delegation on parent container (performance)
 - Viewport boundary math prevents overflow
 - pointer-events-none prevents tooltip blocking mouse events
@@ -417,7 +458,7 @@ const handleMouseOver = useCallback((e) => {
 // Source: OnboardingWizard.jsx lines 106-112, 151-156
 export function isOnboardingComplete() {
   try {
-    return localStorage.getItem(STORAGE_KEY) === 'true';
+    return localStorage.getItem(STORAGE_KEY) === "true";
   } catch {
     return false; // Graceful degradation if localStorage unavailable
   }
@@ -425,13 +466,14 @@ export function isOnboardingComplete() {
 
 function finish() {
   try {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.setItem(STORAGE_KEY, "true");
   } catch {}
   onComplete();
 }
 ```
 
 **Why this works:**
+
 - try/catch handles Safari private browsing mode
 - Default to false (show onboarding) if storage fails
 - Silent catch in finish() — onboarding still completes even if storage fails
@@ -449,12 +491,14 @@ function finish() {
 ```
 
 **Why this works:**
+
 - Spells out acronym first
 - Uses analogy ("like a waiter taking your order")
 - No nested jargon (doesn't reference other technical terms)
 - Conversational tone ("talk to each other" vs "communicate")
 
 **Pattern to audit for:**
+
 ```jsx
 // CHECK if definition includes...
 - Everyday analogies (waiter, closet, filing system)
@@ -467,19 +511,21 @@ function finish() {
 
 ### Onboarding Patterns (2025)
 
-| Old Approach | Current Approach | When Changed | Impact |
-|--------------|------------------|--------------|--------|
-| Multi-step progressive disclosure (feature tours) | Single 4-step wizard on first launch | 2024-2025 | Vibe coders need understanding before action, not feature tours during use |
-| Full-screen interstitials | Non-intrusive footer banners | GDPR 2025 updates | Privacy banners must be dismissable without blocking content |
-| Emoji-only UI icons | SVG icon libraries (Lucide, Heroicons) | 2024+ | Professional UI standards; accessibility (screen readers announce icon names) |
-| Separate onboarding libraries (react-joyride, intro.js) | Lightweight custom components with Headless UI | 2024-2025 | Less bundle size; tailored to specific use case |
+| Old Approach                                            | Current Approach                               | When Changed      | Impact                                                                        |
+| ------------------------------------------------------- | ---------------------------------------------- | ----------------- | ----------------------------------------------------------------------------- |
+| Multi-step progressive disclosure (feature tours)       | Single 4-step wizard on first launch           | 2024-2025         | Vibe coders need understanding before action, not feature tours during use    |
+| Full-screen interstitials                               | Non-intrusive footer banners                   | GDPR 2025 updates | Privacy banners must be dismissable without blocking content                  |
+| Emoji-only UI icons                                     | SVG icon libraries (Lucide, Heroicons)         | 2024+             | Professional UI standards; accessibility (screen readers announce icon names) |
+| Separate onboarding libraries (react-joyride, intro.js) | Lightweight custom components with Headless UI | 2024-2025         | Less bundle size; tailored to specific use case                               |
 
 **Deprecated/outdated:**
+
 - **react-joyride feature tours:** Too heavyweight for simple 4-step wizard; adds 50KB+ to bundle
 - **Full-screen onboarding overlays:** Violate GDPR parity requirements (2025); must be dismissable without forcing action
 - **Emoji as functional UI icons:** Accessibility issue (screen readers don't announce emoji consistently); ui-ux-pro-max skill deprecates this
 
 **Current best practice (2025):**
+
 - Lightweight wizard on first launch (localStorage-gated)
 - Non-intrusive privacy messaging (bottom banner, dismissable)
 - Inline contextual help (jargon tooltips, glossary panel)
@@ -489,12 +535,12 @@ function finish() {
 
 **Common issues for non-technical users:**
 
-| Issue | Frequency | Solution |
-|-------|-----------|----------|
-| Ollama service not running | Very High | Check menu bar icon; run `ollama serve` |
-| No models installed | High | Run `ollama list` to check; `ollama pull <model>` to download |
-| Port connection refused | Medium | Verify port 11434 not blocked by firewall; check Ollama URL in settings |
-| Docker networking (localhost doesn't work) | Low | Use `host.docker.internal` (Mac/Windows) or `172.17.0.1` (Linux) |
+| Issue                                      | Frequency | Solution                                                                |
+| ------------------------------------------ | --------- | ----------------------------------------------------------------------- |
+| Ollama service not running                 | Very High | Check menu bar icon; run `ollama serve`                                 |
+| No models installed                        | High      | Run `ollama list` to check; `ollama pull <model>` to download           |
+| Port connection refused                    | Medium    | Verify port 11434 not blocked by firewall; check Ollama URL in settings |
+| Docker networking (localhost doesn't work) | Low       | Use `host.docker.internal` (Mac/Windows) or `172.17.0.1` (Linux)        |
 
 **Source:** Official Ollama troubleshooting docs, web research on common setup issues
 
@@ -502,38 +548,43 @@ function finish() {
 
 ### Accessibility Standards (2025)
 
-| Standard | Requirement | Code Companion Implementation |
-|----------|-------------|-------------------------------|
-| WCAG 2.2 | Keyboard navigation for all interactive elements | OnboardingWizard supports arrow keys, Enter, Escape |
-| WCAG 2.2 | Focus indicators visible | Tailwind default focus rings (blue outline) |
-| ARIA 1.2 | Dialog/modal patterns | role="dialog", aria-modal="true", aria-label on OnboardingWizard |
-| European Accessibility Act (June 2025) | WCAG 2.2 compliance mandatory | Code Companion already compliant (keyboard nav, ARIA, focus states) |
+| Standard                               | Requirement                                      | Code Companion Implementation                                       |
+| -------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------- |
+| WCAG 2.2                               | Keyboard navigation for all interactive elements | OnboardingWizard supports arrow keys, Enter, Escape                 |
+| WCAG 2.2                               | Focus indicators visible                         | Tailwind default focus rings (blue outline)                         |
+| ARIA 1.2                               | Dialog/modal patterns                            | role="dialog", aria-modal="true", aria-label on OnboardingWizard    |
+| European Accessibility Act (June 2025) | WCAG 2.2 compliance mandatory                    | Code Companion already compliant (keyboard nav, ARIA, focus states) |
 
 **Source:** Web research on 2025 accessibility requirements, WCAG 2.2 documentation
 
 ## Open Questions
 
 ### 1. Glossary Content Audit Completeness
+
 **What we know:** GLOSSARY object has 70+ terms with good analogies (JargonGlossary.jsx lines 7-69)
 **What's unclear:** Whether all definitions are fully vibe-coder-friendly (no PM-centric language like "your dev team")
 **Recommendation:** Manual audit of all 70+ definitions during planning; flag any that reference "PMs", "dev teams", or use unexplained jargon
 
 ### 2. Onboarding Replay Access Point
+
 **What we know:** `resetOnboarding()` function exists (OnboardingWizard.jsx line 114-118)
 **What's unclear:** Where "Replay Onboarding" button should be accessible from
 **Recommendation:** Add to Settings panel (already has other user preferences); label as "Show Welcome Wizard Again"
 
 ### 3. Privacy Banner Persistence Duration
+
 **What we know:** Banner dismisses permanently via localStorage
 **What's unclear:** Whether permanent dismissal is too aggressive (user might forget privacy details)
 **Recommendation:** Keep permanent dismissal; add "Privacy" section to Settings panel for users to review message later
 
 ### 4. Mode Description Simplification
+
 **What we know:** Onboarding step 3 shows 8 modes with descriptions
 **What's unclear:** Should descriptions match UI exactly, or be simplified for first-time context
 **Recommendation:** Use simplified descriptions in onboarding (e.g., "Ask anything about your code" vs. full mode capabilities); full details revealed when user selects mode
 
 ### 5. Ollama Connection Test in Onboarding
+
 **What we know:** Step 2 explains how to connect to Ollama
 **What's unclear:** Should onboarding actively test connection, or just instruct?
 **Recommendation:** Keep instructional only (no active testing); Settings panel already handles connection validation
@@ -541,28 +592,30 @@ function finish() {
 ## Validation Architecture
 
 ### Test Framework
-| Property | Value |
-|----------|-------|
-| Framework | Playwright 1.58.2 (E2E + Component Testing) |
-| Config file | playwright.config.js (E2E), playwright-ct.config.js (Component) |
-| Quick run command | `npm run test:ui` |
-| Full suite command | `npm test` |
+
+| Property           | Value                                                           |
+| ------------------ | --------------------------------------------------------------- |
+| Framework          | Playwright 1.58.2 (E2E + Component Testing)                     |
+| Config file        | playwright.config.js (E2E), playwright-ct.config.js (Component) |
+| Quick run command  | `npm run test:ui`                                               |
+| Full suite command | `npm test`                                                      |
 
 ### Phase Requirements → Test Map
 
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|--------------|
-| UX-01 | First-time user sees onboarding wizard on launch | E2E | `npx playwright test tests/ui/onboarding.spec.js -x` | ❌ Wave 0 |
-| UX-01 | Onboarding wizard has 4 steps with correct content | Component | `npx playwright test tests/ui/OnboardingWizard.spec.jsx -x` | ❌ Wave 0 |
-| UX-01 | Keyboard navigation works (arrow keys, Enter, Escape) | Component | `npx playwright test tests/ui/OnboardingWizard.spec.jsx::keyboard-nav -x` | ❌ Wave 0 |
-| UX-01 | Onboarding completion persists to localStorage | Unit | Manual verification (localStorage check in browser DevTools) | Manual-only |
-| UX-03 | Hovering over jargon term shows tooltip | Component | `npx playwright test tests/ui/JargonGlossary.spec.jsx::tooltip -x` | ❌ Wave 0 |
-| UX-03 | GlossaryPanel opens from toolbar, shows all terms | E2E | `npx playwright test tests/ui/glossary.spec.js -x` | ❌ Wave 0 |
-| UX-03 | Glossary search filters terms correctly | Component | `npx playwright test tests/ui/JargonGlossary.spec.jsx::search -x` | ❌ Wave 0 |
-| UX-04 | Privacy banner visible on first launch | E2E | `npx playwright test tests/ui/privacy-banner.spec.js -x` | ❌ Wave 0 |
-| UX-04 | Privacy banner dismisses and persists dismissal | E2E | `npx playwright test tests/ui/privacy-banner.spec.js::dismiss -x` | ❌ Wave 0 |
+| Req ID | Behavior                                              | Test Type | Automated Command                                                         | File Exists? |
+| ------ | ----------------------------------------------------- | --------- | ------------------------------------------------------------------------- | ------------ |
+| UX-01  | First-time user sees onboarding wizard on launch      | E2E       | `npx playwright test tests/ui/onboarding.spec.js -x`                      | ❌ Wave 0    |
+| UX-01  | Onboarding wizard has 4 steps with correct content    | Component | `npx playwright test tests/ui/OnboardingWizard.spec.jsx -x`               | ❌ Wave 0    |
+| UX-01  | Keyboard navigation works (arrow keys, Enter, Escape) | Component | `npx playwright test tests/ui/OnboardingWizard.spec.jsx::keyboard-nav -x` | ❌ Wave 0    |
+| UX-01  | Onboarding completion persists to localStorage        | Unit      | Manual verification (localStorage check in browser DevTools)              | Manual-only  |
+| UX-03  | Hovering over jargon term shows tooltip               | Component | `npx playwright test tests/ui/JargonGlossary.spec.jsx::tooltip -x`        | ❌ Wave 0    |
+| UX-03  | GlossaryPanel opens from toolbar, shows all terms     | E2E       | `npx playwright test tests/ui/glossary.spec.js -x`                        | ❌ Wave 0    |
+| UX-03  | Glossary search filters terms correctly               | Component | `npx playwright test tests/ui/JargonGlossary.spec.jsx::search -x`         | ❌ Wave 0    |
+| UX-04  | Privacy banner visible on first launch                | E2E       | `npx playwright test tests/ui/privacy-banner.spec.js -x`                  | ❌ Wave 0    |
+| UX-04  | Privacy banner dismisses and persists dismissal       | E2E       | `npx playwright test tests/ui/privacy-banner.spec.js::dismiss -x`         | ❌ Wave 0    |
 
 ### Sampling Rate
+
 - **Per task commit:** `npm run test:ui` (UI component tests only, < 30 seconds)
 - **Per wave merge:** `npm test` (full Playwright suite, E2E + component)
 - **Phase gate:** Full suite green before `/gsd:verify-work`
@@ -612,6 +665,7 @@ Test infrastructure exists (Playwright 1.58.2 installed, configs present), but P
 ## Metadata
 
 **Confidence breakdown:**
+
 - **Standard stack:** HIGH — All components already implemented and integrated
 - **Architecture:** HIGH — Existing patterns work; content updates are low-risk
 - **Pitfalls:** MEDIUM — Identified from best practices, but not empirically tested with vibe-coder audience

@@ -10,7 +10,7 @@ Analysis focused on reducing redundancy, tightening wording, and making executio
 
 **Efficiency gain:** Single source of truth. Define the convention once; other commands reference it.
 
-**Change:** Add a short **Journal** section in `ADD-TO-PROJECT.md` (or a one-file `JOURNAL.md` in commands): format lines, `mkdir -p journal`, and `journal/README.md` rule. In each command, replace the full block with: *"Append a journal entry (see ADD-TO-PROJECT § Journal). Format: `HH:MM | <command> | <context> | <outcome>`."* Validation-specific format (Pass/Fail, P1:OK…) can stay in validate/example-validate as one line.
+**Change:** Add a short **Journal** section in `ADD-TO-PROJECT.md` (or a one-file `JOURNAL.md` in commands): format lines, `mkdir -p journal`, and `journal/README.md` rule. In each command, replace the full block with: _"Append a journal entry (see ADD-TO-PROJECT § Journal). Format: `HH:MM | <command> | <context> | <outcome>`."_ Validation-specific format (Pass/Fail, P1:OK…) can stay in validate/example-validate as one line.
 
 **Applied:** Commands now reference a single journal convention in ADD-TO-PROJECT; validate/example-validate keep one-line format; build-prp/execute-prp use short reference + their format line.
 
@@ -22,7 +22,7 @@ Analysis focused on reducing redundancy, tightening wording, and making executio
 
 **Efficiency gain:** One place defines the implementation flow; build-prp points to it.
 
-**Change:** In build-prp Phase 3 step 2, replace the bullet list with: *"Same flow as `/execute-prp`: implementation plan (TodoWrite), implement step by step, run each PRP validation command, fix failures and re-run until pass, complete checklist, final validation, report. See execute-prp.md for full steps."*
+**Change:** In build-prp Phase 3 step 2, replace the bullet list with: _"Same flow as `/execute-prp`: implementation plan (TodoWrite), implement step by step, run each PRP validation command, fix failures and re-run until pass, complete checklist, final validation, report. See execute-prp.md for full steps."_
 
 **Applied:** build-prp now references execute-prp instead of repeating the list.
 
@@ -72,7 +72,7 @@ Analysis focused on reducing redundancy, tightening wording, and making executio
 
 **Change:** Add: "Copy all `*.md` from this folder into the target, except ADD-TO-PROJECT.md and EFFICIENCY-REVIEW.md (reference only)." Keep the list as an optional checklist.
 
-**Applied:** ADD-TO-PROJECT now says "Copy all *.md except ADD-TO-PROJECT.md and EFFICIENCY-REVIEW.md" with list as optional checklist.
+**Applied:** ADD-TO-PROJECT now says "Copy all \*.md except ADD-TO-PROJECT.md and EFFICIENCY-REVIEW.md" with list as optional checklist.
 
 ---
 
@@ -120,18 +120,18 @@ Analysis focused on reducing redundancy, tightening wording, and making executio
 
 ## Summary of efficiency improvements
 
-| # | Change | Effect |
-|---|--------|--------|
-| 1 | Single journal convention in ADD-TO-PROJECT; commands reference it | One place to update; less duplication |
-| 2 | build-prp Phase 3 references execute-prp instead of repeating steps | Single source for implementation flow |
-| 3 | generate-validate: one template reference | Shorter, less path drift |
-| 4 | execute-prp: remove step 8, strengthen Note | Clearer, actionable only |
-| 5 | new-project: suggest PRD then PRP | Correct default workflow |
-| 6 | ADD-TO-PROJECT: copy all *.md except reference docs | List doesn’t need constant updates |
-| 7 | build-prp Phase 1: one bullet for resolve + confirm | Fewer steps |
-| 8 | generate-prp: clarify only when unclear | Fewer unnecessary questions |
-| 9 | e2e-test: pre-flight run in order, stop on fail | Avoid wasted work |
-| 10 | generate-validate output: reference journal format | No repeated journal block |
+| #   | Change                                                              | Effect                                |
+| --- | ------------------------------------------------------------------- | ------------------------------------- |
+| 1   | Single journal convention in ADD-TO-PROJECT; commands reference it  | One place to update; less duplication |
+| 2   | build-prp Phase 3 references execute-prp instead of repeating steps | Single source for implementation flow |
+| 3   | generate-validate: one template reference                           | Shorter, less path drift              |
+| 4   | execute-prp: remove step 8, strengthen Note                         | Clearer, actionable only              |
+| 5   | new-project: suggest PRD then PRP                                   | Correct default workflow              |
+| 6   | ADD-TO-PROJECT: copy all \*.md except reference docs                | List doesn’t need constant updates    |
+| 7   | build-prp Phase 1: one bullet for resolve + confirm                 | Fewer steps                           |
+| 8   | generate-prp: clarify only when unclear                             | Fewer unnecessary questions           |
+| 9   | e2e-test: pre-flight run in order, stop on fail                     | Avoid wasted work                     |
+| 10  | generate-validate output: reference journal format                  | No repeated journal block             |
 
 ---
 

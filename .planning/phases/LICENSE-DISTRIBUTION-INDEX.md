@@ -2,14 +2,14 @@
 
 Quick reference for license key generation and distribution phases (9–14).
 
-| Phase | Name | When to Use |
-|-------|------|-------------|
-| **9** | Batch Generation | Hundreds/thousands of keys; extract shared generator |
-| **10** | Payment Webhook | Auto-generate on Stripe/Paddle purchase |
-| **11** | License Server API | Online validation, revocation |
-| **12** | Key Pool | Pre-generated keys for campaigns |
-| **13** | Email Delivery | Send keys via email |
-| **14** | Revocation | Revoke keys (chargebacks, abuse) |
+| Phase  | Name               | When to Use                                          |
+| ------ | ------------------ | ---------------------------------------------------- |
+| **9**  | Batch Generation   | Hundreds/thousands of keys; extract shared generator |
+| **10** | Payment Webhook    | Auto-generate on Stripe/Paddle purchase              |
+| **11** | License Server API | Online validation, revocation                        |
+| **12** | Key Pool           | Pre-generated keys for campaigns                     |
+| **13** | Email Delivery     | Send keys via email                                  |
+| **14** | Revocation         | Revoke keys (chargebacks, abuse)                     |
 
 ## Execution Order
 

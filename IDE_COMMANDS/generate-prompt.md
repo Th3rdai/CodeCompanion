@@ -9,18 +9,24 @@ Generate an optimal, XML-structured prompt for the specified task. This command 
 Before generating, check for clarity issues:
 
 ### Vague Terms Check
+
 Look for: "something", "it", "stuff", "things", "maybe", "kind of"
+
 - If found → Ask for clarification before proceeding
 
 ### Missing Context Check
+
 Verify the request includes:
+
 - **Context**: What's the background/purpose?
 - **Audience**: Who will use this output?
 - **Output Format**: What format is expected?
 - **Use Case**: Production, prototype, learning?
 
 ### Ambiguous Goals Check
+
 Watch for vague verbs without specifics:
+
 - "optimize" → Optimize for what? (speed, memory, readability)
 - "improve" → Improve in what way? (performance, UX, maintainability)
 - "fix" → What specific issue needs fixing?
@@ -33,17 +39,21 @@ If ambiguity detected → Ask up to 5 targeted clarifying questions before proce
 ## Phase 2: Task Analysis
 
 ### Complexity Scoring
+
 Analyze the task to determine complexity:
 
 **Simple** (score < 2):
+
 - Straightforward, single-file tasks
 - Clear requirements, no research needed
 
 **Moderate** (score 2-3):
+
 - Multiple considerations
 - Some analysis required
 
 **Complex** (score ≥ 4):
+
 - Multi-file, cross-cutting concerns
 - Research, design decisions, trade-offs
 - Keywords: analyze, research, design, architect, optimize, evaluate, compare, investigate, comprehensive, refactor, migrate, integrate, coordinate, orchestrate
@@ -53,6 +63,7 @@ Analyze the task to determine complexity:
 **Standard**: Default for simple/moderate tasks
 
 **Deep**: Triggered by:
+
 - Complex score ≥ 4
 - Phrases: "thoroughly", "deeply", "trade-offs", "best approach", "evaluate options", "design decision", "architecture"
 
@@ -61,9 +72,11 @@ Analyze the task to determine complexity:
 **Single Prompt**: Cohesive, sequential task (default)
 
 **Multiple Parallel**: Independent sub-tasks
+
 - Indicators: "and also", "in addition", "separately", numbered lists
 
 **Multiple Sequential**: Dependent sub-tasks
+
 - Indicators: "then", "after", "once", "before", "depends on", "based on"
 
 ## Phase 3: Generate Structured Prompt
@@ -123,6 +136,7 @@ Expected deliverables:
 ### Conditional Sections (Add Based on Analysis)
 
 **For Deep Reasoning** (complexity=complex or deep reasoning triggers):
+
 ```xml
 <implementation>
 Apply thorough analysis: consider trade-offs, edge cases, and justify decisions with WHY explanations.
@@ -130,6 +144,7 @@ Apply thorough analysis: consider trade-offs, edge cases, and justify decisions 
 ```
 
 **For Research Tasks** (contains "research" or "analyze" with complex score):
+
 ```xml
 <research>
 Conduct thorough research using documentation, codebase context, and best practices before proposing solution.
@@ -137,6 +152,7 @@ Conduct thorough research using documentation, codebase context, and best practi
 ```
 
 **For Multi-Step Tasks** (flowType != single):
+
 ```xml
 <examples>
 Sub-task breakdown:
@@ -146,6 +162,7 @@ Sub-task breakdown:
 ```
 
 **For Non-Simple Tasks** (complexity != simple):
+
 ```xml
 <validation>
 After implementation, validate against all success criteria. Confirm no regressions or edge cases missed.
@@ -155,6 +172,7 @@ After implementation, validate against all success criteria. Confirm no regressi
 ## Output
 
 Save as: `PRPs/prompts/{NNN}-{task-name}.md`
+
 - NNN = sequential 3-digit number
 - task-name = kebab-case summary (max 60 chars)
 
@@ -214,10 +232,11 @@ Files to create:
 </verification>
 
 <success_criteria>
+
 - Users can login and receive valid JWT
 - Protected routes reject unauthorized requests
 - Token refresh extends session without re-login
-</success_criteria>
+  </success_criteria>
 ```
 
 Remember: The goal is creating prompts that enable one-pass implementation success through comprehensive context and clear expectations.

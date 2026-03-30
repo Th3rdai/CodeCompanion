@@ -38,6 +38,7 @@ metrics:
 Rewrote 7 mode system prompts in `lib/prompts.js` to serve vibe coders (non-technical users building with AI coding tools) instead of Product Managers. Created automated tone validation tests to ensure no PM-specific language, analogy usage, personality archetypes, and conversational guardrails.
 
 **Core changes:**
+
 - **Chat mode**: Changed from "PM who works with dev teams" to "building with AI coding tools"
 - **Explain mode**: Added "never written code" framing with everyday analogies (library, kitchen, recipe)
 - **Bugs mode**: Shifted to "protective friend" identity with plain-English severity examples
@@ -53,6 +54,7 @@ None - plan executed exactly as written.
 ## Key Decisions Made
 
 **1. Mode personality preservation**
+
 - Each mode retains distinct archetype while sharing friendly-teacher baseline
 - Explain: patient teacher ("friend who makes complex things feel simple")
 - Bugs: protective friend ("friendly safety inspector")
@@ -60,16 +62,19 @@ None - plan executed exactly as written.
 - Translate modes: bridge ("translator who speaks both languages")
 
 **2. Refactor mode enhancement**
+
 - Added "Here's What to Tell Your AI" section after showing improved code
 - Provides copy-pasteable prompts users can give to Cursor, ChatGPT, or other AI tools
 - Maintains reference code display (doesn't skip it) as requested in CONTEXT.md
 
 **3. Jargon handling strategy**
+
 - Used inline plain-English examples in bugs mode ("this could let someone access data they shouldn't see" not "SQL injection vulnerability")
 - Leverages existing MODE_GUARDRAIL pattern for conversational fallback
 - Relies on existing JargonGlossary.jsx for hover definitions (no changes needed)
 
 **4. Test-driven validation**
+
 - Created 5 automated tests covering: no PM language, inline definitions, analogies, personality archetypes, MODE_GUARDRAIL presence
 - Tests initially failed (detected PM terms in chat, missing guardrail), proving detection works
 - All tests green after prompt rewrites
@@ -77,6 +82,7 @@ None - plan executed exactly as written.
 ## Testing & Validation
 
 **Automated tests (all passing):**
+
 - `node --test tests/tone-validation.test.js` — 5/5 green
   - No PM-specific language detected (dev team, stakeholder, leadership, manager, standup)
   - Analogies present in explain/bugs/refactor modes
@@ -85,6 +91,7 @@ None - plan executed exactly as written.
   - Inline jargon definition pattern validated
 
 **Manual spot-check:**
+
 - Explain prompt readable by non-coder: YES (uses kitchen/library analogies)
 - Bugs prompt describes "what will break" in plain English: YES (includes example)
 - Refactor prompt includes copy-pasteable AI prompts: YES (new section added)
@@ -93,9 +100,11 @@ None - plan executed exactly as written.
 ## Files Changed
 
 **Created:**
+
 - `tests/tone-validation.test.js` (121 lines) — 5 automated tone validation tests using Node.js `node:test`
 
 **Modified:**
+
 - `lib/prompts.js` (34 insertions, 28 deletions) — Rewrote 7 mode prompts, added MODE_GUARDRAIL to chat mode
 
 ## Commits
@@ -108,16 +117,19 @@ None - plan executed exactly as written.
 **Requires:** None (standalone tone update)
 
 **Provides:**
+
 - `tests/tone-validation.test.js` — Reusable validation for future prompt changes
 - Vibe-coder-focused prompts in `lib/prompts.js` — Foundation for Phase 2 Plan 2 (UI label updates)
 
 **Affects:**
+
 - All LLM interactions across 8 modes now use vibe-coder language
 - Future prompt edits should maintain validation test compliance
 
 ## What's Next
 
 **Phase 2 Plan 2** will update mode labels in `src/App.jsx`:
+
 - Rename "Tech → Biz" and "Biz → Tech" to clear transformation language ("Code → Plain English", "Idea → Code Spec")
 - Update placeholder text to match vibe-coder audience (remove "your dev team" references)
 - Ensure UI language consistency with rewritten prompts
@@ -125,17 +137,20 @@ None - plan executed exactly as written.
 ## Self-Check
 
 **Files created:**
+
 ```bash
 [✓] FOUND: tests/tone-validation.test.js
 ```
 
 **Commits exist:**
+
 ```bash
 [✓] FOUND: 9b04ece (test scaffold)
 [✓] FOUND: c787a1c (prompt rewrites)
 ```
 
 **Tests passing:**
+
 ```bash
 [✓] node --test tests/tone-validation.test.js — 5/5 green
 ```

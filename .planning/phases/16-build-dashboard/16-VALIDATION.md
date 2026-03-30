@@ -15,13 +15,13 @@ created: 2026-03-15
 
 ## Test Infrastructure
 
-| Property | Value |
-|----------|-------|
-| **Framework** | Playwright ^1.58.2 |
-| **Config file** | playwright.config (implicit) |
-| **Quick run command** | `npx playwright test tests/ui/build-*.spec.js --project=chromium` |
-| **Full suite command** | `npx playwright test` |
-| **Estimated runtime** | ~30 seconds |
+| Property               | Value                                                             |
+| ---------------------- | ----------------------------------------------------------------- |
+| **Framework**          | Playwright ^1.58.2                                                |
+| **Config file**        | playwright.config (implicit)                                      |
+| **Quick run command**  | `npx playwright test tests/ui/build-*.spec.js --project=chromium` |
+| **Full suite command** | `npx playwright test`                                             |
+| **Estimated runtime**  | ~30 seconds                                                       |
 
 ---
 
@@ -36,17 +36,17 @@ created: 2026-03-15
 
 ## Per-Task Verification Map
 
-| Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
-|---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 16-01-01 | 01 | 1 | P2-01 | unit | `npx playwright test tests/ui/build-simple-view.spec.js -x` | ❌ W0 | ⬜ pending |
-| 16-01-02 | 01 | 1 | P2-02 | unit | `npx playwright test tests/ui/build-simple-view.spec.js -x` | ❌ W0 | ⬜ pending |
-| 16-01-03 | 01 | 1 | P2-03 | unit | `npx playwright test tests/ui/build-simple-view.spec.js -x` | ❌ W0 | ⬜ pending |
-| 16-02-01 | 02 | 2 | P3-01 | unit | `npx playwright test tests/ui/build-ai-ops.spec.js -x` | ❌ W0 | ⬜ pending |
-| 16-03-01 | 03 | 3 | P4-01 | unit | `npx playwright test tests/ui/build-advanced-view.spec.js -x` | ❌ W0 | ⬜ pending |
-| 16-03-02 | 03 | 3 | P4-02 | unit | `node --test tests/unit/build-file-ops.test.js` | ✅ W0 | ✅ green |
-| 16-04-01 | 04 | 4 | P5-01 | unit | `npx playwright test tests/ui/build-handoff.spec.js -x` | ❌ W0 | ⬜ pending |
+| Task ID  | Plan | Wave | Requirement | Test Type | Automated Command                                             | File Exists | Status     |
+| -------- | ---- | ---- | ----------- | --------- | ------------------------------------------------------------- | ----------- | ---------- |
+| 16-01-01 | 01   | 1    | P2-01       | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | ❌ W0       | ⬜ pending |
+| 16-01-02 | 01   | 1    | P2-02       | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | ❌ W0       | ⬜ pending |
+| 16-01-03 | 01   | 1    | P2-03       | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | ❌ W0       | ⬜ pending |
+| 16-02-01 | 02   | 2    | P3-01       | unit      | `npx playwright test tests/ui/build-ai-ops.spec.js -x`        | ❌ W0       | ⬜ pending |
+| 16-03-01 | 03   | 3    | P4-01       | unit      | `npx playwright test tests/ui/build-advanced-view.spec.js -x` | ❌ W0       | ⬜ pending |
+| 16-03-02 | 03   | 3    | P4-02       | unit      | `node --test tests/unit/build-file-ops.test.js`               | ✅ W0       | ✅ green   |
+| 16-04-01 | 04   | 4    | P5-01       | unit      | `npx playwright test tests/ui/build-handoff.spec.js -x`       | ❌ W0       | ⬜ pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+_Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky_
 
 ---
 
@@ -61,10 +61,10 @@ created: 2026-03-15
 
 ## Manual-Only Verifications
 
-| Behavior | Requirement | Why Manual | Test Instructions |
-|----------|-------------|------------|-------------------|
-| AI recommendation quality | P2-03 | Depends on Ollama model output | Trigger "What's Next" and verify recommendation is contextual |
-| SSE stream renders in real-time | P3-01 | Visual streaming verification | Start research, verify chunks appear progressively |
+| Behavior                        | Requirement | Why Manual                     | Test Instructions                                             |
+| ------------------------------- | ----------- | ------------------------------ | ------------------------------------------------------------- |
+| AI recommendation quality       | P2-03       | Depends on Ollama model output | Trigger "What's Next" and verify recommendation is contextual |
+| SSE stream renders in real-time | P3-01       | Visual streaming verification  | Start research, verify chunks appear progressively            |
 
 ---
 

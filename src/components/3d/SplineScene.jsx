@@ -1,6 +1,6 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense } from "react";
 
-const Spline = lazy(() => import('@splinetool/react-spline'));
+const Spline = lazy(() => import("@splinetool/react-spline"));
 
 /**
  * Loading spinner that matches the Th3rdAI brand.
@@ -24,7 +24,7 @@ function SceneLoader() {
  * Gradient fallback shown when no scene URL is configured
  * or when reduced-motion is preferred.
  */
-function GradientFallback({ className = '' }) {
+function GradientFallback({ className = "" }) {
   return (
     <div className={`w-full h-full ${className}`}>
       <div className="w-full h-full bg-gradient-to-br from-base via-surface to-surface-light relative overflow-hidden">
@@ -44,11 +44,11 @@ function GradientFallback({ className = '' }) {
  * @param {string}   className - Additional CSS classes for sizing/positioning
  * @param {function} onLoad    - Callback fired when scene finishes loading
  */
-export default function SplineScene({ scene, className = '', onLoad }) {
+export default function SplineScene({ scene, className = "", onLoad }) {
   // Check for reduced-motion preference
   const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // No scene URL configured — show gradient fallback
   if (!scene) {
@@ -62,11 +62,7 @@ export default function SplineScene({ scene, className = '', onLoad }) {
 
   return (
     <Suspense fallback={<SceneLoader />}>
-      <Spline
-        scene={scene}
-        className={className}
-        onLoad={onLoad}
-      />
+      <Spline scene={scene} className={className} onLoad={onLoad} />
     </Suspense>
   );
 }

@@ -4,14 +4,14 @@ Implemented from the **claude-automation-recommender** plan: skills, agents, hoo
 
 ## Layout
 
-| Path | Purpose |
-|------|---------|
-| `.claude/settings.json` | **Hooks**: PreToolUse (sensitive files), PostToolUse (unit tests) |
-| `.claude/hooks/*.sh` | Bash scripts (require **bash**, **jq**, **npm** on PATH) |
+| Path                        | Purpose                                                            |
+| --------------------------- | ------------------------------------------------------------------ |
+| `.claude/settings.json`     | **Hooks**: PreToolUse (sensitive files), PostToolUse (unit tests)  |
+| `.claude/hooks/*.sh`        | Bash scripts (require **bash**, **jq**, **npm** on PATH)           |
 | `.claude/skills/*/SKILL.md` | Project skills — `/code-companion-conventions`, `/release-desktop` |
-| `.claude/agents/*.md` | Subagents — `security-pass`, `mcp-contract-check` |
-| `.claude/commands/` | Slash commands (e.g. `validate-project`) |
-| `.mcp.json.example` | Optional MCP servers for **Claude Code** (copy or merge) |
+| `.claude/agents/*.md`       | Subagents — `security-pass`, `mcp-contract-check`                  |
+| `.claude/commands/`         | Slash commands (e.g. `validate-project`)                           |
+| `.mcp.json.example`         | Optional MCP servers for **Claude Code** (copy or merge)           |
 
 **Git:** `.claude/` is listed in `.gitignore` so local-only Claude files stay untracked. **Team-shared** files under `.claude/` are committed with `git add -f <path>`. Add the same for any new hook/skill you want in the repo.
 

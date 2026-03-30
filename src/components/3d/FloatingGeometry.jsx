@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { use3DEffects } from '../../contexts/Effects3DContext';
+import { useEffect, useRef } from "react";
+import { use3DEffects } from "../../contexts/Effects3DContext";
 
 export default function FloatingGeometry({ shapeCount = 6 }) {
   const { enabled, theme } = use3DEffects();
@@ -9,12 +9,15 @@ export default function FloatingGeometry({ shapeCount = 6 }) {
   const colors = [theme.primary, theme.secondary, theme.tertiary];
 
   useEffect(() => {
-    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (
+      !enabled ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
       return;
     }
 
     const initGeometry = async () => {
-      const THREE = await import('three');
+      const THREE = await import("three");
 
       if (!containerRef.current) return;
 
@@ -97,10 +100,10 @@ export default function FloatingGeometry({ shapeCount = 6 }) {
         renderer.setSize(newWidth, newHeight);
       };
 
-      window.addEventListener('resize', handleResize);
+      window.addEventListener("resize", handleResize);
 
       return () => {
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener("resize", handleResize);
         if (animationIdRef.current) {
           cancelAnimationFrame(animationIdRef.current);
         }
@@ -119,7 +122,7 @@ export default function FloatingGeometry({ shapeCount = 6 }) {
     const cleanup = initGeometry().then((fn) => fn);
 
     return () => {
-      if (cleanup && typeof cleanup.then === 'function') {
+      if (cleanup && typeof cleanup.then === "function") {
         cleanup.then((fn) => fn?.());
       }
     };
@@ -131,12 +134,12 @@ export default function FloatingGeometry({ shapeCount = 6 }) {
     <div
       ref={containerRef}
       style={{
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        pointerEvents: 'none',
+        pointerEvents: "none",
         zIndex: 1,
       }}
     />

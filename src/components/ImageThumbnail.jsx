@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState } from "react";
+import { X } from "lucide-react";
 
 /**
  * ImageThumbnail Component
@@ -21,7 +21,7 @@ export default function ImageThumbnail({
   format,
   dimensions,
   onRemove,
-  onClick
+  onClick,
 }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -36,11 +36,15 @@ export default function ImageThumbnail({
   // Format badge color based on format
   const getBadgeColor = (fmt) => {
     switch (fmt?.toLowerCase()) {
-      case 'png': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      case 'jpeg':
-      case 'jpg': return 'bg-green-500/20 text-green-300 border-green-500/30';
-      case 'gif': return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-      default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+      case "png":
+        return "bg-blue-500/20 text-blue-300 border-blue-500/30";
+      case "jpeg":
+      case "jpg":
+        return "bg-green-500/20 text-green-300 border-green-500/30";
+      case "gif":
+        return "bg-purple-500/20 text-purple-300 border-purple-500/30";
+      default:
+        return "bg-slate-500/20 text-slate-300 border-slate-500/30";
     }
   };
 
@@ -52,7 +56,7 @@ export default function ImageThumbnail({
         onClick={onClick}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
+        onKeyDown={(e) => e.key === "Enter" && onClick?.()}
         aria-label={`View full-size image: ${filename}`}
       >
         {/* Loading State */}
@@ -74,7 +78,7 @@ export default function ImageThumbnail({
         <img
           src={src}
           alt={filename}
-          className={`w-full h-full object-contain ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-full object-contain ${imageLoaded ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setImageLoaded(true)}
           onError={() => setImageError(true)}
           loading="lazy"
@@ -100,17 +104,23 @@ export default function ImageThumbnail({
       </button>
 
       {/* Format Badge */}
-      <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase border ${getBadgeColor(format)}`}>
-        {format || 'img'}
+      <div
+        className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase border ${getBadgeColor(format)}`}
+      >
+        {format || "img"}
       </div>
 
       {/* Metadata Tooltip */}
       <div className="mt-1 text-xs text-slate-400 max-w-[128px]">
-        <div className="truncate" title={filename}>{filename}</div>
+        <div className="truncate" title={filename}>
+          {filename}
+        </div>
         <div className="flex items-center gap-2 text-[10px] text-slate-500">
           <span>{formatSize(size)}</span>
           {dimensions && (
-            <span>{dimensions.width}×{dimensions.height}</span>
+            <span>
+              {dimensions.width}×{dimensions.height}
+            </span>
           )}
         </div>
       </div>

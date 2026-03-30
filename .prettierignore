@@ -1,0 +1,12 @@
+node_modules
+dist
+release
+coverage
+.gitnexus
+test-results
+playwright-report
+package-lock.json
+pnpm-lock.yaml
+*.min.js
+ARCHIVES
+github-repos

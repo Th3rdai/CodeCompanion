@@ -21,6 +21,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Consequences:** Report card renders blank or crashes. User sees broken UI on first use.
 
 **Prevention:**
+
 1. Use Ollama's full JSON Schema support: `format: { type: "object", properties: {...}, required: [...] }`. This constrains the model via constrained decoding to match the exact schema. **Verified in Ollama official API docs.**
 2. Validate with Zod as a safety net after parsing
 3. Build a graceful fallback: if parsing fails, display raw response as markdown (existing chat rendering)
@@ -39,6 +40,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Consequences:** Either (a) blank screen during buffering (users think it's frozen), (b) parse errors on partial JSON, or (c) unnecessary complexity in the streaming pipeline.
 
 **Prevention:**
+
 1. Create a separate `POST /api/review-report` endpoint that uses `chatComplete` (non-streaming) and returns parsed JSON
 2. Design a loading UX: "Grading your code..." with animated phases
 3. Keep streaming for the deep-dive follow-up conversation (separate concern)
@@ -57,6 +59,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Consequences:** Users perceive the product as inconsistent and unpolished. Trust erodes through inconsistency.
 
 **Prevention:**
+
 1. Rewrite ALL system prompts at once. The `SYSTEM_PROMPTS` object has 7 prompts -- this is one session's work.
 2. Create a shared persona preamble all prompts inherit: tone, audience definition, jargon rules
 3. Extend the existing `MODE_GUARDRAIL` pattern to include tone/persona
@@ -75,6 +78,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Consequences:** Users see problems but cannot act on them. They either ignore the tool or blindly ask their AI to "fix security" without context.
 
 **Prevention:**
+
 1. Every grade MUST include: what drove the grade, a concrete action, and a copy-pasteable prompt for their AI tool
 2. Design the report card as a conversation starter: "Security: C -- click to learn more and get fix suggestions"
 3. Include "Copy fix prompt" buttons per finding
@@ -93,6 +97,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Consequences:** First impression is terrible. User never returns.
 
 **Prevention:**
+
 1. Add model capability tiers: tag models as "basic" (< 7B), "recommended" (7B-14B), "best" (> 14B) using `details.parameter_size` from Ollama API
 2. Show gentle warning for small models: "Smaller models work great for chat, but code review works best with 7B+ parameters"
 3. If review fails, suggest a larger model before showing an error
@@ -113,6 +118,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Why it happens:** LLMs have no calibrated severity sense. Without rubrics and few-shot examples, each model invents its own interpretation.
 
 **Prevention:**
+
 1. Include a grading rubric in the system prompt: "A = no issues, B = minor style issues only, C = 1-2 functional concerns, D = multiple bugs or security issues, F = code is broken or dangerous"
 2. Add 1-2 few-shot examples per grade level
 3. Consider computing grades in application code based on the findings list rather than asking the LLM to assign grades directly
@@ -126,6 +132,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Why it happens:** Cloud LLMs have 128K+ context, so developers never think about this. Local models default much smaller.
 
 **Prevention:**
+
 1. Estimate tokens before sending (chars / 4 for code)
 2. Warn if input is large: "This file is large. I'll review the most important sections."
 3. Offer chunked review for large files
@@ -140,6 +147,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **Why it happens:** The mode-based chat pattern is the path of least resistance. But `CreateWizard` and `DashboardPanel` already demonstrate the dedicated-panel pattern.
 
 **Prevention:**
+
 1. Follow the `CreateWizard` / `DashboardPanel` precedent: render `ReviewPanel` as its own component replacing the chat area
 2. The routing pattern already exists: `mode === 'create' ? <CreateWizard /> : mode === 'dashboard' ? <DashboardPanel /> : ...`
 3. Allow a "discuss this review" action that opens a chat conversation with review context
@@ -151,6 +159,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **What goes wrong:** User pastes code that is fine. Report card shows all A's with no findings. User thinks the tool did not actually analyze anything.
 
 **Prevention:**
+
 1. Design a positive "clean review" state: "No issues found! Here's what I checked..."
 2. Include positive observations in the schema: "Good error handling," "Consistent naming"
 3. Show that the review ran and inspected the code, even when nothing is wrong
@@ -166,6 +175,7 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 **What goes wrong:** Reviews save as plain message text. When loading from history, the report card cannot re-render because structured grade data is lost.
 
 **Prevention:**
+
 1. Save report card JSON alongside conversation messages in history
 2. Add a `type` field to history entries: `"chat"` vs `"review"`
 3. On history load, detect type and use appropriate renderer
@@ -190,17 +200,17 @@ Mistakes that cause rewrites, broken user trust, or fundamental feature failure.
 
 ## Phase-Specific Warnings
 
-| Phase Topic | Likely Pitfall | Mitigation |
-|-------------|---------------|------------|
-| Ollama client extension | Using `format: "json"` instead of full JSON Schema | Use `format: { type: "object", ... }` with schema (Pitfall 1) |
-| Review API endpoint | Streaming structured output | Separate non-streaming endpoint (Pitfall 2) |
-| System prompt rewrite | Updating only new modes, not existing | Rewrite all prompts in one batch (Pitfall 3) |
-| Report card UI | Grades without actions | Every grade needs finding + action + copy-paste prompt (Pitfall 4) |
-| Model selection UX | Small models producing garbage | Capability tiers + gentle warnings (Pitfall 5) |
-| Prompt calibration | Inconsistent grades across models | Rubric in prompt + few-shot examples (Pitfall 6) |
-| Large file review | Context window overflow | Token counting + chunking (Pitfall 7) |
-| Review component architecture | Chat bubble rendering | Dedicated panel like CreateWizard (Pitfall 8) |
-| History storage | Losing structured review data | Save JSON alongside messages (Pitfall 10) |
+| Phase Topic                   | Likely Pitfall                                     | Mitigation                                                         |
+| ----------------------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
+| Ollama client extension       | Using `format: "json"` instead of full JSON Schema | Use `format: { type: "object", ... }` with schema (Pitfall 1)      |
+| Review API endpoint           | Streaming structured output                        | Separate non-streaming endpoint (Pitfall 2)                        |
+| System prompt rewrite         | Updating only new modes, not existing              | Rewrite all prompts in one batch (Pitfall 3)                       |
+| Report card UI                | Grades without actions                             | Every grade needs finding + action + copy-paste prompt (Pitfall 4) |
+| Model selection UX            | Small models producing garbage                     | Capability tiers + gentle warnings (Pitfall 5)                     |
+| Prompt calibration            | Inconsistent grades across models                  | Rubric in prompt + few-shot examples (Pitfall 6)                   |
+| Large file review             | Context window overflow                            | Token counting + chunking (Pitfall 7)                              |
+| Review component architecture | Chat bubble rendering                              | Dedicated panel like CreateWizard (Pitfall 8)                      |
+| History storage               | Losing structured review data                      | Save JSON alongside messages (Pitfall 10)                          |
 
 ## Pitfall Prevention Build Order
 

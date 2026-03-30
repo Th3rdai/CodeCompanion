@@ -21,11 +21,11 @@ If **`logs/app.log`** contains **`Ollama chatComplete failed`** with **`"error":
 
 **External MCP servers** are stored in **`mcpClients`** inside **`.cc-config.json`**, but the file location depends on how you run the app:
 
-| How you run | Config file |
-|-------------|-------------|
-| **`node server.js`** from the repo (no **`CC_DATA_DIR`**) | **`<repo>/.cc-config.json`** |
-| **Electron (dev)** | **`<repo>/CodeCompanion-Data/.cc-config.json`** (server gets **`CC_DATA_DIR`**) |
-| **Electron (packaged)** | Under the app data directory (e.g. macOS **`~/Library/Application Support/code-companion/`**), not the git clone |
+| How you run                                               | Config file                                                                                                      |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **`node server.js`** from the repo (no **`CC_DATA_DIR`**) | **`<repo>/.cc-config.json`**                                                                                     |
+| **Electron (dev)**                                        | **`<repo>/CodeCompanion-Data/.cc-config.json`** (server gets **`CC_DATA_DIR`**)                                  |
+| **Electron (packaged)**                                   | Under the app data directory (e.g. macOS **`~/Library/Application Support/code-companion/`**), not the git clone |
 
 **Unpackaged Electron dev:** On startup, if the data-dir config has **no** MCP clients but the **repo root** `.cc-config.json` does, the app **copies `mcpClients`** into the data-dir config once (so Settings matches the file developers often edit in git). **Restart** the app after editing the repo file so this can run.
 
@@ -33,11 +33,11 @@ If **`logs/app.log`** contains **`Ollama chatComplete failed`** with **`"error":
 
 ## Log files
 
-| Scenario | Typical path |
-|----------|----------------|
-| **`node server.js`** from repo root | **`logs/app.log`**, **`logs/debug.log`** |
-| **`CC_DATA_DIR`** set (Electron) | **`<CC_DATA_DIR>/logs/app.log`** |
-| Electron startup issues | **`/tmp/code-companion-startup.log`** (when written) |
+| Scenario                            | Typical path                                         |
+| ----------------------------------- | ---------------------------------------------------- |
+| **`node server.js`** from repo root | **`logs/app.log`**, **`logs/debug.log`**             |
+| **`CC_DATA_DIR`** set (Electron)    | **`<CC_DATA_DIR>/logs/app.log`**                     |
+| Electron startup issues             | **`/tmp/code-companion-startup.log`** (when written) |
 
 **Tip:** Set **`DEBUG=1`** for more verbose **`debug.log`** output.
 

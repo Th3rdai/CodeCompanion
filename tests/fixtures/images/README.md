@@ -127,6 +127,7 @@ convert -size 400x400 xc:blue test.bmp
 ### Download Sample Images
 
 Alternatively, download free test images from:
+
 - **Unsplash**: https://unsplash.com (free high-res photos)
 - **Pixabay**: https://pixabay.com (free images, no attribution)
 - **Sample Files**: https://file-examples.com (various formats)
@@ -164,11 +165,13 @@ exiftool photo.jpg | grep GPS
 Unit tests use generated base64 test data (no fixtures needed).
 
 Integration tests require:
+
 - Server running (`npm start`)
 - Ollama running with llava model
 - Run: `node tests/integration/api-with-images.test.js`
 
 E2E tests (Playwright) require:
+
 - Full app running
 - Test fixtures in this directory
 - Run: `npx playwright test tests/e2e/image-upload.spec.js`

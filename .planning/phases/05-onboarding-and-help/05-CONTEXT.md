@@ -38,26 +38,31 @@
 ### Onboarding Content Updates
 
 **Decision 1: Structure**
+
 - **Choice:** Keep 4-step wizard structure
 - **Rationale:** Existing flow (Welcome → Connect → Modes → Privacy) covers all requirements
 - **Impact:** Plans focus on content rewrites, not structural changes
 
 **Decision 2: Welcome Message Framing**
+
 - **Choice:** Position as "code translator" for vibe coders
 - **Rationale:** Matches Phase 2 tone shift from PM-focused to vibe-coder-focused
 - **Impact:** Replace "helps Product Managers" language with "translates AI-generated code into honest reviews"
 
 **Decision 3: Mode Overview Presentation**
+
 - **Choice:** Show all 8 modes in grid view
 - **Rationale:** User wants comprehensive overview, not just highlighted subset
 - **Impact:** Keep existing 8-mode grid, update descriptions to vibe-coder language
 
 **Decision 4: Icon Strategy**
+
 - **Choice:** Mix emoji (for step indicators) and Lucide icons (for mode grid)
 - **Rationale:** Emoji conveys friendly tone for steps, Lucide provides professional consistency for modes
 - **Impact:** Replace mode emoji icons with Lucide (per ui-ux-pro-max skill rule), keep step emoji
 
 **Decision 5: Ollama Setup Detail Level**
+
 - **Choice:** Add troubleshooting guidance to Ollama setup step
 - **Rationale:** Vibe coders may not be familiar with local LLM setup
 - **Impact:** Expand step 2 with common issues (port not responding, no models installed) and fixes
@@ -78,11 +83,11 @@
 
 ## Requirements Mapping
 
-| Requirement | Status | Implementation Approach |
-|-------------|--------|------------------------|
-| **UX-01**: First-time onboarding flow | Exists, needs update | Rewrite OnboardingWizard content for vibe-coder tone, add troubleshooting to step 2 |
+| Requirement                           | Status                  | Implementation Approach                                                                                    |
+| ------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **UX-01**: First-time onboarding flow | Exists, needs update    | Rewrite OnboardingWizard content for vibe-coder tone, add troubleshooting to step 2                        |
 | **UX-03**: Contextual jargon glossary | Exists, verify coverage | Review GLOSSARY object for vibe-coder relevance, ensure floating panel + inline highlighting work together |
-| **UX-04**: Privacy messaging visible | Exists | Keep existing PrivacyBanner, verify message clarity |
+| **UX-04**: Privacy messaging visible  | Exists                  | Keep existing PrivacyBanner, verify message clarity                                                        |
 
 ---
 
