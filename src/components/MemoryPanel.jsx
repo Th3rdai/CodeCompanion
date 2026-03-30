@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
-import { Brain, Trash2, Search, X } from "lucide-react";
+import { Brain, Trash2, Pencil, Search, X, Check } from "lucide-react";
 
 const TYPE_COLORS = {
   fact: {
@@ -101,6 +101,25 @@ export default function MemoryPanel({ onClose }) {
     try {
       await apiFetch(`/api/memory/${id}`, { method: "DELETE" });
       setMemories((prev) => prev.filter((m) => m.id !== id));
+    } catch {}
+  }
+
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState("");
+
+  async function handleSave(id) {
+    try {
+      const res = await apiFetch(`/api/memory/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent }),
+      });
+      if (res.ok) {
+        setMemories((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, content: editContent } : m)),
+        );
+        setEditingId(null);
+      }
     } catch {}
   }
 
@@ -228,24 +247,62 @@ export default function MemoryPanel({ onClose }) {
                         )}
                       </div>
                       {/* Content */}
-                      <p
-                        className={`text-sm text-slate-300 cursor-pointer ${!isExpanded ? "line-clamp-3" : ""}`}
-                        onClick={() =>
-                          setExpandedId(isExpanded ? null : memory.id)
-                        }
-                      >
-                        {memory.content}
-                      </p>
+                      {editingId === memory.id ? (
+                        <div className="space-y-2">
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-sm resize-none min-h-[80px]"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleSave(memory.id)}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
+                            >
+                              <Check className="w-3 h-3" /> Save
+                            </button>
+                            <button
+                              onClick={() => setEditingId(null)}
+                              className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-white transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p
+                          className={`text-sm text-slate-300 cursor-pointer ${!isExpanded ? "line-clamp-3" : ""}`}
+                          onClick={() =>
+                            setExpandedId(isExpanded ? null : memory.id)
+                          }
+                        >
+                          {memory.content}
+                        </p>
+                      )}
                     </div>
-                    {/* Delete button */}
-                    <button
-                      onClick={() => handleDelete(memory.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 p-1 rounded transition-all shrink-0"
-                      title="Delete memory"
-                      aria-label="Delete memory"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Edit + Delete buttons */}
+                    <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => {
+                          setEditingId(memory.id);
+                          setEditContent(memory.content);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-indigo-400 p-1 rounded transition-all"
+                        title="Edit memory"
+                        aria-label="Edit memory"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(memory.id)}
+                        className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 p-1 rounded transition-all"
+                        title="Delete memory"
+                        aria-label="Delete memory"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

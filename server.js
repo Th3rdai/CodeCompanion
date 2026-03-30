@@ -2515,6 +2515,28 @@ app.post("/api/pentest/folder", async (req, res) => {
   }
 });
 
+// ── GET /api/project-health (lightweight scan for sidebar badge) ──
+app.get("/api/project-health", (req, res) => {
+  const config = getConfig();
+  const folder = config.projectFolder;
+  if (!folder || !fs.existsSync(folder)) {
+    return res.json({ issues: 0, details: [] });
+  }
+  try {
+    const result = scanProjectForValidation(folder);
+    const details = [];
+    if (result.linting.length === 0) details.push("No linter configured");
+    if (result.typeChecking.length === 0 && ["typescript", "python"].includes(result.language))
+      details.push("No type checker configured");
+    if (result.testing.length === 0 && result.testDirs.length === 0)
+      details.push("No test runner detected");
+    if (result.formatting.length === 0) details.push("No formatter configured");
+    res.json({ issues: details.length, details, language: result.language, framework: result.framework });
+  } catch {
+    res.json({ issues: 0, details: [] });
+  }
+});
+
 // ── POST /api/validate/scan (discover validation tools in a project) ──
 app.post("/api/validate/scan", async (req, res) => {
   const { folder } = req.body;

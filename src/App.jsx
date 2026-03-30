@@ -1971,6 +1971,8 @@ export default function App() {
         showArchived={showArchived}
         onToggleArchived={() => setShowArchived(!showArchived)}
         modes={MODES}
+        projectFolder={projectFolder}
+        onHealthClick={() => setMode("validate")}
       />
 
       <main

@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { apiFetch } from "../lib/api-fetch";
 import ContextMenu from "./ContextMenu";
 import ParticleField from "./3d/ParticleField";
 import { use3DEffects } from "../contexts/Effects3DContext";
@@ -22,12 +23,42 @@ export default function Sidebar({
   showArchived,
   onToggleArchived,
   modes,
+  projectFolder,
+  onHealthClick,
 }) {
   const [search, setSearch] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [multiSelect, setMultiSelect] = useState(false);
   const { theme } = use3DEffects();
+  const [healthIssues, setHealthIssues] = useState(0);
+  const [healthDetails, setHealthDetails] = useState([]);
+  const healthDebounce = useRef(null);
+
+  // Fetch project health on projectFolder change (debounced 1s)
+  useEffect(() => {
+    setHealthIssues(0);
+    setHealthDetails([]);
+    if (!projectFolder) return;
+    if (healthDebounce.current) clearTimeout(healthDebounce.current);
+    healthDebounce.current = setTimeout(() => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      apiFetch("/api/project-health", { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data) {
+            setHealthIssues(data.issues || 0);
+            setHealthDetails(data.details || []);
+          }
+        })
+        .catch(() => {})
+        .finally(() => clearTimeout(timeout));
+    }, 1000);
+    return () => {
+      if (healthDebounce.current) clearTimeout(healthDebounce.current);
+    };
+  }, [projectFolder]);
 
   const multiSelectMode = multiSelect && !collapsed;
 
@@ -144,6 +175,31 @@ export default function Sidebar({
             <span>+</span>
             {!isCollapsed && <span>New Conversation</span>}
           </button>
+          {!isCollapsed && healthIssues > 0 && (
+            <button
+              type="button"
+              onClick={() => onHealthClick?.()}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs hover:bg-amber-500/20 transition-colors cursor-pointer"
+              title={healthDetails.join(", ")}
+            >
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">
+                {healthIssues}
+              </span>
+              <span className="truncate">
+                {healthIssues === 1 ? "1 project gap" : `${healthIssues} project gaps`}
+              </span>
+            </button>
+          )}
+          {isCollapsed && healthIssues > 0 && (
+            <button
+              type="button"
+              onClick={() => onHealthClick?.()}
+              className="w-10 h-6 flex items-center justify-center rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold cursor-pointer"
+              title={healthDetails.join(", ")}
+            >
+              {healthIssues}
+            </button>
+          )}
           {!isCollapsed && (
             <>
               <label htmlFor="sidebar-search" className="sr-only">
