@@ -1185,6 +1185,7 @@ app.post("/api/chat", async (req, res) => {
           ollamaUrl: config.ollamaUrl,
           ollamaOpts: ollamaAuthOpts(config),
           preferVision: hasImages,
+          preferToolCapable: config.agentTerminal?.enabled === true,
         }),
         memoryPromise,
       ]);
@@ -1478,7 +1479,18 @@ app.post("/api/chat", async (req, res) => {
         const toolCalls = toolCallHandler.parseToolCalls(responseText);
 
         if (toolCalls.length === 0) {
-          // No tool calls — this is the final response
+          // No tool calls found. If the response is suspiciously short on the first round,
+          // the model likely doesn't support TOOL_CALL: format — fall back to streaming mode
+          // so the user gets a full response instead of a stub like "Let me examine..."
+          if (round === 0 && responseText.length < 200) {
+            log(
+              "WARN",
+              `Model returned short non-tool response (${responseText.length} chars) on round 1 — falling back to streaming mode`,
+            );
+            // Break out and let the streaming path below handle the re-request
+            finalText = "";
+            break;
+          }
           debug("No TOOL_CALL patterns found, returning as final text");
           finalText = responseText;
           break;
@@ -1567,15 +1579,60 @@ app.post("/api/chat", async (req, res) => {
       }
 
       // Stream the final text as SSE tokens (word by word for UX)
-      if (finalText) {
+      if (finalText && finalText.trim()) {
         const words = finalText.split(/(\s+)/);
         for (const word of words) {
           if (chatAbortController.signal.aborted || res.writableEnded) break;
           sendEvent({ token: word });
         }
-        if (!chatAbortController.signal.aborted && !res.writableEnded) {
-          sendEvent({ done: true });
+      } else if (
+        !finalText &&
+        !chatAbortController.signal.aborted &&
+        !res.writableEnded
+      ) {
+        // Fallback: model didn't support tool calls — re-send via streaming without tool prompt
+        log("INFO", "Falling back to streaming mode (no tool-call support)");
+        try {
+          // Strip tool instructions from system prompt for the streaming fallback
+          const fallbackMessages = fullMessages.map((m) =>
+            m.role === "system"
+              ? { role: "system", content: m.content.replace(/\n\n---\nAGENT TOOLS[\s\S]*$/, "") }
+              : m,
+          );
+          let tokenCount = 0;
+          await chatStream(
+            config.ollamaUrl,
+            model,
+            fallbackMessages,
+            (token) => {
+              if (chatAbortController.signal.aborted || res.writableEnded)
+                return;
+              tokenCount++;
+              sendEvent({ token });
+            },
+            images || [],
+            {
+              ...ollamaOptions,
+              abortSignal: chatAbortController.signal,
+            },
+          );
+          log("INFO", `Streaming fallback complete: ${tokenCount} tokens`);
+        } catch (err) {
+          if (!chatAbortController.signal.aborted) {
+            log("ERROR", "Streaming fallback failed", { error: err.message });
+            sendEvent({ error: STREAM_INTERNAL_ERROR });
+          }
         }
+      } else if (!chatAbortController.signal.aborted && !res.writableEnded) {
+        // Model never produced a user-facing reply (only tools, or hit round limit, or empty content)
+        sendEvent({
+          error:
+            "No assistant reply was produced after tool rounds. The model may have only emitted tool calls, hit the tool round limit, or returned empty text. Try a simpler question, reduce MCP tools, or check Ollama / MCP connectivity.",
+        });
+      }
+      // Always send done so the client clears tool/terminal UI (tool-call path does not stream Ollama done frames)
+      if (!chatAbortController.signal.aborted && !res.writableEnded) {
+        sendEvent({ done: true });
       }
       if (!res.writableEnded) {
         res.write("data: [DONE]\n\n");
