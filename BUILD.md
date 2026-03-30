@@ -203,7 +203,7 @@ The Electron app works as follows:
 3. Once the Express server sends an IPC "ready" message, navigates the window to `http://localhost:{port}`
 4. The Vite-built frontend in `dist/` is served by Express
 
-Key configuration: `asar: false` in `electron-builder.config.js` because `fork()` cannot execute code inside asar archives.
+Key configuration: `asar: false` in `electron-builder.config.js` because `fork()` cannot execute code inside asar archives. **electron-builder** warns that asar is disabled — that warning is expected here. **Duplicate dependency references** and **dependency not found on disk** for optional OS/arch packages (e.g. `@esbuild/*`, `@rollup/*`, `@tailwindcss/oxide-*`) are normal when those platforms are not installed; they are not fatal if the build completes. **`DEP0190`** (child process + `shell: true`) comes from a dependency; it does not block packaging.
 
 ## macOS code signing (local vs distribution)
 
@@ -215,7 +215,7 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 | **Signed for distribution**     | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain.                   |
 | **Publish to GitHub (signed)**  | Same identity in env + `npm run electron:publish:mac:release`                                     | **Emergency only** if CI cannot publish; normal releases use **tag push → GitHub Actions**. |
 
-**Required for distribution builds:** `MAC_CODESIGN_IDENTITY` must match a **Developer ID Application** certificate in your login keychain. The `:release` scripts set `MAC_DISTRIBUTION_SIGN=1`, which enables **hardened runtime** and uses that identity.
+**Required for distribution builds:** `MAC_CODESIGN_IDENTITY` must identify a **Developer ID Application** certificate in your login keychain (full Keychain name or common name only). **electron-builder** 26+ rejects values that still include the literal `Developer ID Application:` prefix; `electron-builder.config.js` strips that prefix when present. The `:release` scripts set `MAC_DISTRIBUTION_SIGN=1`, which enables **hardened runtime** and uses that identity.
 
 **Optional notarization** (adds Apple server wait time): set `MAC_NOTARIZE=1`, `APPLE_TEAM_ID`, and Apple notarization credentials (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` — see [electron-builder notarize](https://www.electron.build/configuration/mac)).
 
@@ -227,7 +227,7 @@ The workflow **`.github/workflows/build.yml`** builds macOS with **ad-hoc** sign
 | ----------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `MAC_CERTS`                   | Yes                  | **Base64** of your **`.p12`** (export from Keychain Access → include private key; then `base64 -i cert.p12 \| tr -d '\n'` on macOS). |
 | `MAC_CERTS_PASSWORD`          | Yes                  | Password for the `.p12` export.                                                                                                      |
-| `MAC_CODESIGN_IDENTITY`       | Yes                  | Exact string, e.g. `Developer ID Application: Your Name (TEAMID)`.                                                                   |
+| `MAC_CODESIGN_IDENTITY`       | Yes                  | Full Keychain name or common name only (e.g. `Developer ID Application: Your Name (TEAMID)` or `Your Name (TEAMID)`); config normalizes. |
 | `APPLE_TEAM_ID`               | For **notarization** | 10-character Team ID.                                                                                                                |
 | `APPLE_ID`                    | For **notarization** | Apple ID email used for notarization.                                                                                                |
 | `APPLE_APP_SPECIFIC_PASSWORD` | For **notarization** | App-specific password (not your Apple ID password).                                                                                  |

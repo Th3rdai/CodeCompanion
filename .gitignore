@@ -88,3 +88,4 @@ CodeCompanion-Data/logs/**
 !CodeCompanion-Data/logs/.gitkeep
 github-repos/
 .gitnexus
+release-staging/

@@ -3,18 +3,32 @@ const path = require("path");
 /**
  * macOS signing modes (see BUILD.md):
  * - Default: ad-hoc (`identity: '-'`) — faster local DMG/ZIP; Gatekeeper may prompt.
- * - Distribution: MAC_DISTRIBUTION_SIGN=1 + MAC_CODESIGN_IDENTITY — Developer ID + hardened runtime.
+ * - Distribution: MAC_DISTRIBUTION_SIGN=1 + MAC_CODESIGN_IDENTITY — Developer ID + hardened runtime
+ *   (full Keychain name or common name only; prefix stripped for electron-builder 26+).
  * - Optional notarization: MAC_NOTARIZE=1 + APPLE_TEAM_ID (and APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD for xcrun).
  *
  * Windows Authenticode: WIN_DISTRIBUTION_SIGN=1 + WIN_CSC_LINK or CSC_LINK (.pfx), or CSC_NAME / WIN_CSC_NAME (store).
  * Linux AppImage GPG: LINUX_GPG_SIGN=1 + LINUX_GPG_KEY_ID (afterAllArtifactBuild hook).
  */
 const macDistributionSign = process.env.MAC_DISTRIBUTION_SIGN === "1";
-const macCodesignIdentity = (process.env.MAC_CODESIGN_IDENTITY || "").trim();
+const macCodesignIdentityRaw = (process.env.MAC_CODESIGN_IDENTITY || "").trim();
 
-if (macDistributionSign && !macCodesignIdentity) {
+/**
+ * electron-builder 26+ rejects `identity` values that still include the
+ * "Developer ID Application:" prefix (it picks the cert automatically). CI and
+ * local env often use the full Keychain name — strip the prefix when present.
+ */
+function normalizeMacCodesignIdentity(value) {
+  const s = String(value || "").trim();
+  if (!s) return s;
+  return s.replace(/^Developer ID Application:\s*/i, "").trim();
+}
+
+const macCodesignIdentity = normalizeMacCodesignIdentity(macCodesignIdentityRaw);
+
+if (macDistributionSign && (!macCodesignIdentityRaw || !macCodesignIdentity)) {
   throw new Error(
-    'MAC_DISTRIBUTION_SIGN=1 requires MAC_CODESIGN_IDENTITY (e.g. "Developer ID Application: Your Name (TEAMID)"). ' +
+    'MAC_DISTRIBUTION_SIGN=1 requires MAC_CODESIGN_IDENTITY (e.g. "Developer ID Application: Your Name (TEAMID)" or "Your Name (TEAMID)"). ' +
       "For fast local builds, omit MAC_DISTRIBUTION_SIGN and run npm run electron:build:mac",
   );
 }
@@ -54,6 +68,11 @@ module.exports = {
    */
   // prettier-ignore
   artifactName: '${name}-${version}-${arch}.${ext}',
+  /**
+   * Intentionally false: the main process `fork()`s `server.js`; Node cannot execute the
+   * entry from inside an asar archive. Enabling asar would require a broad `asarUnpack`
+   * (see BUILD.md). electron-builder warns — that warning is expected for this app.
+   */
   asar: false,
   files: [
     "dist/**/*",
