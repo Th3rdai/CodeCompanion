@@ -8,10 +8,12 @@ const path = require("path");
 
 const configPath = path.join(__dirname, "..", "electron-builder.config.js");
 const c = fs.readFileSync(configPath, "utf8");
-const expected = "artifactName: '${name}-${version}-${arch}.${ext}'";
-if (!c.includes(expected)) {
+const template = "${name}-${version}-${arch}.${ext}";
+const hasSingle = c.includes(`artifactName: '${template}'`);
+const hasDouble = c.includes(`artifactName: "${template}"`);
+if (!hasSingle && !hasDouble) {
   console.error(
-    `electron-builder.config.js must contain exactly:\n  ${expected}\n` +
+    `electron-builder.config.js must contain:\n  artifactName: '${template}'\n` +
       "so latest-*.yml url entries match GitHub Release asset filenames.",
   );
   process.exit(1);
