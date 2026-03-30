@@ -72,6 +72,7 @@ function initAutoUpdater(win, dataDir) {
   // returns 404 — keep allowPrerelease true so the updater resolves versions from the Atom feed.
   // When you publish stable-only releases and want to hide betas from stable users, set false and test.
   autoUpdater.allowPrerelease = true;
+  autoUpdater.autoInstallOnAppQuit = true;
 
   // Check for updates on startup (download behavior follows electron-updater defaults, e.g. autoDownload)
   autoUpdater.checkForUpdatesAndNotify().catch((err) => {
@@ -141,7 +142,12 @@ function initAutoUpdater(win, dataDir) {
   // IPC Handler: Restart and install update
   ipcMain.handle("restart-for-update", () => {
     log.info("[Auto-Updater] Restarting for update...");
-    autoUpdater.quitAndInstall();
+    // isSilent=false (show installer), isForceRunAfter=true (relaunch after install).
+    // Without these args macOS may not quit the running app, leaving the update unapplied.
+    setImmediate(() => {
+      app.removeAllListeners("window-all-closed");
+      autoUpdater.quitAndInstall(false, true);
+    });
   });
 
   ipcMain.handle("get-update-state", () => ({
