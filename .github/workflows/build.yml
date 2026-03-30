@@ -1,4 +1,7 @@
 # Build Electron installers (macOS, Windows, Linux) and attach them to a GitHub Release.
+# Maintainer default: ship desktop releases ONLY via this workflow (push tag v* matching package.json).
+# Do not use local electron:publish:* for routine releases — see docs/RELEASES-AND-UPDATES.md.
+#
 # Triggers on version tags (v*) and manual dispatch (build only — no release unless tag push).
 #
 # macOS: ad-hoc signing by default. If repo secrets MAC_CERTS + MAC_CERTS_PASSWORD + MAC_CODESIGN_IDENTITY
@@ -109,6 +112,7 @@ jobs:
           name: installer-${{ matrix.platform }}
           path: release/*
           if-no-files-found: error
+          retention-days: 1
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -117,6 +121,8 @@ jobs:
     name: Create GitHub Release
     permissions:
       contents: write
+    env:
+      HAS_MIRROR_TOKEN: ${{ secrets.TH3RDAI_RELEASE_TOKEN != '' && 'true' || 'false' }}
 
     steps:
       - name: Checkout repository
@@ -175,3 +181,17 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Mirror release to Th3rdai/CodeCompanion (public repo for in-app updates)
+      - name: Mirror release to Th3rdai/CodeCompanion
+        if: env.HAS_MIRROR_TOKEN == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.TH3RDAI_RELEASE_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo Th3rdai/CodeCompanion \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            artifacts/installer-mac/* \
+            artifacts/installer-win/* \
+            artifacts/installer-linux/* || echo "::warning::Mirror release failed — create manually on Th3rdai/CodeCompanion"

@@ -2,7 +2,7 @@
 
 This guide is for **maintainers** who ship new versions of the Code Companion **Electron** desktop app and need **Software Updates** (electron-updater + GitHub Releases) to keep working as the product evolves.
 
-For **how to build** installers locally, see **[BUILD.md](../BUILD.md)**.
+For **local packaging** (smoke tests, not the default release path), see **[BUILD.md](../BUILD.md)**.
 
 ---
 
@@ -10,7 +10,7 @@ For **how to build** installers locally, see **[BUILD.md](../BUILD.md)**.
 
 - **Predictable versions** — one source of truth (`package.json`) aligned with git tags.
 - **Complete GitHub Releases** — every published version includes updater metadata and binaries so users are not stuck on 404s for `latest-*.yml`.
-- **Repeatable process** — prefer CI on tag push; use local publish only when needed.
+- **Repeatable process** — **ship desktop releases only via [GitHub Actions](.github/workflows/build.yml)** (tag push on the publish repo). Local `electron:publish:*` is **emergency-only** (see [Alternative](#alternative-publish-from-one-machine-emergency-only)).
 
 ---
 
@@ -74,9 +74,23 @@ The release workflow runs **`scripts/verify-ci-repo-matches-publish.js`** so a m
 
 ---
 
-## Alternative: publish from one machine
+## Why local builds break releases
 
-Use when CI is unavailable or you need to ship a hotfix build quickly.
+Local builds are **unreliable for releases** and must not be used routinely:
+
+- **SHA-512 mismatch** — building platforms sequentially on one machine lets later builds overwrite shared output files (e.g. Linux zip overwrites Mac zip in `release/`). The updater YAML checksum then does not match the uploaded binary → download completes at 100% but the app **never transitions to "Restart to upgrade."**
+- **DMG cosmetic issues** — macOS local `hdiutil` on recent versions fails to hide `.background.png` and `.VolumeIcon.icns` in the DMG, showing them to the user. CI runners (Ubuntu for Linux, macos-latest for Mac) do not have this issue.
+- **Rebuild drift** — fixing any issue (config, signing) requires rebuilding, but each rebuild changes checksums. It is easy to upload artifacts from one build with YAML from another.
+
+CI builds each platform on a **separate runner** with isolated `release/` output, completely avoiding these issues.
+
+---
+
+## Alternative: publish from one machine (emergency only)
+
+> **Do not use for routine releases.** Every v1.5.15–v1.5.17 release required multiple re-builds and re-uploads due to the issues above. Use CI.
+
+**Maintainers:** Use **GitHub Actions** (tag push) for all normal releases. Use this path only when **CI is unavailable**, a workflow failed in a way you cannot quickly re-run, or you need a **controlled hotfix** upload outside the standard pipeline. Document why in the release notes or team log when you use it.
 
 **Requirements**
 
@@ -156,8 +170,11 @@ Keep **Electron**, **Node** (for the embedded server), and **security-related** 
 [ ] package.json version bumped and committed
 [ ] Tests / smoke pass as appropriate
 [ ] Tag vX.Y.Z pushed (matches version)
-[ ] CI green; GitHub Release contains platform artifacts + latest-*.yml
-[ ] Spot-check latest-mac.yml (or platform feed) URL
+[ ] CI green; GitHub Release on 3rdAI-admin/CodeCompanion has platform artifacts + latest-*.yml
+[ ] Mirror release on Th3rdai/CodeCompanion (auto if TH3RDAI_RELEASE_TOKEN secret is set)
+[ ] Spot-check latest-mac.yml (or platform feed) URL — sha512 must match binary
+[ ] If CI artifact upload fails (storage quota): delete old artifacts via gh api, wait, re-push tag
+[ ] Upload installers to Google Drive (_TH3RDAI.INC/CodeCompanion/{Mac,Windows,Linux})
 [ ] Optional: announce or changelog entry for users
 ```
 
