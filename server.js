@@ -86,6 +86,15 @@ const {
 const PROJECT_PROMPT_CACHE_TTL_MS = 60_000;
 let _projectPromptCache = { folder: "", at: 0, prompt: "" };
 
+/** Default planning files injected into the system prompt when found in the project folder. */
+const DEFAULT_PROJECT_CONTEXT_FILES = [
+  "CONTEXT.md",
+  "TASK.md",
+  ".planning/STATE.md",
+  "INITIAL.md",
+];
+const PROJECT_CONTEXT_MAX_CHARS = 8000;
+
 function getCachedProjectPrompt(projectFolder) {
   if (!projectFolder || !fs.existsSync(projectFolder)) return "";
   const now = Date.now();
@@ -110,7 +119,35 @@ function getCachedProjectPrompt(projectFolder) {
       _projectPromptCache = { folder: projectFolder, at: now, prompt: "" };
       return "";
     }
-    const prompt = `\n\n---\nPROJECT FOLDER: ${projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join("\n")}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ""}`;
+    let prompt = `\n\n---\nPROJECT FOLDER: ${projectFolder}\nFiles available (user can attach any of these for you to read):\n${fileList.slice(0, 200).join("\n")}${fileList.length > 200 ? `\n... and ${fileList.length - 200} more` : ""}`;
+
+    // Inject planning file contents for dynamic project state awareness
+    const config = getConfig();
+    const contextFiles =
+      Array.isArray(config.projectContextFiles) && config.projectContextFiles.length > 0
+        ? config.projectContextFiles
+        : DEFAULT_PROJECT_CONTEXT_FILES;
+    let contextBlock = "";
+    for (const relPath of contextFiles) {
+      try {
+        const full = path.join(projectFolder, relPath);
+        if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+          const content = fs.readFileSync(full, "utf8").trim();
+          if (content) {
+            contextBlock += `\n### ${relPath}\n${content}\n`;
+          }
+        }
+      } catch (_) {}
+    }
+    if (contextBlock) {
+      if (contextBlock.length > PROJECT_CONTEXT_MAX_CHARS) {
+        contextBlock =
+          contextBlock.slice(0, PROJECT_CONTEXT_MAX_CHARS) +
+          "\n...(truncated)";
+      }
+      prompt += `\n\nPROJECT CONTEXT (from planning files — use this to understand current project state):\n${contextBlock}`;
+    }
+
     _projectPromptCache = { folder: projectFolder, at: now, prompt };
     return prompt;
   } catch {
@@ -1193,11 +1230,28 @@ app.post("/api/chat", async (req, res) => {
       ? `\n\n---\nIMAGES: The user has attached ${images.length} image(s). Analyze them carefully and reference them in your response when relevant.`
       : "";
 
+  // Inject last conversation summary for new conversations (continuity across sessions)
+  let previousSessionPrompt = "";
+  if (messages.length <= 1) {
+    try {
+      const recentConvos = listConversations();
+      if (recentConvos.length > 0 && recentConvos[0].summary) {
+        previousSessionPrompt = `\n\nPREVIOUS SESSION: ${recentConvos[0].summary}`;
+      } else if (recentConvos.length > 0) {
+        const full = getConversation(recentConvos[0].id);
+        if (full?.summary) {
+          previousSessionPrompt = `\n\nPREVIOUS SESSION: ${full.summary}`;
+        }
+      }
+    } catch (_) {}
+  }
+
   const enrichedSystemPrompt =
     systemPrompt +
     brandPrompt +
     projectPrompt +
     memoryPrompt +
+    previousSessionPrompt +
     toolsPrompt +
     visionPrompt;
 
@@ -1254,6 +1308,7 @@ app.post("/api/chat", async (req, res) => {
                 brandPrompt +
                 projectPrompt +
                 memoryPrompt +
+                previousSessionPrompt +
                 toolsPrompt +
                 visionPrompt,
             }
@@ -1302,8 +1357,58 @@ app.post("/api/chat", async (req, res) => {
   res.flushHeaders();
 
   const chatAbortController = new AbortController();
+  let streamCompleted = false;
   req.on("close", () => {
     chatAbortController.abort();
+    // Generate and store a conversation summary after stream closes (fire-and-forget)
+    if (streamCompleted && messages.length >= 4) {
+      (async () => {
+        try {
+          const last6 = messages.slice(-6).map((m) => ({
+            role: m.role,
+            content:
+              typeof m.content === "string"
+                ? m.content.slice(0, 500)
+                : String(m.content).slice(0, 500),
+          }));
+          const summaryMessages = [
+            {
+              role: "system",
+              content:
+                "Summarize the following conversation in 2-3 sentences. Focus on what was discussed and any decisions made. Reply with ONLY the summary, no preamble.",
+            },
+            {
+              role: "user",
+              content: last6
+                .map((m) => `${m.role}: ${m.content}`)
+                .join("\n"),
+            },
+          ];
+          const summary = await chatComplete(
+            config.ollamaUrl,
+            model,
+            summaryMessages,
+            15000,
+          );
+          if (summary && summary.trim()) {
+            // Find and update the most recent conversation with this summary
+            const convos = listConversations();
+            if (convos.length > 0) {
+              const latest = getConversation(convos[0].id);
+              if (latest) {
+                latest.summary = summary.trim().slice(0, 500);
+                saveConversation(latest);
+                log("INFO", `Conversation summary stored for ${convos[0].id}`);
+              }
+            }
+          }
+        } catch (err) {
+          debug("Summary generation failed (non-blocking)", {
+            error: err.message,
+          });
+        }
+      })();
+    }
   });
 
   // Helper: send SSE event
@@ -1526,6 +1631,7 @@ app.post("/api/chat", async (req, res) => {
         res.write("data: [DONE]\n\n");
         res.end();
       }
+      streamCompleted = true;
       log("INFO", `Chat complete (tool-call mode): ${finalText.length} chars`);
       return;
     }
@@ -1609,6 +1715,7 @@ app.post("/api/chat", async (req, res) => {
               res.write("data: [DONE]\n\n");
               res.end();
             }
+            streamCompleted = true;
             log("INFO", `Chat complete: ${tokenCount} tokens streamed`);
             break;
           }
@@ -1637,6 +1744,7 @@ app.post("/api/chat", async (req, res) => {
                 });
                 res.write("data: [DONE]\n\n");
                 res.end();
+                streamCompleted = true;
                 log("INFO", `Chat complete: ${tokenCount} tokens streamed`);
                 return;
               }
