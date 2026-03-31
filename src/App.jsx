@@ -1186,6 +1186,7 @@ export default function App() {
       ]);
     } finally {
       chatAbortRef.current = null;
+      setTerminalOutput(null);
       setStreaming(false);
     }
   }
