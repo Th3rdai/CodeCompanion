@@ -1574,7 +1574,7 @@ app.post("/api/chat", async (req, res) => {
         }
         loopMessages.push({
           role: "user",
-          content: `Tool results:\n${toolResults}\n\nPresent these results to the user. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.`,
+          content: `Tool results:\n${toolResults}\n\nPresent these results to the user in a helpful response. Do NOT call the same tool again unless the user explicitly asks for a different operation. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.`,
         });
       }
 
