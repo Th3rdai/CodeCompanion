@@ -26,6 +26,19 @@ function normalizeMacCodesignIdentity(value) {
 
 const macCodesignIdentity = normalizeMacCodesignIdentity(macCodesignIdentityRaw);
 
+/**
+ * electron-builder also reads CSC_NAME directly from the environment (bypassing
+ * our config `identity` field). Ensure both sources carry the normalized value
+ * so the builder's own prefix check never fires.
+ * Only touch CSC_NAME during macOS distribution signing to avoid clobbering
+ * the Windows cert-store name when build-installers.sh runs all platforms.
+ */
+if (macDistributionSign && macCodesignIdentity) {
+  process.env.CSC_NAME = macCodesignIdentity;
+} else if (macDistributionSign && process.env.CSC_NAME) {
+  process.env.CSC_NAME = normalizeMacCodesignIdentity(process.env.CSC_NAME);
+}
+
 if (macDistributionSign && (!macCodesignIdentityRaw || !macCodesignIdentity)) {
   throw new Error(
     'MAC_DISTRIBUTION_SIGN=1 requires MAC_CODESIGN_IDENTITY (e.g. "Developer ID Application: Your Name (TEAMID)" or "Your Name (TEAMID)"). ' +
