@@ -597,16 +597,20 @@ export default function App() {
   async function saveConversation(msgs, convMode, overrides = {}) {
     const title =
       overrides.title || msgs[0]?.content?.slice(0, 60) || "Untitled";
+    // Allow callers to pass an explicit convId to avoid reading stale React state
+    // (activeConvId may not yet reflect an id returned by a concurrent save).
+    const convId = overrides._convId !== undefined ? overrides._convId : activeConvId;
+    const { _convId: _dropped, ...restOverrides } = overrides;
     const conv = {
-      id: activeConvId || undefined,
+      id: convId || undefined,
       title,
       mode: convMode || mode,
       model: selectedModel,
       messages: msgs,
-      ...overrides,
+      ...restOverrides,
     };
-    if (activeConvId) {
-      const existing = history.find((h) => h.id === activeConvId);
+    if (convId) {
+      const existing = history.find((h) => h.id === convId);
       if (existing) {
         conv.createdAt = existing.createdAt;
         if (existing.archived) conv.archived = existing.archived;
@@ -1139,14 +1143,14 @@ export default function App() {
           const autoSaveMsgs = capturedToolContext.length > 0
             ? [...newMessages, ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })), { role: "assistant", content: assistantContent }]
             : [...newMessages, { role: "assistant", content: assistantContent }];
-          saveConversation(autoSaveMsgs, mode);
+          saveConversation(autoSaveMsgs, mode, { _convId: conversationIdForChat });
         }
       }
       flushChatAssistantUi();
       const finalMsgs = capturedToolContext.length > 0
         ? [...newMessages, ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })), { role: "assistant", content: assistantContent }]
         : [...newMessages, { role: "assistant", content: assistantContent }];
-      saveConversation(finalMsgs, mode);
+      saveConversation(finalMsgs, mode, { _convId: conversationIdForChat });
     } catch (err) {
       if (err.name === "AbortError") {
         if (chatTokenRafRef.current) {
@@ -1160,7 +1164,7 @@ export default function App() {
             { role: "assistant", content: assistantContent.trimEnd() },
           ];
           setMessages(stoppedMessages);
-          saveConversation(stoppedMessages, mode);
+          saveConversation(stoppedMessages, mode, { _convId: conversationIdForChat });
         }
         return;
       }
