@@ -1,6 +1,6 @@
 {
   "name": "code-companion",
-  "version": "1.5.20",
+  "version": "1.5.21",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
@@ -100,13 +100,14 @@
   },
   "overrides": {
     "yauzl": ">=3.2.1",
-    "file-type": "^21.3.4"
+    "file-type": "^21.3.4",
+    "lodash-es": ">=4.18.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/experimental-ct-react": "^1.58.2",
     "@playwright/test": "^1.58.2",
-    "electron": "41.0.2",
+    "electron": "41.1.1",
     "electron-builder": "^26.8.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
