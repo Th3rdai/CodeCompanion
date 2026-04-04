@@ -124,7 +124,8 @@ function getCachedProjectPrompt(projectFolder) {
     // Inject planning file contents for dynamic project state awareness
     const config = getConfig();
     const contextFiles =
-      Array.isArray(config.projectContextFiles) && config.projectContextFiles.length > 0
+      Array.isArray(config.projectContextFiles) &&
+      config.projectContextFiles.length > 0
         ? config.projectContextFiles
         : DEFAULT_PROJECT_CONTEXT_FILES;
     let contextBlock = "";
@@ -142,8 +143,7 @@ function getCachedProjectPrompt(projectFolder) {
     if (contextBlock) {
       if (contextBlock.length > PROJECT_CONTEXT_MAX_CHARS) {
         contextBlock =
-          contextBlock.slice(0, PROJECT_CONTEXT_MAX_CHARS) +
-          "\n...(truncated)";
+          contextBlock.slice(0, PROJECT_CONTEXT_MAX_CHARS) + "\n...(truncated)";
       }
       prompt += `\n\nPROJECT CONTEXT (from planning files — use this to understand current project state):\n${contextBlock}`;
     }
@@ -1532,7 +1532,9 @@ app.post("/api/chat", async (req, res) => {
               .filter((c) => c.type === "text")
               .map((c) => c.text);
             const imageParts = parts.filter((c) => c.type === "image");
-            const analysisImageParts = parts.filter((c) => c.type === "image_for_analysis");
+            const analysisImageParts = parts.filter(
+              (c) => c.type === "image_for_analysis",
+            );
             debug("MCP tool result", {
               tool: `${call.serverId}.${call.toolName}`,
               textParts: textParts.length,
@@ -1586,12 +1588,18 @@ app.post("/api/chat", async (req, res) => {
         // Attach PDF page images so the vision model can analyze them
         if (roundAnalysisImages.length > 0) {
           toolResultMsg.images = roundAnalysisImages;
-          log("INFO", `Feeding ${roundAnalysisImages.length} PDF page image(s) to vision model`);
+          log(
+            "INFO",
+            `Feeding ${roundAnalysisImages.length} PDF page image(s) to vision model`,
+          );
         }
         loopMessages.push(toolResultMsg);
         // Persist tool round context for client history (text only — no images)
         if (cleanedResponse) {
-          toolContextForHistory.push({ role: "assistant", content: cleanedResponse });
+          toolContextForHistory.push({
+            role: "assistant",
+            content: cleanedResponse,
+          });
         }
         toolContextForHistory.push({
           role: "user",
@@ -1600,7 +1608,11 @@ app.post("/api/chat", async (req, res) => {
       }
 
       // Send tool context to client so it can persist the tool-call chain in conversation history
-      if (toolContextForHistory.length > 0 && !chatAbortController.signal.aborted && !res.writableEnded) {
+      if (
+        toolContextForHistory.length > 0 &&
+        !chatAbortController.signal.aborted &&
+        !res.writableEnded
+      ) {
         sendEvent({ toolContextMessages: toolContextForHistory });
       }
 
@@ -1622,7 +1634,13 @@ app.post("/api/chat", async (req, res) => {
           // Strip tool instructions from system prompt for the streaming fallback
           const fallbackMessages = fullMessages.map((m) =>
             m.role === "system"
-              ? { role: "system", content: m.content.replace(/\n\n---\nAGENT TOOLS[\s\S]*$/, "") }
+              ? {
+                  role: "system",
+                  content: m.content.replace(
+                    /\n\n---\nAGENT TOOLS[\s\S]*$/,
+                    "",
+                  ),
+                }
               : m,
           );
           let tokenCount = 0;
@@ -1775,7 +1793,6 @@ app.post("/api/chat", async (req, res) => {
                 });
                 res.write("data: [DONE]\n\n");
                 res.end();
-                streamCompleted = true;
                 log("INFO", `Chat complete: ${tokenCount} tokens streamed`);
                 return;
               }
@@ -2609,12 +2626,20 @@ app.get("/api/project-health", (req, res) => {
     const result = scanProjectForValidation(folder);
     const details = [];
     if (result.linting.length === 0) details.push("No linter configured");
-    if (result.typeChecking.length === 0 && ["typescript", "python"].includes(result.language))
+    if (
+      result.typeChecking.length === 0 &&
+      ["typescript", "python"].includes(result.language)
+    )
       details.push("No type checker configured");
     if (result.testing.length === 0 && result.testDirs.length === 0)
       details.push("No test runner detected");
     if (result.formatting.length === 0) details.push("No formatter configured");
-    res.json({ issues: details.length, details, language: result.language, framework: result.framework });
+    res.json({
+      issues: details.length,
+      details,
+      language: result.language,
+      framework: result.framework,
+    });
   } catch {
     res.json({ issues: 0, details: [] });
   }
@@ -3293,9 +3318,7 @@ app.post("/api/history", async (req, res) => {
               },
               {
                 role: "user",
-                content: last6
-                  .map((m) => `${m.role}: ${m.content}`)
-                  .join("\n"),
+                content: last6.map((m) => `${m.role}: ${m.content}`).join("\n"),
               },
             ],
             15000,
