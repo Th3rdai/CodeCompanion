@@ -1,7 +1,7 @@
 {
   "name": "code-companion",
-  "version": "1.5.21",
-  "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
+  "version": "1.5.22",
+  "description": "Th3rdAI Code Companion \u2014 powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
     "name": "James Avila",
