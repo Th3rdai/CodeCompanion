@@ -22,45 +22,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.5.21] — 2026-04-04
+
 ### Security
 
-- **npm transitive dependencies** — `npm audit fix` updates **brace-expansion**, **path-to-regexp**, and **picomatch** (via lockfile) to clear Dependabot-reported moderate/high advisories.
+- **Electron 41.0.2 → 41.1.1** — Fixes HTTP Response Header Injection in custom protocol handlers (GHSA-4p4r-m79c-wq3v) and use-after-free in offscreen shared texture release callback (GHSA-8x5q-pvf5-64mp).
+- **`lodash-es` override `>=4.18.1`** — Forces mermaid → langium → chevrotain dependency chain off vulnerable `<=4.17.23` range; fixes Code Injection via `_.template` (GHSA-r5fr-rjxr-66jc) and Prototype Pollution via `_.unset`/`_.omit` (GHSA-f23m-r3pf-42rh) without downgrading mermaid.
+- **`@xmldom/xmldom` → `>=0.8.12`** — Fixes XML injection via unsafe CDATA serialization (GHSA-wh4c-j3r5-mjhp).
+- **`lodash` (direct)** — Upgraded via `npm audit fix`; same CVEs as lodash-es above.
+- **`npm audit`** — 0 vulnerabilities.
+
+---
+
+## [1.5.20] — 2026-04-04
 
 ### Added
 
+- **`builtin.view_pdf_pages` tool** — Renders PDF pages as images via `pdftoppm` (poppler) so the vision model can analyze diagrams, network maps, charts, and screenshots. Tool result images are fed directly into the next Ollama call rather than streamed to the client. Requires `poppler` (`brew install poppler`).
 - **Auto model per mode** — Toolbar option **Auto (best per mode)**; server resolves via **`lib/auto-model.js`** + **`autoModelMap`** in **`.cc-config.json`**; Settings → **Auto model map**; SSE **`resolvedModel`** on chat. Applies to review, pentest, score, validate, build APIs, git review, tutorial suggestions, memory extraction.
 - **`scripts/clean-artifacts.sh`** — Removes **`release/`**, **`dist/`**, and Playwright output dirs; optional **`--with-gitnexus`** to drop **`.gitnexus/`** before re-indexing. Documented in **[BUILD.md](BUILD.md)**.
 - **`npm run test:integration`** — Runs **`tests/integration/api-with-images.test.js`** (spawned server; chat/review/pentest/remediate). Documented in **[docs/TESTING.md](docs/TESTING.md)**.
-- **Image lightbox** — Click any image in chat to preview full-size in a modal overlay; `Escape` or click backdrop to close. Images render at minimum 1080px width with pointer cursor and hover feedback (`src/components/MarkdownContent.jsx`, `src/index.css`).
-- **Tool parameter schemas in system prompt** — MCP tool descriptions now include required params, types, and enum values so models use correct parameter names (e.g. `aspect_ratio: 1:1` not `width: 1024`). Compact format keeps prompt at ~8.5 KB (was 23.7 KB) (`lib/tool-call-handler.js`).
-- **Image revision flow** — `IMAGE_DELIVERED` marker in tool results instructs models to re-call `generate_image` for revisions instead of hallucinating fake image markdown. Historical image placeholders changed to plain text to prevent mimicry.
-- **Batch conversation delete** — `POST /api/history/batch-delete` accepts `{ ids: [...] }` for single-request bulk deletion, replacing N individual DELETE calls that hit the global rate limiter (`server.js`, `src/App.jsx`).
-- **GitHub clone destination picker** — Clone URL section now includes a **Clone to folder** field defaulting to the current Project Folder. Users can type any path; empty falls back to internal `github-repos/` directory. Server validates the destination exists before cloning (`lib/github.js`, `server.js`, `src/components/GitHubPanel.jsx`).
+- **Image lightbox** — Click any image in chat to preview full-size in a modal overlay; `Escape` or click backdrop to close.
+- **Tool parameter schemas in system prompt** — MCP tool descriptions now include required params, types, and enum values. Compact format keeps prompt at ~8.5 KB (was 23.7 KB).
+- **Image revision flow** — `IMAGE_DELIVERED` marker in tool results instructs models to re-call `generate_image` for revisions instead of hallucinating fake image markdown.
+- **Batch conversation delete** — `POST /api/history/batch-delete` for single-request bulk deletion.
+- **GitHub clone destination picker** — **Clone to folder** field in the clone URL section.
 
 ### Changed
 
-- **Chat latency (server + client)** — **`listModels`** short-TTL cache (**`lib/ollama-client.js`**); parallel **auto-model** + **memory** embedding on **`POST /api/chat`**; cached project file-list snippet for system prompt (**`server.js`**); **`requestAnimationFrame`** batching for streaming tokens (**`src/App.jsx`**).
+- **Tool context persistence across turns** — After each tool-call round, server emits a `toolContextMessages` SSE event with text-only tool context. Client saves these with `_toolContext: true` into conversation history so the model retains which file/resource it was working on across follow-up queries. Hidden from chat UI and exports.
+- **Per-conversation isolation** — `_toolContext` flag preserved in `postBody.messages` so server strips it before Ollama; memory retrieval scoped by `conversationId`; `searchMemories` filters by `source` so unrelated conversations are not mixed.
+- **Agent terminal system prompt (TERMINALFIX)** — Builtin safety preamble and **AGENT TERMINAL** line only injected when `builtin.run_terminal_cmd` is advertised for the session (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`).
+- **Chat latency** — `listModels` short-TTL cache; parallel auto-model + memory embedding on `POST /api/chat`; cached project file-list snippet; `requestAnimationFrame` batching for streaming tokens.
+- **`/api/convert-document`** — Added to 50 MB body-limit whitelist (was capped at 5 MB by global middleware, blocking PDFs over ~3.7 MB).
 
 ### Fixed
 
-- **Integration tests (`tests/integration/api-with-images.test.js`)** — Bodies aligned with current API (`model`, `messages`, `mode` for chat; **`/api/pentest/remediate`** uses `code` + `findings`); responses parsed as **JSON or SSE** by `Content-Type` (no `res.json()` on event streams).
-- **MCP image generation (Nano Banana)** — Three fixes for tool-call image handling:
-  - **Hallucination stripping** — AI models sometimes fabricate fake JSON results after `TOOL_CALL:` patterns; now truncated before feeding back to the message loop (`server.js`).
-  - **Base64 context bloat** — Stop embedding full base64 image data (3-7 MB) in AI context for subsequent rounds; images are still streamed to the frontend via SSE `toolImage` events, but the AI only sees `[Image generated successfully]`.
-  - **`const` reassignment crash** — `messages` was declared `const` but the base64-stripping `.map()` tried to reassign it; renamed to `cleanedMessages` and wired through `fullMessages` construction.
-- **Tool-call system prompt** — Explicitly instructs models to STOP after `TOOL_CALL:` lines and never fabricate results (`lib/tool-call-handler.js`).
-- **Tool-call placeholder leak** — `(called tools)` fallback text was parroted back by models; now skips empty assistant messages entirely and instructs model to present results without internal markers.
-- **Auto-model vision fallback** — `preferVision` was triggered by **historical** images in conversation, locking all follow-up messages to `llava:7b` (which can't do tool calls). Now only triggers when the **current** message has images.
-- **Historical image arrays causing 400 errors** — Conversations with prior image uploads sent `images` arrays to non-vision cloud models (kimi-k2, minimax), causing Ollama 400 errors. Now strips `images` from older messages and adds `[User previously shared an image here]` placeholder.
-- **Playwright (UI/E2E)** — Avoid **missing `/api/models` after `reload()`** by registering `waitForResponse` before `reload()`, then waiting for `#model-select`. Applied in privacy banner, onboarding wizard, report-card, create-mode, and image-upload specs. **Onboarding:** focus wizard via dialog click (not `focus()`). **Report card tests:** wait for `mode-tab-chat` before `mode-tab-review`. **Privacy:** stable dismiss via `data-testid="privacy-banner-dismiss"` on `PrivacyBanner`.
+- **`previousSessionPrompt` ReferenceError** — Variable was referenced but never declared in the `clientHasSystem` branch (deep-dive review mode). Removed.
+- **npm transitive dependencies** — `npm audit fix` updates **brace-expansion**, **path-to-regexp**, and **picomatch** (via lockfile) to clear Dependabot-reported moderate/high advisories.
+- **Playwright E2E** — Duplicate image upload test awaits `dialog` before `dismiss()` so async `confirm()` does not race the test end.
+- **MCP image generation** — Hallucination stripping after `TOOL_CALL:` patterns; base64 context bloat prevention; `const` reassignment crash fix.
+- **Tool-call system prompt** — Instructs models to STOP after `TOOL_CALL:` lines and never fabricate results.
+- **Auto-model vision fallback** — `preferVision` now only triggers when the **current** message has images, not historical ones.
+- **Historical image arrays causing 400 errors** — Strips `images` from older messages before sending to non-vision models.
 
 ### Documentation
 
-- **`docs/TESTING.md`** — **`npm run test:integration`**, **`tests/integration/`** layout, when to run API integration tests.
-- **`docs/INSTALL-WINDOWS.md`** / **`docs/INSTALL-MAC.md`** — Aligned with **`package.json`** version **1.5.14** and **`artifactName`** release filenames (`code-companion-${version}-${arch}.*`).
-- **`.planning/codebase/TESTING.md`** — New subsection: reload + `/api/models` pattern, report-card tab hydration, onboarding focus, privacy test id.
-- **`.planning/codebase/TESTING-AND-RISKS.md`** — E2E stability cross-reference.
-- **`.claude/commands/validate-project.md`** — P6 notes: large `GET /api/history` and scoped `folder=` for file tree when validating against huge project folders.
+- **`docs/TESTING.md`**, **`docs/INSTALL-MAC.md`**, **`docs/TROUBLESHOOTING.md`**, **`docs/ENVIRONMENT_VARIABLES.md`** — Updated for new features and current version.
+- **`TERMINALFIX.md`** / **`docs/TERMINALFIX-plan-review.md`** — Documents terminal prompt alignment design and plan review.
 
 ---
 
