@@ -379,7 +379,12 @@ const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
 function jsonBodyLimit(req) {
   if (!["POST", "PUT", "PATCH"].includes(req.method || "")) return "5mb";
   const p = req.path || "";
-  if (p === "/api/chat" || p === "/api/review" || p.startsWith("/api/pentest"))
+  if (
+    p === "/api/chat" ||
+    p === "/api/review" ||
+    p === "/api/convert-document" ||
+    p.startsWith("/api/pentest")
+  )
     return "50mb";
   return "5mb";
 }
@@ -1106,7 +1111,7 @@ app.post(
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
 app.post("/api/chat", async (req, res) => {
-  const { model: reqModel, messages, mode, images } = req.body;
+  const { model: reqModel, messages, mode, images, conversationId } = req.body;
 
   if (!reqModel || !messages || !mode) {
     log("ERROR", "Chat request missing fields", {
@@ -1163,15 +1168,23 @@ app.post("/api/chat", async (req, res) => {
     );
 
   const embModel = config.memory?.embeddingModel || "nomic-embed-text";
+  const memoryConvId =
+    typeof conversationId === "string" && conversationId.trim()
+      ? conversationId.trim()
+      : null;
   const memoryPromise = config.memory?.enabled
-    ? buildMemoryContext(config.ollamaUrl, embModel, messages, config).catch(
-        (err) => {
-          log("WARN", "Memory retrieval failed, proceeding without", {
-            error: err.message,
-          });
-          return { prompt: "", memories: null };
-        },
-      )
+    ? buildMemoryContext(
+        config.ollamaUrl,
+        embModel,
+        messages,
+        config,
+        memoryConvId,
+      ).catch((err) => {
+        log("WARN", "Memory retrieval failed, proceeding without", {
+          error: err.message,
+        });
+        return { prompt: "", memories: null };
+      })
     : Promise.resolve({ prompt: "", memories: null });
 
   if (model === "auto") {
@@ -1231,28 +1244,13 @@ app.post("/api/chat", async (req, res) => {
       ? `\n\n---\nIMAGES: The user has attached ${images.length} image(s). Analyze them carefully and reference them in your response when relevant.`
       : "";
 
-  // Inject last conversation summary for new conversations (continuity across sessions)
-  let previousSessionPrompt = "";
-  if (messages.length <= 1) {
-    try {
-      const recentConvos = listConversations();
-      if (recentConvos.length > 0 && recentConvos[0].summary) {
-        previousSessionPrompt = `\n\nPREVIOUS SESSION: ${recentConvos[0].summary}`;
-      } else if (recentConvos.length > 0) {
-        const full = getConversation(recentConvos[0].id);
-        if (full?.summary) {
-          previousSessionPrompt = `\n\nPREVIOUS SESSION: ${full.summary}`;
-        }
-      }
-    } catch (_) {}
-  }
+  // Do not inject other conversations' summaries here — each thread keeps its own context via `messages` + scoped memory.
 
   const enrichedSystemPrompt =
     systemPrompt +
     brandPrompt +
     projectPrompt +
     memoryPrompt +
-    previousSessionPrompt +
     toolsPrompt +
     visionPrompt;
 
@@ -1268,8 +1266,10 @@ app.post("/api/chat", async (req, res) => {
     /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
   const currentMsgHasImages = images && images.length > 0;
   const cleanedMessages = messages.map((m, i) => {
-    const isLastUserMsg = i === messages.length - 1 && m.role === "user";
-    let cleaned = m;
+    // Strip client-side tool-context marker — not a real Ollama field
+    const { _toolContext, ...mClean } = m;
+    const isLastUserMsg = i === messages.length - 1 && mClean.role === "user";
+    let cleaned = mClean;
     // Strip base64 markdown images
     if (
       m.content &&
@@ -1309,7 +1309,6 @@ app.post("/api/chat", async (req, res) => {
                 brandPrompt +
                 projectPrompt +
                 memoryPrompt +
-                previousSessionPrompt +
                 toolsPrompt +
                 visionPrompt,
             }
@@ -1394,6 +1393,7 @@ app.post("/api/chat", async (req, res) => {
       let loopMessages = [...fullMessages];
       const MAX_ROUNDS = 5;
       let finalText = "";
+      const toolContextForHistory = []; // text-only tool rounds — emitted to client for history persistence
 
       for (let round = 0; round < MAX_ROUNDS; round++) {
         debug(`Tool-call round ${round + 1}/${MAX_ROUNDS}`);
@@ -1507,6 +1507,7 @@ app.post("/api/chat", async (req, res) => {
         });
 
         let toolResults = "";
+        const roundAnalysisImages = []; // base64 images for vision model (from view_pdf_pages)
         for (const call of toolCalls) {
           if (chatAbortController.signal.aborted || res.writableEnded) {
             log("INFO", "Chat aborted before tool execution");
@@ -1531,15 +1532,21 @@ app.post("/api/chat", async (req, res) => {
               .filter((c) => c.type === "text")
               .map((c) => c.text);
             const imageParts = parts.filter((c) => c.type === "image");
+            const analysisImageParts = parts.filter((c) => c.type === "image_for_analysis");
             debug("MCP tool result", {
               tool: `${call.serverId}.${call.toolName}`,
               textParts: textParts.length,
               imageParts: imageParts.length,
+              analysisImages: analysisImageParts.length,
               partTypes: parts.map((p) => p.type),
               resultKeys: Object.keys(result.result || {}),
             });
             let content = textParts.join("\n") || JSON.stringify(result.result);
-            // Stream images directly to client; do NOT embed base64 in AI context (wastes tokens)
+            // Collect images for vision model (view_pdf_pages) — fed into next Ollama call
+            for (const img of analysisImageParts) {
+              if (img.data) roundAnalysisImages.push(img.data);
+            }
+            // Stream display-only images to client; do NOT embed base64 in AI context (wastes tokens)
             for (const img of imageParts) {
               const mimeType = img.mimeType || "image/png";
               const data = img.data; // base64
@@ -1572,10 +1579,29 @@ app.post("/api/chat", async (req, res) => {
         if (cleanedResponse) {
           loopMessages.push({ role: "assistant", content: cleanedResponse });
         }
-        loopMessages.push({
+        const toolResultMsg = {
           role: "user",
           content: `Tool results:\n${toolResults}\n\nPresent these results to the user in a helpful response. Do NOT call the same tool again unless the user explicitly asks for a different operation. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.`,
+        };
+        // Attach PDF page images so the vision model can analyze them
+        if (roundAnalysisImages.length > 0) {
+          toolResultMsg.images = roundAnalysisImages;
+          log("INFO", `Feeding ${roundAnalysisImages.length} PDF page image(s) to vision model`);
+        }
+        loopMessages.push(toolResultMsg);
+        // Persist tool round context for client history (text only — no images)
+        if (cleanedResponse) {
+          toolContextForHistory.push({ role: "assistant", content: cleanedResponse });
+        }
+        toolContextForHistory.push({
+          role: "user",
+          content: `[Tool: ${toolCalls.map((c) => `${c.serverId}.${c.toolName}`).join(", ")}]\n${toolResults}`,
         });
+      }
+
+      // Send tool context to client so it can persist the tool-call chain in conversation history
+      if (toolContextForHistory.length > 0 && !chatAbortController.signal.aborted && !res.writableEnded) {
+        sendEvent({ toolContextMessages: toolContextForHistory });
       }
 
       // Stream the final text as SSE tokens (word by word for UX)

@@ -224,7 +224,8 @@ test.describe("Image Upload E2E - Chat Mode", () => {
   });
 
   test("should prevent duplicate uploads", async ({ page }) => {
-    // Upload same image twice
+    // Same pixel data → same hash; second upload triggers confirm() after async processing.
+    // Must await waitForEvent('dialog') — confirm runs after queueImageProcessing, not when setInputFiles resolves.
     const fileInput = page.locator("#chat-file-input");
 
     await fileInput.setInputFiles({
@@ -233,14 +234,19 @@ test.describe("Image Upload E2E - Chat Mode", () => {
       buffer: PNG_1X1_A,
     });
 
-    await page.waitForTimeout(1000);
+    await expect(
+      page.getByRole("button", { name: /View full-size image: test\.png/i }),
+    ).toBeVisible({ timeout: 20_000 });
 
-    page.once("dialog", (dialog) => dialog.dismiss());
+    const dialogPromise = page.waitForEvent("dialog", { timeout: 20_000 });
     await fileInput.setInputFiles({
       name: "test-copy.png",
       mimeType: "image/png",
       buffer: PNG_1X1_A,
     });
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toMatch(/duplicate/i);
+    await dialog.dismiss();
   });
 
   test("should reject unsupported file formats", async ({ page }) => {

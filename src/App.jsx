@@ -623,7 +623,10 @@ export default function App() {
       const { id } = await res.json();
       setActiveConvId(id);
       fetchHistory();
-    } catch {}
+      return id;
+    } catch {
+      return null;
+    }
   }
 
   async function deleteConversation(id) {
@@ -691,7 +694,7 @@ export default function App() {
         MODES.find((m) => m.id === conv.mode)?.label || conv.mode;
       if (format === "md") {
         content = `# ${title}\n\n**Mode:** ${modeLabel}  \n**Model:** ${conv.model || "N/A"}  \n**Date:** ${new Date(conv.createdAt).toLocaleString()}  \n\n---\n\n`;
-        (conv.messages || []).forEach((m) => {
+        (conv.messages || []).filter((m) => !m._toolContext).forEach((m) => {
           content +=
             m.role === "user"
               ? `## You\n\n\`\`\`\n${m.content}\n\`\`\`\n\n`
@@ -699,7 +702,7 @@ export default function App() {
         });
       } else {
         content = `${title}\nMode: ${modeLabel} | Model: ${conv.model || "N/A"} | Date: ${new Date(conv.createdAt).toLocaleString()}\n${"=".repeat(60)}\n\n`;
-        (conv.messages || []).forEach((m) => {
+        (conv.messages || []).filter((m) => !m._toolContext).forEach((m) => {
           content += `[${m.role === "user" ? "YOU" : "ASSISTANT"}]\n${m.content}\n\n${"-".repeat(40)}\n\n`;
         });
       }
@@ -957,24 +960,6 @@ export default function App() {
     };
     const newMessages = [...messages, userMsg];
 
-    const postBody = {
-      model: selectedModel,
-      mode,
-      messages: newMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        ...(m.images && { images: m.images }),
-      })),
-      ...(images.length > 0 && { images }),
-    };
-    const payloadBytes = estimateChatPostBodyBytes(postBody);
-    if (payloadBytes > MAX_CHAT_POST_BYTES) {
-      showToast(
-        `❌ Request too large (${(payloadBytes / 1024 / 1024).toFixed(1)} MB). Use smaller images, fewer images, or shorter text — stay under ~${Math.floor(MAX_CHAT_POST_BYTES / 1024 / 1024)} MB.`,
-      );
-      return;
-    }
-
     setMessages(newMessages);
     setInput("");
     setAttachedFiles([]);
@@ -985,14 +970,42 @@ export default function App() {
     setSendBurst(true);
     setTimeout(() => setSendBurst(false), 100);
 
-    // Save user message immediately so it survives a reload
-    saveConversation(newMessages, mode);
+    let conversationIdForChat = activeConvId;
+    try {
+      const savedId = await saveConversation(newMessages, mode);
+      if (savedId) conversationIdForChat = savedId;
+    } catch {
+      /* keep activeConvId */
+    }
+
+    const postBody = {
+      model: selectedModel,
+      mode,
+      messages: newMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        ...(m.images && { images: m.images }),
+        ...(m._toolContext && { _toolContext: true }),
+      })),
+      ...(images.length > 0 && { images }),
+      ...(conversationIdForChat && { conversationId: conversationIdForChat }),
+    };
+    const payloadBytes = estimateChatPostBodyBytes(postBody);
+    if (payloadBytes > MAX_CHAT_POST_BYTES) {
+      showToast(
+        `❌ Request too large (${(payloadBytes / 1024 / 1024).toFixed(1)} MB). Use smaller images, fewer images, or shorter text — stay under ~${Math.floor(MAX_CHAT_POST_BYTES / 1024 / 1024)} MB.`,
+      );
+      setMessages(messages);
+      setStreaming(false);
+      return;
+    }
 
     chatAbortRef.current?.abort();
     const ac = new AbortController();
     chatAbortRef.current = ac;
 
     let assistantContent = "";
+    let capturedToolContext = []; // tool round messages from toolContextMessages SSE event
     const flushChatAssistantUi = () => {
       if (chatTokenRafRef.current) {
         cancelAnimationFrame(chatTokenRafRef.current);
@@ -1051,6 +1064,9 @@ export default function App() {
           if (payload === "[DONE]") break;
           try {
             const parsed = JSON.parse(payload);
+            if (parsed.toolContextMessages) {
+              capturedToolContext = parsed.toolContextMessages;
+            }
             if (parsed.memoryContext) {
               setActiveMemories(parsed.memoryContext);
             }
@@ -1120,17 +1136,17 @@ export default function App() {
         // Auto-save every 5 seconds during streaming
         if (assistantContent && Date.now() - lastSaveTime > 5000) {
           lastSaveTime = Date.now();
-          saveConversation(
-            [...newMessages, { role: "assistant", content: assistantContent }],
-            mode,
-          );
+          const autoSaveMsgs = capturedToolContext.length > 0
+            ? [...newMessages, ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })), { role: "assistant", content: assistantContent }]
+            : [...newMessages, { role: "assistant", content: assistantContent }];
+          saveConversation(autoSaveMsgs, mode);
         }
       }
       flushChatAssistantUi();
-      saveConversation(
-        [...newMessages, { role: "assistant", content: assistantContent }],
-        mode,
-      );
+      const finalMsgs = capturedToolContext.length > 0
+        ? [...newMessages, ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })), { role: "assistant", content: assistantContent }]
+        : [...newMessages, { role: "assistant", content: assistantContent }];
+      saveConversation(finalMsgs, mode);
     } catch (err) {
       if (err.name === "AbortError") {
         if (chatTokenRafRef.current) {
@@ -1722,6 +1738,7 @@ export default function App() {
     // Format entire conversation as markdown
     const lines = [`# ${modeLabel} — ${date}\n`];
     for (const msg of messages) {
+      if (msg._toolContext) continue;
       if (msg.role === "user") {
         lines.push(`## You\n\n${msg.content}\n`);
       } else if (msg.role === "assistant") {
@@ -1760,6 +1777,7 @@ export default function App() {
     // Build markdown content from conversation
     const lines = [`# ${modeLabel} — ${date}\n`];
     for (const msg of messages) {
+      if (msg._toolContext) continue;
       if (msg.role === "user") lines.push(`## You\n\n${msg.content}\n`);
       else if (msg.role === "assistant")
         lines.push(`## Assistant\n\n${msg.content}\n`);
@@ -2488,7 +2506,7 @@ export default function App() {
                         onSettingsClick={() => setShowSettings(true)}
                       />
                     ) : null}
-                    {messages.map((msg, i) => (
+                    {messages.map((msg, i) => msg._toolContext ? null : (
                       <div key={i} className="relative group">
                         <MessageBubble
                           role={msg.role}

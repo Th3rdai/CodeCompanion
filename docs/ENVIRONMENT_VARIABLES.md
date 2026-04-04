@@ -64,11 +64,12 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 | `RATE_LIMIT_MAX_MEMORY`       | `30`    | Memory write/delete routes                                                      |
 | `RATE_LIMIT_MAX_API_GLOBAL`   | `300`   | Broad cap per IP for **all** `/api/*` methods (in addition to per-route limits) |
 
-## Agent terminal (`lib/builtin-agent-tools.js`)
+## Agent tools & terminal (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`)
 
 | Variable                  | Purpose                                                                                                                                                                     |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CC_ALLOW_AGENT_TERMINAL` | Set to `1` to allow the agent terminal when the server binds to **`0.0.0.0`** / **`::`** (see `CC_BIND_ALL` / `HOST`). Matches `lib/builtin-agent-tools.js` exposure check. |
+| `MCP_TOOL_TIMEOUT_MS`     | Optional. **Milliseconds** before an **MCP** `callTool` (not builtin) is aborted with a timeout error (default **`120000`**). Minimum **`50`** when set. Prevents a hung MCP server from blocking **`POST /api/chat`** indefinitely. |
 
 ## Playwright (`playwright.config.js`)
 

@@ -146,7 +146,38 @@ Past highlights (examples — not exhaustive):
 
 **Solution:** Right-click → Open (see First Launch section above)
 
-### App Won't Launch
+### Crash on launch: **Code Signature Invalid** (`SIGKILL`, `Taskgated Invalid Signature`)
+
+If **Console** or a crash report shows **`EXC_CRASH (SIGKILL (Code Signature Invalid))`**, **`Termination Reason: CODESIGNING`**, or **`Taskgated Invalid Signature`**, macOS is **refusing to run** the app binary — usually **before** your JavaScript runs.
+
+**Common causes**
+
+1. **Failed in-app auto-update** — Squirrel/ShipIt staged a new **`Code Companion.app`** under **`~/Library/Caches/com.th3rdai.code-companion.ShipIt/`** that **did not pass** Apple’s code-signature checks (you may also see **`Code signature ... did not pass validation`** in **`~/Library/Logs/code-companion/main.log`** from **electron-updater**).
+2. **Corrupted or partially replaced** **`/Applications/Code Companion.app`** (interrupted copy, bad download of DMG).
+3. **Mixing** a **Developer ID** expectation with an **ad-hoc** build (or vice versa) after manual copying.
+
+**What to do (clean reinstall)**
+
+1. Quit Code Companion if it is running.
+2. **Clear the updater staging cache** (safe; downloads can be fetched again):
+   ```bash
+   rm -rf ~/Library/Caches/com.th3rdai.code-companion.ShipIt
+   ```
+3. **Move the broken app to Trash** — e.g. **`/Applications/Code Companion.app`** (or the copy you launch from).
+4. **Download** the current **`code-companion-<version>-arm64.dmg`** from **[GitHub Releases](https://github.com/th3rdai/CodeCompanion/releases)** and install again (drag to **Applications**).
+5. **First launch:** If Gatekeeper prompts, use **Right-click → Open** once (see [First Launch — Gatekeeper](#-first-launch--gatekeeper)).
+
+**Verify signing (optional)**
+
+```bash
+codesign -dv --verbose=4 "/Applications/Code Companion.app"
+```
+
+You should see a valid **Authority** line for **Developer ID** builds shipped from CI; local **`npm run electron:build:mac`** builds are often **ad-hoc** (still runnable with Right-click → Open). If **`codesign` reports errors**, the bundle on disk is damaged — reinstall from a fresh DMG.
+
+**Maintainers:** See **[BUILD.md](../BUILD.md)** (macOS code signing, notarization, and GitHub Actions secrets). Auto-update requires a **consistent** signing pipeline; delta-update checksum mismatches can force a full re-download — check **electron-updater** / **main.log** after a failed update.
+
+### App Won't Launch (other)
 
 1. Check System Requirements (Apple Silicon required)
 2. Try removing quarantine attribute:
@@ -154,6 +185,7 @@ Past highlights (examples — not exhaustive):
    xattr -cr /Applications/Code\ Companion.app
    ```
 3. Check Console.app for error messages
+4. If you see **Code Signature Invalid** above, follow that section first
 
 ### "Damaged and can't be opened" Error
 

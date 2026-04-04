@@ -119,6 +119,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 - **Root container**: `fixed inset-0 flex mesh-gradient overflow-hidden` — NEVER use `h-screen`, `h-dvh`, or viewport units on the root. `fixed inset-0` is the only reliable way to fill the full browser window across all screen sizes, DPI scales, and browser chrome configurations.
 - **CSS base**: `html, body, #root` must have `width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden`.
 - **Document conversion**: Two-tier system — built-in converters handle common formats; Docling-serve provides higher-quality conversion (OCR, complex layouts) when available. Built-in: PDF (pdf-parse), DOCX (mammoth), DOC (word-extractor), **XLSX/CSV** (**read-excel-file**); **legacy `.xls`** not supported in built-in (use Docling or convert to `.xlsx`); **spreadsheet generation** (XLSX) uses **ExcelJS**; **ODS** output is JSZip + ODF XML in `office-generator.js`. PPTX/PPT/ODT/ODS/ODP/RTF (officeparser; **`file-type`** pinned via **npm overrides** + **`patches/officeparser+6.0.4.patch`**). Docling-only: EPUB, LaTeX, TEX. The `/api/convert-document` endpoint tries Docling first when enabled, falls back to built-in. Response includes `converter: 'docling'|'builtin'`. **Export** (see above) **generates** Office/PDF/text from chat via `office-generator.js`. Docling auto-starts on port 5002 (not 5001 — macOS AirPlay conflict). Auto-start managed by `lib/docling-starter.js` (web) and `electron/docling-manager.js` (Electron). Config: `docling: { url, apiKey, enabled, ocr }`. Install: `uv tool install "docling-serve[ui]"`. See `docs/DOCLING-AUTO-START.md` for details.
+- **Agent chat + PDFs / “413”**: The model does **not** receive HTTP status codes in chat. Claims about **413**, Docling, or “conversion service” may be **hallucinations** unless the user pasted a real error — check **`logs/app.log`** for **`POST /api/convert-document`**. Prompts in **`lib/tool-call-handler.js`** / **`lib/builtin-agent-tools.js`** instruct **`builtin.generate_office_file`** + **`sourcePath`** for project PDFs. See **`docs/TROUBLESHOOTING.md`**.
 
 ## Rules
 
@@ -129,10 +130,9 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. General tab includes
 - Keep the UI focused on vibe-coder workflows
 
 <!-- gitnexus:start -->
-
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (2857 symbols, 5761 relationships, 180 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (2897 symbols, 5826 relationships, 176 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -166,36 +166,35 @@ This project is indexed by GitNexus as **CodeCompanion** (2857 symbols, 5761 rel
 
 ## Tools Quick Reference
 
-| Tool             | When to use                   | Command                                                                 |
-| ---------------- | ----------------------------- | ----------------------------------------------------------------------- |
-| `query`          | Find code by concept          | `gitnexus_query({query: "auth validation"})`                            |
-| `context`        | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})`                              |
-| `impact`         | Blast radius before editing   | `gitnexus_impact({target: "X", direction: "upstream"})`                 |
-| `detect_changes` | Pre-commit scope check        | `gitnexus_detect_changes({scope: "staged"})`                            |
-| `rename`         | Safe multi-file rename        | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
-| `cypher`         | Custom graph queries          | `gitnexus_cypher({query: "MATCH ..."})`                                 |
+| Tool | When to use | Command |
+|------|-------------|---------|
+| `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
+| `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
+| `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
+| `detect_changes` | Pre-commit scope check | `gitnexus_detect_changes({scope: "staged"})` |
+| `rename` | Safe multi-file rename | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
+| `cypher` | Custom graph queries | `gitnexus_cypher({query: "MATCH ..."})` |
 
 ## Impact Risk Levels
 
-| Depth | Meaning                               | Action                |
-| ----- | ------------------------------------- | --------------------- |
-| d=1   | WILL BREAK — direct callers/importers | MUST update these     |
-| d=2   | LIKELY AFFECTED — indirect deps       | Should test           |
-| d=3   | MAY NEED TESTING — transitive         | Test if critical path |
+| Depth | Meaning | Action |
+|-------|---------|--------|
+| d=1 | WILL BREAK — direct callers/importers | MUST update these |
+| d=2 | LIKELY AFFECTED — indirect deps | Should test |
+| d=3 | MAY NEED TESTING — transitive | Test if critical path |
 
 ## Resources
 
-| Resource                                       | Use for                                  |
-| ---------------------------------------------- | ---------------------------------------- |
-| `gitnexus://repo/CodeCompanion/context`        | Codebase overview, check index freshness |
-| `gitnexus://repo/CodeCompanion/clusters`       | All functional areas                     |
-| `gitnexus://repo/CodeCompanion/processes`      | All execution flows                      |
-| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace             |
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/CodeCompanion/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/CodeCompanion/clusters` | All functional areas |
+| `gitnexus://repo/CodeCompanion/processes` | All execution flows |
+| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace |
 
 ## Self-Check Before Finishing
 
 Before completing any code modification task, verify:
-
 1. `gitnexus_impact` was run for all modified symbols
 2. No HIGH/CRITICAL risk warnings were ignored
 3. `gitnexus_detect_changes()` confirms changes match expected scope
@@ -221,13 +220,13 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 ## CLI
 
-| Task                                         | Read this skill file                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
-| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
-| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
-| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
