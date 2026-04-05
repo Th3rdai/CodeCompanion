@@ -84,6 +84,25 @@ test("buildToolsPrompt includes anti-hallucination block and sourcePath hint for
   );
 });
 
+test("buildToolsPrompt includes agent identity override forbidding teacher-deflection phrases", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    { getAllTools: () => [] },
+    { getConfig: () => ({}) },
+  );
+  const p = h.buildToolsPrompt();
+  assert.ok(p.includes("AGENT IDENTITY OVERRIDE"), "expected override header");
+  assert.ok(
+    p.includes("you'll need to run this yourself"),
+    "expected explicit forbidden phrase listed",
+  );
+  assert.ok(
+    p.includes("you are the one holding the keyboard"),
+    "expected keyboard deflection phrase listed",
+  );
+  assert.ok(p.includes("Those statements are FALSE"), "expected FALSE assertion");
+});
+
 test("buildToolsPrompt omits terminal preamble and AGENT TERMINAL when terminal tool not advertised", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler(

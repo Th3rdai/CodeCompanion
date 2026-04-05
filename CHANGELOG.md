@@ -20,7 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.5.24] — 2026-04-04
+
+### Added
+
+- **Agent Validate builtins (Phase 25)** — Chat agent can now scan any project folder and generate a phased `validate.md` command file directly from chat, using the same `lib/validate.js` pipeline as Validate mode. Two new builtin tools: `validate_scan_project` (discover linters, type checkers, test runners, CI configs) and `validate_generate_command` (scan + AI generation in one step, optional save to project folder). Both are gated by `agentValidate.enabled` (default on) and path-scoped to the configured project folder.
+- **Agent Planner scoring (Phase 26)** — Chat agent can score implementation plans with the same AI pipeline as Planner mode. New builtin tool `score_plan` returns letter grades (A–F) for Clarity, Feasibility, Completeness, and Structure, plus an overall grade and improvement suggestions. Accepts pre-built markdown or structured fields (planName, goal, steps, scope, dependencies, testing, risks). Gated by `agentPlanner.enabled` (default on).
+- **Agent identity override** — Injected prompt block explicitly forbids teacher-deflection phrases ("you'll need to run this yourself", "you are the one holding the keyboard", etc.) so the model correctly acts as an agent with real execution tools rather than an advisory chatbot.
+
+### Planning
+
+- **Agent first-party capabilities** — [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](docs/AGENT-APP-CAPABILITIES-ROADMAP.md) promoted to [`.planning/ROADMAP.md`](.planning/ROADMAP.md) as **Phases 25–27** (Validate / Planner / optional GSD builtins from chat). Pointers added in README, CLAUDE.md, `whats-next.md`, STATE.
 
 ---
 

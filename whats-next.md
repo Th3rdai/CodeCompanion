@@ -97,7 +97,17 @@ ALL tasks 1-9 are complete and committed. Key commits:
 - `src/components/GitHubPanel.jsx` — "Clone to folder" input defaults to Project Folder from `/api/config`.
 - `src/App.jsx` — `bulkDeleteConversations` uses batch endpoint instead of N individual DELETEs.
 
-**Test Status:** 136+ unit tests; **`npm run test:integration`** (spawned server, chat/review/pentest/remediate + images); E2E as before; build clean.
+**Task 14 — Memory scoping, TERMINALFIX, E2E image duplicate, docs (2026-04-03)**
+
+- `lib/memory.js` — `searchMemories(..., { conversationId })`; `buildMemoryContext(..., conversationId)` returns empty without a valid id; prompt labels memory as this conversation only.
+- `server.js` — `POST /api/chat` passes `conversationId` into memory context; removed injection of other threads’ summaries.
+- `src/App.jsx` — `saveConversation` returns saved id; chat awaits save and sends `conversationId` in the request body.
+- `lib/builtin-agent-tools.js` / `lib/tool-call-handler.js` — Terminal safety preamble and **AGENT TERMINAL** only when builtin **`run_terminal_cmd`** is in the tool list (TERMINALFIX).
+- `tests/unit/memory-scope.test.js`, `tests/unit/tool-call-handler.test.js`, `tests/unit/builtin-agent-tools.test.js` — scoping and preamble behavior.
+- `tests/e2e/image-upload.spec.js` — duplicate upload: `waitForEvent('dialog')` before second file pick + `dismiss()`.
+- Docs: **`docs/ENVIRONMENT_VARIABLES.md`** (memory row + chat scoping), **`docs/TESTING.md`** (148 unit tests), **`CLAUDE.md`** (Memory tab), **`CHANGELOG [Unreleased]`**, **`.planning/STATE.md`**, this file.
+
+**Test Status:** **148** unit tests (`npm run test:unit`); **`npm run test:integration`** (spawned server, chat/review/pentest/remediate + images); E2E as before; build clean.
 
 **Commits (2026-03-28/29):** `b78c0fe` (auto-model + MCP image fixes), `6092e83` (placeholder leak), `afd4da8` (vision fallback + historical images), `6b34e00` (lightbox + schemas + latency).
 **Releases:** v1.5.3 through v1.5.14 pushed during prior sessions; next release should include Tasks 10-12 + doc updates.
@@ -115,6 +125,7 @@ ALL tasks 1-9 are complete and committed. Key commits:
 
 **Backlog (not requested this session but noted):**
 
+- [ ] **Phases 25–27 — Agent first-party capabilities** — Validate + Planner (+ optional GSD) from chat via builtins; roadmap: [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](docs/AGENT-APP-CAPABILITIES-ROADMAP.md), checklist: [`.planning/ROADMAP.md`](.planning/ROADMAP.md) (Phases 25–27).
 - [ ] MCP parallel task execution (Code Companion MCP server)
 - [ ] Agent terminal audit logging to file
 - [ ] Playwright E2E for agent terminal
@@ -136,6 +147,8 @@ ALL tasks 1-9 are complete and committed. Key commits:
 - write_file tool auto-creates .backup before overwriting
 - Folder search skips .Trash, Library, node_modules, .git, .cache, .npm, .nvm
 - MCP tool images stream via SSE `toolImage` events; AI context gets text placeholder only (no base64)
+- **Memory:** retrieval requires **`conversationId`** on **`POST /api/chat`**; only memories with **`source`** matching that id are injected (`lib/memory.js`)
+- Agent terminal: builtin **`run_terminal_cmd`** must be advertised for terminal preamble + **AGENT TERMINAL** line (`lib/tool-call-handler.js`)
 - Tool-call loop strips model text after first `TOOL_CALL:` to prevent hallucinated results in feedback
 - Both GitHub PATs for 3rdAI-bill authenticate as same user — dedup by label not username
 - kimi-k2:1t-cloud: fast (7s review), good structured JSON after fence fix

@@ -131,6 +131,7 @@ Full checklist, fork vs canonical repo, and **emergency** local `electron:publis
 | [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                              |
 | [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                |
 | [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                     |
+| [docs/AGENT-APP-CAPABILITIES-ROADMAP.md](docs/AGENT-APP-CAPABILITIES-ROADMAP.md)                               | **Planned (Phases 25–27):** chat agent builtins for Validate + Planner (+ optional GSD); linked from [`.planning/ROADMAP.md`](.planning/ROADMAP.md) |
 
 ## User Guide
 

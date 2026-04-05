@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-03-29T12:00:00.000Z"
-last_activity: 2026-03-29 — **MCP image generation** (hallucination stripping, vision fallback, revision flow, IMAGE_DELIVERED markers); **image lightbox** (click to preview); **tool param schemas** (compact, 8.5KB); **batch conversation delete** (single-request, no rate limit); **GitHub clone destination picker**; **auto-model per mode**; **chat latency**. 6 commits: `b78c0fe`, `6092e83`, `afd4da8`, `6b34e00`, `8693e84`, pending. **Next:** pre-release checklist.
+last_updated: "2026-04-04T18:00:00.000Z"
+last_activity: 2026-04-04 — **Agent app capabilities roadmap promoted**: [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md) ↔ [`.planning/ROADMAP.md`](ROADMAP.md) **Phases 25–27**; pointers in **README**, **CLAUDE.md**, **whats-next.md**.
 progress:
   total_phases: 24
   completed_phases: 15
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** All 24 phases complete (15 delivered, 7 deferred). Validate mode, enhanced Security, deployment hardening, stability fixes shipped.
+**Current focus:** Core **Phases 1–24** complete (15 delivered, 7 deferred). **Next planned track:** Phases **25–27** (chat agent builtins for Validate / Planner / optional GSD) — see [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md).
 
 ## Current Position
 
-All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit, **`npm run test:integration`** for API+images).
-Last activity: 2026-03-29 — **MCP image generation fixes** (6 issues); **image lightbox**; **tool param schemas** (compact); **batch delete**; **GitHub clone destination picker**; **auto-model per mode**; **chat latency**. 6 commits. Next: pre-release checklist; optional CLIPLAN Phase 4.
+All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit — **148** tests, **`npm run test:integration`** for API+images).
+Last activity: 2026-04-04 — **Roadmap:** agent first-party capabilities promoted to **Phases 25–27** ([`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)). Prior: 2026-04-03/04 — Memory conversation scoping; TERMINALFIX; E2E duplicate-upload fix. Next: pre-release checklist; optional CLIPLAN Phase 4; implement Phases 25–27 when prioritized.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 
