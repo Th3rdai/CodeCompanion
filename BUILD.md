@@ -209,12 +209,12 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 
 `electron-builder.config.js` picks a **signing mode** from environment variables:
 
-| Goal                            | Command                                                                                           | Notes                                                                                       |
-| ------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Fast local DMG/ZIP** (ad-hoc) | `npm run electron:build:mac`                                                                      | `identity: '-'`, no hardened runtime — quickest iteration.                                  |
+| Goal                                             | Command                                                                                           | Notes                                                                                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Fast local DMG/ZIP** (ad-hoc)                  | `npm run electron:build:mac`                                                                      | `identity: '-'`, no hardened runtime — quickest iteration.                                                                   |
 | **Signed for distribution** (full Keychain name) | `MAC_CODESIGN_IDENTITY="Developer ID Application: … (TEAMID)" npm run electron:build:mac:release` | Sets `MAC_DISTRIBUTION_SIGN=1` internally; requires identity in Keychain. Config strips the prefix for electron-builder 26+. |
-| **Signed for distribution** (common name only)   | `MAC_CODESIGN_IDENTITY="Your Name (TEAMID)" npm run electron:build:mac:release`                   | Same as above; use the certificate **common name** as shown in Keychain (parentheses include Team ID).                    |
-| **Publish to GitHub (signed)**  | Same identity in env + `npm run electron:publish:mac:release`                                     | **Emergency only** if CI cannot publish; normal releases use **tag push → GitHub Actions**. |
+| **Signed for distribution** (common name only)   | `MAC_CODESIGN_IDENTITY="Your Name (TEAMID)" npm run electron:build:mac:release`                   | Same as above; use the certificate **common name** as shown in Keychain (parentheses include Team ID).                       |
+| **Publish to GitHub (signed)**                   | Same identity in env + `npm run electron:publish:mac:release`                                     | **Emergency only** if CI cannot publish; normal releases use **tag push → GitHub Actions**.                                  |
 
 **Required for distribution builds:** `MAC_CODESIGN_IDENTITY` must identify a **Developer ID Application** certificate in your login keychain (full Keychain name or common name only). **electron-builder** 26+ rejects values that still include the literal `Developer ID Application:` prefix; `electron-builder.config.js` strips that prefix when present. The `:release` scripts set `MAC_DISTRIBUTION_SIGN=1`, which enables **hardened runtime** and uses that identity.
 
@@ -224,14 +224,14 @@ Key configuration: `asar: false` in `electron-builder.config.js` because `fork()
 
 The workflow **`.github/workflows/build.yml`** builds macOS with **ad-hoc** signing unless you add **repository secrets** so CI can import your **Developer ID** certificate:
 
-| Secret                        | Required for signing | Notes                                                                                                                                |
-| ----------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `MAC_CERTS`                   | Yes                  | **Base64** of your **`.p12`** (export from Keychain Access → include private key; then `base64 -i cert.p12 \| tr -d '\n'` on macOS). |
-| `MAC_CERTS_PASSWORD`          | Yes                  | Password for the `.p12` export.                                                                                                      |
+| Secret                        | Required for signing | Notes                                                                                                                                    |
+| ----------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `MAC_CERTS`                   | Yes                  | **Base64** of your **`.p12`** (export from Keychain Access → include private key; then `base64 -i cert.p12 \| tr -d '\n'` on macOS).     |
+| `MAC_CERTS_PASSWORD`          | Yes                  | Password for the `.p12` export.                                                                                                          |
 | `MAC_CODESIGN_IDENTITY`       | Yes                  | Full Keychain name or common name only (e.g. `Developer ID Application: Your Name (TEAMID)` or `Your Name (TEAMID)`); config normalizes. |
-| `APPLE_TEAM_ID`               | For **notarization** | 10-character Team ID.                                                                                                                |
-| `APPLE_ID`                    | For **notarization** | Apple ID email used for notarization.                                                                                                |
-| `APPLE_APP_SPECIFIC_PASSWORD` | For **notarization** | App-specific password (not your Apple ID password).                                                                                  |
+| `APPLE_TEAM_ID`               | For **notarization** | 10-character Team ID.                                                                                                                    |
+| `APPLE_ID`                    | For **notarization** | Apple ID email used for notarization.                                                                                                    |
+| `APPLE_APP_SPECIFIC_PASSWORD` | For **notarization** | App-specific password (not your Apple ID password).                                                                                      |
 
 When **`MAC_CERTS`**, **`MAC_CERTS_PASSWORD`**, and **`MAC_CODESIGN_IDENTITY`** are all set, the mac job imports the cert into a temporary keychain and sets **`MAC_DISTRIBUTION_SIGN=1`** for that build. **Signed + notarized CI** needs those **three** plus **`APPLE_TEAM_ID`**, **`APPLE_ID`**, and **`APPLE_APP_SPECIFIC_PASSWORD`** (six secrets total); then **`MAC_NOTARIZE=1`** is enabled for that job. Omit any of the signing trio to keep **fast ad-hoc** mac builds in CI (same as local `npm run electron:build:mac`).
 

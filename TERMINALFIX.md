@@ -6,7 +6,7 @@
 
 1. **Contradictory instructions**: The builtin safety preamble included **TERMINAL TOOL SAFETY** whenever any builtin tool was injected, but `getBuiltinTools()` could omit `run_terminal_cmd` (e.g. server exposure / bind rules). The model could read terminal rules while **`run_terminal_cmd` was missing** from “Available external tools.”
 
-2. **Weak positive signal**: When terminal *was* available, there was no short line stating that **`builtin.run_terminal_cmd`** was active for the session.
+2. **Weak positive signal**: When terminal _was_ available, there was no short line stating that **`builtin.run_terminal_cmd`** was active for the session.
 
 3. **Not a persistence bug**: The server rebuilds the tools prompt each request. “Forgetting” is **prompt design + model prior**, not lost Settings state.
 
@@ -39,18 +39,20 @@
 
 ## Testing
 
-| Location | Coverage |
-|----------|----------|
-| `tests/unit/builtin-agent-tools.test.js` | Preamble with/without `includeTerminal`; default omits terminal |
-| `tests/unit/tool-call-handler.test.js` | Terminal off → no `TERMINAL TOOL SAFETY` / no `AGENT TERMINAL:`; terminal on + allowlist → both present |
+| Location                                 | Coverage                                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `tests/unit/builtin-agent-tools.test.js` | Preamble with/without `includeTerminal`; default omits terminal                                         |
+| `tests/unit/tool-call-handler.test.js`   | Terminal off → no `TERMINAL TOOL SAFETY` / no `AGENT TERMINAL:`; terminal on + allowlist → both present |
 
 Run: `npm run test:unit`
 
 ## Manual verification
 
-- [ ] Settings: terminal **off** → no terminal block or AGENT TERMINAL line in tools prompt (use server debug if enabled).
-- [ ] Settings: terminal **on**, project folder + allowlist → terminal block + AGENT TERMINAL + `run_terminal_cmd` in tool list.
-- [ ] Bind `0.0.0.0` without `CC_ALLOW_AGENT_TERMINAL` (non-Electron): terminal block **absent**, tool not listed (matches `getBuiltinTools`).
+Covered by unit tests (run `npm run test:unit`); no interactive UI pass required for release sign-off.
+
+- [x] Settings: terminal **off** → no terminal block or AGENT TERMINAL line in tools prompt — `buildToolsPrompt omits terminal preamble and AGENT TERMINAL when terminal tool not advertised` in `tests/unit/tool-call-handler.test.js`.
+- [x] Settings: terminal **on**, project folder + allowlist → terminal block + AGENT TERMINAL + `run_terminal_cmd` in tool list — `buildToolsPrompt includes terminal preamble and AGENT TERMINAL when builtin run_terminal_cmd is advertised` (uses `projectFolder`, `agentTerminal.enabled`, `allowlist`, `HOST=127.0.0.1` for deterministic loopback).
+- [x] Bind `0.0.0.0` without `CC_ALLOW_AGENT_TERMINAL` (non-Electron): terminal block **absent**, tool not listed — `getBuiltinTools omits run_terminal_cmd when bind is 0.0.0.0 without CC_ALLOW_AGENT_TERMINAL` in `tests/unit/builtin-agent-tools.test.js` and `buildToolsPrompt omits terminal when bind is exposed without CC_ALLOW_AGENT_TERMINAL` in `tests/unit/tool-call-handler.test.js`.
 
 ## Rollback
 
@@ -58,4 +60,4 @@ Revert the single PR touching `builtin-agent-tools.js`, `tool-call-handler.js`, 
 
 ---
 
-*Historical plan notes and plan-reviewer feedback are summarized in `docs/TERMINALFIX-plan-review.md`.*
+_Historical plan notes and plan-reviewer feedback are summarized in `docs/TERMINALFIX-plan-review.md`._

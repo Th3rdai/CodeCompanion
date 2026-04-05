@@ -276,6 +276,7 @@ export default function App() {
     () => sessionStorage.getItem("th3rdai_splash_dismissed") === "true",
   );
   const [models, setModels] = useState([]);
+  const [agentMaxRounds, setAgentMaxRounds] = useState(10);
   const [selectedModel, _setSelectedModel] = useState(
     () => localStorage.getItem("cc-selected-model") || "",
   );
@@ -599,7 +600,8 @@ export default function App() {
       overrides.title || msgs[0]?.content?.slice(0, 60) || "Untitled";
     // Allow callers to pass an explicit convId to avoid reading stale React state
     // (activeConvId may not yet reflect an id returned by a concurrent save).
-    const convId = overrides._convId !== undefined ? overrides._convId : activeConvId;
+    const convId =
+      overrides._convId !== undefined ? overrides._convId : activeConvId;
     const { _convId: _dropped, ...restOverrides } = overrides;
     const conv = {
       id: convId || undefined,
@@ -698,17 +700,21 @@ export default function App() {
         MODES.find((m) => m.id === conv.mode)?.label || conv.mode;
       if (format === "md") {
         content = `# ${title}\n\n**Mode:** ${modeLabel}  \n**Model:** ${conv.model || "N/A"}  \n**Date:** ${new Date(conv.createdAt).toLocaleString()}  \n\n---\n\n`;
-        (conv.messages || []).filter((m) => !m._toolContext).forEach((m) => {
-          content +=
-            m.role === "user"
-              ? `## You\n\n\`\`\`\n${m.content}\n\`\`\`\n\n`
-              : `## Assistant\n\n${m.content}\n\n---\n\n`;
-        });
+        (conv.messages || [])
+          .filter((m) => !m._toolContext)
+          .forEach((m) => {
+            content +=
+              m.role === "user"
+                ? `## You\n\n\`\`\`\n${m.content}\n\`\`\`\n\n`
+                : `## Assistant\n\n${m.content}\n\n---\n\n`;
+          });
       } else {
         content = `${title}\nMode: ${modeLabel} | Model: ${conv.model || "N/A"} | Date: ${new Date(conv.createdAt).toLocaleString()}\n${"=".repeat(60)}\n\n`;
-        (conv.messages || []).filter((m) => !m._toolContext).forEach((m) => {
-          content += `[${m.role === "user" ? "YOU" : "ASSISTANT"}]\n${m.content}\n\n${"-".repeat(40)}\n\n`;
-        });
+        (conv.messages || [])
+          .filter((m) => !m._toolContext)
+          .forEach((m) => {
+            content += `[${m.role === "user" ? "YOU" : "ASSISTANT"}]\n${m.content}\n\n${"-".repeat(40)}\n\n`;
+          });
       }
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -993,6 +999,7 @@ export default function App() {
       })),
       ...(images.length > 0 && { images }),
       ...(conversationIdForChat && { conversationId: conversationIdForChat }),
+      agentMaxRounds,
     };
     const payloadBytes = estimateChatPostBodyBytes(postBody);
     if (payloadBytes > MAX_CHAT_POST_BYTES) {
@@ -1140,16 +1147,34 @@ export default function App() {
         // Auto-save every 5 seconds during streaming
         if (assistantContent && Date.now() - lastSaveTime > 5000) {
           lastSaveTime = Date.now();
-          const autoSaveMsgs = capturedToolContext.length > 0
-            ? [...newMessages, ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })), { role: "assistant", content: assistantContent }]
-            : [...newMessages, { role: "assistant", content: assistantContent }];
-          saveConversation(autoSaveMsgs, mode, { _convId: conversationIdForChat });
+          const autoSaveMsgs =
+            capturedToolContext.length > 0
+              ? [
+                  ...newMessages,
+                  ...capturedToolContext.map((m) => ({
+                    ...m,
+                    _toolContext: true,
+                  })),
+                  { role: "assistant", content: assistantContent },
+                ]
+              : [
+                  ...newMessages,
+                  { role: "assistant", content: assistantContent },
+                ];
+          saveConversation(autoSaveMsgs, mode, {
+            _convId: conversationIdForChat,
+          });
         }
       }
       flushChatAssistantUi();
-      const finalMsgs = capturedToolContext.length > 0
-        ? [...newMessages, ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })), { role: "assistant", content: assistantContent }]
-        : [...newMessages, { role: "assistant", content: assistantContent }];
+      const finalMsgs =
+        capturedToolContext.length > 0
+          ? [
+              ...newMessages,
+              ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })),
+              { role: "assistant", content: assistantContent },
+            ]
+          : [...newMessages, { role: "assistant", content: assistantContent }];
       saveConversation(finalMsgs, mode, { _convId: conversationIdForChat });
     } catch (err) {
       if (err.name === "AbortError") {
@@ -1164,7 +1189,9 @@ export default function App() {
             { role: "assistant", content: assistantContent.trimEnd() },
           ];
           setMessages(stoppedMessages);
-          saveConversation(stoppedMessages, mode, { _convId: conversationIdForChat });
+          saveConversation(stoppedMessages, mode, {
+            _convId: conversationIdForChat,
+          });
         }
         return;
       }
@@ -2193,6 +2220,24 @@ export default function App() {
                 {autoResolvedLabel ? `→ ${autoResolvedLabel}` : "→ …"}
               </span>
             )}
+            {mode === "chat" && (
+              <div className="flex items-center gap-1.5 hidden sm:flex">
+                <label htmlFor="rounds-select" className="text-xs text-slate-500 whitespace-nowrap">
+                  Rounds
+                </label>
+                <select
+                  id="rounds-select"
+                  value={agentMaxRounds}
+                  onChange={(e) => setAgentMaxRounds(Number(e.target.value))}
+                  className="input-glow text-slate-200 text-sm rounded-lg px-2 py-1.5"
+                  title="Max agent tool rounds per message (how many write/run/fix cycles the agent can do)"
+                >
+                  {[1, 3, 5, 10, 15, 20, 25].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </header>
 
@@ -2510,26 +2555,28 @@ export default function App() {
                         onSettingsClick={() => setShowSettings(true)}
                       />
                     ) : null}
-                    {messages.map((msg, i) => msg._toolContext ? null : (
-                      <div key={i} className="relative group">
-                        <MessageBubble
-                          role={msg.role}
-                          content={msg.content}
-                          streaming={
-                            streaming &&
-                            i === messages.length - 1 &&
-                            msg.role === "assistant"
-                          }
-                          images={msg.images}
-                          onImageClick={openLightboxFromMessage}
-                        />
-                        {msg.role === "assistant" && !streaming && (
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <CopyButton text={msg.content} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    {messages.map((msg, i) =>
+                      msg._toolContext ? null : (
+                        <div key={i} className="relative group">
+                          <MessageBubble
+                            role={msg.role}
+                            content={msg.content}
+                            streaming={
+                              streaming &&
+                              i === messages.length - 1 &&
+                              msg.role === "assistant"
+                            }
+                            images={msg.images}
+                            onImageClick={openLightboxFromMessage}
+                          />
+                          {msg.role === "assistant" && !streaming && (
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <CopyButton text={msg.content} />
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    )}
                     {streaming &&
                       messages[messages.length - 1]?.role !== "assistant" && (
                         <TypingIndicator3D mode={mode} />

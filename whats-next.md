@@ -97,6 +97,14 @@ ALL tasks 1-9 are complete and committed. Key commits:
 - `src/components/GitHubPanel.jsx` — "Clone to folder" input defaults to Project Folder from `/api/config`.
 - `src/App.jsx` — `bulkDeleteConversations` uses batch endpoint instead of N individual DELETEs.
 
+**Task 15 — Agent builtins (Phases 25–26), identity override, configurable rounds (2026-04-04)**
+
+- `lib/builtin-agent-tools.js` — Added `validate_scan_project`, `validate_generate_command` (Phase 25, gated by `agentValidate.enabled`), and `score_plan` (Phase 26, gated by `agentPlanner.enabled`). `getBuiltinSafetyPreamble()` now accepts `{ includeTerminal, includeValidate, includePlanner }`.
+- `lib/tool-call-handler.js` — Replaced `buildToolsPrompt()` with `getToolsPromptAndFlags()` (single `getBuiltinTools()` call returning `{ prompt, hasTerminalTool, hasValidateTool, hasPlannerTool }`). `buildToolsPrompt()` kept as thin wrapper. Added **AGENT IDENTITY OVERRIDE** block forbidding teacher-deflection phrases.
+- `server.js` — Lead-in (`CAPABILITY: This agent session has access to builtin tools…`) prepended before system prompt when terminal is active. `agentMaxRounds` destructured from request body; `MAX_ROUNDS = Math.min(Math.max(parseInt(agentMaxRounds) || 10, 1), 25)` replaces hardcoded 5.
+- `src/App.jsx` — `agentMaxRounds` state (default 10); "Rounds" picker `<select>` in Chat toolbar (options 1/3/5/10/15/20/25); `agentMaxRounds` included in POST body to `/api/chat`.
+- `tests/unit/builtin-agent-tools.test.js` / `tests/unit/tool-call-handler.test.js` — New tests for validate/planner tools, identity override assertions, `getToolsPromptAndFlags` flags. **172 unit tests passing.**
+
 **Task 14 — Memory scoping, TERMINALFIX, E2E image duplicate, docs (2026-04-03)**
 
 - `lib/memory.js` — `searchMemories(..., { conversationId })`; `buildMemoryContext(..., conversationId)` returns empty without a valid id; prompt labels memory as this conversation only.
@@ -125,7 +133,7 @@ ALL tasks 1-9 are complete and committed. Key commits:
 
 **Backlog (not requested this session but noted):**
 
-- [ ] **Phases 25–27 — Agent first-party capabilities** — Validate + Planner (+ optional GSD) from chat via builtins; roadmap: [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](docs/AGENT-APP-CAPABILITIES-ROADMAP.md), checklist: [`.planning/ROADMAP.md`](.planning/ROADMAP.md) (Phases 25–27).
+- [ ] **Phase 27 — Optional GSD builtins** — Agent integration with GSD phase runner from chat; roadmap: [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](docs/AGENT-APP-CAPABILITIES-ROADMAP.md), checklist: [`.planning/ROADMAP.md`](.planning/ROADMAP.md).
 - [ ] MCP parallel task execution (Code Companion MCP server)
 - [ ] Agent terminal audit logging to file
 - [ ] Playwright E2E for agent terminal

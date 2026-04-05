@@ -46,7 +46,9 @@ test("searchMemories filters by conversationId when provided", () => {
   assert.strictEqual(scopedB.length, 1);
   assert.strictEqual(scopedB[0].content, "conv-b fact");
 
-  const scopedEmpty = searchMemories(emb, 5, 0, { conversationId: "conv-other" });
+  const scopedEmpty = searchMemories(emb, 5, 0, {
+    conversationId: "conv-other",
+  });
   assert.strictEqual(scopedEmpty.length, 0);
 
   fs.rmSync(dir, { recursive: true, force: true });

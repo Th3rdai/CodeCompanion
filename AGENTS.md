@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (2897 symbols, 5826 relationships, 176 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (2951 symbols, 5909 relationships, 176 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -99,3 +99,9 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+---
+
+## Code Companion — Settings Panel
+
+Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab configures optional embedding memory (`memory` in **`.cc-config.json`**); retrieval is **per conversation** — the client sends **`conversationId`** on **`POST /api/chat`** after the thread is saved so **`buildMemoryContext()`** only injects memories whose **`source`** matches that id (see **`lib/memory.js`**). General tab includes: see **`CLAUDE.md`** (Settings Panel).

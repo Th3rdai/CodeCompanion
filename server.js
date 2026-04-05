@@ -1111,7 +1111,7 @@ app.post(
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
 app.post("/api/chat", async (req, res) => {
-  const { model: reqModel, messages, mode, images, conversationId } = req.body;
+  const { model: reqModel, messages, mode, images, conversationId, agentMaxRounds } = req.body;
 
   if (!reqModel || !messages || !mode) {
     log("ERROR", "Chat request missing fields", {
@@ -1235,8 +1235,16 @@ app.post("/api/chat", async (req, res) => {
     req.ip || req.connection?.remoteAddress || "unknown";
 
   // Append agent tool descriptions (MCP clients + builtin tools)
-  const toolsPrompt = toolCallHandler.buildToolsPrompt();
+  const { prompt: toolsPrompt, hasTerminalTool } =
+    toolCallHandler.getToolsPromptAndFlags();
   const hasAgentTools = toolsPrompt.length > 0;
+
+  // Option A lead-in: prepend factual capability statement BEFORE the chat persona
+  // so the model sees "you have a terminal" before "you are a patient teacher".
+  // Only injected when run_terminal_cmd is advertised for this session.
+  const leadIn = hasTerminalTool
+    ? "CAPABILITY: This agent session has access to builtin tools that execute directly on the user's machine, including a terminal (run_terminal_cmd) scoped to their project folder. Use TOOL_CALL to run commands — do not ask the user to run them.\n\n"
+    : "";
 
   // Inject vision-specific prompt when images are present
   const visionPrompt =
@@ -1247,6 +1255,7 @@ app.post("/api/chat", async (req, res) => {
   // Do not inject other conversations' summaries here — each thread keeps its own context via `messages` + scoped memory.
 
   const enrichedSystemPrompt =
+    leadIn +
     systemPrompt +
     brandPrompt +
     projectPrompt +
@@ -1305,6 +1314,7 @@ app.post("/api/chat", async (req, res) => {
           ? {
               role: "system",
               content:
+                leadIn +
                 m.content +
                 brandPrompt +
                 projectPrompt +
@@ -1391,7 +1401,7 @@ app.post("/api/chat", async (req, res) => {
     // Use chatComplete for rounds that may contain tool calls, then stream the final response.
     if (hasAgentTools) {
       let loopMessages = [...fullMessages];
-      const MAX_ROUNDS = 5;
+      const MAX_ROUNDS = Math.min(Math.max(parseInt(agentMaxRounds) || 10, 1), 25);
       let finalText = "";
       const toolContextForHistory = []; // text-only tool rounds — emitted to client for history persistence
 

@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
 last_updated: "2026-04-04T18:00:00.000Z"
-last_activity: 2026-04-04 — **Agent app capabilities roadmap promoted**: [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md) ↔ [`.planning/ROADMAP.md`](ROADMAP.md) **Phases 25–27**; pointers in **README**, **CLAUDE.md**, **whats-next.md**.
+last_activity: 2026-04-04 — **Phases 25–26 delivered**: `validate_scan_project`, `validate_generate_command`, `score_plan` builtins; agent identity override; configurable max rounds toolbar picker (1–25, default 10). **172 unit tests passing.**
 progress:
   total_phases: 24
   completed_phases: 15
@@ -25,8 +25,8 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 ## Current Position
 
-All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit — **148** tests, **`npm run test:integration`** for API+images).
-Last activity: 2026-04-04 — **Roadmap:** agent first-party capabilities promoted to **Phases 25–27** ([`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)). Prior: 2026-04-03/04 — Memory conversation scoping; TERMINALFIX; E2E duplicate-upload fix. Next: pre-release checklist; optional CLIPLAN Phase 4; implement Phases 25–27 when prioritized.
+All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit — **172** tests, **`npm run test:integration`** for API+images).
+Last activity: 2026-04-04 — **Phases 25–26 complete**: `validate_scan_project`, `validate_generate_command` (agent validate builtins); `score_plan` (agent planner scoring); AGENT IDENTITY OVERRIDE block; configurable max rounds toolbar picker. Prior: 2026-04-03/04 — Memory scoping; TERMINALFIX; roadmap Phases 25–27 promoted. Next: pre-release checklist; Phase 27 (GSD builtins from chat).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

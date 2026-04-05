@@ -35,28 +35,42 @@ export default function Sidebar({
   const [healthDetails, setHealthDetails] = useState([]);
   const healthDebounce = useRef(null);
 
+  const healthSummaryText = useMemo(() => {
+    if (healthDetails.length > 0) return healthDetails.join(" · ");
+    if (healthIssues > 0) {
+      return "Tooling gaps detected — click to open Validate mode for a full scan.";
+    }
+    return "";
+  }, [healthDetails, healthIssues]);
+
   // Fetch project health on projectFolder change (debounced 1s)
   useEffect(() => {
     setHealthIssues(0);
     setHealthDetails([]);
     if (!projectFolder) return;
     if (healthDebounce.current) clearTimeout(healthDebounce.current);
+    const abort = new AbortController();
     healthDebounce.current = setTimeout(() => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      apiFetch("/api/project-health", { signal: controller.signal })
+      const hardTimeout = setTimeout(() => abort.abort(), 10000);
+      apiFetch("/api/project-health", { signal: abort.signal })
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
-          if (data) {
-            setHealthIssues(data.issues || 0);
-            setHealthDetails(data.details || []);
-          }
+          if (!data) return;
+          const raw = data.details;
+          const details = Array.isArray(raw)
+            ? raw.filter((x) => typeof x === "string" && x.trim())
+            : [];
+          const n =
+            typeof data.issues === "number" ? data.issues : details.length;
+          setHealthIssues(n);
+          setHealthDetails(details);
         })
         .catch(() => {})
-        .finally(() => clearTimeout(timeout));
+        .finally(() => clearTimeout(hardTimeout));
     }, 1000);
     return () => {
       if (healthDebounce.current) clearTimeout(healthDebounce.current);
+      abort.abort();
     };
   }, [projectFolder]);
 
@@ -176,29 +190,50 @@ export default function Sidebar({
             {!isCollapsed && <span>New Conversation</span>}
           </button>
           {!isCollapsed && healthIssues > 0 && (
-            <button
-              type="button"
-              onClick={() => onHealthClick?.()}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs hover:bg-amber-500/20 transition-colors cursor-pointer"
-              title={healthDetails.join(", ")}
-            >
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">
-                {healthIssues}
-              </span>
-              <span className="truncate">
-                {healthIssues === 1 ? "1 project gap" : `${healthIssues} project gaps`}
-              </span>
-            </button>
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => onHealthClick?.()}
+                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs hover:bg-amber-500/20 transition-colors cursor-pointer text-left"
+                aria-label={healthSummaryText}
+                title={healthSummaryText}
+              >
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">
+                  {healthIssues}
+                </span>
+                <span className="truncate min-w-0">
+                  {healthIssues === 1
+                    ? "1 project gap"
+                    : `${healthIssues} project gaps`}
+                </span>
+              </button>
+              {healthSummaryText ? (
+                <p className="text-[10px] text-amber-200/80 leading-snug px-1 line-clamp-4">
+                  {healthSummaryText}
+                </p>
+              ) : null}
+            </div>
           )}
           {isCollapsed && healthIssues > 0 && (
-            <button
-              type="button"
-              onClick={() => onHealthClick?.()}
-              className="w-10 h-6 flex items-center justify-center rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold cursor-pointer"
-              title={healthDetails.join(", ")}
-            >
-              {healthIssues}
-            </button>
+            <div className="relative w-10 mx-auto group/tooltip">
+              <button
+                type="button"
+                onClick={() => onHealthClick?.()}
+                className="w-10 h-6 flex items-center justify-center rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold cursor-pointer"
+                aria-label={healthSummaryText}
+                title={healthSummaryText}
+              >
+                {healthIssues}
+              </button>
+              {healthSummaryText ? (
+                <div
+                  role="tooltip"
+                  className="absolute left-full top-1/2 z-[60] ml-2 w-max max-w-[min(90vw,14rem)] -translate-y-1/2 rounded-md border border-slate-600/80 bg-slate-800/95 px-2 py-1.5 text-left text-[10px] leading-snug text-slate-200 shadow-lg opacity-0 pointer-events-none transition-opacity delay-100 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100"
+                >
+                  {healthSummaryText}
+                </div>
+              ) : null}
+            </div>
           )}
           {!isCollapsed && (
             <>

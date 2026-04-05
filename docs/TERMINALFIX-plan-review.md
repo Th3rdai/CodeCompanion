@@ -2,7 +2,7 @@
 
 **Skill:** `.cursor/skills/plan-reviewer`  
 **Subject:** `TERMINALFIX.md` (revised after implementation)  
-**Review date:** 2026-04-03  
+**Review date:** 2026-04-03
 
 **Verdict:** **Approved — matches shipped behavior.** Suitable as the record of what was built; no blocking gaps for this scope.
 
@@ -18,12 +18,12 @@
 
 ## 2. Issues log (revised plan vs implementation)
 
-| Severity | Description | Status |
-| -------- | ----------- | ------ |
-| **Major** (pre-fix) | `hasTerminalTool` must require `serverId === "builtin"` | **Resolved** in implementation |
-| **Minor** | Line-number references in plan drift | **Resolved** — revised doc uses file/symbol names only |
-| **Minor** | Option A vs B ambiguity | **Resolved** — Option A (constants + one function) locked |
-| **Minor** | Default for `includeTerminal` | **Resolved** — `options.includeTerminal === true` only; default omits terminal |
+| Severity            | Description                                             | Status                                                                         |
+| ------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Major** (pre-fix) | `hasTerminalTool` must require `serverId === "builtin"` | **Resolved** in implementation                                                 |
+| **Minor**           | Line-number references in plan drift                    | **Resolved** — revised doc uses file/symbol names only                         |
+| **Minor**           | Option A vs B ambiguity                                 | **Resolved** — Option A (constants + one function) locked                      |
+| **Minor**           | Default for `includeTerminal`                           | **Resolved** — `options.includeTerminal === true` only; default omits terminal |
 
 No **critical** findings on the revised plan.
 
@@ -54,10 +54,10 @@ No **critical** findings on the revised plan.
 
 ## 6. Error handling
 
-| Case | Behavior |
-| ---- | -------- |
-| `includeTerminal` omitted / false | No terminal preamble block |
-| `hasTerminalTool` false | No AGENT TERMINAL line |
+| Case                              | Behavior                                           |
+| --------------------------------- | -------------------------------------------------- |
+| `includeTerminal` omitted / false | No terminal preamble block                         |
+| `hasTerminalTool` false           | No AGENT TERMINAL line                             |
 | MCP tool named `run_terminal_cmd` | Ignored for `hasTerminalTool` (requires `builtin`) |
 
 Execution-time denials (allowlist, etc.) unchanged.
@@ -66,10 +66,10 @@ Execution-time denials (allowlist, etc.) unchanged.
 
 ## 7. Testing strategy
 
-| Layer | Focus |
-| ----- | ----- |
+| Layer          | Focus                                                        |
+| -------------- | ------------------------------------------------------------ |
 | Unit (builtin) | Preamble substrings for `includeTerminal` true/false/default |
-| Unit (handler) | `buildToolsPrompt` with terminal enabled/disabled config |
+| Unit (handler) | `buildToolsPrompt` with terminal enabled/disabled config     |
 
 Manual checklist in `TERMINALFIX.md` for bind/Electron scenarios.
 
@@ -77,18 +77,18 @@ Manual checklist in `TERMINALFIX.md` for bind/Electron scenarios.
 
 ## 8. Risks
 
-| Risk | Mitigation |
-| ---- | ---------- |
+| Risk                            | Mitigation                                                       |
+| ------------------------------- | ---------------------------------------------------------------- |
 | Regression to old contradiction | Default omits terminal; single call site passes explicit boolean |
-| Name collision | `serverId === "builtin"` required |
+| Name collision                  | `serverId === "builtin"` required                                |
 
 ---
 
 ## 9. Self-check (plan-reviewer)
 
-1. **Implementer questions:** None remaining for this scope.  
-2. **Beginning / middle / end:** Yes — constants → handler → tests.  
-3. **Edge cases:** Bind/Electron handled by existing `getBuiltinTools()`; preamble tracks advertised tools.  
+1. **Implementer questions:** None remaining for this scope.
+2. **Beginning / middle / end:** Yes — constants → handler → tests.
+3. **Edge cases:** Bind/Electron handled by existing `getBuiltinTools()`; preamble tracks advertised tools.
 4. **Feasible:** Shipped; tests green.
 
 ---

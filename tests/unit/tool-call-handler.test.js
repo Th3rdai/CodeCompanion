@@ -133,17 +133,82 @@ test("buildToolsPrompt includes terminal preamble and AGENT TERMINAL when builti
     const p = h.buildToolsPrompt();
     assert.ok(p.includes("TERMINAL TOOL SAFETY (builtin.run_terminal_cmd)"));
     assert.ok(
-      p.includes(
-        "AGENT TERMINAL: builtin.run_terminal_cmd is available for this session",
-      ),
+      p.includes("AGENT TERMINAL: builtin.run_terminal_cmd executes shell commands"),
+      "expected updated terminal session line",
     );
     assert.ok(p.includes("builtin.run_terminal_cmd:"));
+    // Option B: example + allowlist reminder
+    assert.ok(
+      p.includes('TOOL_CALL: builtin.run_terminal_cmd({"command": "ls"'),
+      "expected example TOOL_CALL in terminal section",
+    );
+    assert.ok(
+      p.includes("Use only commands allowed in Settings → Agent terminal allowlist"),
+      "expected allowlist reminder",
+    );
+    // Option C: affirmative must-use bullet
+    assert.ok(
+      p.includes("You MUST use TOOL_CALL to run commands"),
+      "expected must-use TOOL_CALL bullet in terminal preamble",
+    );
   } finally {
     if (prevHost === undefined) delete process.env.HOST;
     else process.env.HOST = prevHost;
     if (prevAllow === undefined) delete process.env.CC_ALLOW_AGENT_TERMINAL;
     else process.env.CC_ALLOW_AGENT_TERMINAL = prevAllow;
   }
+});
+
+test("getToolsPromptAndFlags returns prompt + flags from single builtinTools pass", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const prevHost = process.env.HOST;
+  process.env.HOST = "127.0.0.1";
+  try {
+    const h = new ToolCallHandler(
+      { getAllTools: () => [] },
+      {
+        getConfig: () => ({
+          projectFolder: "/tmp/cc-test-project",
+          agentTerminal: { enabled: true, allowlist: ["ls"] },
+        }),
+      },
+    );
+    const result = h.getToolsPromptAndFlags();
+    assert.ok(typeof result.prompt === "string", "prompt is a string");
+    assert.strictEqual(result.hasTerminalTool, true, "hasTerminalTool true when terminal enabled");
+    assert.strictEqual(typeof result.hasValidateTool, "boolean", "hasValidateTool is boolean");
+    assert.strictEqual(typeof result.hasPlannerTool, "boolean", "hasPlannerTool is boolean");
+    // buildToolsPrompt() wrapper returns the same prompt
+    assert.strictEqual(h.buildToolsPrompt(), result.prompt, "buildToolsPrompt() matches prompt field");
+  } finally {
+    if (prevHost === undefined) delete process.env.HOST;
+    else process.env.HOST = prevHost;
+  }
+});
+
+test("getToolsPromptAndFlags hasTerminalTool false when terminal disabled", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    { getAllTools: () => [] },
+    { getConfig: () => ({ agentTerminal: { enabled: false } }) },
+  );
+  const { hasTerminalTool, prompt } = h.getToolsPromptAndFlags();
+  assert.strictEqual(hasTerminalTool, false);
+  assert.ok(!prompt.includes("CAPABILITY:"), "no lead-in needed in prompt itself");
+});
+
+test("getToolsPromptAndFlags flags are all false when gated tools disabled (always-on tools still present)", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    { getAllTools: () => [] },
+    { getConfig: () => ({ agentTerminal: { enabled: false }, agentValidate: { enabled: false }, agentPlanner: { enabled: false } }) },
+  );
+  const result = h.getToolsPromptAndFlags();
+  // write_file / generate_office_file / view_pdf_pages are always on — prompt is non-empty
+  assert.ok(result.prompt.length > 0, "prompt non-empty (always-on tools present)");
+  assert.strictEqual(result.hasTerminalTool, false);
+  assert.strictEqual(result.hasValidateTool, false);
+  assert.strictEqual(result.hasPlannerTool, false);
 });
 
 test("buildToolsPrompt omits terminal when bind is exposed without CC_ALLOW_AGENT_TERMINAL (matches getBuiltinTools)", () => {
