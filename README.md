@@ -121,17 +121,17 @@ Full checklist, fork vs canonical repo, and **emergency** local `electron:publis
 
 ### More documentation
 
-| Doc                                                                                                          | Contents                                                                                                              |
-| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| [SECURITY.md](SECURITY.md)                                                                                   | How to report vulnerabilities; security and privacy design                                                            |
-| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)                                               | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc. |
-| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md)                                                   | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing      |
-| [docs/TESTING.md](docs/TESTING.md)                                                                           | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes                                      |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                                                           | “Failed to fetch”, MCP clients / `.cc-config.json` paths, log files, Ollama errors in logs                            |
-| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                              |
-| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                |
-| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                     |
-| [docs/AGENT-APP-CAPABILITIES-ROADMAP.md](docs/AGENT-APP-CAPABILITIES-ROADMAP.md)                               | **Planned (Phases 25–27):** chat agent builtins for Validate + Planner (+ optional GSD); linked from [`.planning/ROADMAP.md`](.planning/ROADMAP.md) |
+| Doc                                                                                                          | Contents                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SECURITY.md](SECURITY.md)                                                                                   | How to report vulnerabilities; security and privacy design                                                                                          |
+| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)                                               | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc.                               |
+| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md)                                                   | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing                                    |
+| [docs/TESTING.md](docs/TESTING.md)                                                                           | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes                                                                    |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                                                           | “Failed to fetch”, MCP clients / `.cc-config.json` paths, log files, Ollama errors in logs                                                          |
+| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                                                            |
+| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                                              |
+| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                                                   |
+| [docs/AGENT-APP-CAPABILITIES-ROADMAP.md](docs/AGENT-APP-CAPABILITIES-ROADMAP.md)                             | **Planned (Phases 25–27):** chat agent builtins for Validate + Planner (+ optional GSD); linked from [`.planning/ROADMAP.md`](.planning/ROADMAP.md) |
 
 ## User Guide
 

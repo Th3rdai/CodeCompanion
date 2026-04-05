@@ -384,32 +384,32 @@ Plans:
 Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 (Phases 1 and 2 have no dependency on each other and could execute in either order)
 
-| Phase                        | Plans Complete | Status   | Completed  |
-| ---------------------------- | -------------- | -------- | ---------- |
-| 1. Review Engine             | 2/2            | Complete | 2026-03-13 |
-| 2. Tone Unification          | 2/2            | Complete | 2026-03-13 |
-| 3. Report Card UI            | 2/2            | Complete | 2026-03-14 |
-| 4. Actionable Guidance       | 2/2            | Complete | 2026-03-14 |
-| 5. Onboarding and Help       | 2/2            | Complete | 2026-03-14 |
-| 6. Desktop App               | 4/4            | Complete | 2026-03-14 |
-| 7. License Gating            | 1/1            | Complete | 2026-03-14 |
-| 8. Payment Integration       | —              | Deferred | —          |
-| 9. License Batch Generation  | —              | Deferred | —          |
-| 10. License Payment Webhook  | —              | Deferred | —          |
-| 11. License Server API       | —              | Deferred | —          |
-| 12. License Key Pool         | —              | Deferred | —          |
-| 13. License Email Delivery   | —              | Deferred | —          |
-| 14. License Revocation       | —              | Deferred | —          |
-| 15. Build Mode (GSD + ICM)   | 1/1            | Complete | 2026-03-14 |
-| 16. Build Dashboard          | 5/5            | Complete | 2026-03-16 |
-| 17. Auto-Update & Installer  | ad-hoc         | Complete | 2026-03-16 |
-| 18. Security Pen Test Mode   | 3/3            | Complete | 2026-03-16 |
-| 19. Security Enhancements    | ad-hoc         | Complete | 2026-03-19 |
-| 20. Validate Mode            | ad-hoc         | Complete | 2026-03-19 |
-| 21. Deployment Hardening     | ad-hoc         | Complete | 2026-03-19 |
-| 22. Stability Fixes          | ad-hoc         | Complete | 2026-03-19 |
-| 23. Save Chat                | ad-hoc         | Complete | 2026-03-19 |
-| 24. IDE Command Distribution | ad-hoc         | Complete | 2026-03-19 |
+| Phase                         | Plans Complete | Status   | Completed  |
+| ----------------------------- | -------------- | -------- | ---------- |
+| 1. Review Engine              | 2/2            | Complete | 2026-03-13 |
+| 2. Tone Unification           | 2/2            | Complete | 2026-03-13 |
+| 3. Report Card UI             | 2/2            | Complete | 2026-03-14 |
+| 4. Actionable Guidance        | 2/2            | Complete | 2026-03-14 |
+| 5. Onboarding and Help        | 2/2            | Complete | 2026-03-14 |
+| 6. Desktop App                | 4/4            | Complete | 2026-03-14 |
+| 7. License Gating             | 1/1            | Complete | 2026-03-14 |
+| 8. Payment Integration        | —              | Deferred | —          |
+| 9. License Batch Generation   | —              | Deferred | —          |
+| 10. License Payment Webhook   | —              | Deferred | —          |
+| 11. License Server API        | —              | Deferred | —          |
+| 12. License Key Pool          | —              | Deferred | —          |
+| 13. License Email Delivery    | —              | Deferred | —          |
+| 14. License Revocation        | —              | Deferred | —          |
+| 15. Build Mode (GSD + ICM)    | 1/1            | Complete | 2026-03-14 |
+| 16. Build Dashboard           | 5/5            | Complete | 2026-03-16 |
+| 17. Auto-Update & Installer   | ad-hoc         | Complete | 2026-03-16 |
+| 18. Security Pen Test Mode    | 3/3            | Complete | 2026-03-16 |
+| 19. Security Enhancements     | ad-hoc         | Complete | 2026-03-19 |
+| 20. Validate Mode             | ad-hoc         | Complete | 2026-03-19 |
+| 21. Deployment Hardening      | ad-hoc         | Complete | 2026-03-19 |
+| 22. Stability Fixes           | ad-hoc         | Complete | 2026-03-19 |
+| 23. Save Chat                 | ad-hoc         | Complete | 2026-03-19 |
+| 24. IDE Command Distribution  | ad-hoc         | Complete | 2026-03-19 |
 | 25. Agent — Validate builtins | TBD            | Planned  | —          |
 | 26. Agent — Planner tools     | TBD            | Planned  | —          |
 | 27. Agent — GSD bridge (opt.) | TBD            | Planned  | —          |

@@ -2221,8 +2221,11 @@ export default function App() {
               </span>
             )}
             {mode === "chat" && (
-              <div className="flex items-center gap-1.5 hidden sm:flex">
-                <label htmlFor="rounds-select" className="text-xs text-slate-500 whitespace-nowrap">
+              <div className="flex items-center gap-1.5">
+                <label
+                  htmlFor="rounds-select"
+                  className="text-xs text-slate-500 whitespace-nowrap"
+                >
                   Rounds
                 </label>
                 <select
@@ -2233,7 +2236,9 @@ export default function App() {
                   title="Max agent tool rounds per message (how many write/run/fix cycles the agent can do)"
                 >
                   {[1, 3, 5, 10, 15, 20, 25].map((n) => (
-                    <option key={n} value={n}>{n}</option>
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
                   ))}
                 </select>
               </div>

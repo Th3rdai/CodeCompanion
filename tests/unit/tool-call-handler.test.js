@@ -100,7 +100,10 @@ test("buildToolsPrompt includes agent identity override forbidding teacher-defle
     p.includes("you are the one holding the keyboard"),
     "expected keyboard deflection phrase listed",
   );
-  assert.ok(p.includes("Those statements are FALSE"), "expected FALSE assertion");
+  assert.ok(
+    p.includes("Those statements are FALSE"),
+    "expected FALSE assertion",
+  );
 });
 
 test("buildToolsPrompt omits terminal preamble and AGENT TERMINAL when terminal tool not advertised", () => {
@@ -133,7 +136,9 @@ test("buildToolsPrompt includes terminal preamble and AGENT TERMINAL when builti
     const p = h.buildToolsPrompt();
     assert.ok(p.includes("TERMINAL TOOL SAFETY (builtin.run_terminal_cmd)"));
     assert.ok(
-      p.includes("AGENT TERMINAL: builtin.run_terminal_cmd executes shell commands"),
+      p.includes(
+        "AGENT TERMINAL: builtin.run_terminal_cmd executes shell commands",
+      ),
       "expected updated terminal session line",
     );
     assert.ok(p.includes("builtin.run_terminal_cmd:"));
@@ -143,7 +148,9 @@ test("buildToolsPrompt includes terminal preamble and AGENT TERMINAL when builti
       "expected example TOOL_CALL in terminal section",
     );
     assert.ok(
-      p.includes("Use only commands allowed in Settings → Agent terminal allowlist"),
+      p.includes(
+        "Use only commands allowed in Settings → Agent terminal allowlist",
+      ),
       "expected allowlist reminder",
     );
     // Option C: affirmative must-use bullet
@@ -175,11 +182,27 @@ test("getToolsPromptAndFlags returns prompt + flags from single builtinTools pas
     );
     const result = h.getToolsPromptAndFlags();
     assert.ok(typeof result.prompt === "string", "prompt is a string");
-    assert.strictEqual(result.hasTerminalTool, true, "hasTerminalTool true when terminal enabled");
-    assert.strictEqual(typeof result.hasValidateTool, "boolean", "hasValidateTool is boolean");
-    assert.strictEqual(typeof result.hasPlannerTool, "boolean", "hasPlannerTool is boolean");
+    assert.strictEqual(
+      result.hasTerminalTool,
+      true,
+      "hasTerminalTool true when terminal enabled",
+    );
+    assert.strictEqual(
+      typeof result.hasValidateTool,
+      "boolean",
+      "hasValidateTool is boolean",
+    );
+    assert.strictEqual(
+      typeof result.hasPlannerTool,
+      "boolean",
+      "hasPlannerTool is boolean",
+    );
     // buildToolsPrompt() wrapper returns the same prompt
-    assert.strictEqual(h.buildToolsPrompt(), result.prompt, "buildToolsPrompt() matches prompt field");
+    assert.strictEqual(
+      h.buildToolsPrompt(),
+      result.prompt,
+      "buildToolsPrompt() matches prompt field",
+    );
   } finally {
     if (prevHost === undefined) delete process.env.HOST;
     else process.env.HOST = prevHost;
@@ -194,18 +217,30 @@ test("getToolsPromptAndFlags hasTerminalTool false when terminal disabled", () =
   );
   const { hasTerminalTool, prompt } = h.getToolsPromptAndFlags();
   assert.strictEqual(hasTerminalTool, false);
-  assert.ok(!prompt.includes("CAPABILITY:"), "no lead-in needed in prompt itself");
+  assert.ok(
+    !prompt.includes("CAPABILITY:"),
+    "no lead-in needed in prompt itself",
+  );
 });
 
 test("getToolsPromptAndFlags flags are all false when gated tools disabled (always-on tools still present)", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler(
     { getAllTools: () => [] },
-    { getConfig: () => ({ agentTerminal: { enabled: false }, agentValidate: { enabled: false }, agentPlanner: { enabled: false } }) },
+    {
+      getConfig: () => ({
+        agentTerminal: { enabled: false },
+        agentValidate: { enabled: false },
+        agentPlanner: { enabled: false },
+      }),
+    },
   );
   const result = h.getToolsPromptAndFlags();
   // write_file / generate_office_file / view_pdf_pages are always on — prompt is non-empty
-  assert.ok(result.prompt.length > 0, "prompt non-empty (always-on tools present)");
+  assert.ok(
+    result.prompt.length > 0,
+    "prompt non-empty (always-on tools present)",
+  );
   assert.strictEqual(result.hasTerminalTool, false);
   assert.strictEqual(result.hasValidateTool, false);
   assert.strictEqual(result.hasPlannerTool, false);
