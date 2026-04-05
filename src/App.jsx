@@ -9,6 +9,7 @@ import RenameModal from "./components/RenameModal";
 import SettingsPanel from "./components/SettingsPanel";
 import FileBrowser from "./components/FileBrowser";
 import GitHubPanel from "./components/GitHubPanel";
+import TerminalPanel from "./components/TerminalPanel";
 import Sidebar from "./components/Sidebar";
 import Splite from "./components/ui/Splite";
 import SplashScreen from "./components/3d/SplashScreen";
@@ -190,6 +191,13 @@ const MODES = [
     icon: "🏗️",
     desc: "Start a GSD+ICM project to build apps and tools",
     placeholder: "Scaffold a project with planning and stages...",
+  },
+  {
+    id: "terminal",
+    label: "Terminal",
+    icon: "⌨️",
+    desc: "Interactive shell in your project folder",
+    placeholder: "",
   },
 ];
 
@@ -2288,7 +2296,7 @@ export default function App() {
           {/* Main chat area */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Mode Tabs */}
-            <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative overflow-hidden">
+            <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative">
               <FloatingGeometry shapeCount={5} />
               {MODES.map((m) => (
                 <button
@@ -2355,6 +2363,8 @@ export default function App() {
                 onToast={showToast}
                 models={models}
               />
+            ) : mode === "terminal" ? (
+              <TerminalPanel />
             ) : BUILDER_MODES.includes(mode) ? (
               mode === "prompting" ? (
                 <PromptingPanel
@@ -2626,11 +2636,12 @@ export default function App() {
               </div>
             )}
 
-            {/* Input — hidden in Create and Review modes */}
+            {/* Input — hidden in Create, Review, and Terminal modes */}
             {mode !== "create" &&
               mode !== "build" &&
               mode !== "review" &&
               mode !== "pentest" &&
+              mode !== "terminal" &&
               !BUILDER_MODES.includes(mode) && (
                 <div
                   className={`glass-heavy border-t border-slate-700/30 p-4 ${dragging ? "drop-zone-active" : ""}`}

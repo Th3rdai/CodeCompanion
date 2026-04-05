@@ -33,6 +33,10 @@ __pycache__/
 # Backups
 *.backup
 
+# validate-project smoke (`.cursor/commands/validate-project.md` Phase 6)
+cc-validate-smoke.txt
+cc-validate-smoke.txt.bak
+
 # Archives
 !ARCHIVES/
 

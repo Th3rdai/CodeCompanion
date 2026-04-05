@@ -13,6 +13,26 @@ const fs = require("fs");
 // Repo-root .env — loaded before fork(server) so secrets apply to MCP, Ollama, Docling, etc.
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const net = require("net");
+const os = require("os");
+
+// Detect whether the Express server will use HTTPS (same cert logic as server.js).
+// Used by all mainWindow.loadURL() calls so Electron connects on the right protocol.
+const _certPath = path.join(__dirname, "..", "cert", "server.crt");
+const _keyPath = path.join(__dirname, "..", "cert", "server.key");
+const serverProto =
+  process.env.FORCE_HTTP !== "1" &&
+  fs.existsSync(_certPath) &&
+  fs.existsSync(_keyPath)
+    ? "https"
+    : "http";
+
+// node-pty is lazy-loaded inside the terminal-start IPC handler to avoid
+// native module conflicts during Electron module init
+let ptyLib = null;
+function getPty() {
+  if (!ptyLib) ptyLib = require("node-pty");
+  return ptyLib;
+}
 
 // Create emergency log file for debugging startup issues
 // Defer app.getPath() — not safe before app 'ready' in Electron 41+
@@ -170,6 +190,7 @@ try {
 let mainWindow = null;
 let serverProcess = null;
 let actualPort = null;
+const terminalSessions = new Map(); // windowId → { pty, cols, rows }
 let dataDir = null;
 let logDir = null;
 
@@ -414,7 +435,7 @@ async function respawnServer() {
 
     // Navigate to the new server
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.loadURL(`http://localhost:${port}`);
+      mainWindow.loadURL(`${serverProto}://localhost:${port}`);
 
       if (wasFallback) {
         mainWindow.webContents.send("port-fallback", {
@@ -536,7 +557,7 @@ async function startApp() {
       createMenu({
         reloadAppHome: () => {
           if (mainWindow && !mainWindow.isDestroyed() && actualPort != null) {
-            mainWindow.loadURL(`http://localhost:${actualPort}`);
+            mainWindow.loadURL(`${serverProto}://localhost:${actualPort}`);
           }
         },
       }),
@@ -550,7 +571,7 @@ async function startApp() {
       emergencyLog("Server spawned successfully");
 
       // Navigate to the app once server is ready
-      mainWindow.loadURL(`http://localhost:${actualPort}`);
+      mainWindow.loadURL(`${serverProto}://localhost:${actualPort}`);
 
       // If port was a fallback, notify renderer
       if (wasFallback) {
@@ -592,9 +613,16 @@ async function startApp() {
       return;
     }
 
-    // Save window state on close
+    // Save window state on close; kill any open PTY session
     mainWindow.on("close", () => {
       saveWindowState(mainWindow, dataDir);
+      const s = terminalSessions.get(mainWindow.id);
+      if (s) {
+        try {
+          s.pty.kill();
+        } catch {}
+        terminalSessions.delete(mainWindow.id);
+      }
     });
 
     // Open target=_blank / window.open in the system browser (new Electron window denied)
@@ -647,6 +675,25 @@ async function startApp() {
     );
     app.quit();
   }
+}
+
+// Accept self-signed cert from localhost when server runs HTTPS.
+// Only fires for our own server — external https URLs open in system browser.
+if (serverProto === "https") {
+  app.on(
+    "certificate-error",
+    (event, webContents, url, error, cert, callback) => {
+      try {
+        const u = new URL(url);
+        if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+          event.preventDefault();
+          callback(true);
+          return;
+        }
+      } catch {}
+      callback(false);
+    },
+  );
 }
 
 // App lifecycle
@@ -857,3 +904,88 @@ ipcMain.handle(
     }
   },
 );
+
+// ── Terminal IPC Handlers ─────────────────────────────────────────────────────
+
+ipcMain.handle("terminal-start", async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+
+  // Resolve cwd from config (never from renderer — security boundary)
+  const configPath = path.join(dataDir, ".cc-config.json");
+  let cwd = os.homedir();
+  try {
+    const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    if (cfg.projectFolder && fs.existsSync(cfg.projectFolder)) {
+      cwd = cfg.projectFolder;
+    }
+  } catch {}
+
+  // Kill any existing session for this window before spawning a new one
+  const existing = terminalSessions.get(win.id);
+  if (existing) {
+    try {
+      existing.pty.kill();
+    } catch {}
+    terminalSessions.delete(win.id);
+  }
+
+  const shell =
+    process.env.SHELL ||
+    (process.platform === "win32" ? "cmd.exe" : "/bin/bash");
+  const cols = 80;
+  const rows = 24;
+
+  const instance = getPty().spawn(shell, [], {
+    name: "xterm-256color",
+    cols,
+    rows,
+    cwd,
+    env: { ...process.env, TERM: "xterm-256color" },
+  });
+
+  instance.onData((data) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send(
+        "terminal-data",
+        Buffer.from(data).toString("base64"),
+      );
+    }
+  });
+
+  instance.onExit(() => {
+    terminalSessions.delete(win.id);
+    if (!win.isDestroyed()) {
+      win.webContents.send("terminal-exit");
+    }
+  });
+
+  terminalSessions.set(win.id, { pty: instance, cols, rows });
+});
+
+ipcMain.handle("terminal-write", (event, data) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const s = win && terminalSessions.get(win.id);
+  if (s) s.pty.write(data);
+});
+
+ipcMain.handle("terminal-resize", (event, cols, rows) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const s = win && terminalSessions.get(win.id);
+  if (s) {
+    s.pty.resize(cols, rows);
+    s.cols = cols;
+    s.rows = rows;
+  }
+});
+
+ipcMain.handle("terminal-kill", (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const s = win && terminalSessions.get(win.id);
+  if (s) {
+    try {
+      s.pty.kill();
+    } catch {}
+    terminalSessions.delete(win.id);
+  }
+});

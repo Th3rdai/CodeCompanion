@@ -21,13 +21,14 @@ You are a full-stack developer building **Code Companion**, a web application th
 | mcp-server.js                          | MCP stdio entry point                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | lib/                                   | Backend modules (config, ollama-client, prompts, review, **auto-model** (per-mode defaults when toolbar uses **Auto**), builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, tool-call-handler, **security-helpers** (localhost/API-key gate, CORS options, path allowlists), **client-errors** (generic 5xx/SSE messages), **builtin-agent-tools**, docling-client, **docling-starter**, **builtin-doc-converter**, **office-generator** (chat/office export), **spawn-path**) |
 | mcp/                                   | MCP tool registrations and Zod schemas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| src/App.jsx                            | Main React app with 16 modes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| src/components/                        | 30+ React components (ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, **ExportPanel**, MermaidBlock, etc.)                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| src/App.jsx                            | Main React app with 17 modes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| src/components/                        | 30+ React components (ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, **ExportPanel**, MermaidBlock, **TerminalPanel**, etc.)                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | src/components/builders/               | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | src/components/3d/                     | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | .planning/                             | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | tests/                                 | Unit tests (node:test in tests/unit/, tests/\*.test.js), API integration (`tests/integration/`, **`npm run test:integration`**), Playwright (tests/ui/, tests/e2e/) — see **docs/TESTING.md**                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | dist/                                  | Production build output                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| docs/TERMINALFEATURE.md                | **Integrated Terminal mode** — living spec: Electron IPC architecture, security model (CWD locked to config), Agent terminal comparison, testing checklist                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | CLIPLAN.md                             | **Agent terminal** — living spec for builtin `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`); implementation in `lib/builtin-agent-tools.js` + Settings                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | src/lib/clipboard.js                   | Copy/paste helpers —`navigator.clipboard` + **execCommand** fallback for self-signed HTTPS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | src/lib/api-fetch.js                   | **`apiFetch`** — adds **`X-CC-API-Key`** when **`VITE_CC_API_KEY`** is set (must match server **`CC_API_SECRET`**); used for `/api` calls from the SPA when not on loopback                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -41,9 +42,13 @@ You are a full-stack developer building **Code Companion**, a web application th
 | design-system/README.md                | Index of design docs (canonical**`.md`**; PDFs are optional exports)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | design-system/DESIGN-STANDARDS.md      | UI layout, colors, glass system, content width rails (shell = full viewport; inner `max-w-*` for readability)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
-## Sixteen Modes
+## Seventeen Modes
 
-Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Review, Create, Prompting, Skillz, Agentic, Build
+Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Review, Create, Prompting, Skillz, Agentic, Build, Terminal
+
+### Terminal Mode (Electron-only)
+
+Interactive PTY shell (`node-pty`) spawned in `electron/main.js`, communicated to the renderer via IPC, rendered by `xterm.js` (`@xterm/xterm` + `@xterm/addon-fit`) in `src/components/TerminalPanel.jsx`. CWD is read from `.cc-config.json` project folder in the main process — never from the renderer. One PTY per window; killed on window close. Browser users see a "desktop app only" empty state. Chat input/toolbar are hidden in this mode. See `docs/TERMINALFEATURE.md`.
 
 ### Save Chat
 
@@ -131,9 +136,10 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab confi
 - Keep the UI focused on vibe-coder workflows
 
 <!-- gitnexus:start -->
+
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (2951 symbols, 5913 relationships, 176 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (2949 symbols, 5913 relationships, 176 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -167,35 +173,36 @@ This project is indexed by GitNexus as **CodeCompanion** (2951 symbols, 5913 rel
 
 ## Tools Quick Reference
 
-| Tool | When to use | Command |
-|------|-------------|---------|
-| `query` | Find code by concept | `gitnexus_query({query: "auth validation"})` |
-| `context` | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})` |
-| `impact` | Blast radius before editing | `gitnexus_impact({target: "X", direction: "upstream"})` |
-| `detect_changes` | Pre-commit scope check | `gitnexus_detect_changes({scope: "staged"})` |
-| `rename` | Safe multi-file rename | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
-| `cypher` | Custom graph queries | `gitnexus_cypher({query: "MATCH ..."})` |
+| Tool             | When to use                   | Command                                                                 |
+| ---------------- | ----------------------------- | ----------------------------------------------------------------------- |
+| `query`          | Find code by concept          | `gitnexus_query({query: "auth validation"})`                            |
+| `context`        | 360-degree view of one symbol | `gitnexus_context({name: "validateUser"})`                              |
+| `impact`         | Blast radius before editing   | `gitnexus_impact({target: "X", direction: "upstream"})`                 |
+| `detect_changes` | Pre-commit scope check        | `gitnexus_detect_changes({scope: "staged"})`                            |
+| `rename`         | Safe multi-file rename        | `gitnexus_rename({symbol_name: "old", new_name: "new", dry_run: true})` |
+| `cypher`         | Custom graph queries          | `gitnexus_cypher({query: "MATCH ..."})`                                 |
 
 ## Impact Risk Levels
 
-| Depth | Meaning | Action |
-|-------|---------|--------|
-| d=1 | WILL BREAK — direct callers/importers | MUST update these |
-| d=2 | LIKELY AFFECTED — indirect deps | Should test |
-| d=3 | MAY NEED TESTING — transitive | Test if critical path |
+| Depth | Meaning                               | Action                |
+| ----- | ------------------------------------- | --------------------- |
+| d=1   | WILL BREAK — direct callers/importers | MUST update these     |
+| d=2   | LIKELY AFFECTED — indirect deps       | Should test           |
+| d=3   | MAY NEED TESTING — transitive         | Test if critical path |
 
 ## Resources
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/CodeCompanion/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/CodeCompanion/clusters` | All functional areas |
-| `gitnexus://repo/CodeCompanion/processes` | All execution flows |
-| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace |
+| Resource                                       | Use for                                  |
+| ---------------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/CodeCompanion/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/CodeCompanion/clusters`       | All functional areas                     |
+| `gitnexus://repo/CodeCompanion/processes`      | All execution flows                      |
+| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace             |
 
 ## Self-Check Before Finishing
 
 Before completing any code modification task, verify:
+
 1. `gitnexus_impact` was run for all modified symbols
 2. No HIGH/CRITICAL risk warnings were ignored
 3. `gitnexus_detect_changes()` confirms changes match expected scope
@@ -221,13 +228,13 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->

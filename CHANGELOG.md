@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.26] — 2026-04-04
+
+### Added
+
+- **Integrated Terminal mode** — New **Terminal** mode in the sidebar spawns a full interactive PTY shell (`node-pty`) inside the Electron app via IPC. Renders with `xterm.js` (`@xterm/xterm` + `@xterm/addon-fit`). Shell CWD is read from `.cc-config.json` project folder in `electron/main.js` (never from renderer). One PTY per window; killed on window close. Browser users see a "desktop app only" empty state. See [`docs/TERMINALFEATURE.md`](docs/TERMINALFEATURE.md).
+- **`docs/TERMINALFEATURE.md`** — Living spec: architecture diagram, security model, Agent terminal comparison table, testing checklist.
+
+### Fixed
+
+- **Electron `loadURL` HTTPS protocol** — All `mainWindow.loadURL()` calls now detect whether the Express server uses HTTPS (same cert-file check as `server.js`) and use the correct protocol. Previously, using `http://` against an HTTPS server caused `ERR_EMPTY_RESPONSE` / blank window.
+- **Self-signed cert acceptance** — Added `certificate-error` handler in `electron/main.js` to accept the self-signed localhost cert without a browser warning page.
+- **xterm.js UTF-8 encoding** — PTY output (base64-decoded binary string) is now converted to `Uint8Array` before `term.write()` so multi-byte UTF-8 sequences (box-drawing characters, emoji, CJK) render correctly instead of as garbled Latin-1.
+- **Mode tabs second row clipped** — Removed `overflow-hidden` from the mode tabs bar; `FloatingGeometry` is already `position: absolute` and self-contained so the clip wasn't needed. Second row of mode buttons now fully visible.
+- **Terminal mode layout** — Changed `TerminalPanel` outer container from `h-full` to `flex-1 min-h-0` so it participates correctly in the flex column layout without pushing the mode tabs off-screen.
+- **Chat input hidden in Terminal mode** — The chat textarea and toolbar are now hidden when Terminal mode is active (consistent with Create, Build, Review).
+
+---
+
 ## [1.5.19] — 2026-03-30
 
 ### Added

@@ -5,7 +5,7 @@ milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
 last_updated: "2026-04-04T18:00:00.000Z"
-last_activity: 2026-04-04 — **Phases 25–26 delivered**: `validate_scan_project`, `validate_generate_command`, `score_plan` builtins; agent identity override; configurable max rounds toolbar picker (1–25, default 10). **172 unit tests passing.**
+last_activity: 2026-04-04 — **Integrated Terminal mode delivered**: interactive PTY shell via `node-pty` + `xterm.js`; Electron IPC architecture; HTTPS `loadURL` fix; UTF-8 xterm encoding fix; mode tabs clip fix. Prior: **Phases 25–26**: `validate_scan_project`, `validate_generate_command`, `score_plan` builtins; agent identity override; configurable max rounds. **172 unit tests passing.**
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit — **172** tests, **`npm run test:integration`** for API+images).
-Last activity: 2026-04-04 — **Phases 25–26 complete**: `validate_scan_project`, `validate_generate_command` (agent validate builtins); `score_plan` (agent planner scoring); AGENT IDENTITY OVERRIDE block; configurable max rounds toolbar picker. Prior: 2026-04-03/04 — Memory scoping; TERMINALFIX; roadmap Phases 25–27 promoted. Next: pre-release checklist; Phase 27 (GSD builtins from chat).
+Last activity: 2026-04-04 — **Integrated Terminal mode**: interactive PTY (`node-pty` + `xterm.js`), Electron IPC, HTTPS loadURL fix, UTF-8 encoding fix, mode tabs clip fix, chat input hidden in terminal mode. Prior: **Phases 25–26**: agent validate/planner builtins, configurable max rounds. Next: pre-release checklist; Phase 27 (GSD builtins from chat).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

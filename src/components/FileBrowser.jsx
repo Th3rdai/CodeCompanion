@@ -862,7 +862,8 @@ export default function FileBrowser({
                 No supported files found in this folder.
               </p>
               <p className="text-xs text-slate-500">
-                The folder may be empty, or contain only images/binaries. Supported: .js .ts .py .md .json .html .css and more.
+                The folder may be empty, or contain only images/binaries.
+                Supported: .js .ts .py .md .json .html .css and more.
               </p>
               <p className="text-xs text-indigo-400 mt-1">
                 Try a different folder or check Settings → Project folder.

@@ -71,6 +71,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Docling (managed document conversion service)
   getDoclingStatus: () => ipcRenderer.invoke("get-docling-status"),
 
+  // Integrated terminal (Electron-only; browser shows empty state)
+  terminal: {
+    start: () => ipcRenderer.invoke("terminal-start"),
+    write: (data) => ipcRenderer.invoke("terminal-write", data),
+    resize: (cols, rows) => ipcRenderer.invoke("terminal-resize", cols, rows),
+    kill: () => ipcRenderer.invoke("terminal-kill"),
+    onData: (cb) => ipcRenderer.on("terminal-data", (_, b64) => cb(atob(b64))),
+    offData: () => ipcRenderer.removeAllListeners("terminal-data"),
+    onExit: (cb) => ipcRenderer.once("terminal-exit", cb),
+  },
+
   // Ollama setup
   checkOllama: (ollamaUrl, ollamaApiKey) =>
     ipcRenderer.invoke("check-ollama", {
