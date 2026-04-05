@@ -175,7 +175,7 @@ module.exports = {
   },
   publish: {
     provider: "github",
-    owner: "3rdAI-admin",
+    owner: "Th3rdai",
     repo: "CodeCompanion",
     /** Explicit: never skip writing latest-*.yml to release/ (electron-builder default is true). */
     publishAutoUpdate: true,

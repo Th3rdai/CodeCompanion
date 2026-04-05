@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.27] — 2026-04-05
+
+### Fixed
+
+- **Auto-updater**: `electron-builder.config.js` publish `owner` corrected from `3rdAI-admin` to `Th3rdai` — installed apps were checking the private mirror repo and receiving 404 on `releases.atom`. In-app **Check for updates** now resolves correctly.
+
+---
+
 ## [1.5.26] — 2026-04-04
 
 ### Added
