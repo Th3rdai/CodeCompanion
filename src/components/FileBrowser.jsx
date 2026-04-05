@@ -271,6 +271,7 @@ export default function FileBrowser({
     const target = folder || projectFolder;
     if (!target) return;
     setLoading(true);
+    setTree(null);
     setFolderError(null);
     try {
       const res = await apiFetch(
@@ -856,9 +857,17 @@ export default function FileBrowser({
             ))}
           </div>
           {tree.tree?.length === 0 && (
-            <p className="text-sm text-slate-400 text-center py-4">
-              Hmm, no text files here. Try pointing to a different folder!
-            </p>
+            <div className="text-center py-6 px-4 space-y-2">
+              <p className="text-sm text-slate-400">
+                No supported files found in this folder.
+              </p>
+              <p className="text-xs text-slate-500">
+                The folder may be empty, or contain only images/binaries. Supported: .js .ts .py .md .json .html .css and more.
+              </p>
+              <p className="text-xs text-indigo-400 mt-1">
+                Try a different folder or check Settings → Project folder.
+              </p>
+            </div>
           )}
         </div>
       )}
