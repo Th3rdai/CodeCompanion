@@ -76,7 +76,6 @@ const {
   saveProjectFile,
   isWithinBasePath,
   isTextFile,
-  TEXT_EXTENSIONS,
   IGNORE_DIRS,
   readFolderFiles,
   isConvertibleDocument,
@@ -1111,7 +1110,14 @@ app.post(
 // ── POST /api/chat (SSE streaming + tool-call loop) ────
 
 app.post("/api/chat", async (req, res) => {
-  const { model: reqModel, messages, mode, images, conversationId, agentMaxRounds } = req.body;
+  const {
+    model: reqModel,
+    messages,
+    mode,
+    images,
+    conversationId,
+    agentMaxRounds,
+  } = req.body;
 
   if (!reqModel || !messages || !mode) {
     log("ERROR", "Chat request missing fields", {
@@ -1401,7 +1407,10 @@ app.post("/api/chat", async (req, res) => {
     // Use chatComplete for rounds that may contain tool calls, then stream the final response.
     if (hasAgentTools) {
       let loopMessages = [...fullMessages];
-      const MAX_ROUNDS = Math.min(Math.max(parseInt(agentMaxRounds) || 10, 1), 25);
+      const MAX_ROUNDS = Math.min(
+        Math.max(parseInt(agentMaxRounds) || 10, 1),
+        25,
+      );
       let finalText = "";
       const toolContextForHistory = []; // text-only tool rounds — emitted to client for history persistence
 
