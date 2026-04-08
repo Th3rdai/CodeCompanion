@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] — 2026-04-08
+
+### Added
+
+- **Phase 24.5 Tech Health** — Major structural refactor improving long-term maintainability:
+  - **Hook extraction** (`src/hooks/`): `useModels.js`, `useChat.js`, `useImageAttachments.js` extracted from `App.jsx`; App.jsx reduced from 2,954 → 1,873 lines.
+  - **Route decomposition**: 15 Express router factory modules created under `routes/`; `server.js` reduced from 5,169 → 507 lines. Router factory pattern: each module exports `createRouter(appContext)`.
+  - **ESLint baseline**: `eslint.config.mjs` established at 0 errors / 148 warnings; test consolidation under `tests/unit/`.
+- **Streaming terminal SSE** — Agent `run_terminal_cmd` now streams live output during execution. New SSE events: `terminalCmd` (command start), `terminalOutput` (live chunks), `terminalStatus` (exit/timeout). The in-chat terminal indicator shows real-time output with status icons (running/done/error/timeout).
+- **Confirm-before-run modal** (`ConfirmRunModal.jsx`) — When `agentTerminal.confirmBeforeRun` is enabled in Settings, the AI agent pauses before executing each command and presents an Allow/Deny modal. Unacknowledged confirmations auto-deny after 60 seconds. New `POST /api/chat/confirm` endpoint handles responses.
+- **Agent terminal audit logging** (`lib/terminal-audit.js`) — Append-only JSON-lines log at `${CC_DATA_DIR}/logs/terminal-audit.log`. Records every command invocation (denied/spawn-error/executed) with timestamp, command, args, cwd, exit code, duration, and truncation status.
+- **Draggable modals** — `ImagePrivacyWarning`, `JargonGlossary`, `OllamaSetup`, and `RenameModal` all support pointer-drag repositioning with viewport clamping.
+- **Mac codesign identity normalizer** (`lib/mac-codesign-identity.js`) — Strips the `"Developer ID Application:"` prefix from `MAC_CODESIGN_IDENTITY` so both bare Team ID and full certificate name forms work with `electron-builder`.
+
+### Fixed
+
+- **Stale-asset caching** — `sendSpaIndexHtml` now sends `Cache-Control: no-cache, no-store, must-revalidate`; SPA fallback returns 404 (not `index.html`) for paths with file extensions or under `/assets/`. Eliminates blank-page on first load after upgrade.
+- **`routes/convert.js` mounting** — Route module was created but never mounted; orphaned inline handler removed from `server.js`.
+- **Atomic history writes** — `lib/history.js` now uses a tmp-file + rename pattern to prevent partial writes on crash.
+
+### Tests
+
+- 184 unit tests pass (added: `terminal-audit.test.js`, `mac-codesign-identity.test.js`).
+- 3 new Playwright E2E scenarios: agent terminal enable/disable, allowlist deny, happy-path execution.
+
+---
+
 ## [1.5.27] — 2026-04-05
 
 ### Fixed
