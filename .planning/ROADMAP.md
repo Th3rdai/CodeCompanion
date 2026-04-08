@@ -37,6 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 22: Stability Fixes** - TokenCounter crash fix (blank page prevention), SSE streaming flash fix (debounced updates), increased backend model timeout to 300s, Mermaid diagram rendering without language tag (completed 2026-03-19)
 - [x] **Phase 23: Save Chat** - Download entire conversation as markdown file with auto-generated 1-2 word topic filename, available in all modes via toolbar button (completed 2026-03-19)
 - [x] **Phase 24: IDE Command Distribution** - Create and Build scaffolders auto-copy IDE command files from IDE_COMMANDS/ into every new project across all 5 IDE paths (.claude/commands/, .cursor/commands/, .cursor/prompts/, .github/prompts/, .opencode/commands/) (completed 2026-03-19)
+- [ ] **Phase 24.5: Tech Health** — ESLint + Prettier baseline, duplicate test tree consolidation, `lib/history.js` atomic write hardening, `src/App.jsx` hook extraction (`useChat`, `useModels`), `server.js` route decomposition into `routes/`. Zero behavioral changes. **Detail:** [`.planning/phases/24.5-tech-health/24.5-CONTEXT.md`](.planning/phases/24.5-tech-health/24.5-CONTEXT.md) (Plans 01–03).
 - [ ] **Phase 25: Agent — Validate builtins** — Builtin tools so chat can run the same project scan + `validate.md` generation as Validate mode (`lib/validate.js`, `/api/validate/*`); optional save under project folder; optional Settings gate. **Detail:** [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md) (AAP-01–AAP-05).
 - [ ] **Phase 26: Agent — Planner tools** — Builtin(s) so chat can score planner-shaped content via the same `/api/score` path as Planner mode (`PlannerPanel`). **Detail:** same doc (AAP-06–AAP-10).
 - [ ] **Phase 27 (optional): Agent — GSD bridge builtins** — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for safe planning queries from chat. **Detail:** same doc (AAP-11–AAP-14).
@@ -410,6 +411,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 22. Stability Fixes           | ad-hoc         | Complete | 2026-03-19 |
 | 23. Save Chat                 | ad-hoc         | Complete | 2026-03-19 |
 | 24. IDE Command Distribution  | ad-hoc         | Complete | 2026-03-19 |
+| 24.5. Tech Health             | 3 plans        | Planned  | —          |
 | 25. Agent — Validate builtins | TBD            | Planned  | —          |
 | 26. Agent — Planner tools     | TBD            | Planned  | —          |
 | 27. Agent — GSD bridge (opt.) | TBD            | Planned  | —          |
