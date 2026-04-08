@@ -21,6 +21,7 @@ export function useImageAttachments({
   const [convertingDoc, setConvertingDoc] = useState(null);
   const processingQueue = useRef([]);
   const activeProcessing = useRef(new Set());
+  const nextProcessingId = useRef(1);
   const MAX_CONCURRENT_PROCESSING = 3;
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
@@ -38,7 +39,8 @@ export function useImageAttachments({
 
   async function queueImageProcessing(file, config) {
     return new Promise((resolve, reject) => {
-      processingQueue.current.push({ file, config, resolve, reject });
+      const processingId = nextProcessingId.current++;
+      processingQueue.current.push({ processingId, file, config, resolve, reject });
       processNextInQueue();
     });
   }
@@ -47,8 +49,9 @@ export function useImageAttachments({
     if (activeProcessing.current.size >= MAX_CONCURRENT_PROCESSING) return;
     if (processingQueue.current.length === 0) return;
 
-    const { file, config, resolve, reject } = processingQueue.current.shift();
-    activeProcessing.current.add(file.name);
+    const { processingId, file, config, resolve, reject } =
+      processingQueue.current.shift();
+    activeProcessing.current.add(processingId);
     setProcessingImages((prev) => prev + 1);
 
     try {
@@ -57,7 +60,7 @@ export function useImageAttachments({
     } catch (err) {
       reject(err);
     } finally {
-      activeProcessing.current.delete(file.name);
+      activeProcessing.current.delete(processingId);
       setProcessingImages((prev) => prev - 1);
       processNextInQueue();
     }
