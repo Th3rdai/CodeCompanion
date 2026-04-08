@@ -100,7 +100,7 @@ module.exports = function createRouter(appContext) {
       );
 
       if (!ollamaRes.ok) {
-        const errText = await ollamaRes.text();
+        const _errText = await ollamaRes.text();
         sendEvent({
           error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
         });

@@ -13,7 +13,7 @@ const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
-  const { log, dataRoot } = appContext;
+  const { log, dataRoot: _dataRoot } = appContext;
 
   function ollamaAuthOpts(cfg) {
     const k = effectiveOllamaApiKey(cfg);

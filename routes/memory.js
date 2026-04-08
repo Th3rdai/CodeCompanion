@@ -4,7 +4,6 @@ const { getConfig } = require("../lib/config");
 const {
   addMemory,
   getMemories,
-  getMemory,
   updateMemory,
   deleteMemory,
   searchMemories,
@@ -79,7 +78,7 @@ module.exports = function createRouter(appContext) {
         ollamaAuthOpts(config),
       );
       const results = searchMemories(queryEmbedding, 10, 0.3);
-      const cleaned = results.map(({ embedding, ...rest }) => rest);
+      const cleaned = results.map(({ embedding: _embedding, ...rest }) => rest);
       res.json(cleaned);
     } catch (err) {
       log("ERROR", "Memory search failed", { error: err.message });
@@ -99,7 +98,7 @@ module.exports = function createRouter(appContext) {
       const start = (page - 1) * limit;
       memories = memories.slice(start, start + limit);
 
-      const cleaned = memories.map(({ embedding, ...rest }) => rest);
+      const cleaned = memories.map(({ embedding: _embedding, ...rest }) => rest);
       res.json({ memories: cleaned, total, page, limit });
     } catch (err) {
       log("ERROR", "Failed to list memories", { error: err.message });
@@ -147,7 +146,7 @@ module.exports = function createRouter(appContext) {
         confidence: typeof confidence === "number" ? confidence : 0.5,
       });
 
-      const { embedding, ...cleaned } = memory;
+      const { embedding: _embedding, ...cleaned } = memory;
       res.json(cleaned);
     } catch (err) {
       log("ERROR", "Failed to add memory", { error: err.message });
@@ -165,7 +164,7 @@ module.exports = function createRouter(appContext) {
       if (!updated) {
         return res.status(404).json({ error: "Memory not found" });
       }
-      const { embedding, ...cleaned } = updated;
+      const { embedding: _embedding, ...cleaned } = updated;
       res.json(cleaned);
     } catch (err) {
       log("ERROR", "Failed to update memory", { error: err.message });

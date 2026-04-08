@@ -5,10 +5,7 @@ const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { effectiveOllamaApiKey } = require("../lib/ollama-client");
 const { scoreContent } = require("../lib/builder-score");
-const {
-  CLIENT_INTERNAL_ERROR,
-  STREAM_INTERNAL_ERROR,
-} = require("../lib/client-errors");
+const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();

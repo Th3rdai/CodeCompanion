@@ -112,10 +112,10 @@ const ANNOTATIONS = {
 function registerAllTools(server, deps, disabledTools = []) {
   const {
     getConfig,
-    log,
-    debug,
+    log: _log,
+    debug: _debug,
     listModels,
-    chatComplete,
+    chatComplete: _chatComplete,
     checkConnection,
     buildFileTree,
     readProjectFile,

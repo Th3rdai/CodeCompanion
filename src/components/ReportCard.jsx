@@ -427,7 +427,7 @@ function handleExportJSON(data, filename) {
 function buildBulkFixPrompts(categories) {
   const prompts = [];
   const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-  for (const [key, cat] of Object.entries(categories)) {
+  for (const [_key, cat] of Object.entries(categories)) {
     for (const finding of cat.findings || []) {
       const prompt =
         finding.fixPrompt ||
@@ -457,12 +457,13 @@ export default function ReportCard({
   onReviewRevision,
   onPasteFixPrompts,
 }) {
-  if (!data) return null;
-
-  const { overallGrade, topPriority, categories, cleanBillOfHealth } = data;
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showAllFindings, setShowAllFindings] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  if (!data) return null;
+
+  const { overallGrade, topPriority, categories, cleanBillOfHealth } = data;
   const bulkPrompts = buildBulkFixPrompts(categories);
 
   return (

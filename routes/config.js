@@ -5,13 +5,10 @@ const os = require("os");
 
 const { getConfig, updateConfig } = require("../lib/config");
 const {
-  resolveAutoModel,
   mergeAutoModelMap,
   DEFAULT_AUTO_MODEL_MAP,
 } = require("../lib/auto-model");
 const { effectiveDoclingApiKey } = require("../lib/docling-client");
-const { effectiveOllamaApiKey } = require("../lib/ollama-client");
-const { resolveFolderInput } = require("../lib/security-helpers");
 
 function maskSensitiveValue(value) {
   if (!value) return "";

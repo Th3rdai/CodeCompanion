@@ -4,7 +4,7 @@ export default function Toast({ message, onDone, duration = 3000 }) {
   useEffect(() => {
     const t = setTimeout(onDone, duration);
     return () => clearTimeout(t);
-  }, []);
+  }, [onDone, duration]);
 
   return (
     <div

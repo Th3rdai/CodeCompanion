@@ -1,4 +1,3 @@
-import React from "react";
 import BaseBuilderPanel from "./BaseBuilderPanel";
 
 const PROMPTING_CONFIG = {

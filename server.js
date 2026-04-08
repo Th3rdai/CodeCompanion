@@ -65,10 +65,6 @@ const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 const {
   createRequireLocalOrApiKey,
   createCorsOptions,
-  assertResolvedPathUnderAllowedRoots,
-  resolveFolderInput,
-  assertLocalPathForGitPush,
-  isAllowedGitHubRemoteUrl,
 } = require("./lib/security-helpers");
 const requireLocalOrApiKey = createRequireLocalOrApiKey({ log });
 

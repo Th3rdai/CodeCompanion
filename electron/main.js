@@ -873,7 +873,7 @@ ipcMain.handle("check-ollama", async (event, payload) => {
   }
 });
 
-ipcMain.handle("install-ollama", async (event) => {
+ipcMain.handle("install-ollama", async (_event) => {
   try {
     const result = await installOllama();
     return result;

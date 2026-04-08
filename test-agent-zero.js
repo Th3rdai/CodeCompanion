@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const McpClientManager = require("./lib/mcp-client-manager");
 const { initConfig, getConfig } = require("./lib/config");
-const path = require("path");
+const _path = require("path");
 
 // App root must match server.js / CLI so `.cc-config.json` and getAppRoot() resolve correctly
 initConfig(__dirname);

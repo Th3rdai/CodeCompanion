@@ -33,7 +33,7 @@ async function convertIcon() {
     // 2. ICO for Windows (256x256, 128x128, 64x64, 48x48, 32x32, 16x16)
     console.log("  Creating icon.ico (multi-size)...");
     const icoSizes = [256, 128, 64, 48, 32, 16];
-    const icoBuffers = await Promise.all(
+    const _icoBuffers = await Promise.all(
       icoSizes.map((size) =>
         sharp(INPUT_IMAGE)
           .resize(size, size, {

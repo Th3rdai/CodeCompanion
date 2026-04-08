@@ -6,7 +6,6 @@ const crypto = require("crypto");
 const { getConfig } = require("../lib/config");
 const { SYSTEM_PROMPTS } = require("../lib/prompts");
 const {
-  listModels,
   chatStream,
   chatComplete,
   effectiveOllamaApiKey,
@@ -175,7 +174,7 @@ module.exports = function createRouter(appContext) {
     const estimatedTokensPre = Math.ceil(totalCharsEstimate / 3.5);
     const hasImages = images && images.length > 0;
     // Check if user uploaded images earlier in this conversation (not MCP-generated ones)
-    const historyHasUserImages =
+    const _historyHasUserImages =
       !hasImages &&
       messages.some(
         (m) =>
@@ -288,7 +287,7 @@ module.exports = function createRouter(appContext) {
     // Images were already rendered client-side; AI doesn't need megabytes of base64 in follow-ups
     const BASE64_IMG_RE =
       /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
-    const currentMsgHasImages = images && images.length > 0;
+    const _currentMsgHasImages = images && images.length > 0;
     const cleanedMessages = messages.map((m, i) => {
       // Strip client-side tool-context marker — not a real Ollama field
       const { _toolContext, ...mClean } = m;

@@ -1,4 +1,3 @@
-import React from "react";
 
 /**
  * Connection status indicator dot
