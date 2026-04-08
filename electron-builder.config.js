@@ -1,4 +1,7 @@
 const path = require("path");
+const {
+  normalizeMacCodesignIdentity,
+} = require("./lib/mac-codesign-identity.js");
 
 /**
  * macOS signing modes (see BUILD.md):
@@ -12,17 +15,6 @@ const path = require("path");
  */
 const macDistributionSign = process.env.MAC_DISTRIBUTION_SIGN === "1";
 const macCodesignIdentityRaw = (process.env.MAC_CODESIGN_IDENTITY || "").trim();
-
-/**
- * electron-builder 26+ rejects `identity` values that still include the
- * "Developer ID Application:" prefix (it picks the cert automatically). CI and
- * local env often use the full Keychain name — strip the prefix when present.
- */
-function normalizeMacCodesignIdentity(value) {
-  const s = String(value || "").trim();
-  if (!s) return s;
-  return s.replace(/^Developer ID Application:\s*/i, "").trim();
-}
 
 const macCodesignIdentity = normalizeMacCodesignIdentity(macCodesignIdentityRaw);
 

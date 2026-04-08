@@ -32,6 +32,7 @@ Claude Cowork performed a full technical review of Code Companion against actual
 **File**: `.planning/ROADMAP.md`
 
 Changes:
+
 - Inserted **Phase 24.5: Tech Health** between Phase 24 and Phase 25
 - Updated progress table to include Phase 24.5
 
@@ -40,6 +41,7 @@ Changes:
 **File**: `.planning/phases/24.5-tech-health/24.5-CONTEXT.md`
 
 Covers:
+
 - Phase boundary and scope (zero behavioral changes)
 - Plan sequencing rationale (01 → 02 → 03)
 - ESLint/Prettier scope decisions
@@ -52,17 +54,20 @@ Covers:
 Three plans created, each reviewed and corrected against the actual codebase:
 
 **Plan 01** (`.planning/phases/24.5-tech-health/24.5-01-PLAN.md`):
+
 - Establish lint baseline using existing `eslint.config.mjs` (already present — no new config needed)
 - Migrate `tests/test/unit/icm-scaffolder.test.js` → `tests/unit/` and delete `tests/test/` (e2e/ was empty)
 - Fix `lib/history.js` line 121: atomic write (temp + rename pattern from `lib/memory.js`)
 
 **Plan 02** (`.planning/phases/24.5-tech-health/24.5-02-PLAN.md`):
+
 - Extract `useModels` hook from App.jsx (models, connected, ollamaUrl, selectedModel — localStorage key: `cc-selected-model`)
 - Extract `useChat` hook from App.jsx (messages, streaming, history, stats, refreshing, all conversation handlers)
 - Correct handler names verified: `startNew()`, `loadConversation()`, `handleStopChat()`, `bulkDeleteConversations()`, etc.
 - Target: App.jsx under 2,000 lines
 
 **Plan 03** (`.planning/phases/24.5-tech-health/24.5-03-PLAN.md`):
+
 - Split server.js into 15 Express sub-routers under `routes/`
 - Rate limiters stay as `app.use()` in server.js — NOT moved to routers
 - appContext carries only `{ config, requireLocalOrApiKey }`
@@ -75,24 +80,26 @@ Three plans created, each reviewed and corrected against the actual codebase:
 
 The plan-reviewer caught 7 issues during validation:
 
-| Severity | Issue | Fixed |
-|----------|-------|-------|
-| Critical | eslint.config.mjs already exists; plan tried to recreate it | ✅ |
-| Critical | tests/test/e2e/ is empty; create-mode.spec.js doesn't exist there | ✅ |
-| Critical | /api/github/* and /api/git/* routes missing from decomposition table | ✅ |
-| Major | All handler names in Plan 02 were wrong (handleNewChat vs startNew, etc.) | ✅ |
-| Major | stats and refreshing states missing from useChat extraction list | ✅ |
-| Major | appContext.limiter design wrong — rate limiters are app.use() middleware | ✅ |
-| Major | 600-line target impossible (startup section alone is 620 lines) → 800 | ✅ |
+| Severity | Issue                                                                     | Fixed |
+| -------- | ------------------------------------------------------------------------- | ----- |
+| Critical | eslint.config.mjs already exists; plan tried to recreate it               | ✅    |
+| Critical | tests/test/e2e/ is empty; create-mode.spec.js doesn't exist there         | ✅    |
+| Critical | /api/github/_ and /api/git/_ routes missing from decomposition table      | ✅    |
+| Major    | All handler names in Plan 02 were wrong (handleNewChat vs startNew, etc.) | ✅    |
+| Major    | stats and refreshing states missing from useChat extraction list          | ✅    |
+| Major    | appContext.limiter design wrong — rate limiters are app.use() middleware  | ✅    |
+| Major    | 600-line target impossible (startup section alone is 620 lines) → 800     | ✅    |
 
 ---
 
 ## Current Project State
 
 ### Completed Phases (25 total)
+
 Phases 1–24 complete. See `.planning/ROADMAP.md` for full list.
 
 Post-roadmap enhancements also complete:
+
 - Unified chat export (11 formats, ZIP, ExportPanel)
 - Electron GitHub updater fix
 
@@ -131,13 +138,13 @@ Post-roadmap enhancements also complete:
 
 ## Key Files Modified This Session
 
-| File | Change |
-|------|--------|
-| `.planning/ROADMAP.md` | Added Phase 24.5 entry + progress table row |
+| File                                                | Change                                                      |
+| --------------------------------------------------- | ----------------------------------------------------------- |
+| `.planning/ROADMAP.md`                              | Added Phase 24.5 entry + progress table row                 |
 | `.planning/phases/24.5-tech-health/24.5-CONTEXT.md` | NEW — phase boundary, decisions, router decomposition table |
-| `.planning/phases/24.5-tech-health/24.5-01-PLAN.md` | NEW — lint baseline, test migration, atomic write |
-| `.planning/phases/24.5-tech-health/24.5-02-PLAN.md` | NEW — App.jsx hook extraction |
-| `.planning/phases/24.5-tech-health/24.5-03-PLAN.md` | NEW — server.js route decomposition |
+| `.planning/phases/24.5-tech-health/24.5-01-PLAN.md` | NEW — lint baseline, test migration, atomic write           |
+| `.planning/phases/24.5-tech-health/24.5-02-PLAN.md` | NEW — App.jsx hook extraction                               |
+| `.planning/phases/24.5-tech-health/24.5-03-PLAN.md` | NEW — server.js route decomposition                         |
 
 ---
 
