@@ -4,7 +4,10 @@ const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { effectiveOllamaApiKey } = require("../lib/ollama-client");
 const { reviewCode } = require("../lib/review");
-const { CLIENT_INTERNAL_ERROR, STREAM_INTERNAL_ERROR } = require("../lib/client-errors");
+const {
+  CLIENT_INTERNAL_ERROR,
+  STREAM_INTERNAL_ERROR,
+} = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
@@ -78,7 +81,10 @@ module.exports = function createRouter(appContext) {
       });
 
       if (result.type === "report-card") {
-        log("INFO", `Review complete: overall grade ${result.data.overallGrade}`);
+        log(
+          "INFO",
+          `Review complete: overall grade ${result.data.overallGrade}`,
+        );
         const payload = { ...result };
         if (reqModel === "auto") payload.resolvedModel = model;
         return res.json(payload);

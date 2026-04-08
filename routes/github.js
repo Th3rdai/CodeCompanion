@@ -194,44 +194,36 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── GET /api/github/token/status ─────────────────────
-  router.get(
-    "/github/token/status",
-    requireLocalOrApiKey,
-    async (req, res) => {
-      const config = getConfig();
-      const tokens = getAllTokens(config);
-      if (!tokens.length) return res.json({ configured: false, tokens: [] });
+  router.get("/github/token/status", requireLocalOrApiKey, async (req, res) => {
+    const config = getConfig();
+    const tokens = getAllTokens(config);
+    if (!tokens.length) return res.json({ configured: false, tokens: [] });
 
-      const activeLabel = config.activeGithubAccount || tokens[0].label;
-      const activeToken = resolveToken(config, activeLabel);
-      const active = await validateTokenCached(activeToken);
-      res.json({
-        configured: true,
-        ...active,
-        activeAccount: activeLabel,
-        tokens: tokens.map((t) => ({
-          label: t.label,
-          username: t.username,
-          avatar: t.avatar,
-        })),
-      });
-    },
-  );
+    const activeLabel = config.activeGithubAccount || tokens[0].label;
+    const activeToken = resolveToken(config, activeLabel);
+    const active = await validateTokenCached(activeToken);
+    res.json({
+      configured: true,
+      ...active,
+      activeAccount: activeLabel,
+      tokens: tokens.map((t) => ({
+        label: t.label,
+        username: t.username,
+        avatar: t.avatar,
+      })),
+    });
+  });
 
   // ── POST /api/github/active-account ──────────────────
-  router.post(
-    "/github/active-account",
-    requireLocalOrApiKey,
-    (req, res) => {
-      const { label } = req.body;
-      if (!label) return res.status(400).json({ error: "Missing label" });
-      const config = getConfig();
-      config.activeGithubAccount = label;
-      updateConfig(config);
-      log("INFO", `Active GitHub account switched to: ${label}`);
-      res.json({ success: true, activeAccount: label });
-    },
-  );
+  router.post("/github/active-account", requireLocalOrApiKey, (req, res) => {
+    const { label } = req.body;
+    if (!label) return res.status(400).json({ error: "Missing label" });
+    const config = getConfig();
+    config.activeGithubAccount = label;
+    updateConfig(config);
+    log("INFO", `Active GitHub account switched to: ${label}`);
+    res.json({ success: true, activeAccount: label });
+  });
 
   // ── POST /api/github/create ───────────────────────────
   router.post("/github/create", async (req, res) => {
@@ -281,8 +273,7 @@ module.exports = function createRouter(appContext) {
         .json({ error: "localPath and remoteUrl are required" });
     if (!isAllowedGitHubRemoteUrl(remoteUrl)) {
       return res.status(400).json({
-        error:
-          "remoteUrl must be a github.com HTTPS or git@github.com SSH URL",
+        error: "remoteUrl must be a github.com HTTPS or git@github.com SSH URL",
       });
     }
     const pathCheck = assertLocalPathForGitPush(localPath, config);

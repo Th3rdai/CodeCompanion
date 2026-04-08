@@ -10,7 +10,11 @@ const {
   searchMemories,
   getStats: getMemoryStats,
 } = require("../lib/memory");
-const { listModels, embed, effectiveOllamaApiKey } = require("../lib/ollama-client");
+const {
+  listModels,
+  embed,
+  effectiveOllamaApiKey,
+} = require("../lib/ollama-client");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 const UUID_REGEX =

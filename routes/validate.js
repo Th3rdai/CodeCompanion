@@ -13,7 +13,10 @@ const {
   assertResolvedPathUnderAllowedRoots,
   resolveFolderInput,
 } = require("../lib/security-helpers");
-const { CLIENT_INTERNAL_ERROR, STREAM_INTERNAL_ERROR } = require("../lib/client-errors");
+const {
+  CLIENT_INTERNAL_ERROR,
+  STREAM_INTERNAL_ERROR,
+} = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
@@ -148,7 +151,10 @@ module.exports = function createRouter(appContext) {
                   sendEvent({ done: true });
                   res.write("data: [DONE]\n\n");
                   res.end();
-                  log("INFO", `Validate generate complete: ${tokenCount} tokens`);
+                  log(
+                    "INFO",
+                    `Validate generate complete: ${tokenCount} tokens`,
+                  );
                   return;
                 }
               } catch {}
@@ -190,7 +196,10 @@ module.exports = function createRouter(appContext) {
     if (!resolvedProject) {
       return res.status(400).json({ error: "Invalid projectFolder path" });
     }
-    const allowed = assertResolvedPathUnderAllowedRoots(resolvedProject, config);
+    const allowed = assertResolvedPathUnderAllowedRoots(
+      resolvedProject,
+      config,
+    );
     if (!allowed.ok) {
       log(
         "WARN",
@@ -211,7 +220,11 @@ module.exports = function createRouter(appContext) {
         !targetPath.startsWith(absFolder + path.sep) &&
         targetPath !== absFolder
       ) {
-        results.push({ target, success: false, error: "Path traversal blocked" });
+        results.push({
+          target,
+          success: false,
+          error: "Path traversal blocked",
+        });
         continue;
       }
       try {

@@ -38,7 +38,8 @@ module.exports = function createRouter(appContext) {
         details.push("No type checker configured");
       if (result.testing.length === 0 && result.testDirs.length === 0)
         details.push("No test runner detected");
-      if (result.formatting.length === 0) details.push("No formatter configured");
+      if (result.formatting.length === 0)
+        details.push("No formatter configured");
       res.json({
         issues: details.length,
         details,

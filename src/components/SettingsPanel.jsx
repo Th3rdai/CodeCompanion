@@ -112,7 +112,8 @@ export default function SettingsPanel({
   const [terminalEnabled, setTerminalEnabled] = useState(false);
   const [terminalAllowlist, setTerminalAllowlist] = useState("");
   const [terminalTimeout, setTerminalTimeout] = useState(60);
-  const [terminalConfirmBeforeRun, setTerminalConfirmBeforeRun] = useState(false);
+  const [terminalConfirmBeforeRun, setTerminalConfirmBeforeRun] =
+    useState(false);
 
   // GitHub token state (multi-PAT)
   const [ghToken, setGhToken] = useState("");
@@ -192,7 +193,9 @@ export default function SettingsPanel({
               (data.agentTerminal.allowlist || []).join(", "),
             );
             setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
-            setTerminalConfirmBeforeRun(data.agentTerminal.confirmBeforeRun ?? false);
+            setTerminalConfirmBeforeRun(
+              data.agentTerminal.confirmBeforeRun ?? false,
+            );
           }
           if (data.autoModelMap && typeof data.autoModelMap === "object")
             setAutoModelMap(data.autoModelMap);

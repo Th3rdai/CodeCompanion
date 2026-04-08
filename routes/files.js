@@ -120,7 +120,10 @@ module.exports = function createRouter(appContext) {
       return res.status(400).json({ error: "Missing path or project folder" });
 
     if (req.query.folder) {
-      const allowedRoots = [config.projectFolder, path.join(__dirname, "..")].filter(Boolean);
+      const allowedRoots = [
+        config.projectFolder,
+        path.join(__dirname, ".."),
+      ].filter(Boolean);
       const absFolder = path.resolve(folder);
       const allowed = allowedRoots.some(
         (root) =>
@@ -235,7 +238,10 @@ module.exports = function createRouter(appContext) {
         });
         return res.status(403).json({ error: "Access denied" });
       }
-      log("ERROR", "Failed to save file", { path: filePath, error: err.message });
+      log("ERROR", "Failed to save file", {
+        path: filePath,
+        error: err.message,
+      });
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   });

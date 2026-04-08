@@ -23,8 +23,16 @@ export default function RenameModal({ currentName, onSave, onClose }) {
     const width = Math.min(420, window.innerWidth - 32);
     const height = 240;
     setPanelPos({
-      left: clamp((window.innerWidth - width) / 2, 8, window.innerWidth - width - 8),
-      top: clamp((window.innerHeight - height) / 2, 8, window.innerHeight - height - 8),
+      left: clamp(
+        (window.innerWidth - width) / 2,
+        8,
+        window.innerWidth - width - 8,
+      ),
+      top: clamp(
+        (window.innerHeight - height) / 2,
+        8,
+        window.innerHeight - height - 8,
+      ),
     });
   }, []);
 
@@ -55,13 +63,16 @@ export default function RenameModal({ currentName, onSave, onClose }) {
     };
   }, [dragState]);
 
-  const startDrag = useCallback((e) => {
-    if (!panelPos) return;
-    setDragState({
-      offsetX: e.clientX - panelPos.left,
-      offsetY: e.clientY - panelPos.top,
-    });
-  }, [panelPos]);
+  const startDrag = useCallback(
+    (e) => {
+      if (!panelPos) return;
+      setDragState({
+        offsetX: e.clientX - panelPos.left,
+        offsetY: e.clientY - panelPos.top,
+      });
+    },
+    [panelPos],
+  );
 
   return (
     <div
@@ -94,9 +105,7 @@ export default function RenameModal({ currentName, onSave, onClose }) {
             Rename Conversation
           </h3>
         </div>
-        <h3 className="sr-only">
-          Rename Conversation
-        </h3>
+        <h3 className="sr-only">Rename Conversation</h3>
         <label htmlFor="rename-input" className="sr-only">
           Conversation name
         </label>

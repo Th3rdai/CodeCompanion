@@ -521,18 +521,33 @@ export function useChat({
             if (parsed.terminalCmd) {
               const { command, args } = parsed.terminalCmd;
               const cmdStr = [command, ...(args || [])].join(" ");
-              setTerminalOutput({ command: cmdStr, status: "running", output: "" });
+              setTerminalOutput({
+                command: cmdStr,
+                status: "running",
+                output: "",
+              });
             }
             if (parsed.terminalOutput) {
               setTerminalOutput((prev) =>
                 prev
-                  ? { ...prev, output: (prev.output || "") + parsed.terminalOutput }
-                  : { command: "", status: "running", output: parsed.terminalOutput },
+                  ? {
+                      ...prev,
+                      output: (prev.output || "") + parsed.terminalOutput,
+                    }
+                  : {
+                      command: "",
+                      status: "running",
+                      output: parsed.terminalOutput,
+                    },
               );
             }
             if (parsed.terminalStatus) {
               const { exitCode, killed } = parsed.terminalStatus;
-              const status = killed ? "timeout" : exitCode === 0 ? "done" : "error";
+              const status = killed
+                ? "timeout"
+                : exitCode === 0
+                  ? "done"
+                  : "error";
               setTerminalOutput((prev) => (prev ? { ...prev, status } : null));
             }
             // Confirm-before-run: show modal for user approval

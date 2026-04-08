@@ -40,7 +40,13 @@ export function useImageAttachments({
   async function queueImageProcessing(file, config) {
     return new Promise((resolve, reject) => {
       const processingId = nextProcessingId.current++;
-      processingQueue.current.push({ processingId, file, config, resolve, reject });
+      processingQueue.current.push({
+        processingId,
+        file,
+        config,
+        resolve,
+        reject,
+      });
       processNextInQueue();
     });
   }
@@ -160,7 +166,9 @@ export function useImageAttachments({
           if (msg.includes("dimension")) {
             showToast(`❌ ${file.name}: Image too large to process`);
           } else if (msg.includes("canvas") || msg.includes("context")) {
-            showToast(`❌ ${file.name}: Failed to process image (browser error)`);
+            showToast(
+              `❌ ${file.name}: Failed to process image (browser error)`,
+            );
           } else if (msg.includes("memory") || msg.includes("out of")) {
             showToast("❌ Out of memory. Try smaller images or fewer at once.");
           } else if (msg.includes("corrupt") || msg.includes("invalid")) {
@@ -245,7 +253,9 @@ export function useImageAttachments({
           if (msg.includes("dimension")) {
             showToast(`❌ ${file.name}: Image too large to process`);
           } else if (msg.includes("canvas") || msg.includes("context")) {
-            showToast(`❌ ${file.name}: Failed to process image (browser error)`);
+            showToast(
+              `❌ ${file.name}: Failed to process image (browser error)`,
+            );
           } else if (msg.includes("memory") || msg.includes("out of")) {
             showToast("❌ Out of memory. Try smaller images or fewer at once.");
           } else if (msg.includes("corrupt") || msg.includes("invalid")) {

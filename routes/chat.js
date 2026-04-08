@@ -97,20 +97,17 @@ module.exports = function createRouter(appContext) {
   const pendingConfirmations = new Map();
 
   // ── POST /api/chat/confirm — resolve a pending confirm-before-run prompt ──
-  router.post(
-    "/chat/confirm",
-    express.json({ limit: "1kb" }),
-    (req, res) => {
-      const { id, approved } = req.body || {};
-      if (!id) return res.status(400).json({ error: "Missing id" });
-      const pending = pendingConfirmations.get(id);
-      if (!pending) return res.status(404).json({ error: "Unknown confirmation id" });
-      pendingConfirmations.delete(id);
-      clearTimeout(pending.timeout);
-      pending.resolve({ approved: !!approved });
-      res.json({ ok: true });
-    },
-  );
+  router.post("/chat/confirm", express.json({ limit: "1kb" }), (req, res) => {
+    const { id, approved } = req.body || {};
+    if (!id) return res.status(400).json({ error: "Missing id" });
+    const pending = pendingConfirmations.get(id);
+    if (!pending)
+      return res.status(404).json({ error: "Unknown confirmation id" });
+    pendingConfirmations.delete(id);
+    clearTimeout(pending.timeout);
+    pending.resolve({ approved: !!approved });
+    res.json({ ok: true });
+  });
 
   function ollamaAuthOpts(cfg) {
     const k = effectiveOllamaApiKey(cfg);
@@ -135,7 +132,9 @@ module.exports = function createRouter(appContext) {
         messages: !!messages,
         mode: !!mode,
       });
-      return res.status(400).json({ error: "Missing model, messages, or mode" });
+      return res
+        .status(400)
+        .json({ error: "Missing model, messages, or mode" });
     }
 
     let model = reqModel;
@@ -476,7 +475,10 @@ module.exports = function createRouter(appContext) {
               },
             );
           } catch (err) {
-            if (err.name === "AbortError" || chatAbortController.signal.aborted) {
+            if (
+              err.name === "AbortError" ||
+              chatAbortController.signal.aborted
+            ) {
               log(
                 "INFO",
                 `Chat aborted during chatComplete (round ${round + 1})`,
@@ -598,7 +600,8 @@ module.exports = function createRouter(appContext) {
                 partTypes: parts.map((p) => p.type),
                 resultKeys: Object.keys(result.result || {}),
               });
-              let content = textParts.join("\n") || JSON.stringify(result.result);
+              let content =
+                textParts.join("\n") || JSON.stringify(result.result);
               // Collect images for vision model (view_pdf_pages) — fed into next Ollama call
               for (const img of analysisImageParts) {
                 if (img.data) roundAnalysisImages.push(img.data);
@@ -738,7 +741,10 @@ module.exports = function createRouter(appContext) {
           res.end();
         }
         toolCallHandler.sseContext = null;
-        log("INFO", `Chat complete (tool-call mode): ${finalText.length} chars`);
+        log(
+          "INFO",
+          `Chat complete (tool-call mode): ${finalText.length} chars`,
+        );
         return;
       }
       toolCallHandler.sseContext = null;

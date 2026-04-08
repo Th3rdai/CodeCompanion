@@ -54,8 +54,16 @@ export default function OllamaSetup({ onComplete }) {
     const width = Math.min(640, window.innerWidth - 32);
     const height = Math.min(760, window.innerHeight - 48);
     setPanelPos({
-      left: clamp((window.innerWidth - width) / 2, 8, window.innerWidth - width - 8),
-      top: clamp((window.innerHeight - height) / 2, 8, window.innerHeight - height - 8),
+      left: clamp(
+        (window.innerWidth - width) / 2,
+        8,
+        window.innerWidth - width - 8,
+      ),
+      top: clamp(
+        (window.innerHeight - height) / 2,
+        8,
+        window.innerHeight - height - 8,
+      ),
     });
   }, []);
 
@@ -86,13 +94,16 @@ export default function OllamaSetup({ onComplete }) {
     };
   }, [dragState]);
 
-  const startDrag = useCallback((e) => {
-    if (!panelPos) return;
-    setDragState({
-      offsetX: e.clientX - panelPos.left,
-      offsetY: e.clientY - panelPos.top,
-    });
-  }, [panelPos]);
+  const startDrag = useCallback(
+    (e) => {
+      if (!panelPos) return;
+      setDragState({
+        offsetX: e.clientX - panelPos.left,
+        offsetY: e.clientY - panelPos.top,
+      });
+    },
+    [panelPos],
+  );
 
   async function checkConnection() {
     try {

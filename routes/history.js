@@ -7,10 +7,7 @@ const {
   saveConversation,
   deleteConversation,
 } = require("../lib/history");
-const {
-  resolveAutoModel,
-  mergeAutoModelMap,
-} = require("../lib/auto-model");
+const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { chatComplete, effectiveOllamaApiKey } = require("../lib/ollama-client");
 const { extractAndStore } = require("../lib/memory");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
@@ -41,7 +38,9 @@ module.exports = function createRouter(appContext) {
       const data = getConversation(req.params.id);
       res.json(data);
     } catch (err) {
-      const status = err.message.includes("Invalid conversation id") ? 400 : 404;
+      const status = err.message.includes("Invalid conversation id")
+        ? 400
+        : 404;
       res
         .status(status)
         .json({ error: status === 404 ? "Not found" : err.message });
@@ -128,7 +127,9 @@ module.exports = function createRouter(appContext) {
                 },
                 {
                   role: "user",
-                  content: last6.map((m) => `${m.role}: ${m.content}`).join("\n"),
+                  content: last6
+                    .map((m) => `${m.role}: ${m.content}`)
+                    .join("\n"),
                 },
               ],
               15000,
@@ -151,7 +152,9 @@ module.exports = function createRouter(appContext) {
         })();
       }
     } catch (err) {
-      const status = err.message.includes("Invalid conversation id") ? 400 : 500;
+      const status = err.message.includes("Invalid conversation id")
+        ? 400
+        : 500;
       res
         .status(status)
         .json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });

@@ -5,7 +5,10 @@ const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { effectiveOllamaApiKey } = require("../lib/ollama-client");
 const { scoreContent } = require("../lib/builder-score");
-const { CLIENT_INTERNAL_ERROR, STREAM_INTERNAL_ERROR } = require("../lib/client-errors");
+const {
+  CLIENT_INTERNAL_ERROR,
+  STREAM_INTERNAL_ERROR,
+} = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
@@ -88,7 +91,8 @@ module.exports = function createRouter(appContext) {
         res.setHeader("Connection", "keep-alive");
 
         const sendEvent = (data) => {
-          if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`);
+          if (!res.writableEnded)
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
         };
         sendEvent({
           fallback: true,

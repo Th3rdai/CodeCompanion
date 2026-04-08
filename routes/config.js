@@ -311,7 +311,10 @@ module.exports = function createRouter(appContext) {
             .status(400)
             .json({ error: "projectFolder must be a directory" });
         }
-        const { getWritableRoots, isUnderRoot } = require("../lib/icm-scaffolder");
+        const {
+          getWritableRoots,
+          isUnderRoot,
+        } = require("../lib/icm-scaffolder");
         const allowedRoots = getWritableRoots(config);
         if (!isUnderRoot(resolvedFolder, allowedRoots)) {
           log(

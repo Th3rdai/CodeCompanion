@@ -502,7 +502,6 @@ export default function App() {
     });
   }, []);
 
-
   async function fetchConfig() {
     try {
       const res = await apiFetch("/api/config");
@@ -710,7 +709,6 @@ export default function App() {
     );
     showToast("Removed all images");
   }
-
 
   // Drag and drop
   function handleDragEnter(e) {
@@ -1530,11 +1528,17 @@ export default function App() {
                                 Running command...
                               </>
                             ) : terminalOutput.status === "error" ? (
-                              <span className="text-red-400">✕ Command failed</span>
+                              <span className="text-red-400">
+                                ✕ Command failed
+                              </span>
                             ) : terminalOutput.status === "timeout" ? (
-                              <span className="text-yellow-400">⏱ Command timed out</span>
+                              <span className="text-yellow-400">
+                                ⏱ Command timed out
+                              </span>
                             ) : (
-                              <span className="text-green-400">✓ Command completed</span>
+                              <span className="text-green-400">
+                                ✓ Command completed
+                              </span>
                             )}
                           </span>
                         </div>

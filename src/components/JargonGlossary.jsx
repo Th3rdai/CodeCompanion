@@ -343,8 +343,16 @@ export function GlossaryPanel({ onClose }) {
     const width = Math.min(560, window.innerWidth - 32);
     const height = Math.min(760, window.innerHeight - 48);
     setPanelPos({
-      left: clamp((window.innerWidth - width) / 2, 8, window.innerWidth - width - 8),
-      top: clamp((window.innerHeight - height) / 2, 8, window.innerHeight - height - 8),
+      left: clamp(
+        (window.innerWidth - width) / 2,
+        8,
+        window.innerWidth - width - 8,
+      ),
+      top: clamp(
+        (window.innerHeight - height) / 2,
+        8,
+        window.innerHeight - height - 8,
+      ),
     });
   }, []);
 
@@ -375,13 +383,16 @@ export function GlossaryPanel({ onClose }) {
     };
   }, [dragState]);
 
-  const startDrag = useCallback((e) => {
-    if (!panelPos) return;
-    setDragState({
-      offsetX: e.clientX - panelPos.left,
-      offsetY: e.clientY - panelPos.top,
-    });
-  }, [panelPos]);
+  const startDrag = useCallback(
+    (e) => {
+      if (!panelPos) return;
+      setDragState({
+        offsetX: e.clientX - panelPos.left,
+        offsetY: e.clientY - panelPos.top,
+      });
+    },
+    [panelPos],
+  );
 
   const filtered = GLOSSARY_KEYS.filter((key) => {
     const entry = GLOSSARY[key];
@@ -549,22 +560,27 @@ export function JargonTooltip({ children }) {
     };
   }, []);
 
-  const handleMouseOver = useCallback((e) => {
-    const target = e.target;
-    if (target.classList?.contains("jargon-term")) {
-      const key = target.dataset.jargonKey;
-      const entry = GLOSSARY[key];
-      if (entry) {
-        const rect = target.getBoundingClientRect();
-        setTooltip({
-          term: entry.term,
-          definition: entry.definition,
-          category: entry.category,
-        });
-        setTooltipPos(getInitialTooltipPos(rect.left + rect.width / 2, rect.top));
+  const handleMouseOver = useCallback(
+    (e) => {
+      const target = e.target;
+      if (target.classList?.contains("jargon-term")) {
+        const key = target.dataset.jargonKey;
+        const entry = GLOSSARY[key];
+        if (entry) {
+          const rect = target.getBoundingClientRect();
+          setTooltip({
+            term: entry.term,
+            definition: entry.definition,
+            category: entry.category,
+          });
+          setTooltipPos(
+            getInitialTooltipPos(rect.left + rect.width / 2, rect.top),
+          );
+        }
       }
-    }
-  }, [getInitialTooltipPos]);
+    },
+    [getInitialTooltipPos],
+  );
 
   const handleMouseOut = useCallback((e) => {
     const related = e.relatedTarget;
@@ -617,13 +633,16 @@ export function JargonTooltip({ children }) {
     };
   }, [dragState, tooltip]);
 
-  const handleDragStart = useCallback((e) => {
-    if (!tooltipPos) return;
-    setDragState({
-      offsetX: e.clientX - tooltipPos.left,
-      offsetY: e.clientY - tooltipPos.top,
-    });
-  }, [tooltipPos]);
+  const handleDragStart = useCallback(
+    (e) => {
+      if (!tooltipPos) return;
+      setDragState({
+        offsetX: e.clientX - tooltipPos.left,
+        offsetY: e.clientY - tooltipPos.top,
+      });
+    },
+    [tooltipPos],
+  );
 
   return (
     <div

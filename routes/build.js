@@ -13,7 +13,10 @@ const GsdBridge = require("../lib/gsd-bridge");
 const { isWithinBasePath } = require("../lib/file-browser");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { effectiveOllamaApiKey, chatComplete } = require("../lib/ollama-client");
-const { CLIENT_INTERNAL_ERROR, STREAM_INTERNAL_ERROR } = require("../lib/client-errors");
+const {
+  CLIENT_INTERNAL_ERROR,
+  STREAM_INTERNAL_ERROR,
+} = require("../lib/client-errors");
 
 const PLANNING_FILE_WHITELIST = [
   "ROADMAP.md",
@@ -75,7 +78,9 @@ module.exports = function createRouter(appContext) {
   router.post("/build/projects/register", (req, res) => {
     const { name, projectPath } = req.body || {};
     if (!name || !projectPath) {
-      return res.status(400).json({ error: "name and projectPath are required" });
+      return res
+        .status(400)
+        .json({ error: "name and projectPath are required" });
     }
     const id = addProject(dataRoot, { name, projectPath });
     res.json({ success: true, id });
@@ -116,12 +121,18 @@ module.exports = function createRouter(appContext) {
           `Auto-scaffolded .planning/ for imported project: ${resolved}`,
         );
       } catch (err) {
-        log("ERROR", `Failed to scaffold .planning/ for import: ${err.message}`);
+        log(
+          "ERROR",
+          `Failed to scaffold .planning/ for import: ${err.message}`,
+        );
         return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
       }
     }
 
-    const id = addProject(dataRoot, { name: projectName, projectPath: resolved });
+    const id = addProject(dataRoot, {
+      name: projectName,
+      projectPath: resolved,
+    });
     res.json({ success: true, id, scaffolded });
   });
 
@@ -261,7 +272,10 @@ module.exports = function createRouter(appContext) {
       const roadmap = bridge.getRoadmap();
 
       const stateStr = JSON.stringify(state).slice(0, 3000);
-      const roadmapStr = JSON.stringify(roadmap.phases || roadmap).slice(0, 3000);
+      const roadmapStr = JSON.stringify(roadmap.phases || roadmap).slice(
+        0,
+        3000,
+      );
       let model = req.body.model || config.selectedModel;
       if (!model) model = "llama3.2";
       model = await resolveIfAutoModel(

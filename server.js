@@ -12,10 +12,7 @@ const os = require("os");
 // ── Lib imports ──────────────────────────────────────
 const { createLogger } = require("./lib/logger");
 const { initConfig, getConfig, updateConfig } = require("./lib/config");
-const {
-  initHistory,
-  listConversations,
-} = require("./lib/history");
+const { initHistory, listConversations } = require("./lib/history");
 const { initMemory } = require("./lib/memory");
 const {
   listModels,
@@ -29,10 +26,7 @@ function ollamaAuthOpts(cfg) {
   return k ? { apiKey: k } : {};
 }
 
-const {
-  buildFileTree,
-  readProjectFile,
-} = require("./lib/file-browser");
+const { buildFileTree, readProjectFile } = require("./lib/file-browser");
 const McpClientManager = require("./lib/mcp-client-manager");
 const ToolCallHandler = require("./lib/tool-call-handler");
 const { createMcpApiRoutes } = require("./lib/mcp-api-routes");
@@ -60,7 +54,6 @@ const useHttps =
   process.env.FORCE_HTTP !== "1" &&
   fs.existsSync(certPath) &&
   fs.existsSync(keyPath);
-
 
 // ── Initialize modules ───────────────────────────────
 const dataRoot = process.env.CC_DATA_DIR || __dirname;
