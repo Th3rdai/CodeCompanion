@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { apiFetch } from "../lib/api-fetch";
 import {
   Wifi,
@@ -27,6 +27,10 @@ export default function OllamaSetup({ onComplete }) {
   });
   const [error, setError] = useState(null);
   const [recommendedModel, setRecommendedModel] = useState("qwen2.5-coder:3b");
+  const [panelPos, setPanelPos] = useState(null);
+  const [dragState, setDragState] = useState(null);
+  const panelRef = useRef(null);
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
   // Check Ollama connection on mount
   useEffect(() => {
@@ -45,6 +49,50 @@ export default function OllamaSetup({ onComplete }) {
       };
     }
   }, []);
+
+  useEffect(() => {
+    const width = Math.min(640, window.innerWidth - 32);
+    const height = Math.min(760, window.innerHeight - 48);
+    setPanelPos({
+      left: clamp((window.innerWidth - width) / 2, 8, window.innerWidth - width - 8),
+      top: clamp((window.innerHeight - height) / 2, 8, window.innerHeight - height - 8),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!dragState) return;
+    const onMove = (e) => {
+      const panelWidth = panelRef.current?.offsetWidth || 640;
+      const panelHeight = panelRef.current?.offsetHeight || 760;
+      setPanelPos({
+        left: clamp(
+          e.clientX - dragState.offsetX,
+          8,
+          window.innerWidth - panelWidth - 8,
+        ),
+        top: clamp(
+          e.clientY - dragState.offsetY,
+          8,
+          window.innerHeight - panelHeight - 8,
+        ),
+      });
+    };
+    const onUp = () => setDragState(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragState]);
+
+  const startDrag = useCallback((e) => {
+    if (!panelPos) return;
+    setDragState({
+      offsetX: e.clientX - panelPos.left,
+      offsetY: e.clientY - panelPos.top,
+    });
+  }, [panelPos]);
 
   async function checkConnection() {
     try {
@@ -155,7 +203,24 @@ export default function OllamaSetup({ onComplete }) {
 
   return (
     <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-slate-700">
+      <div
+        ref={panelRef}
+        className="rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-indigo-400/30"
+        style={{
+          position: "fixed",
+          left: panelPos?.left ?? "50%",
+          top: panelPos?.top ?? "50%",
+          transform: panelPos ? "none" : "translate(-50%, -50%)",
+          backgroundColor: "rgba(8, 14, 28, 0.97)",
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <div
+          className="cursor-move select-none pb-2 mb-4 border-b border-slate-700/50"
+          onPointerDown={startDrag}
+        >
+          <p className="text-[10px] text-slate-400">Drag to move</p>
+        </div>
         {/* Not Connected State */}
         {state === "not-connected" && (
           <>

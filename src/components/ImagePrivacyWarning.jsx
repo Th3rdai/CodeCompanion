@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Shield, Eye, Lock, Database, AlertTriangle } from "lucide-react";
 
 /**
@@ -8,6 +8,10 @@ import { Shield, Eye, Lock, Database, AlertTriangle } from "lucide-react";
  */
 export default function ImagePrivacyWarning({ onClose, onAccept }) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [panelPos, setPanelPos] = useState(null);
+  const [dragState, setDragState] = useState(null);
+  const panelRef = useRef(null);
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
   // ESC key handler
   useEffect(() => {
@@ -17,6 +21,50 @@ export default function ImagePrivacyWarning({ onClose, onAccept }) {
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
+
+  useEffect(() => {
+    const width = Math.min(640, window.innerWidth - 32);
+    const height = Math.min(720, window.innerHeight - 48);
+    setPanelPos({
+      left: clamp((window.innerWidth - width) / 2, 8, window.innerWidth - width - 8),
+      top: clamp((window.innerHeight - height) / 2, 8, window.innerHeight - height - 8),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!dragState) return;
+    const onMove = (e) => {
+      const panelWidth = panelRef.current?.offsetWidth || 640;
+      const panelHeight = panelRef.current?.offsetHeight || 720;
+      setPanelPos({
+        left: clamp(
+          e.clientX - dragState.offsetX,
+          8,
+          window.innerWidth - panelWidth - 8,
+        ),
+        top: clamp(
+          e.clientY - dragState.offsetY,
+          8,
+          window.innerHeight - panelHeight - 8,
+        ),
+      });
+    };
+    const onUp = () => setDragState(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragState]);
+
+  const startDrag = useCallback((e) => {
+    if (!panelPos) return;
+    setDragState({
+      offsetX: e.clientX - panelPos.left,
+      offsetY: e.clientY - panelPos.top,
+    });
+  }, [panelPos]);
 
   const handleAccept = () => {
     if (dontShowAgain) {
@@ -33,14 +81,26 @@ export default function ImagePrivacyWarning({ onClose, onAccept }) {
       role="presentation"
     >
       <div
-        className="glass-heavy rounded-2xl w-full max-w-lg p-6 neon-border"
+        ref={panelRef}
+        className="rounded-2xl w-full max-w-lg p-6 neon-border shadow-2xl border border-indigo-400/30"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Image Upload Privacy Notice"
         aria-modal="true"
+        style={{
+          position: "fixed",
+          left: panelPos?.left ?? "50%",
+          top: panelPos?.top ?? "50%",
+          transform: panelPos ? "none" : "translate(-50%, -50%)",
+          backgroundColor: "rgba(8, 14, 28, 0.96)",
+          backdropFilter: "blur(8px)",
+        }}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4">
+        <div
+          className="flex items-center gap-3 mb-2 cursor-move select-none"
+          onPointerDown={startDrag}
+        >
           <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
             <Shield className="w-5 h-5 text-yellow-400" />
           </div>
@@ -48,6 +108,7 @@ export default function ImagePrivacyWarning({ onClose, onAccept }) {
             Image Upload Privacy Notice
           </h3>
         </div>
+        <p className="text-[10px] text-slate-400 mb-3">Drag header to move</p>
 
         {/* Content */}
         <div className="space-y-4 mb-6 text-sm text-slate-300">

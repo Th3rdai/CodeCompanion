@@ -332,6 +332,56 @@ const CATEGORIES = [
 export function GlossaryPanel({ onClose }) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(null);
+  const [panelPos, setPanelPos] = useState(null);
+  const [dragState, setDragState] = useState(null);
+  const panelRef = useRef(null);
+
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+  useEffect(() => {
+    // Initialize near center when opened
+    const width = Math.min(560, window.innerWidth - 32);
+    const height = Math.min(760, window.innerHeight - 48);
+    setPanelPos({
+      left: clamp((window.innerWidth - width) / 2, 8, window.innerWidth - width - 8),
+      top: clamp((window.innerHeight - height) / 2, 8, window.innerHeight - height - 8),
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!dragState) return;
+    const onMove = (e) => {
+      const panelWidth = panelRef.current?.offsetWidth || 560;
+      const panelHeight = panelRef.current?.offsetHeight || 760;
+      setPanelPos({
+        left: clamp(
+          e.clientX - dragState.offsetX,
+          8,
+          window.innerWidth - panelWidth - 8,
+        ),
+        top: clamp(
+          e.clientY - dragState.offsetY,
+          8,
+          window.innerHeight - panelHeight - 8,
+        ),
+      });
+    };
+    const onUp = () => setDragState(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragState]);
+
+  const startDrag = useCallback((e) => {
+    if (!panelPos) return;
+    setDragState({
+      offsetX: e.clientX - panelPos.left,
+      offsetY: e.clientY - panelPos.top,
+    });
+  }, [panelPos]);
 
   const filtered = GLOSSARY_KEYS.filter((key) => {
     const entry = GLOSSARY[key];
@@ -360,14 +410,26 @@ export function GlossaryPanel({ onClose }) {
       role="presentation"
     >
       <div
-        className="glass-heavy rounded-2xl w-full max-w-lg neon-border max-h-[85vh] flex flex-col"
+        ref={panelRef}
+        className="rounded-2xl w-full max-w-lg neon-border max-h-[85vh] flex flex-col shadow-2xl border border-indigo-400/30"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="Jargon Glossary"
         aria-modal="true"
+        style={{
+          position: "fixed",
+          left: panelPos?.left ?? "50%",
+          top: panelPos?.top ?? "50%",
+          transform: panelPos ? "none" : "translate(-50%, -50%)",
+          backgroundColor: "rgba(8, 14, 28, 0.96)",
+          backdropFilter: "blur(8px)",
+        }}
       >
         {/* Header */}
-        <div className="p-5 border-b border-slate-700/30">
+        <div
+          className="p-5 border-b border-slate-700/50 cursor-move select-none"
+          onPointerDown={startDrag}
+        >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-indigo-400" />
@@ -383,6 +445,7 @@ export function GlossaryPanel({ onClose }) {
               &#10005;
             </button>
           </div>
+          <p className="text-[10px] text-slate-400 mb-2">Drag header to move</p>
           <p className="text-xs text-slate-500 mb-3">
             Plain-English definitions for the tech terms you'll encounter. No
             judgment — everyone starts somewhere.
@@ -471,8 +534,20 @@ export function GlossaryPanel({ onClose }) {
  */
 export function JargonTooltip({ children }) {
   const [tooltip, setTooltip] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState(null);
+  const [dragState, setDragState] = useState(null);
   const tooltipRef = useRef(null);
   const containerRef = useRef(null);
+
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const getInitialTooltipPos = useCallback((x, y) => {
+    const cardWidth = 320;
+    const cardHeight = 180;
+    return {
+      left: clamp(x - cardWidth / 2, 8, window.innerWidth - cardWidth - 8),
+      top: clamp(y - cardHeight - 12, 8, window.innerHeight - cardHeight - 8),
+    };
+  }, []);
 
   const handleMouseOver = useCallback((e) => {
     const target = e.target;
@@ -485,12 +560,11 @@ export function JargonTooltip({ children }) {
           term: entry.term,
           definition: entry.definition,
           category: entry.category,
-          x: rect.left + rect.width / 2,
-          y: rect.top,
         });
+        setTooltipPos(getInitialTooltipPos(rect.left + rect.width / 2, rect.top));
       }
     }
-  }, []);
+  }, [getInitialTooltipPos]);
 
   const handleMouseOut = useCallback((e) => {
     const related = e.relatedTarget;
@@ -502,24 +576,54 @@ export function JargonTooltip({ children }) {
     }
   }, []);
 
-  // Auto-dismiss tooltip after a delay as a safety net
+  // Dismiss on outside click
   useEffect(() => {
     if (!tooltip) return;
-    const timer = setTimeout(() => setTooltip(null), 3000);
-    return () => clearTimeout(timer);
-  }, [tooltip]);
-
-  // Dismiss on scroll or click anywhere
-  useEffect(() => {
-    if (!tooltip) return;
-    const dismiss = () => setTooltip(null);
-    window.addEventListener("scroll", dismiss, true);
-    window.addEventListener("click", dismiss, true);
+    const dismiss = (e) => {
+      if (tooltipRef.current?.contains(e.target)) return;
+      setTooltip(null);
+      setTooltipPos(null);
+    };
+    window.addEventListener("pointerdown", dismiss, true);
     return () => {
-      window.removeEventListener("scroll", dismiss, true);
-      window.removeEventListener("click", dismiss, true);
+      window.removeEventListener("pointerdown", dismiss, true);
     };
   }, [tooltip]);
+
+  useEffect(() => {
+    if (!dragState || !tooltip) return;
+    const handleMove = (e) => {
+      const cardWidth = tooltipRef.current?.offsetWidth || 320;
+      const cardHeight = tooltipRef.current?.offsetHeight || 180;
+      setTooltipPos({
+        left: clamp(
+          e.clientX - dragState.offsetX,
+          8,
+          window.innerWidth - cardWidth - 8,
+        ),
+        top: clamp(
+          e.clientY - dragState.offsetY,
+          8,
+          window.innerHeight - cardHeight - 8,
+        ),
+      });
+    };
+    const handleUp = () => setDragState(null);
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+    return () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, [dragState, tooltip]);
+
+  const handleDragStart = useCallback((e) => {
+    if (!tooltipPos) return;
+    setDragState({
+      offsetX: e.clientX - tooltipPos.left,
+      offsetY: e.clientY - tooltipPos.top,
+    });
+  }, [tooltipPos]);
 
   return (
     <div
@@ -531,23 +635,40 @@ export function JargonTooltip({ children }) {
       {tooltip && (
         <div
           ref={tooltipRef}
-          className="fixed z-50 glass-neon rounded-lg p-3 max-w-xs fade-in cursor-pointer"
-          onClick={() => setTooltip(null)}
+          className="fixed z-50 rounded-lg p-3 max-w-xs fade-in border border-indigo-400/40 shadow-2xl backdrop-blur-md"
           style={{
-            left: Math.min(tooltip.x, window.innerWidth - 280),
-            top: Math.max(tooltip.y - 8, 8),
-            transform: "translate(-50%, -100%)",
+            left: tooltipPos?.left ?? 8,
+            top: tooltipPos?.top ?? 8,
+            backgroundColor: "rgba(6, 12, 24, 0.95)",
           }}
         >
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold text-indigo-300">
-              {tooltip.term}
-            </span>
-            <span className="text-[9px] text-slate-600 px-1 py-0.5 rounded glass">
-              {tooltip.category}
-            </span>
+          <div
+            className="flex items-center justify-between gap-2 mb-1 cursor-move select-none"
+            onPointerDown={handleDragStart}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-semibold text-indigo-300 truncate">
+                {tooltip.term}
+              </span>
+              <span className="text-[9px] text-slate-300 px-1 py-0.5 rounded bg-slate-900/90 border border-slate-700/70">
+                {tooltip.category}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setTooltip(null);
+                setTooltipPos(null);
+              }}
+              className="text-slate-400 hover:text-slate-100 text-xs"
+              aria-label="Close definition"
+            >
+              ×
+            </button>
           </div>
-          <p className="text-[11px] text-slate-300 leading-relaxed">
+          <p className="text-[10px] text-slate-400 mb-1">Drag to move</p>
+          <div className="h-px bg-slate-700/70 mb-2" />
+          <p className="text-[11px] text-slate-200 leading-relaxed">
             {tooltip.definition}
           </p>
         </div>
@@ -579,7 +700,6 @@ export function highlightJargon(html) {
       "gi",
     );
 
-    const before = result;
     result = result.replace(regex, (match) => {
       matched.add(entry.term);
       return `<span class="jargon-term" data-jargon-key="${key}" style="border-bottom: 1px dotted rgba(99,102,241,0.4); cursor: help;">${match}</span>`;
