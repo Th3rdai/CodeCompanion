@@ -58,7 +58,7 @@
   "dependencies": {
     "@_davideast/stitch-mcp": "^0.5.1",
     "@headlessui/react": "^2.2.9",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@splinetool/react-spline": "^4.1.0",
     "@tailwindcss/vite": "^4.2.1",
     "@vitejs/plugin-react": "^5.1.4",
@@ -98,14 +98,15 @@
     "tailwindcss": "^4.2.1",
     "three": "^0.183.2",
     "uuid": "^9.0.0",
-    "vite": "^7.3.1",
     "word-extractor": "^1.0.4",
     "zod": "^4.3.6"
   },
   "overrides": {
     "yauzl": ">=3.2.1",
     "file-type": "^21.3.4",
-    "lodash-es": ">=4.18.1"
+    "lodash-es": ">=4.18.1",
+    "hono": ">=4.12.12",
+    "@hono/node-server": ">=1.19.13"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
@@ -122,6 +123,7 @@
     "png-to-ico": "^3.0.1",
     "prettier": "^3.8.1",
     "sharp": "^0.34.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.3.2"
   }
 }
