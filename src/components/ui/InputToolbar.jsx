@@ -25,7 +25,7 @@ const btnClass =
  */
 export default function InputToolbar({
   textareaRef,
-  getText,
+  getText: _getText,
   setText,
   messages = [],
   mode = "",

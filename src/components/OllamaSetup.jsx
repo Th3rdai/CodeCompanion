@@ -35,6 +35,7 @@ export default function OllamaSetup({ onComplete }) {
   // Check Ollama connection on mount
   useEffect(() => {
     checkConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for pull progress events

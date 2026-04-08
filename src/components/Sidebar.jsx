@@ -19,7 +19,7 @@ export default function Sidebar({
   open,
   onClose,
   collapsed,
-  onToggleCollapse,
+  onToggleCollapse: _onToggleCollapse,
   showArchived,
   onToggleArchived,
   modes,

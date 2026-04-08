@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
 import { useAbortable } from "../hooks/useAbortable";
 import { registerAbort, unregisterAbort } from "../hooks/useAbortRegistry";
@@ -8,10 +8,8 @@ import {
   Download,
   Copy,
   Check,
-  AlertTriangle,
   CheckCircle,
   XCircle,
-  FileText,
   Github,
   PackageCheck,
 } from "lucide-react";
@@ -63,7 +61,7 @@ export default function ValidatePanel({
   selectedModel,
   connected,
   onToast,
-  models,
+  models: _models,
 }) {
   // ── State ─────────────────────────────────────────
   const [phase, setPhase] = useState("input"); // 'input' | 'scanning' | 'generating' | 'result'

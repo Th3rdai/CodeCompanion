@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   MessageCircle,
   Lightbulb,
@@ -8,7 +8,6 @@ import {
   FileCheck,
   WrenchIcon,
   Hammer,
-  ImageIcon,
 } from "lucide-react";
 
 const STORAGE_KEY = "th3rdai_onboarding_complete";
@@ -277,7 +276,7 @@ export function resetOnboarding() {
 export default function OnboardingWizard({ onComplete }) {
   const [step, setStep] = useState(0);
   const [fading, setFading] = useState(false);
-  const [slideDir, setSlideDir] = useState("right");
+  const [_slideDir, setSlideDir] = useState("right");
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
   const isFirst = step === 0;

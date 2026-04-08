@@ -96,7 +96,7 @@ function GradeBadge({ grade, size = "lg" }) {
 function CategoryRow({ categoryKey, categoryData, categoryConfig, onRevise }) {
   const [expanded, setExpanded] = useState(false);
   const IconComponent = ICONS[categoryConfig?.icon] || BookOpen;
-  const colors = GRADE_COLORS[categoryData?.grade] || GRADE_COLORS.C;
+  const _colors = GRADE_COLORS[categoryData?.grade] || GRADE_COLORS.C;
   const suggestions = categoryData?.suggestions || [];
 
   return (

@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../lib/api-fetch";
-import {
-  isConvertibleFilename,
-  convertDocument,
-} from "../lib/document-processor";
+import { convertDocument } from "../lib/document-processor";
 
 // Persist folder expand/collapse state in localStorage (survives refresh)
 const TREE_STATE_KEY = "cc_file_tree_state";
@@ -219,7 +216,7 @@ export default function FileBrowser({
   const [tree, setTree] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
-  const [loadingFile, setLoadingFile] = useState(false);
+  const [_loadingFile, setLoadingFile] = useState(false);
   const [folderInput, setFolderInput] = useState("");
   const [launchingClaude, setLaunchingClaude] = useState(false);
   const [launchingCursor, setLaunchingCursor] = useState(false);
@@ -265,6 +262,7 @@ export default function FileBrowser({
     try {
       localStorage.removeItem(TREE_STATE_KEY);
     } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectFolder]);
 
   async function loadTree(folder) {

@@ -126,6 +126,7 @@ export default function FloatingGeometry({ shapeCount = 6 }) {
         cleanup.then((fn) => fn?.());
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shapeCount, enabled, theme]);
 
   if (!enabled) return null;

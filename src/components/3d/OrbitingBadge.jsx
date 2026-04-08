@@ -139,6 +139,7 @@ export default function OrbitingBadge({ status = "online", size = 40 }) {
         cleanup.then((fn) => fn?.());
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, size, enabled, theme]);
 
   if (!enabled) {

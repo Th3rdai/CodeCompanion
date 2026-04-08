@@ -75,7 +75,7 @@ export default function CreateWizard({
   onStepChange,
   prefill,
   tutorialActive,
-  tutorialSuggestions,
+  tutorialSuggestions: _tutorialSuggestions,
 }) {
   const [internalStep, setInternalStep] = useState(1);
   const [name, setName] = useState("");
@@ -97,7 +97,7 @@ export default function CreateWizard({
   const [contextualSuggestionsLoading, setContextualSuggestionsLoading] =
     useState(false);
   const [loadingSuggestionFor, setLoadingSuggestionFor] = useState(null);
-  const [step1CycleIndex, setStep1CycleIndex] = useState({
+  const [_step1CycleIndex, setStep1CycleIndex] = useState({
     name: 0,
     description: 0,
     role: 0,
@@ -140,10 +140,12 @@ export default function CreateWizard({
       .then((data) => setContextualSuggestions(data))
       .catch(() => setContextualSuggestions(null))
       .finally(() => setContextualSuggestionsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, tutorialActive, name, description, role]);
 
   // Derive suggestions from current wizard step so we're not dependent on parent's tutorialStep
   const staticStepSuggestions = CREATE_TUTORIAL_STEPS[step - 1]?.prefill ?? {};
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const effectiveSuggestions =
     step >= 2 && contextualSuggestions
       ? { ...staticStepSuggestions, ...contextualSuggestions }

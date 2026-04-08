@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
 import { copyText } from "../lib/clipboard";
 import MarkdownContent from "./MarkdownContent";
@@ -32,7 +32,7 @@ export default function BuildPanel({
   const [projectData, setProjectData] = useState(null); // roadmap + progress
   const [phaseDetail, setPhaseDetail] = useState(null);
   const [selectedPhase, setSelectedPhase] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -387,7 +387,7 @@ export default function BuildPanel({
   }
 
   // ── View: Project Dashboard ─────────────────────────
-  const phases = projectData?.roadmap?.phases || [];
+  const _phases = projectData?.roadmap?.phases || [];
   const progress = projectData?.progress || {};
   const currentProject = projects?.find((p) => p.id === activeProject);
 

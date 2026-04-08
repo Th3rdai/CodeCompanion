@@ -41,7 +41,7 @@ export default function ParticleBurst({ trigger = false, color = "#6366f1" }) {
       const burstTime = 600; // 0.6s duration
       let burstStartTime = null;
 
-      const createBurst = () => {
+      const _createBurst = () => {
         particles = [];
         burstStartTime = Date.now();
         setIsActive(true);
@@ -84,7 +84,7 @@ export default function ParticleBurst({ trigger = false, color = "#6366f1" }) {
           const elapsed = Date.now() - burstStartTime;
           const progress = Math.min(elapsed / burstTime, 1);
 
-          particles.forEach((particle, idx) => {
+          particles.forEach((particle, _idx) => {
             particle.position.x += particle.velocity.x;
             particle.position.y += particle.velocity.y;
             particle.position.z += particle.velocity.z;
@@ -135,6 +135,7 @@ export default function ParticleBurst({ trigger = false, color = "#6366f1" }) {
         cleanup.then((fn) => fn?.());
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color]);
 
   // Trigger burst on prop change

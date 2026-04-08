@@ -200,6 +200,7 @@ export default function TypingIndicator3D({ mode }) {
         cleanup.then((fn) => fn?.());
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, theme]);
 
   const quipText = (
