@@ -33,24 +33,17 @@ const {
   buildFileTree,
   readProjectFile,
 } = require("./lib/file-browser");
-const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
-const {
-  StreamableHTTPServerTransport,
-} = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
-const { registerAllTools } = require("./mcp/tools");
 const McpClientManager = require("./lib/mcp-client-manager");
 const ToolCallHandler = require("./lib/tool-call-handler");
 const { createMcpApiRoutes } = require("./lib/mcp-api-routes");
 const {
   checkConnection: checkDocling,
-  convertDocument: convertDoc,
   effectiveDoclingApiKey,
 } = require("./lib/docling-client");
-const {
-  canConvertBuiltin,
-  convertBuiltin,
-} = require("./lib/builtin-doc-converter");
 const { startDocling, stopDocling } = require("./lib/docling-starter");
+const { registerRateLimiters } = require("./lib/rate-limiters-config");
+const { mountMcpHttp } = require("./lib/mcp-http");
+const createConvertRouter = require("./routes/convert");
 
 const app = express();
 // Default localhost-only; set CC_BIND_ALL=1 or HOST=0.0.0.0 for LAN access (see docs/ENVIRONMENT_VARIABLES.md)
@@ -68,50 +61,6 @@ const useHttps =
   fs.existsSync(certPath) &&
   fs.existsSync(keyPath);
 
-
-function getClientAddress(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (typeof forwarded === "string" && forwarded.trim()) {
-    return forwarded.split(",")[0].trim();
-  }
-  return req.ip || req.socket?.remoteAddress || "unknown";
-}
-
-function createRateLimiter({ name, max, windowMs, methods }) {
-  const buckets = new Map();
-  const allowedMethods = new Set(
-    (methods || ["GET", "POST", "PUT", "PATCH", "DELETE"]).map((m) =>
-      String(m).toUpperCase(),
-    ),
-  );
-  const safeMax = Math.max(1, Number(max) || 1);
-  const safeWindowMs = Math.max(1000, Number(windowMs) || 60000);
-
-  return function rateLimiter(req, res, next) {
-    if (!allowedMethods.has(req.method.toUpperCase())) {
-      return next();
-    }
-
-    const now = Date.now();
-    const key = `${name}:${getClientAddress(req)}`;
-    const record = buckets.get(key);
-    if (!record || now >= record.resetAt) {
-      buckets.set(key, { count: 1, resetAt: now + safeWindowMs });
-      return next();
-    }
-
-    if (record.count >= safeMax) {
-      const retryAfter = Math.max(1, Math.ceil((record.resetAt - now) / 1000));
-      res.setHeader("Retry-After", String(retryAfter));
-      return res
-        .status(429)
-        .json({ error: "Too many requests", code: "RATE_LIMITED", retryAfter });
-    }
-
-    record.count += 1;
-    return next();
-  };
-}
 
 // ── Initialize modules ───────────────────────────────
 const dataRoot = process.env.CC_DATA_DIR || __dirname;
@@ -146,11 +95,7 @@ const toolCallHandler = new ToolCallHandler(mcpClientManager, {
 });
 
 // ── Mount MCP API routes ─────────────────────────────
-const {
-  CLIENT_INTERNAL_ERROR,
-  STREAM_INTERNAL_ERROR,
-} = require("./lib/client-errors");
-const { router: mcpApiRouter, recordToolCall } = createMcpApiRoutes({
+const { router: mcpApiRouter } = createMcpApiRoutes({
   getConfig,
   updateConfig,
   mcpClientManager,
@@ -264,159 +209,8 @@ app.use((req, res, next) => {
   next();
 });
 
-const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
-const CHAT_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CHAT || 30);
-const CREATE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_CREATE || 12);
-const GITHUB_CLONE_RATE_LIMIT_MAX = Number(
-  process.env.RATE_LIMIT_MAX_GITHUB_CLONE || 6,
-);
-const MCP_TEST_RATE_LIMIT_MAX = Number(
-  process.env.RATE_LIMIT_MAX_MCP_TEST || 12,
-);
-const REVIEW_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_REVIEW || 20);
-const SCORE_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_SCORE || 20);
-const MEMORY_RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX_MEMORY || 30);
-
-app.use(
-  "/api/chat",
-  createRateLimiter({
-    name: "chat",
-    max: CHAT_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/create-project",
-  createRateLimiter({
-    name: "create-project",
-    max: CREATE_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/build-project",
-  createRateLimiter({
-    name: "build-project",
-    max: CREATE_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/build/projects",
-  createRateLimiter({
-    name: "build-registry",
-    max: CREATE_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST", "DELETE"],
-  }),
-);
-app.use(
-  "/api/github/clone",
-  createRateLimiter({
-    name: "github-clone",
-    max: GITHUB_CLONE_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/mcp/clients/test-connection",
-  createRateLimiter({
-    name: "mcp-test-connection",
-    max: MCP_TEST_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/review",
-  createRateLimiter({
-    name: "review",
-    max: REVIEW_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/pentest",
-  createRateLimiter({
-    name: "pentest",
-    max: REVIEW_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/score",
-  createRateLimiter({
-    name: "score",
-    max: SCORE_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/tutorial-suggestions",
-  createRateLimiter({
-    name: "tutorial-suggestions",
-    max: 20,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/memory",
-  createRateLimiter({
-    name: "memory",
-    max: MEMORY_RATE_LIMIT_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["POST", "PUT", "DELETE"],
-  }),
-);
-
-app.use(
-  "/api/build/projects/:id/next-action",
-  createRateLimiter({
-    name: "build-next-action",
-    max: 10,
-    windowMs: 60000,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/build/projects/:id/research",
-  createRateLimiter({
-    name: "build-research",
-    max: 5,
-    windowMs: 60000,
-    methods: ["POST"],
-  }),
-);
-app.use(
-  "/api/build/projects/:id/plan",
-  createRateLimiter({
-    name: "build-plan",
-    max: 5,
-    windowMs: 60000,
-    methods: ["POST"],
-  }),
-);
-
-const API_GLOBAL_RATE_MAX = Number(
-  process.env.RATE_LIMIT_MAX_API_GLOBAL || 300,
-);
-app.use(
-  "/api",
-  createRateLimiter({
-    name: "api-global",
-    max: API_GLOBAL_RATE_MAX,
-    windowMs: RATE_LIMIT_WINDOW_MS,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  }),
-);
+// ── Rate limiters (see lib/rate-limiters-config.js) ──
+registerRateLimiters(app);
 
 // ── MCP Management API routes ────────────────────────
 app.use("/api", mcpApiRouter);
@@ -448,17 +242,8 @@ const appContext = {
   toolCallHandler,
 };
 
-app.use(
-  "/api/generate-office",
-  createRateLimiter({
-    name: "office-gen",
-    max: 30,
-    windowMs: 60000,
-    methods: ["POST"],
-  }),
-);
-
 app.use("/api", createConfigRouter(appContext));
+app.use("/api", createConvertRouter({ getConfig, log }));
 app.use("/api", createOfficeRouter(appContext));
 app.use("/api", createLaunchRouter(appContext));
 app.use("/api", createHistoryRouter(appContext));
@@ -542,192 +327,21 @@ app.get("/api/docling/health", async (req, res) => {
   }
 });
 
-// ── Document conversion (Docling → built-in fallback) ─
-app.post(
-  "/api/convert-document",
-  express.json({ limit: "50mb" }),
-  createRateLimiter({
-    name: "convert",
-    max: 10,
-    windowMs: 60000,
-    methods: ["POST"],
-  }),
-  async (req, res) => {
-    const config = getConfig();
-    const { content, filename } = req.body;
-
-    if (!content || !filename) {
-      return res.status(400).json({ error: "Missing content or filename" });
-    }
-
-    const ext = path.extname(filename).toLowerCase();
-    const ALLOWED = new Set([
-      ".pdf",
-      ".pptx",
-      ".docx",
-      ".xlsx",
-      ".xls",
-      ".csv",
-      ".doc",
-      ".ppt",
-      ".odt",
-      ".ods",
-      ".odp",
-      ".rtf",
-      ".latex",
-      ".tex",
-      ".epub",
-    ]);
-    if (!ALLOWED.has(ext)) {
-      return res.status(400).json({ error: `Unsupported file type: ${ext}` });
-    }
-
-    let buffer;
-    try {
-      buffer = Buffer.from(content, "base64");
-    } catch {
-      return res.status(400).json({ error: "Invalid base64 content" });
-    }
-
-    const maxBytes = (config.docling?.maxFileSizeMB || 50) * 1024 * 1024;
-    if (buffer.length > maxBytes) {
-      return res.status(413).json({
-        error: `File too large: ${(buffer.length / 1024 / 1024).toFixed(1)}MB (max ${config.docling?.maxFileSizeMB || 50}MB)`,
-      });
-    }
-
-    log(
-      "INFO",
-      `Converting document: ${filename} (${(buffer.length / 1024).toFixed(1)}KB)`,
-    );
-
-    const mkResponse = (result, converter) => ({
-      markdown: result.markdown,
-      filename,
-      originalSize: buffer.length,
-      markdownSize: result.markdown.length,
-      truncated: result.truncated || false,
-      status: result.status,
-      processingTime: result.processingTime,
-      errors: result.errors,
-      converter,
-    });
-
-    // ── Try Docling first if enabled ──
-    if (config.docling?.enabled) {
-      try {
-        const result = await convertDoc(
-          config.docling.url,
-          effectiveDoclingApiKey(config),
-          buffer,
-          filename,
-          {
-            outputFormat: config.docling.outputFormat || "md",
-            ocr: config.docling.ocr !== false,
-            ocrEngine: config.docling.ocrEngine || "easyocr",
-            timeoutSec: config.docling.timeoutSec || 120,
-          },
-        );
-        return res.json(mkResponse(result, "docling"));
-      } catch (err) {
-        const isConn =
-          err.message?.includes("ECONNREFUSED") ||
-          err.message?.includes("fetch failed");
-        log(
-          "WARN",
-          `Docling ${isConn ? "unreachable" : "error"} for ${filename}: ${err.message}`,
-        );
-        // Fall through to built-in for supported formats
-        if (!canConvertBuiltin(filename)) {
-          if (isConn) {
-            return res.status(503).json({
-              error: `${ext.slice(1).toUpperCase()} files require Docling for conversion`,
-              detail: `Cannot reach Docling at ${config.docling.url}. Built-in conversion supports PDF, DOCX, and XLSX only.`,
-              setupHint:
-                'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
-            });
-          }
-          return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
-        }
-        log("INFO", `Falling back to built-in converter for ${filename}`);
-      }
-    }
-
-    // ── Built-in fallback ──
-    if (canConvertBuiltin(filename)) {
-      try {
-        const result = await convertBuiltin(buffer, filename);
-        return res.json(mkResponse(result, "builtin"));
-      } catch (err) {
-        log("ERROR", `Built-in conversion failed: ${filename}`, {
-          error: err.message,
-        });
-        return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
-      }
-    }
-
-    // ── Unsupported format without Docling ──
-    const reason = !config.docling?.enabled
-      ? "Document conversion (Docling) is disabled in Settings"
-      : "Cannot reach the Docling server";
-    return res.status(503).json({
-      error: `${ext.slice(1).toUpperCase()} files require Docling for conversion`,
-      detail: `${reason}. Built-in conversion supports PDF, DOCX, and XLSX only.`,
-      setupHint:
-        'pip install "docling-serve[ui]" && docling-serve run --host 127.0.0.1 --port 5002',
-    });
+// ── MCP HTTP Server (see lib/mcp-http.js) ────────────
+// Must be AFTER all /api/* routes but BEFORE SPA fallback
+mountMcpHttp(app, {
+  getConfig,
+  log,
+  debug,
+  requireLocalOrApiKey,
+  deps: {
+    listModels,
+    chatComplete,
+    checkConnection,
+    buildFileTree,
+    readProjectFile,
+    listConversations,
   },
-);
-
-// ── MCP HTTP Server (Factory pattern) ─────────────────
-
-// Factory: fresh McpServer per request (required for concurrency)
-function createMcpServer() {
-  const config = getConfig();
-  const disabledTools = config.mcpServer?.disabledTools || [];
-  const mcpServer = new McpServer({
-    name: "code-companion-mcp",
-    version: "1.0.0",
-  });
-  registerAllTools(
-    mcpServer,
-    {
-      getConfig,
-      log,
-      debug,
-      listModels,
-      chatComplete,
-      checkConnection,
-      buildFileTree,
-      readProjectFile,
-      listConversations,
-    },
-    disabledTools,
-  );
-  return mcpServer;
-}
-
-// Place AFTER all /api/* routes but BEFORE SPA fallback
-app.all("/mcp", requireLocalOrApiKey, async (req, res) => {
-  try {
-    const config = getConfig();
-    if (config.mcpServer?.httpEnabled === false) {
-      return res.status(503).json({ error: "MCP server is disabled" });
-    }
-    const mcpServer = createMcpServer();
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-      enableJsonResponse: true,
-    });
-    res.on("close", () => transport.close());
-    await mcpServer.connect(transport);
-    await transport.handleRequest(req, res, req.body);
-  } catch (err) {
-    log("ERROR", "MCP request failed", { error: err.message });
-    if (!res.headersSent) {
-      res.status(500).json({ error: "MCP server error" });
-    }
-  }
 });
 
 // ── Graceful shutdown ────────────────────────────────
