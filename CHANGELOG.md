@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.1] — 2026-04-08
+
+### Fixed
+
+- **Download page URL** — "Open download page" in Settings now correctly links to `github.com/Th3rdai/CodeCompanion/releases/latest` (was pointing to the old `3rdAI-admin` org).
+
+---
+
 ## [1.6.0] — 2026-04-08
 
 ### Added
