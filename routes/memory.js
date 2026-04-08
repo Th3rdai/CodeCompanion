@@ -98,7 +98,9 @@ module.exports = function createRouter(appContext) {
       const start = (page - 1) * limit;
       memories = memories.slice(start, start + limit);
 
-      const cleaned = memories.map(({ embedding: _embedding, ...rest }) => rest);
+      const cleaned = memories.map(
+        ({ embedding: _embedding, ...rest }) => rest,
+      );
       res.json({ memories: cleaned, total, page, limit });
     } catch (err) {
       log("ERROR", "Failed to list memories", { error: err.message });

@@ -488,6 +488,7 @@ export default function App() {
         );
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isElectron]);
 
   // Listen for auto-update events (Electron only)
@@ -605,6 +606,7 @@ export default function App() {
           fetchHistory();
         });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [activeConvId, selectedModel],
   );
 

@@ -13,10 +13,7 @@ import {
   History,
   Copy,
   Download,
-  Check,
-  ChevronDown,
   Wrench,
-  X,
 } from "lucide-react";
 import JSZip from "jszip";
 import { copyText } from "../lib/clipboard";
@@ -32,7 +29,6 @@ import {
   isConvertibleDocument,
   convertDocument,
   validateDocument,
-  getDocumentAcceptString,
 } from "../lib/document-processor";
 
 // ── Model tier system (same as ReviewPanel) ──────────
@@ -134,7 +130,7 @@ function suggestBetterModel(currentModel, installedModels) {
 export default function SecurityPanel({
   selectedModel,
   connected,
-  streaming: appStreaming,
+  streaming: _appStreaming,
   onAttachFromBrowser,
   onOpenFileBrowser,
   onToast,
@@ -161,7 +157,7 @@ export default function SecurityPanel({
   const [folderPreview, setFolderPreview] = useState(null);
   const [folderLoading, setFolderLoading] = useState(false);
   const [folderError, setFolderError] = useState("");
-  const [folderMeta, setFolderMeta] = useState(null);
+  const [_folderMeta, setFolderMeta] = useState(null);
 
   // Fallback follow-up conversation state
   const [fallbackMessages, setFallbackMessages] = useState([]);
@@ -330,6 +326,7 @@ export default function SecurityPanel({
     } finally {
       singleAbort.clearAbortable();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, filename, selectedModel, isLoading, singleAbort, fallbackContent]);
 
   // ── Deep dive into a category ──────────────────────
@@ -362,11 +359,12 @@ export default function SecurityPanel({
 
       sendDeepDiveMessage([systemMsg, userMsg], context);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [code, selectedModel],
   );
 
   // ── Send deep-dive chat message ───────────────────
-  async function sendDeepDiveMessage(messages, contextStr) {
+  async function sendDeepDiveMessage(messages, _contextStr) {
     if (!selectedModel) return;
     setDeepDiveStreaming(true);
 
@@ -1091,6 +1089,7 @@ export default function SecurityPanel({
     } finally {
       folderAbort.clearAbortable();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderPath, selectedModel, isLoading, folderAbort, fallbackContent]);
 
   // ── Render: Loading ───────────────────────────────

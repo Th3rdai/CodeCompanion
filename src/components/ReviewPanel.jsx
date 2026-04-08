@@ -10,12 +10,9 @@ import {
   FolderOpen,
   AlertTriangle,
   History,
-  X,
 } from "lucide-react";
-import { readText } from "../lib/clipboard";
 import ReportCard from "./ReportCard";
 import MessageBubble from "./MessageBubble";
-import DictateButton from "./DictateButton";
 import InputToolbar from "./ui/InputToolbar";
 import MarkdownContent from "./MarkdownContent";
 import LoadingAnimation from "./LoadingAnimation";
@@ -26,7 +23,6 @@ import {
   isConvertibleDocument,
   convertDocument,
   validateDocument,
-  getDocumentAcceptString,
 } from "../lib/document-processor";
 
 // ── Model tier system ─────────────────────────────────
@@ -133,11 +129,11 @@ function suggestBetterModel(currentModel, installedModels) {
 export default function ReviewPanel({
   selectedModel,
   connected,
-  streaming: appStreaming,
+  streaming: _appStreaming,
   onAttachFromBrowser,
   onOpenFileBrowser,
   onToast,
-  onSwitchToChat,
+  onSwitchToChat: _onSwitchToChat,
   savedReview,
   onSaveReview,
   models,
@@ -317,6 +313,7 @@ export default function ReviewPanel({
     } finally {
       clearAbortable();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     code,
     filename,
@@ -354,11 +351,12 @@ export default function ReviewPanel({
       // Auto-send the initial deep-dive question
       sendDeepDiveMessage([systemMsg, userMsg], context);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [code, selectedModel],
   );
 
   // ── Send deep-dive chat message ───────────────────
-  async function sendDeepDiveMessage(messages, contextStr) {
+  async function sendDeepDiveMessage(messages, _contextStr) {
     if (!selectedModel) return;
     setDeepDiveStreaming(true);
 
@@ -691,24 +689,6 @@ export default function ReviewPanel({
         reader.readAsText(file);
       }
     }
-  }
-
-  // ── Paste from clipboard ──────────────────────────
-  async function handlePasteFromClipboard() {
-    const text = await readText();
-    if (text) {
-      setCode((prev) => prev + text);
-      textareaRef.current?.focus();
-      onToast?.("Pasted from clipboard");
-    } else {
-      textareaRef.current?.focus();
-      onToast?.("Press Ctrl+V (or ⌘V) to paste");
-    }
-  }
-
-  // ── Dictation result ──────────────────────────────
-  function handleDictation(text) {
-    setCode((prev) => (prev ? prev + " " + text : text));
   }
 
   // ── Reset to input ────────────────────────────────

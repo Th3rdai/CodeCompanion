@@ -101,6 +101,7 @@ export default function BuildSimpleView({
     if (project?.id && ollamaConnected) {
       fetchNextAction();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project?.id]);
 
   async function fetchNextAction() {

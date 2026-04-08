@@ -260,7 +260,7 @@ export async function hashImage(base64OrDataURL) {
  * @param {string} imageBase64 - Base64 image string
  * @returns {number} Estimated token count (~765 per image)
  */
-export function estimateTokens(imageBase64) {
+export function estimateTokens(_imageBase64) {
   // Ollama vision models use ~765 tokens per image
   return 765;
 }

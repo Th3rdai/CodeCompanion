@@ -675,6 +675,7 @@ export function useChat({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-send pending prompt after mode change settles (CRE8 PRP flow)
@@ -689,6 +690,7 @@ export function useChat({
     const prompt = pendingAutoSend.current;
     pendingAutoSend.current = null;
     handleSend(prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, selectedModel, streaming]);
 
   function handleSaveChat() {

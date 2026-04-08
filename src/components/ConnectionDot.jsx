@@ -1,4 +1,3 @@
-
 /**
  * Connection status indicator dot
  * @param {Object} props

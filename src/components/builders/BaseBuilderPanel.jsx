@@ -86,7 +86,7 @@ function TagInput({
 export default function BaseBuilderPanel({
   selectedModel,
   connected,
-  models,
+  models: _models,
   onToast,
   savedData,
   onSaveBuilder,
@@ -137,6 +137,7 @@ export default function BaseBuilderPanel({
       }
     }
     setFormData(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.modeId]);
 
   // ── Restore saved data from history ──────────────────

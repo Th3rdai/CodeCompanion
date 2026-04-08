@@ -126,7 +126,7 @@ export default function SettingsPanel({
     setEnabled: setEffects3D,
     theme,
     setThemeId,
-    customHue,
+    customHue: _customHue,
     setCustomHue,
   } = use3DEffects();
 
@@ -571,18 +571,6 @@ export default function SettingsPanel({
         body: JSON.stringify({ remove: name }),
       });
       fetchGhTokenStatus();
-    } catch {}
-  }
-
-  async function handleRemoveGhToken() {
-    try {
-      await apiFetch("/api/github/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: "" }),
-      });
-      setGhTokenStatus(null);
-      setGhResult(null);
     } catch {}
   }
 

@@ -502,16 +502,16 @@ test.describe("Image Upload E2E - Settings", () => {
       await expect(imageSupportSection).toBeVisible();
 
       // Verify settings controls exist
-      const enableToggle = page
+      const _enableToggle = page
         .locator('input[type="checkbox"]')
         .filter({ hasText: /enable.*image/i });
-      const maxSizeSlider = page
+      const _maxSizeSlider = page
         .locator('input[type="range"]')
         .filter({ hasText: /max.*size/i });
-      const maxCountSlider = page
+      const _maxCountSlider = page
         .locator('input[type="range"]')
         .filter({ hasText: /max.*images/i });
-      const qualitySlider = page
+      const _qualitySlider = page
         .locator('input[type="range"]')
         .filter({ hasText: /quality/i });
 
