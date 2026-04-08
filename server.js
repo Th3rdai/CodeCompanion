@@ -145,8 +145,16 @@ function sendSpaIndexHtml(res) {
   if (!fs.existsSync(indexPath)) return false;
   let html = fs.readFileSync(indexPath, "utf8");
   html = injectCspNonceIntoHtml(html, res.locals.cspNonce);
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.type("html").send(html);
   return true;
+}
+
+function isLikelyAssetRequest(reqPath = "") {
+  if (!reqPath) return false;
+  if (reqPath.startsWith("/assets/")) return true;
+  // If path has a file extension, treat it as a file request (not SPA route).
+  return /\.[a-zA-Z0-9]+$/.test(reqPath);
 }
 
 // ── Security Headers & CORS ─────────────────────────
@@ -197,6 +205,31 @@ app.use(
     },
   }),
 );
+
+// Asset diagnostics endpoint (local/API-key gated). Helps debug stale-hash or missing-file issues.
+app.get("/api/debug/static-asset", requireLocalOrApiKey, (req, res) => {
+  const rel = String(req.query.path || "").trim();
+  const clean = rel.replace(/^\/+/, "");
+  if (!clean) {
+    return res.status(400).json({ error: "Missing query param: path" });
+  }
+  const fullPath = path.join(staticDir, clean);
+  const insideStatic = fullPath.startsWith(staticDir + path.sep);
+  const exists = insideStatic && fs.existsSync(fullPath);
+  let stat = null;
+  if (exists) {
+    const s = fs.statSync(fullPath);
+    stat = { size: s.size, mtime: s.mtime.toISOString() };
+  }
+  res.json({
+    staticDir,
+    requested: clean,
+    fullPath,
+    insideStatic,
+    exists,
+    stat,
+  });
+});
 
 // ── Request logging middleware ───────────────────────
 
@@ -362,6 +395,11 @@ process.on("SIGTERM", async () => {
 // ── SPA Fallback (must be after all API routes) ──────
 
 app.get("*", (req, res) => {
+  // Avoid serving index.html for stale/missing asset hashes; return 404 instead.
+  if (isLikelyAssetRequest(req.path)) {
+    log("WARN", "Asset not found", { path: req.path, staticDir });
+    return res.status(404).type("text/plain").send("Asset not found");
+  }
   if (sendSpaIndexHtml(res)) return;
   res.status(404).send("Not found");
 });
