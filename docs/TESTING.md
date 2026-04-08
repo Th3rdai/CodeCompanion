@@ -19,7 +19,7 @@ Run unit tests before small backend changes; run Playwright when changing UI or 
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tests/unit/`             | Focused unit tests for `lib/` modules (builders, image processor, pentest schema, **memory scoping**, **tool-call / builtin preamble**, etc.) |
 | `tests/ui/`               | Playwright specs for components and flows (onboarding, security mode, builders, glossary, …)                                                  |
-| `tests/e2e/`              | End-to-end workflows (image upload, review, **create mode** wizard + API guardrails)                                                          |
+| `tests/e2e/`              | End-to-end workflows (image upload, review, **create mode** wizard + API guardrails, **agent terminal** allowlist/audit)                      |
 | `tests/integration/`      | API integration tests (spawn server; **`api-with-images.test.js`** — `messages`+`mode` for chat, JSON vs SSE for review/pentest)              |
 | `tests/*.test.js`         | Top-level Node tests (rate limit, MCP security, tone validation, UI labels)                                                                   |
 | `playwright.config.js`    | Playwright: starts `npm run build && FORCE_HTTP=1 PORT=4173 node server.js`; see **Playwright env** below                                     |
@@ -47,6 +47,16 @@ BASE_URL=https://127.0.0.1:4173 npm run test:ui
 | `BASE_URL`          | Same as above for HTTPS / alternate host.                                                                                                                      |
 
 The root config sets **`retries: 2`** so occasional hydration / single-server flake can recover without failing the whole run.
+
+## Agent terminal E2E
+
+`tests/e2e/agent-terminal.spec.js` covers `lib/builtin-agent-tools.js` `run_terminal_cmd` per **CLIPLAN.md §8** review checklist. Three scenarios:
+
+1. **Enable/disable** — `agentTerminal.enabled = false` ⇒ `getBuiltinTools()` does **not** advertise `run_terminal_cmd` (LLM never sees it).
+2. **Allowlist deny** — command not in `agentTerminal.allowlist` ⇒ executor returns `Command denied`, **does not spawn**, and writes a `denied` event (with `denyType: "allowlist"`) to `logs/terminal-audit.log`.
+3. **Happy path** — `node --version` is in the allowlist ⇒ executor spawns it, returns `Exit code: 0` plus version, and writes an `executed` event with `exitCode: 0`, `durationMs`, and `truncated: false` to the audit log.
+
+The spec calls `executeBuiltinTool()` directly via `require()` inside Playwright's Node runner — **no browser, webServer, or live LLM** required. It uses a fresh `CC_DATA_DIR` per scenario so the audit log is isolated.
 
 ## CI
 
