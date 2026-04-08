@@ -112,6 +112,7 @@ export default function SettingsPanel({
   const [terminalEnabled, setTerminalEnabled] = useState(false);
   const [terminalAllowlist, setTerminalAllowlist] = useState("");
   const [terminalTimeout, setTerminalTimeout] = useState(60);
+  const [terminalConfirmBeforeRun, setTerminalConfirmBeforeRun] = useState(false);
 
   // GitHub token state (multi-PAT)
   const [ghToken, setGhToken] = useState("");
@@ -191,6 +192,7 @@ export default function SettingsPanel({
               (data.agentTerminal.allowlist || []).join(", "),
             );
             setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
+            setTerminalConfirmBeforeRun(data.agentTerminal.confirmBeforeRun ?? false);
           }
           if (data.autoModelMap && typeof data.autoModelMap === "object")
             setAutoModelMap(data.autoModelMap);
@@ -1009,6 +1011,26 @@ export default function SettingsPanel({
                   <div className="flex justify-between text-[10px] text-slate-600 mt-1">
                     <span>10s</span>
                     <span>300s</span>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">
+                        Confirm before run
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Prompt for approval before executing each command
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setTerminalConfirmBeforeRun((v) => !v)}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${terminalConfirmBeforeRun ? "bg-indigo-500" : "bg-slate-600"}`}
+                      aria-label="Toggle confirm before run"
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${terminalConfirmBeforeRun ? "translate-x-4" : ""}`}
+                      />
+                    </button>
                   </div>
                 </>
               )}
@@ -2384,6 +2406,7 @@ export default function SettingsPanel({
                         .map((s) => s.trim())
                         .filter(Boolean),
                       maxTimeoutSec: terminalTimeout,
+                      confirmBeforeRun: terminalConfirmBeforeRun,
                     },
                   }),
                 });

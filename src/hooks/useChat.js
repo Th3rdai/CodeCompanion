@@ -34,6 +34,8 @@ export function useChat({
   const [renaming, setRenaming] = useState(null);
   const [stats, setStats] = useState(null);
   const [sendBurst, setSendBurst] = useState(false);
+  /** Pending confirm-before-run prompt: { id, command, args, cwd } or null */
+  const [pendingConfirm, setPendingConfirm] = useState(null);
   /** AbortController for POST /api/chat — Stop button */
   const chatAbortRef = useRef(null);
   /** Batches streaming tokens to one React update per animation frame (reduces main-thread jank). */
@@ -511,8 +513,31 @@ export function useChat({
                     .map((c) => `${c.toolName}(${JSON.stringify(c.args)})`)
                     .join("; "),
                   status: "running",
+                  output: "",
                 });
               }
+            }
+            // Streaming terminal SSE events from run_terminal_cmd
+            if (parsed.terminalCmd) {
+              const { command, args } = parsed.terminalCmd;
+              const cmdStr = [command, ...(args || [])].join(" ");
+              setTerminalOutput({ command: cmdStr, status: "running", output: "" });
+            }
+            if (parsed.terminalOutput) {
+              setTerminalOutput((prev) =>
+                prev
+                  ? { ...prev, output: (prev.output || "") + parsed.terminalOutput }
+                  : { command: "", status: "running", output: parsed.terminalOutput },
+              );
+            }
+            if (parsed.terminalStatus) {
+              const { exitCode, killed } = parsed.terminalStatus;
+              const status = killed ? "timeout" : exitCode === 0 ? "done" : "error";
+              setTerminalOutput((prev) => (prev ? { ...prev, status } : null));
+            }
+            // Confirm-before-run: show modal for user approval
+            if (parsed.confirmRequired) {
+              setPendingConfirm(parsed.confirmRequired);
             }
             // Render MCP tool result images inline in the assistant message
             if (parsed.toolImage) {
@@ -614,6 +639,7 @@ export function useChat({
     } finally {
       chatAbortRef.current = null;
       setTerminalOutput(null);
+      setPendingConfirm(null);
       setStreaming(false);
     }
   }
@@ -621,6 +647,7 @@ export function useChat({
   function handleStopChat() {
     chatAbortRef.current?.abort();
     setTerminalOutput(null);
+    setPendingConfirm(null);
   }
 
   // ── Global Escape key → abort all active requests ──
@@ -719,5 +746,7 @@ export function useChat({
     handleStopChat,
     handleSaveChat,
     pendingAutoSend,
+    pendingConfirm,
+    setPendingConfirm,
   };
 }

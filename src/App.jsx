@@ -46,6 +46,7 @@ import ImageLightbox from "./components/ImageLightbox";
 import ImagePrivacyWarning from "./components/ImagePrivacyWarning";
 import DictateButton from "./components/DictateButton";
 import ExportPanel from "./components/ExportPanel";
+import ConfirmRunModal from "./components/ConfirmRunModal";
 import { joinAppend } from "./lib/dictationAppend";
 import {
   ChevronLeft,
@@ -399,6 +400,8 @@ export default function App() {
     handleSend,
     handleStopChat,
     pendingAutoSend,
+    pendingConfirm,
+    setPendingConfirm,
   } = useChat({
     mode,
     setMode,
@@ -1526,14 +1529,23 @@ export default function App() {
                                 </span>{" "}
                                 Running command...
                               </>
+                            ) : terminalOutput.status === "error" ? (
+                              <span className="text-red-400">✕ Command failed</span>
+                            ) : terminalOutput.status === "timeout" ? (
+                              <span className="text-yellow-400">⏱ Command timed out</span>
                             ) : (
-                              <>&#x2713; Command completed</>
+                              <span className="text-green-400">✓ Command completed</span>
                             )}
                           </span>
                         </div>
                         {terminalOutput.command && (
-                          <pre className="px-3 py-2 text-xs text-slate-400 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto scrollbar-thin">
-                            {terminalOutput.command}
+                          <pre className="px-3 py-2 text-xs text-slate-400 font-mono whitespace-pre-wrap border-b border-indigo-500/10">
+                            $ {terminalOutput.command}
+                          </pre>
+                        )}
+                        {terminalOutput.output && (
+                          <pre className="px-3 py-2 text-xs text-slate-300 font-mono whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-thin">
+                            {terminalOutput.output}
                           </pre>
                         )}
                       </div>
@@ -1814,6 +1826,10 @@ export default function App() {
           }}
         />
       )}
+      <ConfirmRunModal
+        pending={pendingConfirm}
+        onDone={() => setPendingConfirm(null)}
+      />
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
       {/* Image Lightbox (Phase 2: Image Support) */}

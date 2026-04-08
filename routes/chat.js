@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const { getConfig } = require("../lib/config");
 const { SYSTEM_PROMPTS } = require("../lib/prompts");
@@ -90,7 +91,26 @@ function getCachedProjectPrompt(projectFolder) {
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
-  const { log, debug, toolCallHandler } = appContext;
+  const { log, debug, logDir, toolCallHandler } = appContext;
+
+  /** Pending confirm-before-run confirmations: id → { resolve, timeout } */
+  const pendingConfirmations = new Map();
+
+  // ── POST /api/chat/confirm — resolve a pending confirm-before-run prompt ──
+  router.post(
+    "/chat/confirm",
+    express.json({ limit: "1kb" }),
+    (req, res) => {
+      const { id, approved } = req.body || {};
+      if (!id) return res.status(400).json({ error: "Missing id" });
+      const pending = pendingConfirmations.get(id);
+      if (!pending) return res.status(404).json({ error: "Unknown confirmation id" });
+      pendingConfirmations.delete(id);
+      clearTimeout(pending.timeout);
+      pending.resolve({ approved: !!approved });
+      res.json({ ok: true });
+    },
+  );
 
   function ollamaAuthOpts(cfg) {
     const k = effectiveOllamaApiKey(cfg);
@@ -394,6 +414,32 @@ module.exports = function createRouter(appContext) {
       });
 
       // ── Tool-call loop (when agent tools are available) ──
+      // Set up SSE streaming context so builtin tools (e.g. run_terminal_cmd) can
+      // stream live output and request user confirmation.
+      const stripAnsiSimple = (s) => s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+      toolCallHandler.sseContext = {
+        logDir,
+        onStart: (info) => sendEvent({ terminalCmd: info }),
+        onData: (chunk) => {
+          const text = stripAnsiSimple(chunk.toString());
+          if (text) sendEvent({ terminalOutput: text });
+        },
+        onStatus: (info) => sendEvent({ terminalStatus: info }),
+        confirmCallback: config.agentTerminal?.confirmBeforeRun
+          ? ({ command, args, cwd }) => {
+              const id = crypto.randomUUID();
+              return new Promise((resolve) => {
+                const timeout = setTimeout(() => {
+                  pendingConfirmations.delete(id);
+                  resolve({ approved: false });
+                }, 60000);
+                pendingConfirmations.set(id, { resolve, timeout });
+                sendEvent({ confirmRequired: { id, command, args, cwd } });
+              });
+            }
+          : null,
+      };
+
       // Use chatComplete for rounds that may contain tool calls, then stream the final response.
       if (hasAgentTools) {
         let loopMessages = [...fullMessages];
@@ -691,9 +737,11 @@ module.exports = function createRouter(appContext) {
           res.write("data: [DONE]\n\n");
           res.end();
         }
+        toolCallHandler.sseContext = null;
         log("INFO", `Chat complete (tool-call mode): ${finalText.length} chars`);
         return;
       }
+      toolCallHandler.sseContext = null;
 
       // ── Standard streaming path (no agent tools) ──
       let reader = null;
