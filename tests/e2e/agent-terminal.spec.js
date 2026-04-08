@@ -151,3 +151,76 @@ test("scenario 3 — happy path: allowlisted command runs and executed event is 
   expect(typeof events[0].durationMs).toBe("number");
   expect(events[0].truncated).toBe(false);
 });
+
+test("scenario 4 — confirm-before-run blocks execution when callback is missing", async () => {
+  const dataRoot = freshDataRoot("confirm-missing");
+  const config = {
+    projectFolder: dataRoot,
+    agentTerminal: {
+      enabled: true,
+      allowlist: ["node"],
+      blocklist: [],
+      maxTimeoutSec: 30,
+      maxOutputKB: 64,
+      confirmBeforeRun: true,
+    },
+  };
+
+  const result = await toolsModule.executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "node", args: ["--version"] },
+    config,
+    silentLog(),
+    // No context passed: confirmCallback is unavailable
+  );
+
+  expect(result.success).toBe(false);
+  const text = result.result.content[0].text;
+  expect(text).toContain("confirmation is required but unavailable");
+
+  await new Promise((r) => setTimeout(r, 60));
+  const events = readAudit(dataRoot);
+  expect(events.length).toBe(1);
+  expect(events[0].event).toBe("denied");
+  expect(events[0].denyType).toBe("confirm-unavailable");
+  expect(events[0].command).toBe("node");
+});
+
+test("scenario 5 — confirm-before-run blocks execution when callback throws", async () => {
+  const dataRoot = freshDataRoot("confirm-error");
+  const config = {
+    projectFolder: dataRoot,
+    agentTerminal: {
+      enabled: true,
+      allowlist: ["node"],
+      blocklist: [],
+      maxTimeoutSec: 30,
+      maxOutputKB: 64,
+      confirmBeforeRun: true,
+    },
+  };
+
+  const result = await toolsModule.executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "node", args: ["--version"] },
+    config,
+    silentLog(),
+    null,
+    {
+      confirmCallback: async () => {
+        throw new Error("confirm service unavailable");
+      },
+    },
+  );
+
+  expect(result.success).toBe(false);
+  const text = result.result.content[0].text;
+  expect(text).toContain("confirmation check failed");
+
+  await new Promise((r) => setTimeout(r, 60));
+  const events = readAudit(dataRoot);
+  expect(events.length).toBe(1);
+  expect(events[0].event).toBe("denied");
+  expect(events[0].denyType).toBe("confirm-error");
+  expect(events[0].command).toBe("node");
+});
