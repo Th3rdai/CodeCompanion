@@ -1,0 +1,62 @@
+{
+  "ollamaUrl": "http://localhost:11434",
+  "ollamaApiKey": "",
+  "icmTemplatePath": "",
+  "reviewTimeoutSec": 300,
+  "chatTimeoutSec": 120,
+  "numCtx": 0,
+  "autoAdjustContext": true,
+  "preferredPort": 8900,
+  "selectedModel": "",
+  "projectFolder": "",
+  "mcpClients": [
+    {
+      "id": "archon",
+      "name": "Archon",
+      "transport": "http",
+      "command": "",
+      "args": [],
+      "env": {},
+      "url": "http://127.0.0.1:8051/mcp",
+      "autoConnect": true,
+      "disabledTools": []
+    }
+  ],
+  "memory": {
+    "enabled": false,
+    "embeddingModel": "",
+    "maxContextTokens": 500,
+    "autoExtract": true,
+    "maxMemories": 500
+  },
+  "imageSupport": {
+    "enabled": true,
+    "maxSizeMB": 25,
+    "maxDimensionPx": 8192,
+    "compressionQuality": 0.9,
+    "maxImagesPerMessage": 10,
+    "resizeThreshold": 2048,
+    "warnOnFirstUpload": true
+  },
+  "docling": {
+    "url": "http://127.0.0.1:5002",
+    "apiKey": "",
+    "enabled": true,
+    "maxFileSizeMB": 50,
+    "outputFormat": "md",
+    "ocr": true,
+    "ocrEngine": "easyocr",
+    "timeoutSec": 120
+  },
+  "agentTerminal": {
+    "enabled": false,
+    "allowlist": [],
+    "blocklist": ["sudo", "su", "rm -rf", "chmod 777", "mkfs", "dd"],
+    "maxTimeoutSec": 60,
+    "maxOutputKB": 256,
+    "confirmBeforeRun": false
+  },
+  "mcpServer": {
+    "httpEnabled": true
+  }
+}

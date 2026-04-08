@@ -31,6 +31,8 @@ If **`logs/app.log`** contains **`Ollama chatComplete failed`** with **`"error":
 
 **External MCP servers** are stored in **`mcpClients`** inside **`.cc-config.json`**, but the file location depends on how you run the app:
 
+**Secrets:** The whole **`.cc-config.json`** file can contain tokens and keys (GitHub, MCP `env`, Ollama Cloud, etc.). It is **gitignored** — see **`docs/CC-CONFIG.md`** before committing or sharing your config.
+
 | How you run                                               | Config file                                                                                                      |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **`node server.js`** from the repo (no **`CC_DATA_DIR`**) | **`<repo>/.cc-config.json`**                                                                                     |
@@ -40,6 +42,8 @@ If **`logs/app.log`** contains **`Ollama chatComplete failed`** with **`"error":
 **Unpackaged Electron dev:** On startup, if the data-dir config has **no** MCP clients but the **repo root** `.cc-config.json` does, the app **copies `mcpClients`** into the data-dir config once (so Settings matches the file developers often edit in git). **Restart** the app after editing the repo file so this can run.
 
 **LAN UI:** **`GET /api/mcp/clients`** is a sensitive route — use **`http://127.0.0.1:…`** or matching **`X-CC-API-Key`** (see **ENVIRONMENT_VARIABLES.md**).
+
+**Archon (Docker MCP on :8051):** Example **`mcpClients`** entry and smoke test — **[ARCHON-MCP.md](./ARCHON-MCP.md)**.
 
 ## Log files
 

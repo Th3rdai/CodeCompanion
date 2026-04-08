@@ -106,4 +106,4 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 
 ## Code Companion — Settings Panel
 
-Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab configures optional embedding memory (`memory` in **`.cc-config.json`**); retrieval is **per conversation** — the client sends **`conversationId`** on **`POST /api/chat`** after the thread is saved so **`buildMemoryContext()`** only injects memories whose **`source`** matches that id (see **`lib/memory.js`**). General tab includes: see **`CLAUDE.md`** (Settings Panel).
+Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab configures optional embedding memory (`memory` in **`.cc-config.json`**); retrieval is **per conversation** — the client sends **`conversationId`** on **`POST /api/chat`** after the thread is saved so **`buildMemoryContext()`** only injects memories whose **`source`** matches that id (see **`lib/memory.js`**). General tab includes: see **`CLAUDE.md`** (Settings Panel). **`.cc-config.json`** often holds secrets — **gitignored**; see **`docs/CC-CONFIG.md`** before committing.

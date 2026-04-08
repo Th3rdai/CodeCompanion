@@ -309,6 +309,7 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 ├── mcp-server.js          # MCP stdio entry point
 ├── startup.sh             # Launch script with health checks
 ├── rebuild.sh             # Quick rebuild + restart script
+├── .cc-config.json.example # Safe config template (copy to .cc-config.json — gitignored)
 ├── lib/
 │   ├── config.js             # Config getter/setter (.cc-config.json)
 │   ├── logger.js             # File + stderr logging
@@ -374,7 +375,9 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 
 ## Configuration
 
-Settings are stored in `.cc-config.json`:
+Settings are stored in **`.cc-config.json`**. That file often includes **tokens, API keys, and personal paths** — it is **gitignored**; **do not commit** it unless you intentionally strip secrets. Full guidance: **[docs/CC-CONFIG.md](docs/CC-CONFIG.md)**.
+
+To start from a **safe template** (committed, no secrets): **`cp .cc-config.json.example .cc-config.json`**, then edit or use **Settings**. See **`.cc-config.json.example`** for the full shape; the snippet below is illustrative only.
 
 ```json
 {
@@ -389,6 +392,13 @@ Settings are stored in `.cc-config.json`:
       "transport": "stdio",
       "command": "npx -y @modelcontextprotocol/server-github",
       "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..." },
+      "autoConnect": true
+    },
+    {
+      "id": "archon",
+      "name": "Archon",
+      "transport": "http",
+      "url": "http://127.0.0.1:8051/mcp",
       "autoConnect": true
     }
   ]

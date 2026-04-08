@@ -27,6 +27,10 @@ The server uses **`path.join(dataRoot, '.cc-config.json')`** with **`dataRoot = 
 
 For empty MCP clients or “wrong” settings in Electron dev, see **`docs/TROUBLESHOOTING.md`**.
 
+### Secrets and Git
+
+**`.cc-config.json` is not for public repos by default.** It can hold GitHub PATs, Ollama/Docling keys, MCP `env` blocks, and home-directory paths. The repo **`.gitignore`** excludes **`.cc-config.json`** and **`CodeCompanion-Data/**`** — keep secrets out of `git push`. See **`docs/CC-CONFIG.md`** for a field-by-field checklist and safer patterns (`.env`, `MCP\_{id}\_\_…`). A committed **`.cc-config.json.example`** (no secrets) is safe to copy: **`cp .cc-config.json.example .cc-config.json`\*\*.
+
 ### Memory and chat (`lib/memory.js`, `POST /api/chat`)
 
 When **`memory.enabled`** is true, the server runs **`buildMemoryContext()`** before streaming chat. It **only** injects memories where **`source`** equals the current conversation id (facts/patterns/summaries saved from **`extractAndStore`** use that id). The client sends **`conversationId`** in the JSON body after **`POST /api/history`** has returned an id for the thread.
@@ -129,4 +133,5 @@ These are **repository secrets**, not shell env files. When **`MAC_CERTS`** + **
 
 ## See also
 
+- **`docs/CC-CONFIG.md`** — never commit `.cc-config.json` without understanding risk; what fields are sensitive.
 - **`docs/TROUBLESHOOTING.md`** — “Failed to fetch”, MCP clients vs config path, log file locations, Ollama **`fetch failed`** in **`logs/app.log`**.
