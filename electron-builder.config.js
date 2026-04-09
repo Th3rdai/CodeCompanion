@@ -83,6 +83,7 @@ module.exports = {
     "dist/**/*",
     "lib/**/*",
     "mcp/**/*",
+    "routes/**/*",
     "server.js",
     "mcp-server.js",
     "startup.sh",
