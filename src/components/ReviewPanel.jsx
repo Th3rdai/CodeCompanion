@@ -8,6 +8,7 @@ import {
   FileText,
   Upload as UploadIcon,
   FolderOpen,
+  FolderSearch,
   AlertTriangle,
   History,
 } from "lucide-react";
@@ -152,6 +153,13 @@ export default function ReviewPanel({
   const [reviewError, setReviewError] = useState("");
   const [dragging, setDragging] = useState(false);
 
+  // Folder scan state
+  const [folderPath, setFolderPath] = useState("");
+  const [folderPreview, setFolderPreview] = useState(null);
+  const [folderLoading, setFolderLoading] = useState(false);
+  const [folderError, setFolderError] = useState("");
+  const [folderDragging, setFolderDragging] = useState(false);
+
   // Document conversion state
   const [convertingDoc, setConvertingDoc] = useState(null);
 
@@ -196,10 +204,17 @@ export default function ReviewPanel({
 
   // ── Abort support ──────────────────────────────────
   const { startAbortable, abort, isAborted, clearAbortable } = useAbortable();
+  const {
+    startAbortable: startFolderAbortable,
+    abort: abortFolder,
+    isAborted: isFolderAborted,
+    clearAbortable: clearFolderAbortable,
+  } = useAbortable();
   const handleStop = useCallback(() => {
     abort();
+    abortFolder();
     setPhase(fallbackContent ? "fallback" : "input");
-  }, [abort, fallbackContent]);
+  }, [abort, abortFolder, fallbackContent]);
   useEffect(() => {
     registerAbort(handleStop);
     return () => unregisterAbort(handleStop);
@@ -763,6 +778,145 @@ export default function ReviewPanel({
     onAttachFromBrowser.current = handleFileFromBrowser;
   }
 
+  // ── Folder scan handlers ──────────────────────────
+  async function handleFolderPreview() {
+    setFolderError("");
+    setFolderPreview(null);
+    setFolderLoading(true);
+    try {
+      const res = await apiFetch("/api/review/folder/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: folderPath }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Preview failed");
+      setFolderPreview(data);
+    } catch (err) {
+      setFolderError(err.message);
+    } finally {
+      setFolderLoading(false);
+    }
+  }
+
+  async function handleSubmitFolderReview() {
+    if (!folderPreview || folderLoading || !selectedModel) return;
+
+    setFolderError("");
+    setPhase("loading");
+    setReportData(null);
+    setFallbackContent("");
+
+    try {
+      const signal = startFolderAbortable();
+      const res = await apiFetch("/api/review/folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal,
+        body: JSON.stringify({ model: selectedModel, folder: folderPath }),
+      });
+
+      const contentType = res.headers.get("Content-Type") || "";
+
+      if (contentType.includes("application/json")) {
+        const result = await res.json();
+        if (result.type === "report-card" && result.data) {
+          const meta = result.meta || {};
+          setReportData(result.data);
+          setFilename(folderPath);
+          setCode(`Scanned ${meta.fileCount} files (${(meta.totalSize / 1024).toFixed(1)}KB)`);
+          setPhase("report");
+          onSaveReview?.({
+            type: "report-card",
+            data: result.data,
+            reportData: result.data,
+            code: `Scanned ${meta.fileCount} files (${(meta.totalSize / 1024).toFixed(1)}KB)`,
+            filename: folderPath,
+            model: result.resolvedModel || selectedModel,
+          });
+          return;
+        }
+        // Error JSON
+        setFolderError(result.error || "Unexpected response from folder review endpoint.");
+        setPhase("input");
+        return;
+      }
+
+      if (contentType.includes("text/event-stream")) {
+        // SSE fallback stream
+        setPhase("fallback");
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let accumulated = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const payload = line.slice(6);
+            if (payload === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed.token) {
+                accumulated += parsed.token;
+                setFallbackContent(accumulated);
+              }
+              if (parsed.error) {
+                accumulated += `\n\nError: ${parsed.error}`;
+                setFallbackContent(accumulated);
+              }
+            } catch {}
+          }
+        }
+        setFallbackContent(accumulated);
+        onSaveReview?.({
+          fallbackContent: accumulated,
+          filename: folderPath,
+          code: `Scanned folder: ${folderPath}`,
+          model: selectedModel,
+        });
+        return;
+      }
+
+      // Unexpected content type
+      const text = await res.text();
+      setFolderError(`Unexpected response: ${text.slice(0, 200)}`);
+      setPhase("input");
+    } catch (err) {
+      if (isFolderAborted(err)) {
+        setPhase("input");
+        return;
+      }
+      setFolderError(`Connection failed: ${err.message}`);
+      setPhase("input");
+    } finally {
+      clearFolderAbortable();
+    }
+  }
+
+  function handleFolderDrop(e) {
+    e.preventDefault();
+    setFolderDragging(false);
+    const items = e.dataTransfer.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry?.();
+      if (entry && entry.isDirectory) {
+        setFolderPath(entry.name);
+        setFolderPreview(null);
+        setFolderError("");
+        break;
+      }
+    }
+    // If only files were dropped (no directory), ignore — the text input is for folder paths.
+  }
+
   // ── Render: Loading ───────────────────────────────
   if (phase === "loading") {
     return (
@@ -1233,6 +1387,18 @@ export default function ReviewPanel({
                 <FolderOpen className="w-4 h-4" />
                 Browse Files
               </Tab>
+              <Tab
+                className={({ selected }) =>
+                  `flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                    selected
+                      ? "border-b-2 border-indigo-500 text-white -mb-px"
+                      : "text-slate-400 hover:text-slate-300"
+                  }`
+                }
+              >
+                <FolderSearch className="w-4 h-4" />
+                Scan Folder
+              </Tab>
             </Tab.List>
 
             <Tab.Panels>
@@ -1361,6 +1527,131 @@ export default function ReviewPanel({
                     <p className="text-xs text-emerald-400 mt-3">
                       Loaded: <span className="font-mono">{filename}</span>
                     </p>
+                  )}
+                </div>
+              </Tab.Panel>
+
+              {/* Scan Folder Panel */}
+              <Tab.Panel>
+                <div
+                  className={`space-y-4 rounded-lg transition-colors ${folderDragging ? "ring-2 ring-indigo-500/50 bg-indigo-500/5" : ""}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDragEnter={() => setFolderDragging(true)}
+                  onDragLeave={() => setFolderDragging(false)}
+                  onDrop={handleFolderDrop}
+                >
+                  {/* Folder path input */}
+                  <div>
+                    <label
+                      htmlFor="folder-path-input"
+                      className="text-xs text-slate-400 block mb-1"
+                    >
+                      Project folder path
+                    </label>
+                    <input
+                      id="folder-path-input"
+                      type="text"
+                      value={folderPath}
+                      onChange={(e) => {
+                        setFolderPath(e.target.value);
+                        setFolderPreview(null);
+                        setFolderError("");
+                      }}
+                      placeholder="Path to project folder (e.g. /Users/you/myproject)"
+                      className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500 font-mono"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      Or drag and drop a folder here
+                    </p>
+                  </div>
+
+                  {/* Preview button */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleFolderPreview}
+                      disabled={!folderPath.trim() || folderLoading}
+                      className="text-sm px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {folderLoading ? (
+                        <>
+                          <span className="inline-block animate-spin">&#x27F3;</span>
+                          Scanning...
+                        </>
+                      ) : (
+                        "Preview Files"
+                      )}
+                    </button>
+                    {folderPreview && (
+                      <span className="text-xs text-slate-400">
+                        {folderPreview.files.length} file{folderPreview.files.length !== 1 ? "s" : ""} found
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Error display */}
+                  {folderError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-start gap-2">
+                      <span className="text-red-400 shrink-0">✕</span>
+                      <p className="text-sm text-red-300">{folderError}</p>
+                    </div>
+                  )}
+
+                  {/* File preview list */}
+                  {folderPreview && (
+                    <div className="space-y-3">
+                      {/* Warning for large folders */}
+                      {folderPreview.files.length > 20 && (
+                        <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                          <p className="text-sm text-amber-300">
+                            This may take several minutes with {folderPreview.files.length} files.
+                            You can proceed or narrow your scope.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* File list */}
+                      <div className="glass rounded-lg border border-slate-700/30 divide-y divide-slate-700/20 max-h-48 overflow-y-auto scrollbar-thin">
+                        {folderPreview.files.map((file, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between px-3 py-1.5 text-xs"
+                          >
+                            <span className="font-mono text-slate-300 truncate flex-1 mr-2">
+                              {file.path}
+                            </span>
+                            <span className="text-slate-500 shrink-0">
+                              {(file.size / 1024).toFixed(1)}KB
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Summary */}
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span>
+                          Total: {(folderPreview.totalSize / 1024).toFixed(1)}KB across {folderPreview.files.length} file{folderPreview.files.length !== 1 ? "s" : ""}
+                        </span>
+                        {folderPreview.skipped > 0 && (
+                          <span className="text-slate-500">
+                            {folderPreview.skipped} file{folderPreview.skipped !== 1 ? "s" : ""} skipped
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Review Folder button */}
+                      <button
+                        onClick={handleSubmitFolderReview}
+                        disabled={!selectedModel || !connected}
+                        className="w-full btn-neon text-white rounded-xl px-6 py-2.5 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed"
+                      >
+                        {!connected
+                          ? "Connect to Ollama First"
+                          : !selectedModel
+                            ? "Select a Model"
+                            : `Review ${folderPreview.files.length} File${folderPreview.files.length !== 1 ? "s" : ""}`}
+                      </button>
+                    </div>
                   )}
                 </div>
               </Tab.Panel>
