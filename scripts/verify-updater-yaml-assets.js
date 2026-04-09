@@ -59,6 +59,18 @@ function verifyDir(subdir) {
   }
 
   const names = fs.readdirSync(dir);
+  if (subdir === "installer-mac") {
+    const hasIntelArtifacts = names.some((name) => /-x64\./.test(name));
+    if (hasIntelArtifacts) {
+      const intelFeed = path.join(dir, "latest-x64-mac.yml");
+      if (!fs.existsSync(intelFeed)) {
+        console.error(
+          `::error::installer-mac contains Intel artifacts but missing ${intelFeed}`,
+        );
+        process.exit(1);
+      }
+    }
+  }
   const ymls = names.filter(
     (n) => n.startsWith("latest") && n.endsWith(".yml"),
   );

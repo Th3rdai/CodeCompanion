@@ -72,6 +72,11 @@ function initAutoUpdater(win, dataDir) {
   // returns 404 — keep allowPrerelease true so the updater resolves versions from the Atom feed.
   // When you publish stable-only releases and want to hide betas from stable users, set false and test.
   autoUpdater.allowPrerelease = true;
+  if (process.platform === "darwin" && process.arch === "x64") {
+    // Intel mac builds publish a dedicated feed filename in CI: latest-x64-mac.yml.
+    autoUpdater.channel = "latest-x64";
+    log.info("[Auto-Updater] Using Intel macOS channel: latest-x64");
+  }
   autoUpdater.autoInstallOnAppQuit = true;
 
   // Check for updates on startup (download behavior follows electron-updater defaults, e.g. autoDownload)

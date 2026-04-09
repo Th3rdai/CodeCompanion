@@ -4,29 +4,19 @@ const ToolCallHandler = require("../../lib/tool-call-handler");
 
 // Mock MCP client that simulates tool execution with controllable delays
 class MockMcpClient {
-  constructor() {
-    this.toolCount = 0;
-  }
-
   async callTool(serverId, toolName, args) {
     const delay = args.delay || 0;
     await new Promise((resolve) => setTimeout(resolve, delay));
     return {
-      content: [
-        {
-          type: "text",
-          text: `Result from ${toolName}`,
-        },
-      ],
+      content: [{ type: "text", text: `Result from ${toolName}` }],
     };
   }
-
   getAllTools() {
     return [];
   }
 }
 
-test("parallel tools — parallel batch executes faster than serial", async () => {
+test("parallel tools — parallel segment executes faster than serial", async () => {
   const mcpClient = new MockMcpClient();
   const handler = new ToolCallHandler(mcpClient, { log: () => {}, debug: () => {} });
 
@@ -37,21 +27,17 @@ test("parallel tools — parallel batch executes faster than serial", async () =
     { serverId: "test", toolName: "read_file", args: { delay: 100 } },
   ];
 
-  const { parallelBatch, serialQueue } = handler.batchToolCalls(toolCalls);
+  const segments = handler.segmentToolCalls(toolCalls);
+  assert.strictEqual(segments.length, 1, "All 3 reads in one parallel segment");
+  assert.strictEqual(segments[0].type, "parallel");
+  assert.strictEqual(segments[0].calls.length, 3);
 
-  assert.strictEqual(
-    parallelBatch.length,
-    3,
-    "All 3 reads should be in parallel batch"
-  );
-  assert.strictEqual(serialQueue.length, 0, "No serial queue");
-
-  // Simulate parallel execution
+  // Simulate parallel execution (as routes/chat.js does)
   const startParallel = Date.now();
   await Promise.all(
-    parallelBatch.map((call) =>
-      handler.executeTool(call.serverId, call.toolName, call.args)
-    )
+    segments[0].calls.map((call) =>
+      handler.executeTool(call.serverId, call.toolName, call.args),
+    ),
   );
   const parallelTime = Date.now() - startParallel;
 
@@ -65,20 +51,15 @@ test("parallel tools — parallel batch executes faster than serial", async () =
   // Parallel should be significantly faster (~3x)
   assert.ok(
     parallelTime < serialTime * 1.5,
-    `Parallel (${parallelTime}ms) should be ~3x faster than serial (${serialTime}ms)`
+    `Parallel (${parallelTime}ms) should be ~3x faster than serial (${serialTime}ms)`,
   );
 });
 
-test("parallel tools — error in one tool doesn't block others", async () => {
-  // Create a custom mock MCP that throws for read_special tool
+test("parallel tools — error in one parallel call doesn't block others", async () => {
   class FailingMcpClient {
     async callTool(serverId, toolName, args) {
-      if (toolName === "read_special") {
-        throw new Error("read_special failed!");
-      }
-      return {
-        content: [{ type: "text", text: "OK from " + toolName }],
-      };
+      if (toolName === "read_special") throw new Error("read_special failed!");
+      return { content: [{ type: "text", text: "OK from " + toolName }] };
     }
     getAllTools() {
       return [];
@@ -92,102 +73,89 @@ test("parallel tools — error in one tool doesn't block others", async () => {
 
   const toolCalls = [
     { serverId: "test", toolName: "read_file", args: {} },
-    { serverId: "test", toolName: "read_special", args: {} }, // This will fail
+    { serverId: "test", toolName: "read_special", args: {} }, // will fail
     { serverId: "test", toolName: "read_logs", args: {} },
   ];
 
-  const { parallelBatch, serialQueue } = handler.batchToolCalls(toolCalls);
+  const segments = handler.segmentToolCalls(toolCalls);
+  assert.strictEqual(segments.length, 1, "All 3 reads in one parallel segment");
 
-  // All three read_ tools should go to parallel
-  assert.strictEqual(parallelBatch.length, 3, "All 3 reads go to parallel");
-
-  // Execute in parallel with error handling
   const results = await Promise.all(
-    parallelBatch.map((call) =>
+    segments[0].calls.map((call) =>
       handler.executeTool(call.serverId, call.toolName, call.args).catch(
-        (err) => ({
-          success: false,
-          error: err.message,
-        })
-      )
-    )
+        (err) => ({ success: false, error: err.message }),
+      ),
+    ),
   );
 
-  // Check results
   assert.ok(results[0].success === true, "First read should succeed");
-  assert.ok(results[1].success === false, "Second read should fail");
+  assert.ok(results[1].success === false, "read_special should fail");
   assert.strictEqual(results[1].error, "read_special failed!");
   assert.ok(results[2].success === true, "Third read should succeed");
 });
 
-test("parallel tools — result order preserved with mixed parallel and serial", async () => {
+test("parallel tools — segments execute in original order", async () => {
   const handler = new ToolCallHandler(null, { log: () => {}, debug: () => {} });
 
-  // Mock to tag results with execution order
-  let executionOrder = 0;
-  handler.executeTool = async function (serverId, toolName, args) {
-    const order = executionOrder++;
+  const executionOrder = [];
+  handler.executeTool = async function (serverId, toolName) {
+    executionOrder.push(toolName);
     return {
       success: true,
-      result: {
-        content: [
-          {
-            type: "text",
-            text: `Tool ${toolName} executed at order ${order}`,
-          },
-        ],
-      },
+      result: { content: [{ type: "text", text: `Result from ${toolName}` }] },
     };
   };
 
+  // [read(0), write(1), search(2), delete(3)] → order-preserving segments
   const toolCalls = [
-    { serverId: "test", toolName: "read_file", args: {} }, // parallel, index 0
-    { serverId: "test", toolName: "write_file", args: {} }, // serial, index 1
-    { serverId: "test", toolName: "search_code", args: {} }, // parallel, index 2
-    { serverId: "test", toolName: "generate_office_file", args: {} }, // serial (builtin), index 3
+    { serverId: "test", toolName: "read_file", args: {} },   // safe, index 0
+    { serverId: "test", toolName: "write_file", args: {} },  // risky, index 1
+    { serverId: "test", toolName: "search_code", args: {} }, // safe, index 2
+    { serverId: "test", toolName: "delete_file", args: {} }, // risky, index 3
   ];
 
-  const { parallelBatch, serialQueue } = handler.batchToolCalls(toolCalls);
+  const segments = handler.segmentToolCalls(toolCalls);
 
-  assert.strictEqual(parallelBatch.length, 2, "2 safe tools in parallel");
-  assert.strictEqual(serialQueue.length, 2, "2 risky tools in serial");
+  // Expected: [{parallel:[read(0)]}, {serial:[write(1)]}, {parallel:[search(2)]}, {serial:[delete(3)]}]
+  assert.strictEqual(segments.length, 4);
+  assert.strictEqual(segments[0].type, "parallel");
+  assert.strictEqual(segments[0].calls[0].originalIndex, 0);
+  assert.strictEqual(segments[1].type, "serial");
+  assert.strictEqual(segments[1].calls[0].originalIndex, 1);
+  assert.strictEqual(segments[2].type, "parallel");
+  assert.strictEqual(segments[2].calls[0].originalIndex, 2);
+  assert.strictEqual(segments[3].type, "serial");
+  assert.strictEqual(segments[3].calls[0].originalIndex, 3);
 
-  // Verify originalIndex tracking
-  assert.strictEqual(parallelBatch[0].originalIndex, 0);
-  assert.strictEqual(parallelBatch[1].originalIndex, 2);
-  assert.strictEqual(serialQueue[0].originalIndex, 1);
-  assert.strictEqual(serialQueue[1].originalIndex, 3);
-
-  // Execute and collect results by originalIndex
-  const resultsByIndex = new Array(toolCalls.length);
-
-  // Parallel
-  const parallelResults = await Promise.all(
-    parallelBatch.map((call) =>
-      handler.executeTool(call.serverId, call.toolName, call.args)
-    )
-  );
-  parallelBatch.forEach((call, idx) => {
-    resultsByIndex[call.originalIndex] = parallelResults[idx];
-  });
-
-  // Serial
-  for (const call of serialQueue) {
-    const result = await handler.executeTool(call.serverId, call.toolName, call.args);
-    resultsByIndex[call.originalIndex] = result;
+  // Execute segments as the chat loop does and collect into resultsByOriginalIndex
+  const resultsByOriginalIndex = new Array(toolCalls.length);
+  for (const segment of segments) {
+    if (segment.type === "parallel") {
+      const parallelResults = await Promise.all(
+        segment.calls.map((call) =>
+          handler.executeTool(call.serverId, call.toolName, call.args),
+        ),
+      );
+      segment.calls.forEach((call, i) => {
+        resultsByOriginalIndex[call.originalIndex] = parallelResults[i];
+      });
+    } else {
+      const call = segment.calls[0];
+      resultsByOriginalIndex[call.originalIndex] = await handler.executeTool(
+        call.serverId,
+        call.toolName,
+        call.args,
+      );
+    }
   }
 
-  // Verify original order is preserved in results
+  // Every originalIndex slot is filled
   for (let i = 0; i < toolCalls.length; i++) {
+    assert.ok(resultsByOriginalIndex[i], `Slot ${i} should be filled`);
+    const text = resultsByOriginalIndex[i].result.content[0].text;
     assert.ok(
-      resultsByIndex[i],
-      `Result at original index ${i} should exist`
-    );
-    const tool = toolCalls[i];
-    const text = resultsByIndex[i].result.content[0].text;
-    assert.ok(
-      text.includes(tool.toolName),
-      `Result ${i} should correspond to tool ${tool.toolName}`
+      text.includes(toolCalls[i].toolName),
+      `Slot ${i} should match tool ${toolCalls[i].toolName}`,
     );
   }
 });

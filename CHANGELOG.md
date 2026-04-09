@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.4] — 2026-04-09
+
+### Changed
+
+- **Tool call ordering fixed** — Parallel tool execution now uses order-preserving window segmentation. Previously all safe tools ran first then all risky tools, which could execute a write before a preceding read in mixed-call rounds. Now the original call order is always respected: contiguous safe calls run in parallel, risky calls run in-place as serial checkpoints.
+
+---
+
 ## [1.6.3] — 2026-04-09
 
 ### Added

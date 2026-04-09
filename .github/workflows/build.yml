@@ -124,9 +124,6 @@ jobs:
     name: Create GitHub Release
     permissions:
       contents: write
-    env:
-      HAS_MIRROR_TOKEN: ${{ secrets.TH3RDAI_RELEASE_TOKEN != '' && 'true' || 'false' }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -160,12 +157,13 @@ jobs:
           name: installer-mac-x64
           path: artifacts/installer-mac-x64
 
-      - name: Merge Intel Mac DMG/ZIP into mac artifacts (skip latest-mac.yml — arm64 feed is canonical)
+      - name: Merge Intel Mac artifacts and publish Intel updater feed
         run: |
           cp artifacts/installer-mac-x64/*.dmg artifacts/installer-mac/ 2>/dev/null || true
           cp artifacts/installer-mac-x64/*.dmg.blockmap artifacts/installer-mac/ 2>/dev/null || true
           cp artifacts/installer-mac-x64/*.zip artifacts/installer-mac/ 2>/dev/null || true
           cp artifacts/installer-mac-x64/*.zip.blockmap artifacts/installer-mac/ 2>/dev/null || true
+          cp artifacts/installer-mac-x64/latest-mac.yml artifacts/installer-mac/latest-x64-mac.yml 2>/dev/null || true
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
@@ -200,9 +198,8 @@ jobs:
 
       # Mirror release to Th3rdai/CodeCompanion (public repo for in-app updates)
       - name: Mirror release to Th3rdai/CodeCompanion
-        if: env.HAS_MIRROR_TOKEN == 'true'
         env:
-          GH_TOKEN: ${{ secrets.TH3RDAI_RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --repo Th3rdai/CodeCompanion \

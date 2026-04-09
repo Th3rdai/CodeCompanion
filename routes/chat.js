@@ -562,9 +562,8 @@ module.exports = function createRouter(appContext) {
             toolCalls: toolCalls.map((t) => `${t.serverId}.${t.toolName}`),
           });
 
-          // Batch tool calls: parallel (safe patterns) and serial (risky patterns)
-          const { parallelBatch, serialQueue } =
-            toolCallHandler.batchToolCalls(toolCalls);
+          // Segment tool calls: order-preserving parallel/serial segments
+          const segments = toolCallHandler.segmentToolCalls(toolCalls);
           const resultsByOriginalIndex = new Array(toolCalls.length);
 
           // Helper: process tool result and extract parts
@@ -583,53 +582,35 @@ module.exports = function createRouter(appContext) {
           let toolResults = "";
           const roundAnalysisImages = []; // base64 images for vision model (from view_pdf_pages)
 
-          // Check abort before parallel batch
-          if (chatAbortController.signal.aborted || res.writableEnded) {
-            log("INFO", "Chat aborted before tool execution");
-            if (!res.writableEnded) {
-              res.write("data: [DONE]\n\n");
-              res.end();
-            }
-            return;
-          }
-
-          // Execute parallel batch
-          if (parallelBatch.length > 0) {
-            sendEvent({
-              toolBatchStatus: {
-                type: "parallel",
-                count: parallelBatch.length,
-              },
-            });
-            const parallelResults = await Promise.all(
-              parallelBatch.map((call) =>
-                executeSingleTool(call).catch((err) => ({
-                  success: false,
-                  error: err.message,
-                })),
-              ),
-            );
-            parallelBatch.forEach((call, idx) => {
-              resultsByOriginalIndex[call.originalIndex] = parallelResults[idx];
-            });
-          }
-
-          // Execute serial queue (existing sequential pattern)
-          if (serialQueue.length > 0) {
-            sendEvent({
-              toolBatchStatus: { type: "serial", count: serialQueue.length },
-            });
-            for (const call of serialQueue) {
-              if (chatAbortController.signal.aborted || res.writableEnded) {
-                log("INFO", "Chat aborted during serial tool execution");
-                if (!res.writableEnded) {
-                  res.write("data: [DONE]\n\n");
-                  res.end();
-                }
-                return;
+          // Execute segments in original call order — parallel segments run concurrently
+          for (const segment of segments) {
+            if (chatAbortController.signal.aborted || res.writableEnded) {
+              log("INFO", "Chat aborted during tool execution");
+              if (!res.writableEnded) {
+                res.write("data: [DONE]\n\n");
+                res.end();
               }
-              const result = await executeSingleTool(call);
-              resultsByOriginalIndex[call.originalIndex] = result;
+              return;
+            }
+            sendEvent({
+              toolBatchStatus: { type: segment.type, count: segment.calls.length },
+            });
+            if (segment.type === "parallel") {
+              const parallelResults = await Promise.all(
+                segment.calls.map((call) =>
+                  executeSingleTool(call).catch((err) => ({
+                    success: false,
+                    error: err.message,
+                  })),
+                ),
+              );
+              segment.calls.forEach((call, i) => {
+                resultsByOriginalIndex[call.originalIndex] = parallelResults[i];
+              });
+            } else {
+              const call = segment.calls[0];
+              resultsByOriginalIndex[call.originalIndex] =
+                await executeSingleTool(call);
             }
           }
 
