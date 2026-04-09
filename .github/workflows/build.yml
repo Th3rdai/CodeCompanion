@@ -169,7 +169,7 @@ jobs:
         shell: bash
         run: |
           if [[ "$GITHUB_REF_NAME" == *"-beta"* ]] || [[ "$GITHUB_REF_NAME" == *"-alpha"* ]] || [[ "$GITHUB_REF_NAME" == *"-rc"* ]]; then
-            gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease --generate-notes
+            gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease
           else
-            gh release edit "$GITHUB_REF_NAME" --draft=false --latest --generate-notes
+            gh release edit "$GITHUB_REF_NAME" --draft=false --latest
           fi
