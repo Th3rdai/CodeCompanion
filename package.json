@@ -1,6 +1,6 @@
 {
   "name": "code-companion",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
@@ -26,6 +26,7 @@
     "electron": "npm run electron:run",
     "electron:build": "npm run build && electron-builder --config electron-builder.config.js --publish never",
     "electron:build:mac": "npm run build && electron-builder --mac --config electron-builder.config.js --publish never",
+    "electron:build:mac:x64": "npm run build && electron-builder --mac --x64 --config electron-builder.config.js --publish never",
     "electron:build:mac:release": "npm run build && MAC_DISTRIBUTION_SIGN=1 electron-builder --mac --config electron-builder.config.js --publish never",
     "electron:build:win": "npm run build && electron-builder --win --config electron-builder.config.js --publish never",
     "electron:build:win:release": "npm run build && WIN_DISTRIBUTION_SIGN=1 electron-builder --win --config electron-builder.config.js --publish never",

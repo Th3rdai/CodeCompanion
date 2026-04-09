@@ -66,6 +66,12 @@ function emergencyLog(message) {
 
 // Log startup
 emergencyLog("=== Code Companion Starting ===");
+try {
+  const { version } = require("../package.json");
+  emergencyLog(`Version: ${version}`);
+} catch {
+  emergencyLog("Version: (unknown)");
+}
 emergencyLog(`Platform: ${process.platform}`);
 emergencyLog(`Arch: ${process.arch}`);
 emergencyLog(`Node: ${process.version}`);

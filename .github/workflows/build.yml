@@ -35,6 +35,9 @@ jobs:
           - os: macos-latest
             platform: mac
             script: electron:build:mac
+          - os: macos-13
+            platform: mac-x64
+            script: electron:build:mac:x64
           - os: windows-latest
             platform: win
             script: electron:build:win
@@ -74,12 +77,12 @@ jobs:
           fi
 
       - name: macOS signing mode (no secret values)
-        if: matrix.platform == 'mac'
+        if: startsWith(matrix.platform, 'mac')
         run: |
           echo "mac_ci_signing=${MAC_CI_SIGNING} mac_ci_notarize=${MAC_CI_NOTARIZE}"
 
       - name: Import macOS signing certificate
-        if: matrix.platform == 'mac' && env.MAC_CI_SIGNING == 'true'
+        if: startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true'
         env:
           MAC_CERTS: ${{ secrets.MAC_CERTS }}
           MAC_CERTS_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
@@ -96,15 +99,15 @@ jobs:
         run: npm run ${{ matrix.script }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAC_DISTRIBUTION_SIGN: ${{ matrix.platform == 'mac' && env.MAC_CI_SIGNING == 'true' && '1' || '' }}
-          MAC_CODESIGN_IDENTITY: ${{ matrix.platform == 'mac' && env.MAC_CI_SIGNING == 'true' && secrets.MAC_CODESIGN_IDENTITY || '' }}
-          MAC_NOTARIZE: ${{ matrix.platform == 'mac' && env.MAC_CI_NOTARIZE == 'true' && '1' || '' }}
+          MAC_DISTRIBUTION_SIGN: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true' && '1' || '' }}
+          MAC_CODESIGN_IDENTITY: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true' && secrets.MAC_CODESIGN_IDENTITY || '' }}
+          MAC_NOTARIZE: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && '1' || '' }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
 
       - name: Verify updater metadata in release/ (per platform)
-        run: node scripts/verify-release-output.js ${{ matrix.platform }}
+        run: node scripts/verify-release-output.js ${{ startsWith(matrix.platform, 'mac') && 'mac' || matrix.platform }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -145,11 +148,24 @@ jobs:
       - name: Verify CI repo matches electron-builder publish (in-app updates)
         run: node scripts/verify-ci-repo-matches-publish.js
 
-      - name: Download mac artifacts
+      - name: Download mac artifacts (arm64)
         uses: actions/download-artifact@v4
         with:
           name: installer-mac
           path: artifacts/installer-mac
+
+      - name: Download mac artifacts (x64 — Intel)
+        uses: actions/download-artifact@v4
+        with:
+          name: installer-mac-x64
+          path: artifacts/installer-mac-x64
+
+      - name: Merge Intel Mac DMG/ZIP into mac artifacts (skip latest-mac.yml — arm64 feed is canonical)
+        run: |
+          cp artifacts/installer-mac-x64/*.dmg artifacts/installer-mac/ 2>/dev/null || true
+          cp artifacts/installer-mac-x64/*.dmg.blockmap artifacts/installer-mac/ 2>/dev/null || true
+          cp artifacts/installer-mac-x64/*.zip artifacts/installer-mac/ 2>/dev/null || true
+          cp artifacts/installer-mac-x64/*.zip.blockmap artifacts/installer-mac/ 2>/dev/null || true
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4

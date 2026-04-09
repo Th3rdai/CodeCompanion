@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.3] — 2026-04-09
+
+### Added
+
+- **Intel Mac (x64) installer** — CI now builds a native x64 DMG on `macos-13` for Intel Mac users; ARM64 build remains the primary with the auto-update feed.
+
+### Fixed
+
+- **Startup log includes app version** — The `code-companion-startup.log` emergency file now records the app version at launch, making crash reports immediately identifiable.
+
+---
+
 ## [1.6.2] — 2026-04-08
 
 ### Fixed
