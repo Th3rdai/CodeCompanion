@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-04-09T20:00:00.000Z"
-last_activity: 2026-04-09 — **v1.6.5 shipped**: fixed packaged-app startup crash (routes/ missing from electron-builder.config.js, affected v1.6.0–v1.6.4). Added CI smoke-test job. Packaging rule documented in BUILD.md, RELEASES-AND-UPDATES.md, CLAUDE.md. Current version: 1.6.5.
+last_updated: "2026-04-09T21:00:00.000Z"
+last_activity: 2026-04-09 — **Post-v1.6.5 tech cleanup**: Phase 24.5 complete (retroactive summary); Phases 25 & 26 complete — agent validate/planner tools already implemented, added Settings UI toggles (SettingsPanel.jsx). MCP parallel plan compliance: added toolExec.{parallel,maxConcurrent} config gate (parallel=false default), bounded Promise.all with worker-pool (maxConcurrent=4), write_file added to RISKY_BUILTINS explicit set. All tests pass (22 unit, 3 integration).
 progress:
   total_phases: 24
   completed_phases: 15
