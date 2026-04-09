@@ -35,9 +35,10 @@ For **local packaging** (smoke tests, not the default release path), see **[BUIL
 ## Before you cut a release
 
 1. **Land changes on the main branch** (or the branch you release from) and run checks you care about (e.g. `npm run test:unit`, targeted Playwright, manual smoke of the Electron build).
-2. **Bump `version`** in `package.json` using [semver](https://semver.org/) conventions you adopt for this project (e.g. patch for fixes, minor for features, major for breaking changes).
-3. **Commit** the version bump (and changelog notes if you keep them in-repo).
-4. **Tag** using the **`v` + version** pattern so CI can validate:  
+2. **If you added a new top-level runtime directory** (e.g. `routes/`, `workers/`), verify it is listed in `electron-builder.config.js` → `files`. Missing directories cause a silent startup crash (`code=1`) in every packaged install. Run `node scripts/smoke-test-server.js` locally to catch this before tagging. CI also runs this check automatically as the `smoke-test` job before any platform build.
+3. **Bump `version`** in `package.json` using [semver](https://semver.org/) conventions you adopt for this project (e.g. patch for fixes, minor for features, major for breaking changes).
+4. **Commit** the version bump (and changelog notes if you keep them in-repo).
+5. **Tag** using the **`v` + version** pattern so CI can validate:  
    `v1.6.0` ↔ `"version": "1.6.0"`.
 
 The GitHub Actions workflow **fails** if the tag suffix does not match `package.json` — that is intentional.

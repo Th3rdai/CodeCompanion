@@ -129,6 +129,10 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab confi
 - **Document conversion**: Two-tier system — built-in converters handle common formats; Docling-serve provides higher-quality conversion (OCR, complex layouts) when available. Built-in: PDF (pdf-parse), DOCX (mammoth), DOC (word-extractor), **XLSX/CSV** (**read-excel-file**); **legacy `.xls`** not supported in built-in (use Docling or convert to `.xlsx`); **spreadsheet generation** (XLSX) uses **ExcelJS**; **ODS** output is JSZip + ODF XML in `office-generator.js`. PPTX/PPT/ODT/ODS/ODP/RTF (officeparser; **`file-type`** pinned via **npm overrides** + **`patches/officeparser+6.0.4.patch`**). Docling-only: EPUB, LaTeX, TEX. The `/api/convert-document` endpoint tries Docling first when enabled, falls back to built-in. Response includes `converter: 'docling'|'builtin'`. **Export** (see above) **generates** Office/PDF/text from chat via `office-generator.js`. Docling auto-starts on port 5002 (not 5001 — macOS AirPlay conflict). Auto-start managed by `lib/docling-starter.js` (web) and `electron/docling-manager.js` (Electron). Config: `docling: { url, apiKey, enabled, ocr }`. Install: `uv tool install "docling-serve[ui]"`. See `docs/DOCLING-AUTO-START.md` for details.
 - **Agent chat + PDFs / “413”**: The model does **not** receive HTTP status codes in chat. Claims about **413**, Docling, or “conversion service” may be **hallucinations** unless the user pasted a real error — check **`logs/app.log`** for **`POST /api/convert-document`**. Prompts in **`lib/tool-call-handler.js`** / **`lib/builtin-agent-tools.js`** instruct **`builtin.generate_office_file`** + **`sourcePath`** for project PDFs. See **`docs/TROUBLESHOOTING.md`**.
 
+## Packaging Rule — electron-builder.config.js
+
+When adding a **new top-level runtime directory** (e.g. `routes/`, `workers/`, `jobs/`), you **must** add a `"newdir/**/*"` entry to the `files` array in `electron-builder.config.js`. Electron packages only what is explicitly listed — missing directories cause a startup crash (`code=1`) in every shipped installer. After any structural change, run `node scripts/smoke-test-server.js` to verify the server starts before committing.
+
 ## Rules
 
 - Stream AI responses in real-time (Server-Sent Events); **Stop** in chat aborts `fetch('/api/chat')` (`AbortController` in `App.jsx`) so the server drops the SSE connection and aborts Ollama + agent tool rounds (`chatAbortController` in `server.js`, `abortSignal` in `lib/ollama-client.js`)
@@ -140,7 +144,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab confi
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (3125 symbols, 5600 relationships, 182 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (3126 symbols, 5600 relationships, 182 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

@@ -125,6 +125,31 @@ The built app (DMG, EXE, AppImage, and portable ZIPs) includes:
 - **startup.sh**, **deploy.sh**, **rebuild.sh** (for running or reinstalling from the unpacked app)
 - **cert/README.txt** — instructions for enabling HTTPS with a self-signed certificate (add `server.crt` and `server.key` in the `cert/` folder, then restart)
 
+### ⚠️ Adding a new runtime directory? Update electron-builder.config.js
+
+`electron-builder.config.js` uses **explicit glob patterns** for every directory bundled into the app. Adding a new top-level runtime directory (e.g. `routes/`, `workers/`) does **not** get picked up automatically — you must add it to the `files` array:
+
+```js
+files: [
+  "dist/**/*",
+  "lib/**/*",
+  "mcp/**/*",
+  "routes/**/*",   // ← add your new directory here
+  "server.js",
+  ...
+]
+```
+
+**Failure mode:** if a required directory is missing, `server.js` crashes at startup with `code=1, signal=null` (cannot `require()` the missing module). The packaged installer installs and launches, but the server never binds — users see "Failed to start server".
+
+**Catch it before it ships:** run the server smoke test locally after any structural change:
+
+```bash
+node scripts/smoke-test-server.js
+```
+
+This also runs automatically as the first CI job (`smoke-test`) before any platform build starts — a broken server fails CI before any installer is uploaded.
+
 ## Output
 
 Built artifacts go to `release/`. All scripts use `--publish never` (local build only).
