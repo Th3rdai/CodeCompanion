@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.2] — 2026-04-08
+
+### Fixed
+
+- **Server crash on startup** — Added `tslib` to production dependencies. `pdfkit` → `fontkit` → `@swc/helpers` requires `tslib` as a peer dependency; its absence caused "Cannot find module 'tslib'" on fresh installs.
+
+---
+
 ## [1.6.1] — 2026-04-08
 
 ### Fixed
