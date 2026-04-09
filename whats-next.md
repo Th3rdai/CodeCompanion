@@ -33,17 +33,18 @@ The Phase 24.5 server.js refactor (v1.6.0, 2026-04-08) extracted 16 Express rout
 - `docs/RELEASES-AND-UPDATES.md` — step 2 added to pre-release checklist
 - `CLAUDE.md` — "Packaging Rule" section so AI agents get it as standing guidance
 
-**Archon tasks (all done):**
+**Archon tasks completed in this hotfix cycle:**
 
 - fix(electron): bundle routes/ in packaged app — v1.6.5
 - ci: server startup smoke test before installer builds
 - docs: document electron-builder packaging rule (prevent v1.6.x regression)
+- Follow-on situational-awareness items were seeded on 2026-04-09 in Archon notes.
 
 </work_completed>
 
 <work_remaining>
 
-No open tasks. Project is clean at v1.6.5.
+No open tasks for the v1.6.5 hotfix cycle. Broader Archon backlog still contains unrelated TODO items.
 
 **Next planned work (when ready):**
 
@@ -54,8 +55,8 @@ No open tasks. Project is clean at v1.6.5.
 
 <context>
 **Current version:** 1.6.5 (2026-04-09)
-**Working tree:** clean
-**Branch:** master, up to date with origin
+**Working tree (at hotfix closure):** clean
+**Branch (at hotfix closure):** master, up to date with origin
 
 **Key architectural patterns (carry forward):**
 
