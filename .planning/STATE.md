@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 28-01-PLAN.md
-last_updated: "2026-04-09T21:59:12.944Z"
+stopped_at: Completed 28-02-PLAN.md
+last_updated: "2026-04-09T22:04:14.702Z"
 last_activity: "2026-04-09 — **post-v1.6.5 consistency + capability updates**: 24.5 retro summary added, phases 25/26 marked complete, and MCP parallel execution aligned to plan (`toolExec` gate + bounded concurrency + explicit risky builtins)."
 progress:
   total_phases: 27
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 32
-  completed_plans: 25
+  completed_plans: 26
   percent: 100
 ---
 
@@ -190,6 +190,7 @@ _Updated after each plan completion_
 | Phase 18 P03 | 535          | 2 tasks | 5 files  |
 | Phase 28-multi-file-code-review P00 | 146 | 2 tasks | 2 files |
 | Phase 28-multi-file-code-review P01 | 322 | 2 tasks | 3 files |
+| Phase 28-multi-file-code-review P02 | 182 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -251,6 +252,8 @@ Recent decisions affecting current work:
 - [Phase 28-multi-file-code-review]: Port 3325 reserved for folder-review integration tests to avoid conflicts with other suites
 - [Phase 28-multi-file-code-review]: reviewFiles() passes combined string to reviewCode() unchanged — filename set to '{N} files', no modifications to reviewCode()
 - [Phase 28-multi-file-code-review]: Integration test stubs remain skipped — require live server + Ollama; manual curl verification available
+- [Phase 28-multi-file-code-review]: Folder drag-drop sets folder name only (not full absolute path) — identical to SecurityPanel limitation; user types or confirms full path before clicking Preview
+- [Phase 28-multi-file-code-review]: handleSubmitFolderReview() mirrors handleSubmitReview() exactly — same JSON/SSE branching, same onSaveReview call shape, abort via second useAbortable() instance
 
 ### Phase 15: Build Mode (GSD + ICM) — Approved and Implemented
 
@@ -311,7 +314,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-09T21:59:12.941Z
-Stopped at: Completed 28-01-PLAN.md
+Last session: 2026-04-09T22:04:14.700Z
+Stopped at: Completed 28-02-PLAN.md
 Resume file: None
 Next: Phases 8-14 (license distribution) deferred — project uses Th3rdAI personal/non-commercial LICENSE; commercial use requires agreement. All planned features complete. Ready for v5.0 milestone or new feature work.

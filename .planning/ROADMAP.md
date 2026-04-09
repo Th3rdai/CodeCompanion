@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 24.5: Tech Health** — ESLint + Prettier baseline, duplicate test tree consolidation, `lib/history.js` atomic write hardening, `src/App.jsx` hook extraction (`useChat`, `useModels`), `server.js` route decomposition into `routes/`. Zero behavioral changes. **Detail:** [`.planning/phases/24.5-tech-health/24.5-CONTEXT.md`](.planning/phases/24.5-tech-health/24.5-CONTEXT.md) (Plans 01–03). (completed 2026-04-09)
 - [x] **Phase 25: Agent — Validate builtins** — Builtin tools so chat can run the same project scan + `validate.md` generation as Validate mode (`lib/validate.js`, `/api/validate/*`); optional save under project folder; Settings gate added. **Detail:** [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md) (AAP-01–AAP-05). (completed 2026-04-09)
 - [x] **Phase 26: Agent — Planner tools** — Builtin(s) so chat can score planner-shaped content via the same `/api/score` path as Planner mode (`PlannerPanel`); Settings gate added. **Detail:** same doc (AAP-06–AAP-10). (completed 2026-04-09)
-- [ ] **Phase 28: Multi-File Code Review** — Extend Review mode to accept multiple files and whole folders (mirror Security mode's multi-file scanning), producing a unified report card across the full project rather than a single paste.
+- [x] **Phase 28: Multi-File Code Review** — Extend Review mode to accept multiple files and whole folders (mirror Security mode's multi-file scanning), producing a unified report card across the full project rather than a single paste. (completed 2026-04-09)
 - [ ] ~~**Phase 27 (optional): Agent — GSD bridge builtins**~~ — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for safe planning queries from chat. **Detail:** same doc (AAP-11–AAP-14). (DEFERRED — low value for most users; Build mode already surfaces GSD data; skip unless real demand emerges)
 
 ## Post–roadmap enhancements (tracked in repo history)
@@ -441,7 +441,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 25. Agent — Validate builtins | ad-hoc         | Complete | 2026-04-09 |
 | 26. Agent — Planner tools     | ad-hoc         | Complete | 2026-04-09 |
 | 27. Agent — GSD bridge (opt.) | —              | Deferred | —          |
-| 28. Multi-File Code Review    | 2/3 | In Progress|  |
+| 28. Multi-File Code Review    | 3/3 | Complete   | 2026-04-09 |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 
