@@ -563,7 +563,17 @@ module.exports = function createRouter(appContext) {
           });
 
           // Segment tool calls: order-preserving parallel/serial segments
-          const segments = toolCallHandler.segmentToolCalls(toolCalls);
+          // When toolExec.parallel is false (default), treat all calls as serial
+          const parallelEnabled =
+            appContext.config.toolExec?.parallel === true;
+          const maxConcurrent =
+            appContext.config.toolExec?.maxConcurrent ?? 4;
+          const segments = parallelEnabled
+            ? toolCallHandler.segmentToolCalls(toolCalls)
+            : toolCalls.map((call, idx) => ({
+                type: "serial",
+                calls: [{ ...call, originalIndex: idx }],
+              }));
           const resultsByOriginalIndex = new Array(toolCalls.length);
 
           // Helper: process tool result and extract parts
@@ -596,16 +606,25 @@ module.exports = function createRouter(appContext) {
               toolBatchStatus: { type: segment.type, count: segment.calls.length },
             });
             if (segment.type === "parallel") {
-              const parallelResults = await Promise.all(
-                segment.calls.map((call) =>
-                  executeSingleTool(call).catch((err) => ({
-                    success: false,
-                    error: err.message,
-                  })),
-                ),
+              // Bounded concurrency: run at most maxConcurrent tools at once
+              const calls = segment.calls;
+              const results = new Array(calls.length);
+              let next = 0;
+              async function runWorker() {
+                while (next < calls.length) {
+                  const i = next++;
+                  results[i] = await executeSingleTool(calls[i]).catch(
+                    (err) => ({ success: false, error: err.message }),
+                  );
+                }
+              }
+              const workers = Array.from(
+                { length: Math.min(maxConcurrent, calls.length) },
+                runWorker,
               );
-              segment.calls.forEach((call, i) => {
-                resultsByOriginalIndex[call.originalIndex] = parallelResults[i];
+              await Promise.all(workers);
+              calls.forEach((call, i) => {
+                resultsByOriginalIndex[call.originalIndex] = results[i];
               });
             } else {
               const call = segment.calls[0];
