@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-04-04T18:00:00.000Z"
-last_activity: 2026-04-04 — **Integrated Terminal mode delivered**: interactive PTY shell via `node-pty` + `xterm.js`; Electron IPC architecture; HTTPS `loadURL` fix; UTF-8 xterm encoding fix; mode tabs clip fix. Prior: **Phases 25–26**: `validate_scan_project`, `validate_generate_command`, `score_plan` builtins; agent identity override; configurable max rounds. **172 unit tests passing.**
+last_updated: "2026-04-09T20:00:00.000Z"
+last_activity: 2026-04-09 — **v1.6.5 shipped**: fixed packaged-app startup crash (routes/ missing from electron-builder.config.js, affected v1.6.0–v1.6.4). Added CI smoke-test job. Packaging rule documented in BUILD.md, RELEASES-AND-UPDATES.md, CLAUDE.md. Current version: 1.6.5.
 progress:
   total_phases: 24
   completed_phases: 15
@@ -26,7 +26,12 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit — **172** tests, **`npm run test:integration`** for API+images).
-Last activity: 2026-04-04 — **Integrated Terminal mode**: interactive PTY (`node-pty` + `xterm.js`), Electron IPC, HTTPS loadURL fix, UTF-8 encoding fix, mode tabs clip fix, chat input hidden in terminal mode. Prior: **Phases 25–26**: agent validate/planner builtins, configurable max rounds. Next: pre-release checklist; Phase 27 (GSD builtins from chat).
+
+**Current version: 1.6.5** (released 2026-04-09). Working tree clean. No open tasks.
+
+Last activity: 2026-04-09 — **v1.6.5 hotfix release**. Root cause: Phase 24.5 server.js refactor (v1.6.0) created `routes/` directory with 16 Express route modules, but `electron-builder.config.js` was never updated to include it. All packaged installs v1.6.0–v1.6.4 crashed at startup (`code=1`). Fix: added `"routes/**/*"` to `files` array. Also added CI smoke-test (`scripts/smoke-test-server.js`, `smoke-test` job in `build.yml`) and documented the packaging rule in BUILD.md, RELEASES-AND-UPDATES.md, CLAUDE.md. Google Drive synced (v1.6.5 live, v1.6.4 archived, v1.5.15 pruned). Archon tasks logged and marked done.
+
+Next: Phase 27 (GSD builtins from chat) or new feature work — no blockers.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

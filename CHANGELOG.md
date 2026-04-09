@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.5] — 2026-04-09
+
+### Fixed
+
+- **Packaged app startup crash (all v1.6.x installs)** — `routes/` directory was missing from `electron-builder.config.js`. The Phase 24.5 server.js refactor (v1.6.0) extracted 16 Express route modules into `routes/` but the packaging config was never updated. Every packaged install from v1.6.0–v1.6.4 crashed at startup with `code=1, signal=null` when `server.js` tried to `require('./routes/...')`. v1.5.27 and earlier were unaffected (predated the refactor).
+
+### Added
+
+- **CI server smoke test** — New `smoke-test` job in `.github/workflows/build.yml` spawns `node server.js` and verifies it binds to a port before any platform build runs (`needs: smoke-test`). Catches missing runtime directories before a broken installer ships. Also runnable locally: `node scripts/smoke-test-server.js`.
+- **Packaging rule documented** — `BUILD.md`, `docs/RELEASES-AND-UPDATES.md`, and `CLAUDE.md` now explicitly warn that new top-level runtime directories must be added to the `files` array in `electron-builder.config.js`.
+
+---
+
 ## [1.6.4] — 2026-04-09
 
 ### Changed

@@ -1,120 +1,77 @@
 <original_task>
-Ship v1.6.0 of Code Companion. The session covered:
-
-1. Phase 24.5 Tech Health (ESLint baseline, App.jsx hook extraction, server.js decomposition)
-2. Diagnosing and fixing a blank-page bug caused by missing lib extractions and stale-asset caching
-3. Committing all in-progress work cleanly
-4. Executing the v1.6.0 release checklist
-   </original_task>
+v1.6.5 hotfix release — diagnose and fix startup crash affecting all v1.6.x packaged installs.
+</original_task>
 
 <work_completed>
 
-**Phase 24.5-01 — ESLint baseline + test consolidation (786e8e7)**
+**Root cause identified and fixed (2026-04-09)**
 
-- ESLint config (`eslint.config.mjs`) established: 0 errors, 148 warnings (acceptable)
-- `tests/test/unit/icm-scaffolder.test.js` migrated to `tests/unit/` (depth fixed: `../../lib/...`)
-- `tests/test/` directory removed
-- `lib/history.js` — atomic write via tmp+rename pattern
+The Phase 24.5 server.js refactor (v1.6.0, 2026-04-08) extracted 16 Express route modules into a new `routes/` directory. `electron-builder.config.js` uses explicit glob patterns — `routes/` was never added, so every packaged install from v1.6.0–v1.6.4 crashed at startup with `code=1, signal=null` when `server.js` tried to `require('./routes/...')`. v1.5.27 (last working version) predated the refactor entirely.
 
-**Phase 24.5-02 — App.jsx hook extraction (999771e)**
+**Commits this session:**
 
-- `src/hooks/useModels.js` (new, 73 lines) — models, connection, selectedModel, isVisionModel, refreshModels
-- `src/hooks/useChat.js` (new, 723 lines) — all chat/history state and handlers
-- `src/hooks/useImageAttachments.js` (new, 341 lines) — image/doc attach pipeline, lightbox
-- `src/App.jsx` — 2,954 → 1,873 lines (target was <2000) ✓
+- `f9b53e4` — fix(electron): bundle routes/ directory in packaged app (v1.6.5)
+- `ac79bd1` — ci: add server startup smoke test before installer builds
+- `1bcf57d` — docs: document electron-builder packaging rule to prevent regression
+- `58eee73` — chore: journal entry and doc updates for 2026-04-09
 
-**Phase 24.5-03 — server.js decomposition (dfc5e26, 23d0b31, 95dd1f5, 875969e)**
+**v1.6.5 released:**
 
-- 15 route modules under `routes/`: chat, config, convert, files, git, github, history, launch, memory, office, pentest, projects, review, score, validate, build
-- `lib/rate-limiter.js` — createRateLimiter factory + getClientAddress helper
-- `lib/rate-limiters-config.js` — registerRateLimiters(app) centralizing 15 rate-limiter wirings
-- `lib/mcp-http.js` — mountMcpHttp(app, deps) with factory-per-request McpServer
-- `server.js` — 5,169 → 507 lines (target was <800) ✓
-- Fix: `routes/convert.js` was created but never mounted; inline duplicate removed (95dd1f5)
-- Fix: lib extractions were missing from initial commit; added separately (875969e)
+- All 4 platform installers published to GitHub Releases (Th3rdai/CodeCompanion)
+- Google Drive synced: Mac/Win/Linux folders updated to v1.6.5, v1.6.4 archived, v1.5.15 pruned
 
-**Stale-asset hardening (e7960c3)**
+**CI smoke test added (`scripts/smoke-test-server.js`):**
 
-- `sendSpaIndexHtml` — adds `Cache-Control: no-cache, no-store, must-revalidate`
-- `isLikelyAssetRequest()` — SPA fallback returns 404 (not index.html) for `/assets/*` or extension paths
-- `GET /api/debug/static-asset` — gated diagnostics endpoint to verify asset existence
+- Spawns `node server.js` on port 19876, polls HTTP + HTTPS (self-signed cert allowed)
+- Exits 0 if server responds within 20s, 1 if crash or timeout
+- Runs as `smoke-test` job in `.github/workflows/build.yml` — all 4 build jobs have `needs: smoke-test`
+- Catches missing runtime directories before any installer is uploaded
 
-**Draggable modals (7433b91)**
+**Packaging rule documented in 3 places:**
 
-- `src/components/ImagePrivacyWarning.jsx`, `JargonGlossary.jsx`, `OllamaSetup.jsx`, `RenameModal.jsx`
-- All four modals support pointer-drag repositioning, viewport-clamped
+- `BUILD.md` — "Adding a new runtime directory?" section with explicit warning + example
+- `docs/RELEASES-AND-UPDATES.md` — step 2 added to pre-release checklist
+- `CLAUDE.md` — "Packaging Rule" section so AI agents get it as standing guidance
 
-**Electron: mac codesign helper (c0381d4)**
+**Archon tasks (all done):**
 
-- `lib/mac-codesign-identity.js` — normalizeMacCodesignIdentity() strips "Developer ID Application:" prefix
-- `tests/unit/mac-codesign-identity.test.js` — 3 test cases
-
-**Verified state (2026-04-08):**
-
-- App loads at https://localhost:8900 ✓
-- 163 unit tests pass (includes new mac-codesign-identity tests) ✓
-- All API routes return 200 ✓
-- Working tree clean ✓
-- GitNexus re-indexed: 3,059 nodes, 5,454 edges, 178 flows ✓
-- Archon: Phase 24.5-02 and 24.5-03 marked done ✓
-
-**Commits in this session (newest first):**
-
-- `27998d2` — chore: update GitNexus index stats in docs
-- `c0381d4` — feat(electron): mac codesign identity normalizer + unit test
-- `7433b91` — feat(ui): draggable modals
-- `e7960c3` — fix(server): harden stale-asset handling and add diagnostics endpoint
-- `875969e` — feat(24.5-03): add lib extractions missing from server.js decomposition
-- `95dd1f5` — fix(server): mount routes/convert.js and remove orphaned inline handler
-- `999771e` — tech(24.5-02): extract useModels, useChat, useImageAttachments from App.jsx
-- `23d0b31` — refactor(24.5-03): slim server.js to bootstrap-only
-- `dfc5e26` — feat(24.5-03): extract 15 route modules from server.js into routes/
-- `786e8e7` — tech(24.5-01): lint baseline, test consolidation, atomic history write
+- fix(electron): bundle routes/ in packaged app — v1.6.5
+- ci: server startup smoke test before installer builds
+- docs: document electron-builder packaging rule (prevent v1.6.x regression)
 
 </work_completed>
 
 <work_remaining>
 
-**The original task — v1.6.0 release — is NOT YET COMPLETE. Release checklist (Archon task `69f72625`):**
+No open tasks. Project is clean at v1.6.5.
 
-1. [ ] **Version bump** — update `package.json` version to `1.6.0`; move CHANGELOG `[Unreleased]` → `[1.6.0]`; commit
-2. [ ] **QA smoke** — `npm run test:unit` (163 tests); `npm run build`; quick UI check (chat, review, terminal, settings)
-3. [ ] **Tag** — `git tag v1.6.0`; push tag to trigger CI
-4. [ ] **Build artifacts** — signed + notarized macOS via CI (APPLE\_\* secrets already set); Win/Linux artifacts
-5. [ ] **GitHub Release** — CI green; release page has platform binaries + `latest-*.yml` updater metadata
-6. [ ] **Feed check** — verify `latest-mac.yml` has correct version + artifact URLs
-7. [ ] **Google Drive** — upload to `~/Library/CloudStorage/GoogleDrive-admin@th3rdai.com/My Drive/_TH3RDAI.INC/CodeCompanion/{Mac,Windows,Linux}`; keep only last 2 versions in archive
+**Next planned work (when ready):**
 
-**After release — Phase 25 CLIPLAN backlog (Archon tasks exist):**
-
-- `fa907a58` — Streaming terminal SSE
-- `6d12ffe8` — Confirm-before-run modal
-- `f736b74f` — Agent terminal audit logging + Playwright E2E
-- `90abbcca` — MCP server parallel task execution
-- `955424a4` — Dependabot/npm audit triage (8 vulns on origin, 6 on th3rdai)
+- **Phase 27** — GSD builtins from chat (see `docs/AGENT-APP-CAPABILITIES-ROADMAP.md`)
+- Or any new feature work from the backlog
 
 </work_remaining>
 
 <context>
-**Current version in package.json:** check before bumping — last release was v1.5.26 (terminal PTY feature)
+**Current version:** 1.6.5 (2026-04-09)
+**Working tree:** clean
+**Branch:** master, up to date with origin
 
-**What's in v1.6.0:**
-
-- Phase 24.5 Tech Health: App.jsx hooks (3 new hooks, App down to 1873 lines), server.js route decomposition (15 modules, server down to 507 lines), ESLint baseline
-- Stale-asset hardening (Cache-Control + 404 guard)
-- Draggable modals (4 components)
-- Mac codesign identity normalizer
-- Fix: routes/convert.js was mounted but orphaned handler left in server.js (now removed)
-
-**Key architectural patterns established in this session:**
+**Key architectural patterns (carry forward):**
 
 - Router factory: `module.exports = function createRouter(appContext) { return express.Router(); }`
 - appContext shape: `{ config, requireLocalOrApiKey, log, debug, dataRoot, logDir, toolCallHandler }`
 - Rate limiters stay as `app.use()` in server.js — never moved into routers
 - `sendSpaIndexHtml` always sets `Cache-Control: no-cache`
-- SPA fallback returns 404 for extension paths (not index.html) via `isLikelyAssetRequest()`
+- SPA fallback returns 404 for extension paths via `isLikelyAssetRequest()`
+- Root layout MUST use `fixed inset-0` — never h-screen/h-dvh
+- Docling default port 5002, NOT 5001 (macOS AirPlay conflict)
+- Agent terminal default OFF, empty allowlist = deny all
+- Cloud models wrap JSON in `json` fences — `lib/ollama-client.js` strips them
+- Memory retrieval requires `conversationId` on `POST /api/chat`
 
-**Browser access note:** Use `https://localhost:8900`, NOT the LAN IP (`192.168.50.7:8900`). The self-signed cert is issued for `localhost` only; Chrome will block subresource (JS/CSS) loads from the LAN IP.
+**Packaging rule (critical — caused v1.6.x crash):**
+When adding a new top-level runtime directory, add `"newdir/**/*"` to `files` in `electron-builder.config.js`. Run `node scripts/smoke-test-server.js` to verify before tagging.
 
 **Port assignments:**
 | Service | Port |
@@ -131,20 +88,11 @@ Ship v1.6.0 of Code Companion. The session covered:
 - Certificate: Developer ID Application: JAIME AVILA (9LRPX62LGN)
 - Apple ID: jm.avila@comcast.net (NOT james@th3rdai.com)
 - Team ID: 9LRPX62LGN
-- GitHub Secrets set on both repos
+- GitHub Secrets set on Th3rdai/CodeCompanion
 
 **Google Drive Release Path:**
 `~/Library/CloudStorage/GoogleDrive-admin@th3rdai.com/My Drive/_TH3RDAI.INC/CodeCompanion/{Mac,Windows,Linux}`
-Keep only last 2 versions in archive folders.
+Keep only last 2 versions in archive folders. Currently: v1.6.0 + v1.6.4 in archive, v1.6.5 live.
 
-**Archon release task ID:** `69f72625-3266-4a81-b7b7-7d98d0cb8e81` (project: CodeCompanion, status: doing)
-
-**Critical Design Decisions (carry forward from prior sessions):**
-
-- Root layout MUST use `fixed inset-0` — never h-screen/h-dvh
-- Docling default port 5002, NOT 5001 (macOS AirPlay conflict)
-- Agent terminal default OFF, empty allowlist = deny all
-- Cloud models wrap JSON in `json` fences — `lib/ollama-client.js:225` strips them
-- Memory retrieval requires `conversationId` on `POST /api/chat`; only memories with `source` matching that id are injected
-- Agent terminal: builtin `run_terminal_cmd` must be advertised for terminal preamble + AGENT TERMINAL line
-  </context>
+**GitNexus index:** 3,128 nodes | 5,602 edges | 182 flows (indexed 2026-04-09)
+</context>
