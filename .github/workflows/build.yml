@@ -173,16 +173,3 @@ jobs:
           else
             gh release edit "$GITHUB_REF_NAME" --draft=false --latest --generate-notes
           fi
-
-      # Mirror release to Th3rdai/CodeCompanion (public repo for in-app updates)
-      - name: Mirror release to Th3rdai/CodeCompanion
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p artifacts
-          gh release download "$GITHUB_REF_NAME" --dir artifacts
-          gh release create "$GITHUB_REF_NAME" \
-            --repo Th3rdai/CodeCompanion \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            artifacts/* || echo "::warning::Mirror release failed — create manually on Th3rdai/CodeCompanion"
