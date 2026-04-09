@@ -441,7 +441,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 25. Agent — Validate builtins | ad-hoc         | Complete | 2026-04-09 |
 | 26. Agent — Planner tools     | ad-hoc         | Complete | 2026-04-09 |
 | 27. Agent — GSD bridge (opt.) | —              | Deferred | —          |
-| 28. Multi-File Code Review    | 3/3 | Complete   | 2026-04-09 |
+| 28. Multi-File Code Review    | 3/3 | Complete    | 2026-04-09 |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
-status: unknown
+status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-04-09T22:04:14.702Z"
-last_activity: "2026-04-09 — **post-v1.6.5 consistency + capability updates**: 24.5 retro summary added, phases 25/26 marked complete, and MCP parallel execution aligned to plan (`toolExec` gate + bounded concurrency + explicit risky builtins)."
+last_updated: "2026-04-09T23:00:00.000Z"
+last_activity: "2026-04-09 — **Phase 28 complete**: Multi-File Code Review shipped — Scan Folder tab in Review mode with preview, drag-drop, amber warning for >20 files, unified report card via `reviewFiles()`. Also fixed FileBrowser flex-shrink bug (App.jsx) and vite.config.js proxy for self-signed HTTPS."
 progress:
-  total_phases: 27
-  completed_phases: 10
-  total_plans: 32
-  completed_plans: 26
+  total_phases: 28
+  completed_phases: 28
+  total_plans: 35
+  completed_plans: 35
   percent: 100
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Core delivery through **Phase 26** is complete (including 24.5), **Phase 27 is deferred**, and **Phase 28 is planned**. Validate/Planner agent capabilities are shipped; MCP tool execution supports gated parallel segments (`toolExec.parallel`, `toolExec.maxConcurrent`) and remains default-off.
+**Current focus:** All roadmap phases complete through **Phase 28** (including 24.5). Phase 27 remains deferred. Multi-File Code Review is now live in Review mode. MCP tool execution supports gated parallel segments and remains default-off.
 
 ## Current Position
 
-Roadmap status: completed through Phase 26 (including 24.5), deferred phases 8–14 and 27, planned Phase 28. Latest MCP parallel tool-exec verification: 19/19 unit and 3/3 integration.
+Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec: 19/19 unit and 3/3 integration. Phase 28 (Multi-File Code Review) verified by user 2026-04-09.
 
 **Current version:** 1.6.5 (released 2026-04-09).
 
-Last activity: 2026-04-09 — **post-v1.6.5 consistency + capability updates**: 24.5 retro summary added, phases 25/26 marked complete, and MCP parallel execution aligned to plan (`toolExec` gate + bounded concurrency + explicit risky builtins).
+Last activity: 2026-04-09 — **Phase 28 complete**: Multi-File Code Review shipped — Scan Folder tab in Review mode with preview, drag-drop, amber warning for >20 files, unified report card via `reviewFiles()`. Also fixed FileBrowser flex-shrink bug (App.jsx) and vite.config.js proxy for self-signed HTTPS.
 
-Next: keep Phase 27 deferred (optional) unless demand emerges, and plan/scope Phase 28 (Multi-File Code Review).
+Next: release v1.7.0 incorporating Phase 28, or plan new phases as demand emerges.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

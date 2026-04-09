@@ -13,8 +13,8 @@ export default defineConfig({
   server: {
     port: 8902,
     proxy: {
-      "/api": "http://localhost:8900",
-      "/mcp": "http://localhost:8900",
+      "/api": { target: "https://localhost:8900", secure: false, changeOrigin: true },
+      "/mcp": { target: "https://localhost:8900", secure: false, changeOrigin: true },
     },
   },
   build: {

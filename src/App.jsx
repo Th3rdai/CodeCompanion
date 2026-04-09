@@ -1753,7 +1753,7 @@ export default function App() {
 
           {/* File Browser (right panel) */}
           {showFileBrowser && (
-            <aside aria-label="File browser">
+            <aside className="w-80 flex-shrink-0 overflow-hidden" aria-label="File browser">
               <FileBrowser
                 projectFolder={projectFolder}
                 onAttachFile={attachFile}
