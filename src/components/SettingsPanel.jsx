@@ -115,6 +115,10 @@ export default function SettingsPanel({
   const [terminalConfirmBeforeRun, setTerminalConfirmBeforeRun] =
     useState(false);
 
+  // Agent tool toggles
+  const [validateEnabled, setValidateEnabled] = useState(true);
+  const [plannerEnabled, setPlannerEnabled] = useState(true);
+
   // GitHub token state (multi-PAT)
   const [ghToken, setGhToken] = useState("");
   const [ghTokenLabel, setGhTokenLabel] = useState("");
@@ -197,6 +201,10 @@ export default function SettingsPanel({
               data.agentTerminal.confirmBeforeRun ?? false,
             );
           }
+          if (data.agentValidate != null)
+            setValidateEnabled(data.agentValidate.enabled !== false);
+          if (data.agentPlanner != null)
+            setPlannerEnabled(data.agentPlanner.enabled !== false);
           if (data.autoModelMap && typeof data.autoModelMap === "object")
             setAutoModelMap(data.autoModelMap);
           if (
@@ -1025,6 +1033,70 @@ export default function SettingsPanel({
                   </div>
                 </>
               )}
+            </div>
+
+            {/* Agent Validate */}
+            <div className="border-t border-slate-700/40 pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-slate-300 font-medium">
+                  Agent Validate Tools
+                </label>
+                <button
+                  onClick={() => {
+                    const next = !validateEnabled;
+                    setValidateEnabled(next);
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        agentValidate: { enabled: next },
+                      }),
+                    });
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${validateEnabled ? "bg-indigo-500" : "bg-slate-600"}`}
+                  aria-label="Toggle agent validate tools"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${validateEnabled ? "translate-x-4" : ""}`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Allow the AI agent to scan your project and generate a
+                validate.md command file (same as Validate mode).
+              </p>
+            </div>
+
+            {/* Agent Planner */}
+            <div className="border-t border-slate-700/40 pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-slate-300 font-medium">
+                  Agent Planner Scoring
+                </label>
+                <button
+                  onClick={() => {
+                    const next = !plannerEnabled;
+                    setPlannerEnabled(next);
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        agentPlanner: { enabled: next },
+                      }),
+                    });
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${plannerEnabled ? "bg-indigo-500" : "bg-slate-600"}`}
+                  aria-label="Toggle agent planner scoring"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${plannerEnabled ? "translate-x-4" : ""}`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Allow the AI agent to score implementation plans with letter
+                grades (same as Planner mode).
+              </p>
             </div>
 
             {/* Project Folder */}

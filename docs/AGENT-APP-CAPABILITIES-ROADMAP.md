@@ -16,8 +16,8 @@ Today, chat agent tools cover terminal, office export, and MCP. **Validate mode*
 
 ## Phases (summary checklist)
 
-- [ ] **Phase 1: Validate builtins** — Agent can trigger project scan and `validate.md`-style generation consistent with Validate mode APIs; optional write to an allowed path under the project folder.
-- [ ] **Phase 2: Planner tool(s)** — Agent can submit planner-shaped content for scoring (and optionally draft/revise flows) consistent with `PlannerPanel` + `/api/score` for `planner`.
+- [x] **Phase 1: Validate builtins** — Agent can trigger project scan and `validate.md`-style generation consistent with Validate mode APIs; optional write to an allowed path under the project folder. (complete 2026-04-09)
+- [x] **Phase 2: Planner tool(s)** — Agent can submit planner-shaped content for scoring (and optionally draft/revise flows) consistent with `PlannerPanel` + `/api/score` for `planner`. (complete 2026-04-09)
 - [ ] **Phase 3 (optional): GSD bridge builtins** — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for read-only or safe planning queries; strict command allowlist and config gates.
 
 ---
