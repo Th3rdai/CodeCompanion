@@ -8,8 +8,9 @@
 # are set, imports the .p12 and runs a Developer ID build (see BUILD.md → GitHub Actions).
 # Optional notarization when APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD are also set.
 #
-# For in-app Software Updates, each release must include updater metadata (e.g. latest-mac.yml on mac)
-# and matching DMG/ZIP/blockmaps — this workflow uploads all platform artifacts to one release.
+# Architecture: each build job uploads directly to a draft GitHub Release (no artifact storage).
+# The release job publishes the draft and mirrors to Th3rdai/CodeCompanion.
+# This avoids GitHub Actions artifact storage quota limits entirely.
 
 name: Build Desktop Installers
 
@@ -48,6 +49,8 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     name: Build (${{ matrix.platform }})
+    permissions:
+      contents: write
     # secrets allowed in job env; step `if` uses env.* so cert import stays aligned with MAC_DISTRIBUTION_SIGN
     env:
       MAC_CI_SIGNING: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && 'true' || 'false' }}
@@ -113,19 +116,27 @@ jobs:
       - name: Verify updater metadata in release/ (per platform)
         run: node scripts/verify-release-output.js ${{ startsWith(matrix.platform, 'mac') && 'mac' || matrix.platform }}
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Rename Intel updater feed (mac-x64 only)
+        if: matrix.platform == 'mac-x64'
+        shell: bash
+        run: mv release/latest-mac.yml release/latest-x64-mac.yml
+
+      - name: Upload to GitHub Release draft
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
         with:
-          name: installer-${{ matrix.platform }}
-          path: release/*
-          if-no-files-found: error
-          retention-days: 1
+          draft: true
+          fail_on_unmatched_files: true
+          files: release/*
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
-    name: Create GitHub Release
+    name: Publish GitHub Release
     permissions:
       contents: write
     steps:
@@ -149,66 +160,29 @@ jobs:
       - name: Verify CI repo matches electron-builder publish (in-app updates)
         run: node scripts/verify-ci-repo-matches-publish.js
 
-      - name: Download mac artifacts (arm64)
-        uses: actions/download-artifact@v4
-        with:
-          name: installer-mac
-          path: artifacts/installer-mac
-
-      - name: Download mac artifacts (x64 — Intel)
-        uses: actions/download-artifact@v4
-        with:
-          name: installer-mac-x64
-          path: artifacts/installer-mac-x64
-
-      - name: Merge Intel Mac artifacts and publish Intel updater feed
-        run: |
-          cp artifacts/installer-mac-x64/*.dmg artifacts/installer-mac/ 2>/dev/null || true
-          cp artifacts/installer-mac-x64/*.dmg.blockmap artifacts/installer-mac/ 2>/dev/null || true
-          cp artifacts/installer-mac-x64/*.zip artifacts/installer-mac/ 2>/dev/null || true
-          cp artifacts/installer-mac-x64/*.zip.blockmap artifacts/installer-mac/ 2>/dev/null || true
-          cp artifacts/installer-mac-x64/latest-mac.yml artifacts/installer-mac/latest-x64-mac.yml 2>/dev/null || true
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: installer-win
-          path: artifacts/installer-win
-
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: installer-linux
-          path: artifacts/installer-linux
-
       - name: Verify electron-builder artifactName (updater-safe)
         run: node scripts/verify-artifact-name-config.js
 
-      - name: Verify updater YAML files reference on-disk assets
-        run: node scripts/verify-updater-yaml-assets.js artifacts
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          fail_on_unmatched_files: true
-          files: |
-            artifacts/installer-mac/*
-            artifacts/installer-win/*
-            artifacts/installer-linux/*
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
+      - name: Publish draft release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *"-beta"* ]] || [[ "$GITHUB_REF_NAME" == *"-alpha"* ]] || [[ "$GITHUB_REF_NAME" == *"-rc"* ]]; then
+            gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease --generate-notes
+          else
+            gh release edit "$GITHUB_REF_NAME" --draft=false --latest --generate-notes
+          fi
 
       # Mirror release to Th3rdai/CodeCompanion (public repo for in-app updates)
       - name: Mirror release to Th3rdai/CodeCompanion
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p artifacts
+          gh release download "$GITHUB_REF_NAME" --dir artifacts
           gh release create "$GITHUB_REF_NAME" \
             --repo Th3rdai/CodeCompanion \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
-            artifacts/installer-mac/* \
-            artifacts/installer-win/* \
-            artifacts/installer-linux/* || echo "::warning::Mirror release failed — create manually on Th3rdai/CodeCompanion"
+            artifacts/* || echo "::warning::Mirror release failed — create manually on Th3rdai/CodeCompanion"
