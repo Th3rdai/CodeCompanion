@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-04-09T21:00:00.000Z"
-last_activity: 2026-04-09 — **Post-v1.6.5 tech cleanup**: Phase 24.5 complete (retroactive summary); Phases 25 & 26 complete — agent validate/planner tools already implemented, added Settings UI toggles (SettingsPanel.jsx). MCP parallel plan compliance: added toolExec.{parallel,maxConcurrent} config gate (parallel=false default), bounded Promise.all with worker-pool (maxConcurrent=4), write_file added to RISKY_BUILTINS explicit set. All tests pass (22 unit, 3 integration).
+stopped_at: Completed 28-00-PLAN.md
+last_updated: "2026-04-09T21:52:12.264Z"
+last_activity: "2026-04-09 — **post-v1.6.5 consistency + capability updates**: 24.5 retro summary added, phases 25/26 marked complete, and MCP parallel execution aligned to plan (`toolExec` gate + bounded concurrency + explicit risky builtins)."
 progress:
-  total_phases: 24
-  completed_phases: 15
-  total_plans: 29
-  completed_plans: 23
+  total_phases: 27
+  completed_phases: 9
+  total_plans: 32
+  completed_plans: 24
   percent: 100
 ---
 
@@ -21,17 +21,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** Core **Phases 1–24** complete (15 delivered, 7 deferred). **Next planned track:** Phases **25–27** (chat agent builtins for Validate / Planner / optional GSD) — see [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md).
+**Current focus:** Core delivery through **Phase 26** is complete (including 24.5), **Phase 27 is deferred**, and **Phase 28 is planned**. Validate/Planner agent capabilities are shipped; MCP tool execution supports gated parallel segments (`toolExec.parallel`, `toolExec.maxConcurrent`) and remains default-off.
 
 ## Current Position
 
-All 24 phases complete (15 delivered, 7 deferred). All tests passing (Playwright UI/E2E, node:test unit — **172** tests, **`npm run test:integration`** for API+images).
+Roadmap status: completed through Phase 26 (including 24.5), deferred phases 8–14 and 27, planned Phase 28. Latest MCP parallel tool-exec verification: 19/19 unit and 3/3 integration.
 
-**Current version: 1.6.5** (released 2026-04-09). Working tree clean. No open tasks.
+**Current version:** 1.6.5 (released 2026-04-09).
 
-Last activity: 2026-04-09 — **v1.6.5 hotfix release**. Root cause: Phase 24.5 server.js refactor (v1.6.0) created `routes/` directory with 16 Express route modules, but `electron-builder.config.js` was never updated to include it. All packaged installs v1.6.0–v1.6.4 crashed at startup (`code=1`). Fix: added `"routes/**/*"` to `files` array. Also added CI smoke-test (`scripts/smoke-test-server.js`, `smoke-test` job in `build.yml`) and documented the packaging rule in BUILD.md, RELEASES-AND-UPDATES.md, CLAUDE.md. Google Drive synced (v1.6.5 live, v1.6.4 archived, v1.5.15 pruned). Archon tasks logged and marked done.
+Last activity: 2026-04-09 — **post-v1.6.5 consistency + capability updates**: 24.5 retro summary added, phases 25/26 marked complete, and MCP parallel execution aligned to plan (`toolExec` gate + bounded concurrency + explicit risky builtins).
 
-Next: Phase 27 (GSD builtins from chat) or new feature work — no blockers.
+Next: keep Phase 27 deferred (optional) unless demand emerges, and plan/scope Phase 28 (Multi-File Code Review).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 
@@ -188,6 +188,7 @@ _Updated after each plan completion_
 | Phase 18 P01 | 208          | 2 tasks | 5 files  |
 | Phase 18 P02 | 237          | 1 tasks | 2 files  |
 | Phase 18 P03 | 535          | 2 tasks | 5 files  |
+| Phase 28-multi-file-code-review P00 | 146 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -245,6 +246,8 @@ Recent decisions affecting current work:
 - [Phase 18]: Agent Skills Spec format with progressive-disclosure OWASP reference tables for pentest skill file
 - [Phase 18]: Used emoji icon for Security mode tab to match existing MODES pattern
 - [Phase 18]: SecurityPanel/SecurityReport follow exact ReviewPanel/ReportCard architecture for consistency
+- [Phase 28-multi-file-code-review]: Wave 0 test stubs use it.skip/test.skip so they pass immediately without implementation (Nyquist compliance pattern)
+- [Phase 28-multi-file-code-review]: Port 3325 reserved for folder-review integration tests to avoid conflicts with other suites
 
 ### Phase 15: Build Mode (GSD + ICM) — Approved and Implemented
 
@@ -305,7 +308,7 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-19
-Stopped at: Completed Phases 19-24 (retroactive documentation)
+Last session: 2026-04-09T21:52:12.261Z
+Stopped at: Completed 28-00-PLAN.md
 Resume file: None
 Next: Phases 8-14 (license distribution) deferred — project uses Th3rdAI personal/non-commercial LICENSE; commercial use requires agreement. All planned features complete. Ready for v5.0 milestone or new feature work.
