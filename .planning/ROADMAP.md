@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–18 add Build, Dashboard, Installer, Security; Phases 19–24 cover deployment hardening and new features. **Phases 25–27** extend the **chat agent** with first-party **Validate** / **Planner** (and optional **GSD**) capabilities — full requirements and risks: **[`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)**.
+This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–18 add Build, Dashboard, Installer, Security; Phases 19–24 cover deployment hardening and new features. **Phases 25–26** extend the **chat agent** with first-party **Validate** and **Planner** capabilities — full requirements and risks: **[`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)**. Phase 27 (GSD bridge) is deferred.
 
 ## Phases
 
@@ -37,10 +37,11 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 22: Stability Fixes** - TokenCounter crash fix (blank page prevention), SSE streaming flash fix (debounced updates), increased backend model timeout to 300s, Mermaid diagram rendering without language tag (completed 2026-03-19)
 - [x] **Phase 23: Save Chat** - Download entire conversation as markdown file with auto-generated 1-2 word topic filename, available in all modes via toolbar button (completed 2026-03-19)
 - [x] **Phase 24: IDE Command Distribution** - Create and Build scaffolders auto-copy IDE command files from IDE_COMMANDS/ into every new project across all 5 IDE paths (.claude/commands/, .cursor/commands/, .cursor/prompts/, .github/prompts/, .opencode/commands/) (completed 2026-03-19)
-- [ ] **Phase 24.5: Tech Health** — ESLint + Prettier baseline, duplicate test tree consolidation, `lib/history.js` atomic write hardening, `src/App.jsx` hook extraction (`useChat`, `useModels`), `server.js` route decomposition into `routes/`. Zero behavioral changes. **Detail:** [`.planning/phases/24.5-tech-health/24.5-CONTEXT.md`](.planning/phases/24.5-tech-health/24.5-CONTEXT.md) (Plans 01–03).
+- [x] **Phase 24.5: Tech Health** — ESLint + Prettier baseline, duplicate test tree consolidation, `lib/history.js` atomic write hardening, `src/App.jsx` hook extraction (`useChat`, `useModels`), `server.js` route decomposition into `routes/`. Zero behavioral changes. **Detail:** [`.planning/phases/24.5-tech-health/24.5-CONTEXT.md`](.planning/phases/24.5-tech-health/24.5-CONTEXT.md) (Plans 01–03). (completed 2026-04-09)
 - [x] **Phase 25: Agent — Validate builtins** — Builtin tools so chat can run the same project scan + `validate.md` generation as Validate mode (`lib/validate.js`, `/api/validate/*`); optional save under project folder; Settings gate added. **Detail:** [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md) (AAP-01–AAP-05). (completed 2026-04-09)
 - [x] **Phase 26: Agent — Planner tools** — Builtin(s) so chat can score planner-shaped content via the same `/api/score` path as Planner mode (`PlannerPanel`); Settings gate added. **Detail:** same doc (AAP-06–AAP-10). (completed 2026-04-09)
-- [ ] **Phase 27 (optional): Agent — GSD bridge builtins** — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for safe planning queries from chat. **Detail:** same doc (AAP-11–AAP-14).
+- [ ] **Phase 28: Multi-File Code Review** — Extend Review mode to accept multiple files and whole folders (mirror Security mode's multi-file scanning), producing a unified report card across the full project rather than a single paste.
+- [ ] ~~**Phase 27 (optional): Agent — GSD bridge builtins**~~ — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for safe planning queries from chat. **Detail:** same doc (AAP-11–AAP-14). (DEFERRED — low value for most users; Build mode already surfaces GSD data; skip unless real demand emerges)
 
 ## Post–roadmap enhancements (tracked in repo history)
 
@@ -369,15 +370,35 @@ Plans:
 - Falls back to configured template path's Commands/ folder if IDE_COMMANDS/ doesn't exist
 - Create wizard result screen: "Open in Build" button for Create→Build handoff
 
-### Phase 25–27: Agent first-party app capabilities
+### Phase 25: Agent — Validate builtins
 
-**Goal**: Let the **chat agent** invoke the same **Validate** and **Planner** behaviors users get from the UI (and optionally bounded **GSD** reads), via builtins in `lib/builtin-agent-tools.js`, without duplicating prompts or logic in `lib/validate.js`, `/api/score`, or `lib/gsd-bridge.js`.
+**Goal**: Builtin tools so the chat agent can run the same project scan and `validate.md` generation as Validate mode, via `lib/validate.js` and `/api/validate/*`, with optional save under the project folder and a Settings gate.
 
-**Depends on**: Phases 20 (Validate) and builder scoring (Planner) already shipped; these phases add **agent surfaces** only.
+**Depends on**: Phase 20 (Validate Mode).
 
-**Requirements**: AAP-01 through AAP-14 — see **[`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)** for phases 1–3 of that document (maps to ROADMAP Phases 25–27), success criteria, risks, and verification.
+**Requirements**: AAP-01–AAP-05 — see [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md).
 
-**Plans**: TBD (split per phase when implementation starts).
+**Plans**: Implemented ad-hoc (completed 2026-04-09).
+
+### Phase 26: Agent — Planner tools
+
+**Goal**: Builtin(s) so the chat agent can score planner-shaped content via the same `/api/score` path as Planner mode (`PlannerPanel`), with a Settings gate.
+
+**Depends on**: Phase 25 (shared gate patterns).
+
+**Requirements**: AAP-06–AAP-10 — see [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md).
+
+**Plans**: Implemented ad-hoc (completed 2026-04-09).
+
+### Phase 28: Multi-File Code Review
+
+**Goal**: Extend Review mode to accept multiple files and whole folders, producing a unified report card across a full project — mirroring Security mode's multi-file scanning capability applied to the existing review engine.
+
+**Depends on**: Phase 1 (Review Engine), Phase 18/19 (Security multi-file scanning patterns).
+
+**Requirements**: TBD (discuss-phase 28).
+
+**Plans**: TBD.
 
 ## Progress
 
@@ -411,10 +432,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 22. Stability Fixes           | ad-hoc         | Complete | 2026-03-19 |
 | 23. Save Chat                 | ad-hoc         | Complete | 2026-03-19 |
 | 24. IDE Command Distribution  | ad-hoc         | Complete | 2026-03-19 |
-| 24.5. Tech Health             | 3 plans        | Planned  | —          |
+| 24.5. Tech Health             | 3 plans        | Complete | 2026-04-09 |
 | 25. Agent — Validate builtins | ad-hoc         | Complete | 2026-04-09 |
 | 26. Agent — Planner tools     | ad-hoc         | Complete | 2026-04-09 |
-| 27. Agent — GSD bridge (opt.) | TBD            | Planned  | —          |
+| 27. Agent — GSD bridge (opt.) | —              | Deferred | —          |
+| 28. Multi-File Code Review    | TBD            | Planned  | —          |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 
