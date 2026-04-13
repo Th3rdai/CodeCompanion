@@ -4,7 +4,7 @@ const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { effectiveOllamaApiKey } = require("../lib/ollama-client");
 const { reviewCode, reviewFiles } = require("../lib/review");
-const { readFolderFiles } = require("../lib/file-browser");
+const { readFolderFiles, isWithinBasePath } = require("../lib/file-browser");
 const {
   CLIENT_INTERNAL_ERROR,
   STREAM_INTERNAL_ERROR,
@@ -211,6 +211,16 @@ module.exports = function createRouter(appContext) {
     const { folder } = req.body;
     if (!folder) return res.status(400).json({ error: "Missing folder" });
 
+    const cfgForPreview = getConfig();
+    if (
+      cfgForPreview.projectFolder &&
+      !isWithinBasePath(cfgForPreview.projectFolder, folder)
+    ) {
+      return res
+        .status(403)
+        .json({ error: "Folder is outside the configured project folder" });
+    }
+
     try {
       const { files, totalSize, skipped } = readFolderFiles(folder, {
         maxFiles: 80,
@@ -236,6 +246,12 @@ module.exports = function createRouter(appContext) {
     }
 
     const config = getConfig();
+
+    if (config.projectFolder && !isWithinBasePath(config.projectFolder, folder)) {
+      return res
+        .status(403)
+        .json({ error: "Folder is outside the configured project folder" });
+    }
 
     try {
       const { files, totalSize, skipped } = readFolderFiles(folder, {
