@@ -87,6 +87,11 @@ export function useChat({
   }
 
   async function saveConversation(msgs, convMode, overrides = {}) {
+    const normalizeCreatedAt = (value) => {
+      if (!value) return null;
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+    };
     const title =
       overrides.title || msgs[0]?.content?.slice(0, 60) || "Untitled";
     // Allow callers to pass an explicit convId to avoid reading stale React state
@@ -105,12 +110,12 @@ export function useChat({
     if (convId) {
       const existing = history.find((h) => h.id === convId);
       if (existing) {
-        conv.createdAt = existing.createdAt;
+        conv.createdAt = normalizeCreatedAt(existing.createdAt);
         if (existing.archived) conv.archived = existing.archived;
       }
-    } else {
-      conv.createdAt = new Date().toISOString();
     }
+    conv.createdAt =
+      normalizeCreatedAt(conv.createdAt) || new Date().toISOString();
     try {
       const res = await apiFetch("/api/history", {
         method: "POST",

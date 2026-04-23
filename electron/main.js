@@ -637,6 +637,32 @@ async function startApp() {
       return { action: "deny" };
     });
 
+    // Explicit secondary-click context menu (editable + selection actions).
+    // This makes right-click behavior consistent in packaged desktop builds.
+    mainWindow.webContents.on("context-menu", (event, params) => {
+      const template = [];
+      if (params.isEditable) {
+        template.push(
+          { role: "undo" },
+          { role: "redo" },
+          { type: "separator" },
+          { role: "cut" },
+          { role: "copy" },
+          { role: "paste" },
+          { role: "selectAll" },
+        );
+      } else if (params.selectionText && params.selectionText.trim()) {
+        template.push({ role: "copy" }, { role: "selectAll" });
+      } else {
+        template.push({ role: "copy" });
+      }
+      if (!app.isPackaged) {
+        template.push({ type: "separator" }, { role: "inspect" });
+      }
+      const menu = Menu.buildFromTemplate(template);
+      menu.popup({ window: mainWindow });
+    });
+
     // Same-window navigations (e.g. <a href="https://..."> without target=_blank) would otherwise
     // replace the SPA with no way back. Keep only the local app origin; everything else opens
     // in the default browser.

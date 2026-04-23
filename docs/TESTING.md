@@ -66,6 +66,8 @@ The spec calls `executeBuiltinTool()` directly via `require()` inside Playwright
 
 The **`.claude/commands/validate-project.md`** command runs build, server health, unit tests, Playwright, API smoke, and workflow curls.
 
+**Phase 7 (Ollama + SSE):** use **`npm run validate:p7`** (see `scripts/validate-p7-workflows.sh`) so chat/review/diagram checks **warm the model first** and use **long curl timeouts** (defaults 240s warm, 300s per stream). Set **`VALIDATE_BASE_URL`** to your running server (e.g. `http://127.0.0.1:4173` with `FORCE_HTTP=1`).
+
 **If the server uses HTTPS** (self-signed **`cert/`** files, **`FORCE_HTTP` unset**):
 
 - Use **`https://127.0.0.1:PORT`** and **`curl -skf`** / **`curl -sk`** for API and SSE checks (not plain **`http://`** without TLS).

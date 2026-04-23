@@ -43,6 +43,12 @@ export default function Sidebar({
     return "";
   }, [healthDetails, healthIssues]);
 
+  function formatConversationDate(value) {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "Unknown date";
+    return parsed.toLocaleDateString();
+  }
+
   // Fetch project health on projectFolder change (debounced 1s)
   useEffect(() => {
     setHealthIssues(0);
@@ -452,7 +458,7 @@ export default function Sidebar({
                           </span>
                         )}
                         {h.model && " · "}
-                        {new Date(h.createdAt).toLocaleDateString()}
+                        {formatConversationDate(h.createdAt)}
                       </div>
                     </div>
                     {!multiSelectMode && (

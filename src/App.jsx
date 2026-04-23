@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { apiFetch } from "./lib/api-fetch";
 import { copyText, readText } from "./lib/clipboard";
 import MessageBubble from "./components/MessageBubble";
@@ -51,9 +51,11 @@ import { joinAppend } from "./lib/dictationAppend";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   PanelLeft,
   Brain,
   BookOpen,
+  Search,
 } from "lucide-react";
 import { use3DEffects } from "./contexts/Effects3DContext";
 import { useModels } from "./hooks/useModels";
@@ -192,6 +194,33 @@ const MODES = [
 
 const BUILDER_MODES = ["prompting", "skillz", "agentic", "planner"];
 
+/** Shown in the main strip; everything else lives under More or the command palette. */
+const PRIMARY_MODE_IDS = [
+  "chat",
+  "review",
+  "pentest",
+  "build",
+  "create",
+  "diagram",
+];
+
+const MORE_MENU_GROUPS = [
+  {
+    label: "Assist",
+    ids: ["explain", "bugs", "refactor", "translate-tech", "translate-biz"],
+  },
+  {
+    label: "Builders",
+    ids: ["prompting", "skillz", "agentic", "planner"],
+  },
+  { label: "Analyze", ids: ["validate"] },
+  { label: "Tools", ids: ["terminal"] },
+];
+
+function modeById(id) {
+  return MODES.find((m) => m.id === id);
+}
+
 function AttachedFiles({ files, onRemove, onImageClick }) {
   if (files.length === 0) return null;
   return (
@@ -313,6 +342,7 @@ export default function App() {
     });
   }
   const [showSettings, setShowSettings] = useState(false);
+  const [agentTerminalEnabled, setAgentTerminalEnabled] = useState(false);
   const [showFileBrowser, _setShowFileBrowser] = useState(() => {
     try {
       return localStorage.getItem("cc-file-browser-open") === "true";
@@ -350,6 +380,13 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(1);
   const [wizardPrefill, setWizardPrefill] = useState(null);
+
+  const [showMoreModes, setShowMoreModes] = useState(false);
+  const [showModePalette, setShowModePalette] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const [paletteHighlightIndex, setPaletteHighlightIndex] = useState(0);
+  const moreModesRef = useRef(null);
+  const paletteInputRef = useRef(null);
 
   // Auto-update state
   const [updateBanner, setUpdateBanner] = useState(null); // null | { type: 'available' | 'ready', version: string }
@@ -448,6 +485,109 @@ export default function App() {
     setDragging,
   });
 
+  const selectMode = useCallback(
+    (id) => {
+      setMode(id);
+      setShowMoreModes(false);
+      setShowModePalette(false);
+    },
+    [setMode],
+  );
+
+  const primaryModes = useMemo(
+    () => PRIMARY_MODE_IDS.map((id) => modeById(id)).filter(Boolean),
+    [],
+  );
+
+  const paletteModes = useMemo(() => {
+    const q = paletteQuery.trim().toLowerCase();
+    if (!q) return MODES;
+    return MODES.filter(
+      (m) =>
+        m.id.toLowerCase().includes(q) ||
+        m.label.toLowerCase().includes(q) ||
+        (m.desc && m.desc.toLowerCase().includes(q)),
+    );
+  }, [paletteQuery]);
+
+  const currentModeIsSecondary = useMemo(
+    () => !PRIMARY_MODE_IDS.includes(mode),
+    [mode],
+  );
+
+  useEffect(() => {
+    setPaletteHighlightIndex(0);
+  }, [paletteQuery]);
+
+  useEffect(() => {
+    if (showModePalette) setPaletteHighlightIndex(0);
+  }, [showModePalette]);
+
+  useEffect(() => {
+    if (!showModePalette) return;
+    const id = requestAnimationFrame(() => {
+      paletteInputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(id);
+  }, [showModePalette]);
+
+  useEffect(() => {
+    if (!showModePalette) return;
+    const onKey = (e) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setPaletteHighlightIndex((i) =>
+          Math.min(i + 1, Math.max(0, paletteModes.length - 1)),
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setPaletteHighlightIndex((i) => Math.max(0, i - 1));
+      } else if (e.key === "Enter" && paletteModes.length > 0) {
+        e.preventDefault();
+        const m = paletteModes[paletteHighlightIndex];
+        if (m) selectMode(m.id);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showModePalette, paletteModes, paletteHighlightIndex, selectMode]);
+
+  useEffect(() => {
+    if (!showMoreModes) return;
+    const close = (ev) => {
+      if (moreModesRef.current && !moreModesRef.current.contains(ev.target)) {
+        setShowMoreModes(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [showMoreModes]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowModePalette((open) => !open);
+        setShowMoreModes(false);
+        return;
+      }
+      if (e.key === "Escape") {
+        if (showModePalette) {
+          e.preventDefault();
+          setShowModePalette(false);
+        } else if (showMoreModes) {
+          setShowMoreModes(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showModePalette, showMoreModes]);
+
+  useEffect(() => {
+    if (!showModePalette) setPaletteQuery("");
+  }, [showModePalette]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, streaming]);
@@ -469,6 +609,10 @@ export default function App() {
     refreshModels();
     fetchHistory();
     fetchBuildProjects();
+    apiFetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => setAgentTerminalEnabled(!!d.agentTerminal?.enabled))
+      .catch(() => {});
 
     // Restore last mode in Electron
     if (isElectron && window.electronAPI?.getLastMode) {
@@ -1051,6 +1195,15 @@ export default function App() {
               <span className="text-slate-500 ml-0.5">&#9881;</span>
             </button>
             <ConnectionDot connected={connected} />
+            {agentTerminalEnabled && (
+              <span
+                className="hidden sm:flex items-center gap-1 text-xs text-green-400 bg-green-900/20 border border-green-800/40 rounded-full px-2 py-0.5"
+                title="Agent terminal is enabled — the AI can run commands in your project folder"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                Terminal
+              </span>
+            )}
             {activeMemories?.count > 0 && (
               <div className="relative">
                 <button
@@ -1217,27 +1370,195 @@ export default function App() {
         <div className="flex-1 flex overflow-hidden">
           {/* Main chat area */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Mode Tabs */}
-            <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap gap-1.5 sm:gap-2 relative">
+            {/* Mode tabs: primary strip, More menu, command palette (⌘K / Ctrl+K) */}
+            <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap items-center gap-1.5 sm:gap-2 relative">
               <FloatingGeometry shapeCount={5} />
-              {MODES.map((m) => (
+              {primaryModes.map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   data-testid={`mode-tab-${m.id}`}
-                  onClick={() => setMode(m.id)}
-                  className={`relative z-10 flex cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]
-                      ${
-                        mode === m.id
-                          ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm"
-                          : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200"
-                      }`}
+                  onClick={() => selectMode(m.id)}
+                  className={`relative z-10 flex min-h-[36px] cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419] ${
+                    mode === m.id
+                      ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm"
+                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200 border border-transparent"
+                  }`}
                 >
                   <span aria-hidden="true">{m.icon}</span>
-                  <span>{m.label}</span>
+                  <span className="relative">
+                    {m.label}
+                    {m.id === "agentic" && agentTerminalEnabled && (
+                      <span
+                        className="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-green-400"
+                        title="Agent terminal is active"
+                      />
+                    )}
+                  </span>
                 </button>
               ))}
+              <div className="relative z-10" ref={moreModesRef}>
+                <button
+                  type="button"
+                  data-testid="mode-tab-more"
+                  aria-expanded={showMoreModes}
+                  aria-haspopup="menu"
+                  onClick={() => {
+                    setShowMoreModes((v) => !v);
+                    setShowModePalette(false);
+                  }}
+                  className={`relative z-10 flex min-h-[36px] cursor-pointer items-center gap-0.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419] ${
+                    currentModeIsSecondary
+                      ? "bg-indigo-600/20 text-indigo-200 border border-indigo-500/35 font-medium"
+                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200 border border-transparent"
+                  }`}
+                >
+                  More
+                  <ChevronDown
+                    className={`h-3.5 w-3.5 shrink-0 opacity-70 transition-transform ${showMoreModes ? "rotate-180" : ""}`}
+                    aria-hidden
+                  />
+                </button>
+                {showMoreModes && (
+                  <div
+                    className="absolute left-0 top-full z-50 mt-1 min-w-[min(100vw-2rem,16rem)] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-slate-600/40 bg-[#141a24]/95 py-2 shadow-xl backdrop-blur-md"
+                    role="menu"
+                  >
+                    {MORE_MENU_GROUPS.map((group) => (
+                      <div key={group.label} className="px-1 pb-1">
+                        <div
+                          className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
+                          role="presentation"
+                        >
+                          {group.label}
+                        </div>
+                        {group.ids.map((id) => {
+                          const m = modeById(id);
+                          if (!m) return null;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              role="menuitem"
+                              data-testid={`mode-tab-${m.id}`}
+                              onClick={() => selectMode(m.id)}
+                              className={`flex w-full min-h-[40px] items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
+                                mode === m.id
+                                  ? "bg-indigo-600/25 text-indigo-200"
+                                  : "text-slate-300 hover:bg-slate-600/30"
+                              }`}
+                            >
+                              <span aria-hidden="true">{m.icon}</span>
+                              <span className="relative flex-1">
+                                {m.label}
+                                {m.id === "agentic" &&
+                                  agentTerminalEnabled && (
+                                    <span
+                                      className="absolute -top-0.5 right-0 w-2 h-2 rounded-full bg-green-400"
+                                      title="Agent terminal is active"
+                                    />
+                                  )}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                data-testid="mode-tab-palette-open"
+                title="Search modes (⌘K or Ctrl+K)"
+                aria-label="Search modes, keyboard shortcut Command K or Control K"
+                onClick={() => {
+                  setShowModePalette(true);
+                  setShowMoreModes(false);
+                }}
+                className="relative z-10 ml-auto flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center rounded-lg border border-transparent text-slate-400 transition-colors hover:bg-indigo-500/10 hover:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]"
+              >
+                <Search className="h-4 w-4" aria-hidden />
+              </button>
             </div>
+
+            {showModePalette && (
+              <div
+                className="fixed inset-0 z-[200] flex items-start justify-center bg-black/55 px-4 pt-[12vh] pb-8"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Switch mode"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) setShowModePalette(false);
+                }}
+              >
+                <div
+                  className="w-full max-w-lg overflow-hidden rounded-xl border border-slate-600/50 bg-[#141a24] shadow-2xl"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-2 border-b border-slate-700/50 px-3 py-2">
+                    <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                    <input
+                      ref={paletteInputRef}
+                      type="search"
+                      value={paletteQuery}
+                      onChange={(e) => setPaletteQuery(e.target.value)}
+                      placeholder="Filter modes…"
+                      className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                      aria-autocomplete="list"
+                      aria-controls="mode-palette-list"
+                    />
+                    <kbd className="hidden shrink-0 rounded border border-slate-600/60 bg-slate-800/80 px-1.5 py-0.5 text-[10px] text-slate-400 sm:inline">
+                      esc
+                    </kbd>
+                  </div>
+                  <ul
+                    id="mode-palette-list"
+                    className="max-h-[min(50vh,20rem)] overflow-y-auto py-1"
+                    role="listbox"
+                  >
+                    {paletteModes.map((m, idx) => (
+                      <li key={m.id} role="presentation">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={idx === paletteHighlightIndex}
+                          data-testid={`mode-tab-${m.id}`}
+                          onMouseEnter={() => setPaletteHighlightIndex(idx)}
+                          onClick={() => selectMode(m.id)}
+                          className={`flex w-full min-h-[44px] items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
+                            idx === paletteHighlightIndex
+                              ? "bg-indigo-600/30 text-indigo-100"
+                              : "text-slate-300 hover:bg-slate-700/40"
+                          }`}
+                        >
+                          <span aria-hidden="true">{m.icon}</span>
+                          <span className="relative flex min-w-0 flex-1 flex-col gap-0.5">
+                            <span className="font-medium">{m.label}</span>
+                            {m.desc ? (
+                              <span className="truncate text-xs text-slate-500">
+                                {m.desc}
+                              </span>
+                            ) : null}
+                            {m.id === "agentic" && agentTerminalEnabled && (
+                              <span
+                                className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-green-400"
+                                title="Agent terminal is active"
+                              />
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {paletteModes.length === 0 && (
+                    <p className="px-3 py-6 text-center text-sm text-slate-500">
+                      No modes match that filter.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Messages / Create Wizard / Review Panel */}
             {mode === "review" ? (
@@ -1803,7 +2124,13 @@ export default function App() {
           projectFolder={projectFolder}
           icmTemplatePath={icmTemplatePath}
           onSave={handleSaveSettings}
-          onClose={() => setShowSettings(false)}
+          onClose={() => {
+            setShowSettings(false);
+            apiFetch("/api/config")
+              .then((r) => r.json())
+              .then((d) => setAgentTerminalEnabled(!!d.agentTerminal?.enabled))
+              .catch(() => {});
+          }}
           onOpenMemoryPanel={() => {
             setShowSettings(false);
             setShowMemoryPanel(true);

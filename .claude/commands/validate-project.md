@@ -118,35 +118,27 @@ Verify all major API routes respond correctly. Server must be running on port 89
 
 ## Phase 7: User Workflow Smoke Tests
 
-These mirror actual user journeys from README.md. Requires Ollama running.
+These mirror actual user journeys from README.md. Requires **Ollama** and a **running app server** (same host/port as P2/P6 — e.g. `https://127.0.0.1:8903` or `http://127.0.0.1:4173`).
 
-### Workflow 1: Chat Mode (SSE streaming)
-!`curl -ks -N -X POST https://127.0.0.1:8903/api/chat -H 'Content-Type: application/json' -d '{"messages":[{"role":"user","content":"Say hello in one word"}],"mode":"chat","model":"qwen3:latest"}' --max-time 15 | head -c 300 | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log('Chat SSE:',d.includes('data:') ? 'OK' : 'NO STREAM'))"`
+**Strict green (recommended):** run the bundled script once instead of short-timeout curls. It **pre-warms** the chosen model via Ollama `POST /api/generate` (cold loads can exceed 60s), uses **long SSE timeouts** (default 300s per request), accepts **review** as either JSON report card or SSE, and requires **at least 11** MCP tools (more when external MCPs are connected).
 
-Expected: SSE stream with `data:` lines (requires Ollama + model).
+!`VALIDATE_BASE_URL="${VALIDATE_BASE_URL:-http://127.0.0.1:4173}" npm run validate:p7`
 
-### Workflow 2: Code Review with Report Card
-!`curl -ks -N -X POST https://127.0.0.1:8903/api/review -H 'Content-Type: application/json' -d '{"code":"function add(a,b){return a+b}","language":"javascript","model":"qwen3:latest"}' --max-time 60 | head -c 300 | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log('Review:',d.length>10?'OK (got response)':'NO RESPONSE'))"`
+Environment (optional):
 
-Expected: JSON report card with grades or SSE fallback.
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `VALIDATE_BASE_URL` | `http://127.0.0.1:4173` (override to match P2/P6, e.g. `https://127.0.0.1:8903`) | App root for `/api/chat`, `/api/review`, `/mcp` |
+| `VALIDATE_P7_MODEL` | auto-pick from `/api/models` | Pin a model if auto-pick is wrong |
+| `VALIDATE_P7_WARM_SEC` | `240` | Ollama cold-load warm timeout |
+| `VALIDATE_P7_CHAT_SEC` | `300` | Per-request SSE timeout (chat + diagram; review same cap) |
+| `VALIDATE_P7_MIN_MCP_TOOLS` | `11` | Minimum `tools/list` count |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Warm-up target |
 
-### Workflow 3: Diagram Mode (mermaid in response)
-!`curl -ks -N -X POST https://127.0.0.1:8903/api/chat -H 'Content-Type: application/json' -d '{"messages":[{"role":"user","content":"Draw a simple flowchart: Start -> Process -> End"}],"mode":"diagram","model":"qwen3:latest"}' --max-time 30 | head -c 500 | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log('Diagram mode:',d.includes('data:') ? 'OK (streaming)' : 'NO STREAM'))"`
+Expected: script prints `P7: all workflow checks passed.` and exits `0`.
 
-Expected: SSE stream with mermaid content (requires Ollama).
-
-### Workflow 4: File Browser
+### Workflow 4: File Browser (still via curl if you skip the script)
 !`curl -ksf "https://127.0.0.1:8903/api/files/tree?depth=2" | node -e "process.stdin.on('data',d=>{const t=JSON.parse(d);console.log('Browse files:',t.tree&&t.tree.length>0?'OK ('+t.tree.length+' items)':'check shape')})"`
-
-### Workflow 5: MCP Tool Discovery
-!`curl -ksf -X POST https://127.0.0.1:8903/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);const n=r.result&&r.result.tools?r.result.tools.length:0;console.log('MCP tools:',n===11?'OK (11 tools)':'UNEXPECTED ('+n+')')})"`
-
-Expected: 11 MCP tools listed.
-
-### Workflow 6: Mode Prompt Validation
-!`node -e 'var p=require("./lib/prompts");var modes=["chat","explain","bugs","refactor","translate-tech","translate-biz","diagram","review","create","prompting","skillz","agentic"];var missing=modes.filter(function(m){return p.SYSTEM_PROMPTS[m]===undefined});console.log(missing.length===0?"All 12 mode prompts: OK":"MISSING: "+missing.join(", "));process.exit(missing.length)'`
-
-Expected: All 12 mode prompts present in SYSTEM_PROMPTS.
 
 ### Cleanup
 !`kill $(lsof -ti:8903) 2>/dev/null; echo "Test server stopped"`
@@ -161,7 +153,7 @@ Expected: All 12 mode prompts present in SYSTEM_PROMPTS.
 | P4 | UI Components | Playwright UI specs pass |
 | P5 | E2E | Review-workflow E2E specs pass |
 | P6 | API Smoke | All endpoints return expected status/shape, file save + backup works, path traversal blocked |
-| P7 | User Workflows | Chat SSE streams, review returns report card, diagram mode streams, MCP lists 11 tools, all 12 mode prompts exist |
+| P7 | User Workflows | `npm run validate:p7` passes (warm + long-timeout chat/review/diagram, MCP ≥ 11, 12 mode prompts); optional file-browser curl above |
 
 **Hard pass:** P1 through P6 must all succeed. P7 requires Ollama.
 

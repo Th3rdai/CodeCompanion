@@ -10,6 +10,7 @@ const { Menu, shell } = require("electron");
  */
 function createMenu(options = {}) {
   const { reloadAppHome } = options;
+  const isMac = process.platform === "darwin";
 
   const viewSubmenu = [
     ...(reloadAppHome
@@ -35,6 +36,22 @@ function createMenu(options = {}) {
   ];
 
   const template = [
+    ...(isMac
+      ? [
+          {
+            label: "Code Companion",
+            submenu: [
+              { role: "about" },
+              { type: "separator" },
+              {
+                label: "Quit Code Companion",
+                accelerator: "Command+Q",
+                role: "quit",
+              },
+            ],
+          },
+        ]
+      : []),
     {
       label: "Edit",
       submenu: [

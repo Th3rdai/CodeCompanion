@@ -41,6 +41,31 @@ test("parseToolCalls primary TOOL_CALL format on repeated invocations", () => {
   }
 });
 
+test("parseToolCalls parses minimax parameter-style invoke format", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<minimax:tool_call>
+  <invoke name="playwright.browser_navigate">
+    <parameter name="url">https://example.com</parameter>
+  </invoke>
+  <invoke name="builtin.run_shell_command">
+    <parameter name="command">pwd</parameter>
+  </invoke>
+</minimax:tool_call>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 2);
+  assert.deepStrictEqual(calls[0], {
+    serverId: "playwright",
+    toolName: "browser_navigate",
+    args: { url: "https://example.com" },
+  });
+  assert.deepStrictEqual(calls[1], {
+    serverId: "builtin",
+    toolName: "run_shell_command",
+    args: { command: "pwd" },
+  });
+});
+
 test("executeTool MCP returns error when callTool exceeds timeout", async () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(80);
   const mockMcp = {
@@ -99,6 +124,10 @@ test("buildToolsPrompt includes agent identity override forbidding teacher-defle
   assert.ok(
     p.includes("you are the one holding the keyboard"),
     "expected keyboard deflection phrase listed",
+  );
+  assert.ok(
+    p.includes("I cannot directly execute browser automation commands"),
+    "expected browser-automation deflection phrase listed",
   );
   assert.ok(
     p.includes("Those statements are FALSE"),
@@ -217,9 +246,57 @@ test("getToolsPromptAndFlags hasTerminalTool false when terminal disabled", () =
   );
   const { hasTerminalTool, prompt } = h.getToolsPromptAndFlags();
   assert.strictEqual(hasTerminalTool, false);
+  assert.strictEqual(
+    h.getToolsPromptAndFlags().hasBrowserTool,
+    false,
+    "hasBrowserTool defaults to false",
+  );
   assert.ok(
     !prompt.includes("CAPABILITY:"),
     "no lead-in needed in prompt itself",
+  );
+});
+
+test("getToolsPromptAndFlags detects browser MCP tools", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    {
+      getAllTools: () => [
+        {
+          serverId: "playwright",
+          name: "browser_navigate",
+          description: "Navigate browser to URL",
+        },
+      ],
+    },
+    { getConfig: () => ({}) },
+  );
+  const { hasBrowserTool } = h.getToolsPromptAndFlags();
+  assert.strictEqual(hasBrowserTool, true);
+});
+
+test("buildToolsPrompt includes AGENT BROWSER guidance when browser tools are available", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    {
+      getAllTools: () => [
+        {
+          serverId: "playwright",
+          name: "browser_navigate",
+          description: "Navigate browser to URL",
+        },
+      ],
+    },
+    { getConfig: () => ({}) },
+  );
+  const p = h.buildToolsPrompt();
+  assert.ok(
+    p.includes("AGENT BROWSER:"),
+    "expected browser capability section in tools prompt",
+  );
+  assert.ok(
+    p.includes("browser_navigate"),
+    "expected browser_navigate example in AGENT BROWSER guidance",
   );
 });
 
