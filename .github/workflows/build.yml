@@ -133,9 +133,12 @@ jobs:
           MAC_DISTRIBUTION_SIGN: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true' && '1' || '' }}
           MAC_CODESIGN_IDENTITY: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true' && secrets.MAC_CODESIGN_IDENTITY || '' }}
           MAC_NOTARIZE: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && '1' || '' }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # Only pass Apple notarization credentials when notarization is enabled.
+          # electron-builder 26+ auto-notarizes if APPLE_ID is present in the environment,
+          # so we must omit these vars entirely when APPLE_NOTARIZE_ENABLED is not set.
+          APPLE_TEAM_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          APPLE_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
 
       - name: Verify updater metadata in release/ (per platform)
         run: node scripts/verify-release-output.js ${{ startsWith(matrix.platform, 'mac') && 'mac' || matrix.platform }}
