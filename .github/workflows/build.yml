@@ -6,7 +6,9 @@
 #
 # macOS: ad-hoc signing by default. If repo secrets MAC_CERTS + MAC_CERTS_PASSWORD + MAC_CODESIGN_IDENTITY
 # are set, imports the .p12 and runs a Developer ID build (see BUILD.md → GitHub Actions).
-# Optional notarization when APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD are also set.
+# Optional notarization: requires APPLE_NOTARIZE_ENABLED=1 secret IN ADDITION TO
+# APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD. This keeps builds green when
+# an Apple Developer agreement expires — signing still works, notarization is skipped.
 #
 # Architecture: each build job uploads directly to a draft GitHub Release (no artifact storage).
 # The release job publishes the draft and mirrors to Th3rdai/CodeCompanion.
@@ -74,7 +76,9 @@ jobs:
     # secrets allowed in job env; step `if` uses env.* so cert import stays aligned with MAC_DISTRIBUTION_SIGN
     env:
       MAC_CI_SIGNING: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && 'true' || 'false' }}
-      MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && 'true' || 'false' }}
+      # Notarization is explicitly opt-in: set APPLE_NOTARIZE_ENABLED=1 as a repo secret.
+      # This prevents build failures when Apple Developer agreements expire (HTTP 403).
+      MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_NOTARIZE_ENABLED != '' && 'true' || 'false' }}
 
     steps:
       - name: Checkout repository
