@@ -14,6 +14,10 @@ const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { buildFileTree } = require("../lib/file-browser");
 const { buildMemoryContext } = require("../lib/memory");
 const { STREAM_INTERNAL_ERROR } = require("../lib/client-errors");
+const {
+  userRequestedBrowserSnapshot,
+  needsSnapshotRetry,
+} = require("../lib/browser-intent");
 
 /** Avoid re-walking the project tree on every chat (large repos were blocking the event loop). */
 const PROJECT_PROMPT_CACHE_TTL_MS = 60_000;
@@ -249,16 +253,26 @@ module.exports = function createRouter(appContext) {
       req.ip || req.connection?.remoteAddress || "unknown";
 
     // Append agent tool descriptions (MCP clients + builtin tools)
-    const { prompt: toolsPrompt, hasTerminalTool } =
+    const { prompt: toolsPrompt, hasTerminalTool, hasBrowserTool } =
       toolCallHandler.getToolsPromptAndFlags();
     const hasAgentTools = toolsPrompt.length > 0;
 
-    // Option A lead-in: prepend factual capability statement BEFORE the chat persona
-    // so the model sees "you have a terminal" before "you are a patient teacher".
-    // Only injected when run_terminal_cmd is advertised for this session.
-    const leadIn = hasTerminalTool
-      ? "CAPABILITY: This agent session has access to builtin tools that execute directly on the user's machine, including a terminal (run_terminal_cmd) scoped to their project folder. Use TOOL_CALL to run commands — do not ask the user to run them.\n\n"
-      : "";
+    // Prepend factual capability statements before the persona prompt.
+    // Include both browser and terminal capability lines when both are available.
+    let leadIn = "";
+    if (hasAgentTools) {
+      leadIn =
+        "CAPABILITY: This agent session has access to executable tools via MCP/builtin integrations. Use TOOL_CALL to execute them directly when relevant — do not ask the user to run tools manually.\n";
+      if (hasTerminalTool) {
+        leadIn +=
+          "CAPABILITY: Terminal execution is available via builtin.run_terminal_cmd (project-folder scoped).\n";
+      }
+      if (hasBrowserTool) {
+        leadIn +=
+          "CAPABILITY: Browser automation is available via browser_* tools (for example browser_navigate/browser_snapshot). For website open/snapshot requests, execute those tools directly.\n";
+      }
+      leadIn += "\n";
+    }
 
     // Inject vision-specific prompt when images are present
     const visionPrompt =
@@ -447,6 +461,15 @@ module.exports = function createRouter(appContext) {
         );
         let finalText = "";
         const toolContextForHistory = []; // text-only tool rounds — emitted to client for history persistence
+        let browserDeflectionRetryUsed = false;
+        let browserContinuationRetries = 0;
+        const MAX_BROWSER_CONTINUATION_RETRIES = 3;
+        let lastRoundHadBrowserTool = false;
+        const snapshotRequested = userRequestedBrowserSnapshot(messages);
+        const browserDeflectionPattern =
+          /(cannot|can't|unable to|don't have (?:the )?capability).{0,180}(browser|playwright).{0,180}(execute|run|automation)|would need to.{0,180}(script|manually|environment)/i;
+        const browserCorrectionMessage =
+          "Browser automation tools are available in this session. The user asked for website navigation/snapshot actions. Do not refuse or ask for manual scripts. Use TOOL_CALL with browser_* tools now (e.g. browser_navigate, then browser_snapshot), then report actual results.";
 
         for (let round = 0; round < MAX_ROUNDS; round++) {
           debug(`Tool-call round ${round + 1}/${MAX_ROUNDS}`);
@@ -534,7 +557,104 @@ module.exports = function createRouter(appContext) {
           });
           const toolCalls = toolCallHandler.parseToolCalls(responseText);
 
+          // Guardrail: enforce max 1 builtin browser tool per round so the model
+          // sees each result before deciding the next action.
+          if (hasBrowserTool) {
+            const BROWSER_TOOL_SET = new Set([
+              "browse_url", "browser_snapshot", "browser_click",
+              "browser_type", "browser_scroll",
+            ]);
+            let firstSeen = false;
+            let discarded = 0;
+            const kept = [];
+            for (const call of toolCalls) {
+              const isBrowser =
+                call.serverId === "builtin" &&
+                BROWSER_TOOL_SET.has(call.toolName);
+              if (isBrowser && !firstSeen) {
+                firstSeen = true;
+                kept.push(call);
+              } else if (isBrowser) {
+                discarded++;
+              } else {
+                kept.push(call);
+              }
+            }
+            if (discarded > 0) {
+              log(
+                "WARN",
+                `Discarded ${discarded} extra browser tool call(s) — only 1 per round allowed`,
+              );
+              toolCalls.splice(0, toolCalls.length, ...kept);
+            }
+          }
+
+          // Guardrail: if user asked for a snapshot but model emitted browser_* calls
+          // without browser_snapshot, force-add browser_snapshot before execution.
+          if (
+            hasBrowserTool &&
+            snapshotRequested &&
+            needsSnapshotRetry(toolCalls)
+          ) {
+            const firstBrowserCall = toolCalls.find((c) =>
+              /^browser_/i.test(c.toolName || ""),
+            );
+            if (firstBrowserCall) {
+              toolCalls.push({
+                serverId: firstBrowserCall.serverId,
+                toolName: "browser_snapshot",
+                args: {},
+              });
+            }
+            log(
+              "WARN",
+              "Detected browser tool-call round without browser_snapshot; appended synthetic browser_snapshot call",
+            );
+          }
+
           if (toolCalls.length === 0) {
+            // Guardrail: some models still deflect ("can't execute browser automation")
+            // despite available Playwright/MCP browser tools. Give exactly one corrective
+            // retry before treating the response as final text.
+            if (
+              hasBrowserTool &&
+              !browserDeflectionRetryUsed &&
+              browserDeflectionPattern.test(responseText)
+            ) {
+              browserDeflectionRetryUsed = true;
+              log(
+                "WARN",
+                "Detected browser-tool deflection; injecting corrective retry",
+              );
+              loopMessages.push({ role: "assistant", content: responseText });
+              loopMessages.push({
+                role: "user",
+                content: browserCorrectionMessage,
+              });
+              continue;
+            }
+
+            // Guardrail: if the previous round successfully ran a browser tool and the model
+            // returned text without a tool call, it likely described the next step instead of
+            // executing it. Retry up to MAX_BROWSER_CONTINUATION_RETRIES times.
+            if (
+              hasBrowserTool &&
+              lastRoundHadBrowserTool &&
+              browserContinuationRetries < MAX_BROWSER_CONTINUATION_RETRIES
+            ) {
+              browserContinuationRetries++;
+              log(
+                "WARN",
+                `Browser task in progress but no tool call emitted — continuation retry ${browserContinuationRetries}/${MAX_BROWSER_CONTINUATION_RETRIES}`,
+              );
+              loopMessages.push({ role: "assistant", content: responseText });
+              loopMessages.push({
+                role: "user",
+                content: `You described the next step but did not call the tool. Output a TOOL_CALL now and nothing else. Examples:\n\nTOOL_CALL: builtin.browser_click({"selector": "button[type=submit]"})\nTOOL_CALL: builtin.browser_click({"text": "Continue"})\nTOOL_CALL: builtin.browser_type({"selector": "#password", "text": "secret"})\nTOOL_CALL: builtin.browser_snapshot({})\n\nCall one now.`,
+              });
+              continue;
+            }
+
             // No tool calls found. If the response is suspiciously short on the first round,
             // the model likely doesn't support TOOL_CALL: format — fall back to streaming mode
             // so the user gets a full response instead of a stub like "Let me examine..."
@@ -693,9 +813,23 @@ module.exports = function createRouter(appContext) {
           if (cleanedResponse) {
             loopMessages.push({ role: "assistant", content: cleanedResponse });
           }
+          const _executedBrowserTool = toolCalls.some(
+            (c) =>
+              c.serverId === "builtin" &&
+              [
+                "browse_url",
+                "browser_snapshot",
+                "browser_click",
+                "browser_type",
+                "browser_scroll",
+              ].includes(c.toolName),
+          );
+          lastRoundHadBrowserTool = _executedBrowserTool;
           const toolResultMsg = {
             role: "user",
-            content: `Tool results:\n${toolResults}\n\nPresent these results to the user in a helpful response. Do NOT call the same tool again unless the user explicitly asks for a different operation. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.`,
+            content: _executedBrowserTool
+              ? `Tool results:\n${toolResults}\n\n⚡ BROWSER TASK IN PROGRESS — Review the result above and determine the next required browser action.\n\nIf the user's request is NOT yet fully complete, output ONLY a TOOL_CALL for the next action — no prose, no explanation. Examples:\n\nTOOL_CALL: builtin.browser_click({"selector": "button[type=submit]"})\nTOOL_CALL: builtin.browser_click({"text": "Continue"})\nTOOL_CALL: builtin.browser_type({"selector": "#username", "text": "TAdmin"})\nTOOL_CALL: builtin.browser_snapshot({})\n\nTip: to submit a login form, prefer selector "button[type=submit]" over text matching.\n\nOnly write a plain text response to the user when ALL steps in their original request are 100% done.`
+              : `Tool results:\n${toolResults}\n\nPresent these results to the user in a helpful response. Do NOT write fake image markdown or placeholders — images are already displayed. If the user later asks for revisions, you MUST call the tool again with an updated prompt.`,
           };
           // Attach PDF page images so the vision model can analyze them
           if (roundAnalysisImages.length > 0) {
