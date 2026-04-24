@@ -17,7 +17,7 @@ Run unit tests before small backend changes; run Playwright when changing UI or 
 
 | Path                      | Role                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/unit/`             | Focused unit tests for `lib/` modules (builders, image processor, pentest schema, **memory scoping**, **tool-call / builtin preamble**, etc.) |
+| `tests/unit/`             | Focused unit tests for `lib/` modules (builders, image processor, pentest schema, **memory scoping**, **tool-call / builtin preamble**, **browser intent detection**, **browser tools + SPA retry**, etc.) |
 | `tests/ui/`               | Playwright specs for components and flows (onboarding, security mode, builders, glossary, …)                                                  |
 | `tests/e2e/`              | End-to-end workflows (image upload, review, **create mode** wizard + API guardrails, **agent terminal** allowlist/audit)                      |
 | `tests/integration/`      | API integration tests (spawn server; **`api-with-images.test.js`** — `messages`+`mode` for chat, JSON vs SSE for review/pentest)              |
@@ -64,9 +64,9 @@ The spec calls `executeBuiltinTool()` directly via `require()` inside Playwright
 
 ## Full manual validation (`validate-project`)
 
-The **`.claude/commands/validate-project.md`** command runs build, server health, unit tests, Playwright, API smoke, and workflow curls.
+The **`.claude/commands/validate-project.md`** command runs 8 phases: static analysis, build, server health, unit tests, Playwright UI, E2E, API smoke, and workflow tests.
 
-**Phase 7 (Ollama + SSE):** use **`npm run validate:p7`** (see `scripts/validate-p7-workflows.sh`) so chat/review/diagram checks **warm the model first** and use **long curl timeouts** (defaults 240s warm, 300s per stream). Set **`VALIDATE_BASE_URL`** to your running server (e.g. `http://127.0.0.1:4173` with `FORCE_HTTP=1`).
+**Phase 8 (Ollama + SSE):** use **`npm run validate:p7`** (see `scripts/validate-p7-workflows.sh`) so chat/review/diagram checks **warm the model first** and use **long curl timeouts** (defaults 240s warm, 300s per stream). Set **`VALIDATE_BASE_URL`** to your running server (e.g. `http://127.0.0.1:4173` with `FORCE_HTTP=1`).
 
 **If the server uses HTTPS** (self-signed **`cert/`** files, **`FORCE_HTTP` unset**):
 
@@ -77,5 +77,5 @@ The **`.claude/commands/validate-project.md`** command runs build, server health
 
 ## Related
 
-- **`.claude/commands/validate-project.md`** — full 7-phase manual validation (build, server, unit, Playwright, API smoke, workflows).
+- **`.claude/commands/validate-project.md`** — full 8-phase manual validation (static analysis, build, server, unit, Playwright UI, E2E, API smoke, workflows).
 - **`docs/TROUBLESHOOTING.md`** — connection issues, log paths, MCP config locations.

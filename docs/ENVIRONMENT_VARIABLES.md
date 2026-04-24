@@ -18,6 +18,7 @@ Code Companion reads **environment variables** for the Node server, tests, and t
 | `mcpClients`                          | Array of external MCP server definitions (Settings → **MCP Clients**). Persisted by the server; see **`docs/TROUBLESHOOTING.md`** if the list is empty (Electron **`CC_DATA_DIR`** vs repo root).                                                                                       |
 | `memory`                              | Optional embedding memory (Settings → **Memory**): `enabled`, `embeddingModel`, `maxContextTokens`, `autoExtract`, `maxMemories`. **Retrieval is per-conversation** — only memories whose `source` matches the active conversation id are injected into chat (see **`lib/memory.js`**). |
 | `toolExec`                            | MCP parallel tool execution (see **`.planning/MCPParallelPLAN.md`** and **`lib/tool-call-handler.js`**). Keys: **`parallel`** (boolean, default **`false`**) — when **`false`**, all tool calls in a chat round execute serially, preserving pre-v1.6.4 behavior. When **`true`**, contiguous parallel-safe calls run concurrently as a single segment while risky calls (e.g. `builtin.write_file`, `builtin.run_terminal_cmd`, `builtin.generate_office_file`) remain serial checkpoints. **`maxConcurrent`** (number, default **`4`**) — caps the worker pool inside a parallel segment. Safety classification for builtins lives in **`lib/builtin-agent-tools.js`** (`parallelSafe` field); unknown external MCP tools are conservatively treated as risky. |
+| `agentBrowser`                        | Playwright browser for builtin agent tools (`browse_url`, `browser_click`, `browser_snapshot`, etc.). Keys: **`enabled`** (boolean, default **`false`**) — when `false` browser tools are hidden from the LLM; **`headed`** (boolean, default **`false`**) — show the browser window instead of running headless. See **`docs/CC-CONFIG.md`** (Agent browser section). |
 
 ### Where `.cc-config.json` is loaded from
 
@@ -84,6 +85,8 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `CC_ALLOW_AGENT_TERMINAL` | Set to `1` to allow the agent terminal when the server binds to **`0.0.0.0`** / **`::`** (see `CC_BIND_ALL` / `HOST`). Matches `lib/builtin-agent-tools.js` exposure check.                                                          |
 | `MCP_TOOL_TIMEOUT_MS`     | Optional. **Milliseconds** before an **MCP** `callTool` (not builtin) is aborted with a timeout error (default **`120000`**). Minimum **`50`** when set. Prevents a hung MCP server from blocking **`POST /api/chat`** indefinitely. |
+
+Agent browser is configured in **`.cc-config.json`** (not via env variables). See `agentBrowser` in the `.cc-config.json` selected keys table above and **`docs/CC-CONFIG.md`**.
 
 ## Playwright (`playwright.config.js`)
 
