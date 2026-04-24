@@ -25,10 +25,10 @@ HTTP/SSE MCP entries usually store only a **`url`**; secrets there are uncommon 
 
 Controls the Playwright-based browser the agent can use for `browse_url`, `browser_click`, `browser_snapshot`, and related tools.
 
-| Key                     | Type    | Default | Purpose                                                                                   |
-| ----------------------- | ------- | ------- | ----------------------------------------------------------------------------------------- |
-| `agentBrowser.enabled`  | boolean | `false` | Allow the agent to open and control a browser. When `false`, browser tools are hidden from the LLM. |
-| `agentBrowser.headed`   | boolean | `false` | Show the browser window (`headed: true`) instead of running headless. Useful for debugging. |
+| Key                    | Type    | Default | Purpose                                                                                             |
+| ---------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `agentBrowser.enabled` | boolean | `false` | Allow the agent to open and control a browser. When `false`, browser tools are hidden from the LLM. |
+| `agentBrowser.headed`  | boolean | `false` | Show the browser window (`headed: true`) instead of running headless. Useful for debugging.         |
 
 Enable via Settings → General → **Agent Browser**, or with the API:
 

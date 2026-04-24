@@ -55,7 +55,10 @@ test("concurrency pool — respects maxConcurrent cap", async () => {
   };
 
   const { peak } = await runBoundedPool(calls, executor, cap);
-  assert.ok(peak <= cap, `peak in-flight (${peak}) must not exceed cap (${cap})`);
+  assert.ok(
+    peak <= cap,
+    `peak in-flight (${peak}) must not exceed cap (${cap})`,
+  );
   assert.ok(peak >= 2, `expected some overlap, got peak=${peak}`);
 });
 
@@ -75,12 +78,7 @@ test("concurrency pool — preserves original index ordering in results", async 
 });
 
 test("concurrency pool — failed call does not block siblings", async () => {
-  const calls = [
-    { id: 0 },
-    { id: 1, fail: true },
-    { id: 2 },
-    { id: 3 },
-  ];
+  const calls = [{ id: 0 }, { id: 1, fail: true }, { id: 2 }, { id: 3 }];
 
   const executor = async (call) => {
     await new Promise((r) => setTimeout(r, 5));
@@ -94,8 +92,16 @@ test("concurrency pool — failed call does not block siblings", async () => {
   assert.strictEqual(results[0].success, true);
   assert.strictEqual(results[1].success, false, "failed call isolated");
   assert.match(results[1].error, /boom/);
-  assert.strictEqual(results[2].success, true, "sibling after failure still ran");
-  assert.strictEqual(results[3].success, true, "sibling after failure still ran");
+  assert.strictEqual(
+    results[2].success,
+    true,
+    "sibling after failure still ran",
+  );
+  assert.strictEqual(
+    results[3].success,
+    true,
+    "sibling after failure still ran",
+  );
 });
 
 test("concurrency pool — cap=1 degenerates to serial execution", async () => {

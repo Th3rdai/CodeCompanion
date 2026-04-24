@@ -40,7 +40,10 @@ function _browserMcpResult(result) {
       );
     return { isError: !result.success, content };
   }
-  return { isError: true, content: [{ type: "text", text: "Unexpected result from browser tool." }] };
+  return {
+    isError: true,
+    content: [{ type: "text", text: "Unexpected result from browser tool." }],
+  };
 }
 
 /**
@@ -447,7 +450,9 @@ function registerAllTools(server, deps, disabledTools = []) {
 
         return {
           isError: true,
-          content: [{ type: "text", text: "Unexpected result from terminal tool." }],
+          content: [
+            { type: "text", text: "Unexpected result from terminal tool." },
+          ],
         };
       } catch (err) {
         return {
@@ -461,7 +466,12 @@ function registerAllTools(server, deps, disabledTools = []) {
     "codecompanion_browse_url",
     "Open a URL in a headless browser and return the page title, text content, and a screenshot for visual analysis. Use for visiting websites, reading live content, and analyzing web pages.",
     browseUrlSchema,
-    async ({ url, waitFor = "domcontentloaded", screenshot = true, timeoutMs = 30000 }) => {
+    async ({
+      url,
+      waitFor = "domcontentloaded",
+      screenshot = true,
+      timeoutMs = 30000,
+    }) => {
       try {
         const config = getConfig();
         if (!config.agentBrowser?.enabled) {
@@ -494,7 +504,9 @@ function registerAllTools(server, deps, disabledTools = []) {
         }
         return {
           isError: true,
-          content: [{ type: "text", text: "Unexpected result from browser tool." }],
+          content: [
+            { type: "text", text: "Unexpected result from browser tool." },
+          ],
         };
       } catch (err) {
         return {
@@ -510,7 +522,14 @@ function registerAllTools(server, deps, disabledTools = []) {
     browserSnapshotSchema,
     async () => {
       const config = getConfig();
-      const result = await executeBuiltinTool("browser_snapshot", {}, config, _log, "mcp", {});
+      const result = await executeBuiltinTool(
+        "browser_snapshot",
+        {},
+        config,
+        _log,
+        "mcp",
+        {},
+      );
       return _browserMcpResult(result);
     },
   );
@@ -521,7 +540,14 @@ function registerAllTools(server, deps, disabledTools = []) {
     browserClickSchema,
     async ({ selector, text }) => {
       const config = getConfig();
-      const result = await executeBuiltinTool("browser_click", { selector, text }, config, _log, "mcp", {});
+      const result = await executeBuiltinTool(
+        "browser_click",
+        { selector, text },
+        config,
+        _log,
+        "mcp",
+        {},
+      );
       return _browserMcpResult(result);
     },
   );
@@ -532,7 +558,14 @@ function registerAllTools(server, deps, disabledTools = []) {
     browserTypeSchema,
     async ({ selector, text, clear = false, pressEnter = false }) => {
       const config = getConfig();
-      const result = await executeBuiltinTool("browser_type", { selector, text, clear, pressEnter }, config, _log, "mcp", {});
+      const result = await executeBuiltinTool(
+        "browser_type",
+        { selector, text, clear, pressEnter },
+        config,
+        _log,
+        "mcp",
+        {},
+      );
       return _browserMcpResult(result);
     },
   );
@@ -543,7 +576,14 @@ function registerAllTools(server, deps, disabledTools = []) {
     browserScrollSchema,
     async ({ direction = "down", amount = 500 }) => {
       const config = getConfig();
-      const result = await executeBuiltinTool("browser_scroll", { direction, amount }, config, _log, "mcp", {});
+      const result = await executeBuiltinTool(
+        "browser_scroll",
+        { direction, amount },
+        config,
+        _log,
+        "mcp",
+        {},
+      );
       return _browserMcpResult(result);
     },
   );

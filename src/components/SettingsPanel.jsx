@@ -1005,7 +1005,11 @@ export default function SettingsPanel({
                 <button
                   onClick={handleTestTerminal}
                   disabled={terminalTesting || !terminalEnabled}
-                  title={!terminalEnabled ? "Enable Agent Terminal above to test" : undefined}
+                  title={
+                    !terminalEnabled
+                      ? "Enable Agent Terminal above to test"
+                      : undefined
+                  }
                   className="px-3 py-1.5 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-slate-200"
                 >
                   {terminalTesting ? (
@@ -1180,9 +1184,12 @@ export default function SettingsPanel({
               {browserEnabled && (
                 <div className="flex items-center justify-between mt-3">
                   <div>
-                    <p className="text-sm text-slate-300">Show Browser Window</p>
+                    <p className="text-sm text-slate-300">
+                      Show Browser Window
+                    </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Open a visible browser so you can watch the agent interact with pages in real-time.
+                      Open a visible browser so you can watch the agent interact
+                      with pages in real-time.
                     </p>
                   </div>
                   <button
@@ -1192,7 +1199,9 @@ export default function SettingsPanel({
                       apiFetch("/api/config", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ agentBrowser: { headed: next } }),
+                        body: JSON.stringify({
+                          agentBrowser: { headed: next },
+                        }),
                       });
                     }}
                     className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ml-4 ${browserHeaded ? "bg-indigo-500" : "bg-slate-600"}`}

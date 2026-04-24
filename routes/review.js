@@ -247,7 +247,10 @@ module.exports = function createRouter(appContext) {
 
     const config = getConfig();
 
-    if (config.projectFolder && !isWithinBasePath(config.projectFolder, folder)) {
+    if (
+      config.projectFolder &&
+      !isWithinBasePath(config.projectFolder, folder)
+    ) {
       return res
         .status(403)
         .json({ error: "Folder is outside the configured project folder" });

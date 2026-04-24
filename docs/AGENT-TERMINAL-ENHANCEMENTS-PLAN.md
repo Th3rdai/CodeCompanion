@@ -4,12 +4,12 @@
 
 Four enhancements to surface, validate, and expose the agent terminal capability:
 
-| # | Feature | Scope |
-|---|---------|-------|
-| 1 | Settings "Test Terminal" button | Backend + Frontend |
-| 2 | Toolbar status indicator (dot badge on Agentic tab) | Frontend only |
-| 3 | MCP tool: `codecompanion_run_terminal_cmd` | Backend only |
-| 4 | Global "terminal active" chip in toolbar | Frontend only |
+| #   | Feature                                             | Scope              |
+| --- | --------------------------------------------------- | ------------------ |
+| 1   | Settings "Test Terminal" button                     | Backend + Frontend |
+| 2   | Toolbar status indicator (dot badge on Agentic tab) | Frontend only      |
+| 3   | MCP tool: `codecompanion_run_terminal_cmd`          | Backend only       |
+| 4   | Global "terminal active" chip in toolbar            | Frontend only      |
 
 > Features 2 and 4 share the same `agentTerminalEnabled` state, so they are implemented together.
 
@@ -30,44 +30,70 @@ app.get("/api/agent-terminal/test", requireLocalOrApiKey, (req, res) => {
   const terminal = config.agentTerminal || {};
 
   if (!terminal.enabled) {
-    return res.json({ ok: false, error: "Agent terminal is disabled. Enable it in Settings → General." });
+    return res.json({
+      ok: false,
+      error: "Agent terminal is disabled. Enable it in Settings → General.",
+    });
   }
   if (!config.projectFolder) {
-    return res.json({ ok: false, error: "No project folder configured. Set one in Settings → General." });
+    return res.json({
+      ok: false,
+      error: "No project folder configured. Set one in Settings → General.",
+    });
   }
   if (!terminal.allowlist || terminal.allowlist.length === 0) {
-    return res.json({ ok: false, error: "Allowlist is empty — add commands in Settings → Agent Terminal." });
+    return res.json({
+      ok: false,
+      error: "Allowlist is empty — add commands in Settings → Agent Terminal.",
+    });
   }
 
   const startTime = Date.now();
   const proc = spawn("pwd", [], { cwd: config.projectFolder, shell: false });
   let output = "";
-  proc.stdout.on("data", (d) => { output += d.toString(); });
-  proc.stderr.on("data", (d) => { output += d.toString(); });
+  proc.stdout.on("data", (d) => {
+    output += d.toString();
+  });
+  proc.stderr.on("data", (d) => {
+    output += d.toString();
+  });
 
   // 5s hard timeout — guards against network-mounted folders or stalled fs
   const timer = setTimeout(() => {
     proc.kill();
-    if (!res.headersSent) res.json({ ok: false, error: "Test timed out after 5s. Check your project folder path." });
+    if (!res.headersSent)
+      res.json({
+        ok: false,
+        error: "Test timed out after 5s. Check your project folder path.",
+      });
   }, 5000);
 
   // Guard against both 'error' and 'close' firing for the same process
   proc.on("error", (err) => {
     clearTimeout(timer);
-    if (!res.headersSent) res.json({ ok: false, error: `Spawn failed: ${err.message}` });
+    if (!res.headersSent)
+      res.json({ ok: false, error: `Spawn failed: ${err.message}` });
   });
   proc.on("close", (code) => {
     clearTimeout(timer);
     if (res.headersSent) return;
     if (code !== 0) {
-      return res.json({ ok: false, error: `pwd exited with code ${code}: ${output.trim()}` });
+      return res.json({
+        ok: false,
+        error: `pwd exited with code ${code}: ${output.trim()}`,
+      });
     }
-    res.json({ ok: true, cwd: output.trim(), durationMs: Date.now() - startTime });
+    res.json({
+      ok: true,
+      cwd: output.trim(),
+      durationMs: Date.now() - startTime,
+    });
   });
 });
 ```
 
 **Notes:**
+
 - Handler is not `async` — no `await` inside, and the response is sent from spawn callbacks. Using async would give a false impression that the function awaits something.
 - `res.headersSent` guard prevents the double-response race: Node.js can emit both `error` then `close` on a failed spawn; the guard ensures only the first one sends the response.
 - Uses `requireLocalOrApiKey` — already in scope in server.js (line 69).
@@ -80,6 +106,7 @@ app.get("/api/agent-terminal/test", requireLocalOrApiKey, (req, res) => {
 **Location:** Around line 112 (existing state declarations block).
 
 Add two new state variables:
+
 ```jsx
 const [terminalTesting, setTerminalTesting] = useState(false);
 const [terminalTestResult, setTerminalTestResult] = useState(null);
@@ -126,20 +153,22 @@ Insert immediately **before** the `{terminalEnabled && (` block:
     ) : null}
     {terminalTesting ? "Testing…" : "Test Terminal"}
   </button>
-</div>
-{terminalTestResult && (
-  <div
-    className={`text-xs rounded-lg px-3 py-2 mb-3 ${
-      terminalTestResult.ok
-        ? "bg-emerald-900/40 text-emerald-300"
-        : "bg-red-900/40 text-red-300"
-    }`}
-  >
-    {terminalTestResult.ok
-      ? `✓ Working — project folder: ${terminalTestResult.cwd}`
-      : `✗ ${terminalTestResult.error}`}
-  </div>
-)}
+</div>;
+{
+  terminalTestResult && (
+    <div
+      className={`text-xs rounded-lg px-3 py-2 mb-3 ${
+        terminalTestResult.ok
+          ? "bg-emerald-900/40 text-emerald-300"
+          : "bg-red-900/40 text-red-300"
+      }`}
+    >
+      {terminalTestResult.ok
+        ? `✓ Working — project folder: ${terminalTestResult.cwd}`
+        : `✗ ${terminalTestResult.error}`}
+    </div>
+  );
+}
 ```
 
 **Pattern match:** Mirrors the Ollama test button (lines 775–796) and Docling test button (lines 897–908): same state pattern, same button styling, same result display idiom.
@@ -147,6 +176,7 @@ Insert immediately **before** the `{terminalEnabled && (` block:
 **Reset on close:** `terminalTestResult` resets naturally since SettingsPanel unmounts when closed (conditionally rendered in App.jsx).
 
 **Reset on toggle:** In the existing Agent Terminal toggle `onClick` (line 959), add `setTerminalTestResult(null)` so a stale test result clears when the user toggles the switch:
+
 ```jsx
 onClick={() => {
   const next = !terminalEnabled;
@@ -191,10 +221,13 @@ useEffect(() => {
 **Location:** Line 1806, the `onClose` prop passed to `<SettingsPanel>`.
 
 Change:
+
 ```jsx
 onClose={() => setShowSettings(false)}
 ```
+
 To:
+
 ```jsx
 onClose={() => {
   setShowSettings(false);
@@ -211,12 +244,14 @@ onClose={() => {
 
 **File:** `src/App.jsx`  
 **Location:** Lines 1236–1237 — the current tab button inner content is:
+
 ```jsx
 <span aria-hidden="true">{m.icon}</span>
 <span>{m.label}</span>
 ```
 
 Replace with:
+
 ```jsx
 <span aria-hidden="true">{m.icon}</span>
 <span className="relative">
@@ -238,16 +273,19 @@ Replace with:
 **Location:** Line 1054 — after `<ConnectionDot connected={connected} />` and before the `{activeMemories?.count > 0 && (` conditional block.
 
 Insert:
+
 ```jsx
-{agentTerminalEnabled && (
-  <span
-    className="hidden sm:flex items-center gap-1 text-xs text-green-400 bg-green-900/20 border border-green-800/40 rounded-full px-2 py-0.5"
-    title="Agent terminal is enabled — the AI can run commands in your project folder"
-  >
-    <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-    Terminal
-  </span>
-)}
+{
+  agentTerminalEnabled && (
+    <span
+      className="hidden sm:flex items-center gap-1 text-xs text-green-400 bg-green-900/20 border border-green-800/40 rounded-full px-2 py-0.5"
+      title="Agent terminal is enabled — the AI can run commands in your project folder"
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+      Terminal
+    </span>
+  );
+}
 ```
 
 **Behavior:** Visible in the header regardless of which mode is active. Hidden on small screens (`hidden sm:flex`) to avoid crowding. Sits naturally alongside ConnectionDot and Memory since they are all status/context indicators. No interaction required — hover tooltip explains what it means.
@@ -265,21 +303,29 @@ Insert:
 const runTerminalCmdSchema = {
   command: z
     .string()
-    .describe("The command to execute (e.g. 'npm', 'git', 'ls'). Must be in the agent terminal allowlist."),
+    .describe(
+      "The command to execute (e.g. 'npm', 'git', 'ls'). Must be in the agent terminal allowlist.",
+    ),
   args: z
     .array(z.string())
     .default([])
-    .describe("Arguments to pass to the command (e.g. ['test'] for 'npm test')."),
+    .describe(
+      "Arguments to pass to the command (e.g. ['test'] for 'npm test').",
+    ),
   cwd: z
     .string()
     .optional()
-    .describe("Optional subdirectory within the project folder to run the command in."),
+    .describe(
+      "Optional subdirectory within the project folder to run the command in.",
+    ),
   timeoutMs: z
     .number()
     .int()
     .positive()
     .default(30000)
-    .describe("Command timeout in milliseconds. Capped by Settings → Agent Terminal → Command Timeout."),
+    .describe(
+      "Command timeout in milliseconds. Capped by Settings → Agent Terminal → Command Timeout.",
+    ),
 };
 ```
 
@@ -295,6 +341,7 @@ const { executeBuiltinTool } = require("../lib/builtin-agent-tools");
 ```
 
 Add `runTerminalCmdSchema` to the destructured import from `./schemas`:
+
 ```js
 const {
   modeToolSchema,
@@ -303,7 +350,7 @@ const {
   listModelsSchema,
   getStatusSchema,
   listConversationsSchema,
-  runTerminalCmdSchema,           // ← add
+  runTerminalCmdSchema, // ← add
 } = require("./schemas");
 ```
 
@@ -359,7 +406,9 @@ register(
 
       return {
         isError: true,
-        content: [{ type: "text", text: "Unexpected result from terminal tool." }],
+        content: [
+          { type: "text", text: "Unexpected result from terminal tool." },
+        ],
       };
     } catch (err) {
       return {
@@ -372,6 +421,7 @@ register(
 ```
 
 **Key design decisions:**
+
 - `clientKey: "mcp"` routes through the same `checkCmdRateLimit` bucket as all MCP terminal calls (20 commands/60s — appropriate for MCP usage).
 - No `confirmCallback` in context → if user has `confirmBeforeRun: true`, the call returns "Command execution blocked: confirmation is required but unavailable." This is intentional safe behavior.
 - All allowlist, blocklist, CWD, and network-exposure security checks fire exactly as they do for agentic chat calls — same code path.
@@ -393,13 +443,13 @@ Execute in this order to avoid breaking the running app:
 
 ## Risk Assessment
 
-| Risk | Mitigation |
-|------|-----------|
-| `spawn` in test endpoint blocks event loop | Unlikely for `pwd` (completes in <5ms). Add 5s timeout to be safe |
-| `executeBuiltinTool` called from MCP bypasses network exposure guard | It does NOT — the guard fires inside `executeBuiltinTool` before routing to `runTerminalCmd` |
-| `agentTerminalEnabled` state out-of-sync if toggle changed without closing Settings | Acceptable — chip/badge updates on next Settings close |
-| MCP tool name collision with existing tools | `codecompanion_run_terminal_cmd` is unique; no existing tool has this name |
-| `pwd` not in user's allowlist blocks nothing | Test endpoint bypasses allowlist for `pwd` intentionally; it tests infrastructure, not the allowlist |
+| Risk                                                                                | Mitigation                                                                                           |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `spawn` in test endpoint blocks event loop                                          | Unlikely for `pwd` (completes in <5ms). Add 5s timeout to be safe                                    |
+| `executeBuiltinTool` called from MCP bypasses network exposure guard                | It does NOT — the guard fires inside `executeBuiltinTool` before routing to `runTerminalCmd`         |
+| `agentTerminalEnabled` state out-of-sync if toggle changed without closing Settings | Acceptable — chip/badge updates on next Settings close                                               |
+| MCP tool name collision with existing tools                                         | `codecompanion_run_terminal_cmd` is unique; no existing tool has this name                           |
+| `pwd` not in user's allowlist blocks nothing                                        | Test endpoint bypasses allowlist for `pwd` intentionally; it tests infrastructure, not the allowlist |
 
 ---
 

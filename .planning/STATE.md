@@ -30,6 +30,7 @@ Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-ex
 **Current version:** 1.6.5 (released 2026-04-09).
 
 Last activity: 2026-04-22 — **Stabilization pass complete**:
+
 - Browser automation/tool-call reliability:
   - added explicit AGENT BROWSER prompt guidance,
   - ensured browser capability lead-in appears even with terminal enabled,
@@ -179,31 +180,31 @@ Progress: [██████████] 100%
 
 _Updated after each plan completion_
 
-| Plan         | Duration (s) | Tasks   | Files    |
-| ------------ | ------------ | ------- | -------- |
-| Phase 02 P01 | 137          | 2 tasks | 2 files  |
-| Phase 02 P02 | 83           | 2 tasks | 2 files  |
-| Phase 03 P01 | 172          | 3 tasks | 4 files  |
-| Phase 03 P02 | 439          | 4 tasks | 5 files  |
-| Phase 04 P01 | 141          | 2 tasks | 4 files  |
-| Phase 04 P02 | 217          | 2 tasks | 4 files  |
-| Phase 05 P01 | 121          | 2 tasks | 1 files  |
-| Phase 05 P02 | 136          | 3 tasks | 7 files  |
-| Phase 06 P01 | 344          | 2 tasks | 11 files |
-| Phase 06 P03 | 209          | 2 tasks | 11 files |
-| Phase 06 P02 | 389          | 2 tasks | 8 files  |
-| Phase 06 P04 | 132          | 2 tasks | 0 files  |
-| Phase 16 P00 | 44           | 1 tasks | 5 files  |
-| Phase 16 P01 | 141          | 2 tasks | 4 files  |
-| Phase 16 P03 | 147          | 2 tasks | 4 files  |
-| Phase 16 P02 | 159          | 2 tasks | 2 files  |
-| Phase 16 P04 | 116          | 2 tasks | 3 files  |
-| Phase 18 P01 | 208          | 2 tasks | 5 files  |
-| Phase 18 P02 | 237          | 1 tasks | 2 files  |
-| Phase 18 P03 | 535          | 2 tasks | 5 files  |
-| Phase 28-multi-file-code-review P00 | 146 | 2 tasks | 2 files |
-| Phase 28-multi-file-code-review P01 | 322 | 2 tasks | 3 files |
-| Phase 28-multi-file-code-review P02 | 182 | 2 tasks | 1 files |
+| Plan                                | Duration (s) | Tasks   | Files    |
+| ----------------------------------- | ------------ | ------- | -------- |
+| Phase 02 P01                        | 137          | 2 tasks | 2 files  |
+| Phase 02 P02                        | 83           | 2 tasks | 2 files  |
+| Phase 03 P01                        | 172          | 3 tasks | 4 files  |
+| Phase 03 P02                        | 439          | 4 tasks | 5 files  |
+| Phase 04 P01                        | 141          | 2 tasks | 4 files  |
+| Phase 04 P02                        | 217          | 2 tasks | 4 files  |
+| Phase 05 P01                        | 121          | 2 tasks | 1 files  |
+| Phase 05 P02                        | 136          | 3 tasks | 7 files  |
+| Phase 06 P01                        | 344          | 2 tasks | 11 files |
+| Phase 06 P03                        | 209          | 2 tasks | 11 files |
+| Phase 06 P02                        | 389          | 2 tasks | 8 files  |
+| Phase 06 P04                        | 132          | 2 tasks | 0 files  |
+| Phase 16 P00                        | 44           | 1 tasks | 5 files  |
+| Phase 16 P01                        | 141          | 2 tasks | 4 files  |
+| Phase 16 P03                        | 147          | 2 tasks | 4 files  |
+| Phase 16 P02                        | 159          | 2 tasks | 2 files  |
+| Phase 16 P04                        | 116          | 2 tasks | 3 files  |
+| Phase 18 P01                        | 208          | 2 tasks | 5 files  |
+| Phase 18 P02                        | 237          | 1 tasks | 2 files  |
+| Phase 18 P03                        | 535          | 2 tasks | 5 files  |
+| Phase 28-multi-file-code-review P00 | 146          | 2 tasks | 2 files  |
+| Phase 28-multi-file-code-review P01 | 322          | 2 tasks | 3 files  |
+| Phase 28-multi-file-code-review P02 | 182          | 2 tasks | 1 files  |
 
 ## Accumulated Context
 

@@ -18,7 +18,10 @@ class MockMcpClient {
 
 test("parallel tools — parallel segment executes faster than serial", async () => {
   const mcpClient = new MockMcpClient();
-  const handler = new ToolCallHandler(mcpClient, { log: () => {}, debug: () => {} });
+  const handler = new ToolCallHandler(mcpClient, {
+    log: () => {},
+    debug: () => {},
+  });
 
   // 3 independent reads, each with 100ms delay
   const toolCalls = [
@@ -82,9 +85,9 @@ test("parallel tools — error in one parallel call doesn't block others", async
 
   const results = await Promise.all(
     segments[0].calls.map((call) =>
-      handler.executeTool(call.serverId, call.toolName, call.args).catch(
-        (err) => ({ success: false, error: err.message }),
-      ),
+      handler
+        .executeTool(call.serverId, call.toolName, call.args)
+        .catch((err) => ({ success: false, error: err.message })),
     ),
   );
 
@@ -108,8 +111,8 @@ test("parallel tools — segments execute in original order", async () => {
 
   // [read(0), write(1), search(2), delete(3)] → order-preserving segments
   const toolCalls = [
-    { serverId: "test", toolName: "read_file", args: {} },   // safe, index 0
-    { serverId: "test", toolName: "write_file", args: {} },  // risky, index 1
+    { serverId: "test", toolName: "read_file", args: {} }, // safe, index 0
+    { serverId: "test", toolName: "write_file", args: {} }, // risky, index 1
     { serverId: "test", toolName: "search_code", args: {} }, // safe, index 2
     { serverId: "test", toolName: "delete_file", args: {} }, // risky, index 3
   ];

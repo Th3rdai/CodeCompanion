@@ -356,37 +356,62 @@ app.get("/api/agent-terminal/test", requireLocalOrApiKey, (req, res) => {
   const terminal = config.agentTerminal || {};
 
   if (!terminal.enabled) {
-    return res.json({ ok: false, error: "Agent terminal is disabled. Enable it in Settings → General." });
+    return res.json({
+      ok: false,
+      error: "Agent terminal is disabled. Enable it in Settings → General.",
+    });
   }
   if (!config.projectFolder) {
-    return res.json({ ok: false, error: "No project folder configured. Set one in Settings → General." });
+    return res.json({
+      ok: false,
+      error: "No project folder configured. Set one in Settings → General.",
+    });
   }
   if (!terminal.allowlist || terminal.allowlist.length === 0) {
-    return res.json({ ok: false, error: "Allowlist is empty — add commands in Settings → Agent Terminal." });
+    return res.json({
+      ok: false,
+      error: "Allowlist is empty — add commands in Settings → Agent Terminal.",
+    });
   }
 
   const startTime = Date.now();
   const proc = spawn("pwd", [], { cwd: config.projectFolder, shell: false });
   let output = "";
-  proc.stdout.on("data", (d) => { output += d.toString(); });
-  proc.stderr.on("data", (d) => { output += d.toString(); });
+  proc.stdout.on("data", (d) => {
+    output += d.toString();
+  });
+  proc.stderr.on("data", (d) => {
+    output += d.toString();
+  });
 
   const timer = setTimeout(() => {
     proc.kill();
-    if (!res.headersSent) res.json({ ok: false, error: "Test timed out after 5s. Check your project folder path." });
+    if (!res.headersSent)
+      res.json({
+        ok: false,
+        error: "Test timed out after 5s. Check your project folder path.",
+      });
   }, 5000);
 
   proc.on("error", (err) => {
     clearTimeout(timer);
-    if (!res.headersSent) res.json({ ok: false, error: `Spawn failed: ${err.message}` });
+    if (!res.headersSent)
+      res.json({ ok: false, error: `Spawn failed: ${err.message}` });
   });
   proc.on("close", (code) => {
     clearTimeout(timer);
     if (res.headersSent) return;
     if (code !== 0) {
-      return res.json({ ok: false, error: `pwd exited with code ${code}: ${output.trim()}` });
+      return res.json({
+        ok: false,
+        error: `pwd exited with code ${code}: ${output.trim()}`,
+      });
     }
-    res.json({ ok: true, cwd: output.trim(), durationMs: Date.now() - startTime });
+    res.json({
+      ok: true,
+      cwd: output.trim(),
+      durationMs: Date.now() - startTime,
+    });
   });
 });
 

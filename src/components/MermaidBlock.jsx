@@ -150,7 +150,10 @@ function exportPng(svgHtml, { onError } = {}) {
   if (!w || !h) {
     const viewBox = svgEl.getAttribute("viewBox");
     if (viewBox) {
-      const parts = viewBox.trim().split(/[\s,]+/).map(parseFloat);
+      const parts = viewBox
+        .trim()
+        .split(/[\s,]+/)
+        .map(parseFloat);
       w = w || parts[2] || 800;
       h = h || parts[3] || 600;
     }
@@ -193,7 +196,9 @@ function exportPng(svgHtml, { onError } = {}) {
     try {
       ctx.drawImage(img, 0, 0);
     } catch {
-      fail("Canvas export blocked by browser security — try SVG export instead.");
+      fail(
+        "Canvas export blocked by browser security — try SVG export instead.",
+      );
       return;
     }
     canvas.toBlob((blob) => {
@@ -205,7 +210,8 @@ function exportPng(svgHtml, { onError } = {}) {
       }
     }, "image/png");
   };
-  img.onerror = () => fail("Could not load diagram for PNG export — try SVG export instead.");
+  img.onerror = () =>
+    fail("Could not load diagram for PNG export — try SVG export instead.");
   img.src = url;
 }
 

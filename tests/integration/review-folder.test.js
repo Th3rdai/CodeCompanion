@@ -46,8 +46,14 @@ test.skip("POST /api/review/folder/preview returns files array, totalSize, skipp
     assert.ok(typeof body.folder === "string", "folder must be a string");
     // Each file entry has path and size
     if (body.files.length > 0) {
-      assert.ok(typeof body.files[0].path === "string", "file.path must be string");
-      assert.ok(typeof body.files[0].size === "number", "file.size must be number");
+      assert.ok(
+        typeof body.files[0].path === "string",
+        "file.path must be string",
+      );
+      assert.ok(
+        typeof body.files[0].size === "number",
+        "file.size must be number",
+      );
     }
   } finally {
     proc.kill();
@@ -94,7 +100,10 @@ test.skip("POST /api/review/folder returns report-card type with overallGrade", 
     const body = await res.json();
     assert.equal(body.type, "report-card", "type must be 'report-card'");
     assert.ok(body.data, "response must have data field");
-    assert.ok(typeof body.data.overallGrade === "string", "data.overallGrade must be a string");
+    assert.ok(
+      typeof body.data.overallGrade === "string",
+      "data.overallGrade must be a string",
+    );
   } finally {
     proc.kill();
   }

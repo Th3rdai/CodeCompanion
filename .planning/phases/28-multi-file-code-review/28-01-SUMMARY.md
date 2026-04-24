@@ -111,5 +111,6 @@ None - no external service configuration required.
 - Integration tests can be unskipped manually once a running server + Ollama instance is available
 
 ---
-*Phase: 28-multi-file-code-review*
-*Completed: 2026-04-09*
+
+_Phase: 28-multi-file-code-review_
+_Completed: 2026-04-09_

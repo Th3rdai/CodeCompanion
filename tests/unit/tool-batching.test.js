@@ -40,10 +40,10 @@ test("tool segmentation — writes each get their own serial segment", () => {
 test("tool segmentation — mixed safe and risky preserves original order", () => {
   const handler = new ToolCallHandler(null, mockLogger);
   const toolCalls = [
-    { serverId: "fs", toolName: "read_file", args: {} },     // safe, index 0
-    { serverId: "fs", toolName: "write_file", args: {} },    // risky, index 1
-    { serverId: "fs", toolName: "search_code", args: {} },   // safe, index 2
-    { serverId: "fs", toolName: "delete_file", args: {} },   // risky, index 3
+    { serverId: "fs", toolName: "read_file", args: {} }, // safe, index 0
+    { serverId: "fs", toolName: "write_file", args: {} }, // risky, index 1
+    { serverId: "fs", toolName: "search_code", args: {} }, // safe, index 2
+    { serverId: "fs", toolName: "delete_file", args: {} }, // risky, index 3
     { serverId: "fs", toolName: "validate_schema", args: {} }, // safe, index 4
   ];
 
@@ -86,11 +86,11 @@ test("tool segmentation — contiguous safe calls merge into one parallel segmen
 test("tool segmentation — builtin tools (explicit risky list)", () => {
   const handler = new ToolCallHandler(null, mockLogger);
   const toolCalls = [
-    { serverId: "builtin", toolName: "run_terminal_cmd", args: {} },     // risky, index 0
+    { serverId: "builtin", toolName: "run_terminal_cmd", args: {} }, // risky, index 0
     { serverId: "builtin", toolName: "generate_office_file", args: {} }, // risky, index 1
-    { serverId: "builtin", toolName: "write_file", args: {} },           // risky, index 2 (explicit)
+    { serverId: "builtin", toolName: "write_file", args: {} }, // risky, index 2 (explicit)
     { serverId: "builtin", toolName: "validate_scan_project", args: {} }, // safe, index 3
-    { serverId: "builtin", toolName: "score_plan", args: {} },           // safe, index 4
+    { serverId: "builtin", toolName: "score_plan", args: {} }, // safe, index 4
   ];
 
   const segments = handler.segmentToolCalls(toolCalls);
@@ -101,11 +101,19 @@ test("tool segmentation — builtin tools (explicit risky list)", () => {
   assert.strictEqual(segments[0].calls[0].originalIndex, 0);
   assert.strictEqual(segments[1].type, "serial");
   assert.strictEqual(segments[1].calls[0].originalIndex, 1);
-  assert.strictEqual(segments[2].type, "serial", "builtin.write_file must be serial via explicit RISKY_BUILTINS");
+  assert.strictEqual(
+    segments[2].type,
+    "serial",
+    "builtin.write_file must be serial via explicit RISKY_BUILTINS",
+  );
   assert.strictEqual(segments[2].calls[0].toolName, "write_file");
   assert.strictEqual(segments[2].calls[0].originalIndex, 2);
   assert.strictEqual(segments[3].type, "parallel");
-  assert.strictEqual(segments[3].calls.length, 2, "validate + score merged parallel");
+  assert.strictEqual(
+    segments[3].calls.length,
+    2,
+    "validate + score merged parallel",
+  );
   assert.strictEqual(segments[3].calls[0].originalIndex, 3);
   assert.strictEqual(segments[3].calls[1].originalIndex, 4);
 });
@@ -119,7 +127,11 @@ test("tool segmentation — unknown patterns are serial (conservative)", () => {
 
   const segments = handler.segmentToolCalls(toolCalls);
 
-  assert.strictEqual(segments.length, 2, "Two serial segments (one per unknown)");
+  assert.strictEqual(
+    segments.length,
+    2,
+    "Two serial segments (one per unknown)",
+  );
   assert.strictEqual(segments[0].type, "serial");
   assert.strictEqual(segments[1].type, "serial");
 });
@@ -137,5 +149,9 @@ test("tool segmentation — duplicate calls with identical args get distinct ori
   assert.strictEqual(segments[0].type, "parallel");
   assert.strictEqual(segments[0].calls.length, 2);
   assert.strictEqual(segments[0].calls[0].originalIndex, 0);
-  assert.strictEqual(segments[0].calls[1].originalIndex, 1, "No index collision");
+  assert.strictEqual(
+    segments[0].calls[1].originalIndex,
+    1,
+    "No index collision",
+  );
 });

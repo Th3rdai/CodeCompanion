@@ -26,7 +26,10 @@ test("userRequestedBrowserSnapshot detects screenshot phrasing in mixed prompt",
 
 test("userRequestedBrowserSnapshot ignores non-snapshot prompt", () => {
   const messages = [
-    { role: "user", content: "Open https://example.com and summarize the page." },
+    {
+      role: "user",
+      content: "Open https://example.com and summarize the page.",
+    },
   ];
   assert.equal(userRequestedBrowserSnapshot(messages), false);
 });

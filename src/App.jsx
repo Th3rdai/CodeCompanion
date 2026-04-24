@@ -1451,13 +1451,12 @@ export default function App() {
                               <span aria-hidden="true">{m.icon}</span>
                               <span className="relative flex-1">
                                 {m.label}
-                                {m.id === "agentic" &&
-                                  agentTerminalEnabled && (
-                                    <span
-                                      className="absolute -top-0.5 right-0 w-2 h-2 rounded-full bg-green-400"
-                                      title="Agent terminal is active"
-                                    />
-                                  )}
+                                {m.id === "agentic" && agentTerminalEnabled && (
+                                  <span
+                                    className="absolute -top-0.5 right-0 w-2 h-2 rounded-full bg-green-400"
+                                    title="Agent terminal is active"
+                                  />
+                                )}
                               </span>
                             </button>
                           );
@@ -1497,7 +1496,10 @@ export default function App() {
                   onMouseDown={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center gap-2 border-b border-slate-700/50 px-3 py-2">
-                    <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                    <Search
+                      className="h-4 w-4 shrink-0 text-slate-500"
+                      aria-hidden
+                    />
                     <input
                       ref={paletteInputRef}
                       type="search"
@@ -2074,7 +2076,10 @@ export default function App() {
 
           {/* File Browser (right panel) */}
           {showFileBrowser && (
-            <aside className="w-80 flex-shrink-0 overflow-hidden" aria-label="File browser">
+            <aside
+              className="w-80 flex-shrink-0 overflow-hidden"
+              aria-label="File browser"
+            >
               <FileBrowser
                 projectFolder={projectFolder}
                 onAttachFile={attachFile}

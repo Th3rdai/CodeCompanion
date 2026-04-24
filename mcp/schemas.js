@@ -43,29 +43,43 @@ const listConversationsSchema = {}; // no params
 const runTerminalCmdSchema = {
   command: z
     .string()
-    .describe("The command to execute (e.g. 'npm', 'git', 'ls'). Must be in the agent terminal allowlist."),
+    .describe(
+      "The command to execute (e.g. 'npm', 'git', 'ls'). Must be in the agent terminal allowlist.",
+    ),
   args: z
     .array(z.string())
     .default([])
-    .describe("Arguments to pass to the command (e.g. ['test'] for 'npm test')."),
+    .describe(
+      "Arguments to pass to the command (e.g. ['test'] for 'npm test').",
+    ),
   cwd: z
     .string()
     .optional()
-    .describe("Optional subdirectory within the project folder to run the command in."),
+    .describe(
+      "Optional subdirectory within the project folder to run the command in.",
+    ),
   timeoutMs: z
     .number()
     .int()
     .positive()
     .default(30000)
-    .describe("Command timeout in milliseconds. Capped by Settings → Agent Terminal → Command Timeout."),
+    .describe(
+      "Command timeout in milliseconds. Capped by Settings → Agent Terminal → Command Timeout.",
+    ),
 };
 
 const browseUrlSchema = {
-  url: z.string().describe("The URL to open (http:// or https:// only; localhost and private IPs are blocked)"),
+  url: z
+    .string()
+    .describe(
+      "The URL to open (http:// or https:// only; localhost and private IPs are blocked)",
+    ),
   waitFor: z
     .enum(["load", "domcontentloaded", "networkidle"])
     .default("domcontentloaded")
-    .describe('When to consider navigation complete: "domcontentloaded" (fast), "load" (all resources), "networkidle" (JS-heavy SPAs)'),
+    .describe(
+      'When to consider navigation complete: "domcontentloaded" (fast), "load" (all resources), "networkidle" (JS-heavy SPAs)',
+    ),
   screenshot: z
     .boolean()
     .default(true)
@@ -81,8 +95,16 @@ const browseUrlSchema = {
 const browserSnapshotSchema = {};
 
 const browserClickSchema = {
-  selector: z.string().optional().describe("CSS selector of the element to click"),
-  text: z.string().optional().describe("Visible text of the element to click (used if selector not provided)"),
+  selector: z
+    .string()
+    .optional()
+    .describe("CSS selector of the element to click"),
+  text: z
+    .string()
+    .optional()
+    .describe(
+      "Visible text of the element to click (used if selector not provided)",
+    ),
 };
 
 const browserTypeSchema = {
@@ -93,8 +115,16 @@ const browserTypeSchema = {
 };
 
 const browserScrollSchema = {
-  direction: z.enum(["up", "down", "top", "bottom"]).default("down").describe("Scroll direction"),
-  amount: z.number().int().positive().default(500).describe("Pixels to scroll (ignored for top/bottom)"),
+  direction: z
+    .enum(["up", "down", "top", "bottom"])
+    .default("down")
+    .describe("Scroll direction"),
+  amount: z
+    .number()
+    .int()
+    .positive()
+    .default(500)
+    .describe("Pixels to scroll (ignored for top/bottom)"),
 };
 
 module.exports = {

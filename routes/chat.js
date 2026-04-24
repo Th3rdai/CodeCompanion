@@ -42,9 +42,7 @@ function stripAgentToolsPrompt(content = "") {
 
 function appendCappedToolResults(existing, addition, maxChars) {
   if (!addition || !addition.trim()) return existing;
-  const next = existing
-    ? `${existing}\n\n${addition.trim()}`
-    : addition.trim();
+  const next = existing ? `${existing}\n\n${addition.trim()}` : addition.trim();
   if (next.length <= maxChars) return next;
   return `${next.slice(0, maxChars)}\n\n...(additional tool results omitted after ${maxChars} chars)`;
 }
@@ -302,8 +300,11 @@ module.exports = function createRouter(appContext) {
       req.ip || req.connection?.remoteAddress || "unknown";
 
     // Append agent tool descriptions (MCP clients + builtin tools)
-    const { prompt: toolsPrompt, hasTerminalTool, hasBrowserTool } =
-      toolCallHandler.getToolsPromptAndFlags();
+    const {
+      prompt: toolsPrompt,
+      hasTerminalTool,
+      hasBrowserTool,
+    } = toolCallHandler.getToolsPromptAndFlags();
     const hasAgentTools = toolsPrompt.length > 0;
 
     // Prepend factual capability statements before the persona prompt.
@@ -656,8 +657,11 @@ module.exports = function createRouter(appContext) {
           // sees each result before deciding the next action.
           if (hasBrowserTool) {
             const BROWSER_TOOL_SET = new Set([
-              "browse_url", "browser_snapshot", "browser_click",
-              "browser_type", "browser_scroll",
+              "browse_url",
+              "browser_snapshot",
+              "browser_click",
+              "browser_type",
+              "browser_scroll",
             ]);
             let firstSeen = false;
             let discarded = 0;
@@ -779,10 +783,8 @@ module.exports = function createRouter(appContext) {
 
           // Segment tool calls: order-preserving parallel/serial segments
           // When toolExec.parallel is false (default), treat all calls as serial
-          const parallelEnabled =
-            appContext.config.toolExec?.parallel === true;
-          const maxConcurrent =
-            appContext.config.toolExec?.maxConcurrent ?? 4;
+          const parallelEnabled = appContext.config.toolExec?.parallel === true;
+          const maxConcurrent = appContext.config.toolExec?.maxConcurrent ?? 4;
           const segments = parallelEnabled
             ? toolCallHandler.segmentToolCalls(toolCalls)
             : toolCalls.map((call, idx) => ({
@@ -818,7 +820,10 @@ module.exports = function createRouter(appContext) {
               return;
             }
             sendEvent({
-              toolBatchStatus: { type: segment.type, count: segment.calls.length },
+              toolBatchStatus: {
+                type: segment.type,
+                count: segment.calls.length,
+              },
             });
             if (segment.type === "parallel") {
               // Bounded concurrency: run at most maxConcurrent tools at once
