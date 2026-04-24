@@ -535,7 +535,9 @@ module.exports = function createRouter(appContext) {
               role: "user",
               content:
                 "Do not call any tools. Based only on the actual tool results gathered below, answer the user's original request now. " +
-                "If the task is incomplete, provide the best partial answer and briefly explain what blocked completion.\n\n" +
+                "If the task is incomplete, provide the best partial answer and briefly explain what blocked completion. " +
+                "Only include a limitations, errors, or 'what did not work' section when the tool results show an actual error, blocked page, missing content, or incomplete task. " +
+                "Do not claim that extraction, summarization, or analysis failed when you can answer from the captured page text.\n\n" +
                 accumulatedToolResults,
             });
 
