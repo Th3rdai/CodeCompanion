@@ -1,4 +1,4 @@
-const { Menu, shell } = require("electron");
+const { app, Menu, shell } = require("electron");
 
 /**
  * Creates the application menu
@@ -43,6 +43,13 @@ function createMenu(options = {}) {
             submenu: [
               { role: "about" },
               { type: "separator" },
+              {
+                label: "Restart Code Companion",
+                click: () => {
+                  app.relaunch();
+                  app.quit();
+                },
+              },
               {
                 label: "Quit Code Companion",
                 accelerator: "Command+Q",

@@ -300,6 +300,50 @@ test("buildToolsPrompt includes AGENT BROWSER guidance when browser tools are av
   );
 });
 
+test("buildToolsPrompt compacts large external MCP servers", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const longDescription =
+    "This is a very long Google Workspace tool description that would otherwise bloat the tool prompt and slow down local model tool selection. ".repeat(
+      4,
+    );
+  const googleTools = Array.from({ length: 45 }, (_, i) => ({
+    serverId: "google",
+    serverName: "Google",
+    name: `google_tool_${i}`,
+    description: longDescription,
+    inputSchema: {
+      required: ["user_google_email"],
+      properties: {
+        user_google_email: { type: "string" },
+        optional_a: { type: "string" },
+        optional_b: { type: "string" },
+        optional_c: { type: "string" },
+        optional_d: { type: "string" },
+      },
+    },
+  }));
+  const h = new ToolCallHandler(
+    { getAllTools: () => googleTools },
+    { getConfig: () => ({ agentTerminal: { enabled: false } }) },
+  );
+
+  const p = h.buildToolsPrompt();
+  assert.ok(
+    p.includes("Large MCP servers are listed in compact form"),
+    "expected compact-server note",
+  );
+  assert.ok(
+    p.includes("google.google_tool_0") &&
+      p.includes("user_google_email (required)"),
+    "expected callable tool names and required params",
+  );
+  assert.ok(
+    !p.includes("optional_a: string"),
+    "expected optional non-enum params omitted in compact form",
+  );
+  assert.ok(p.length < 14000, `prompt remained too large (${p.length})`);
+});
+
 test("getToolsPromptAndFlags flags are all false when gated tools disabled (always-on tools still present)", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler(
