@@ -22,6 +22,7 @@ Quick map of **network/API hardening**, assessment artifacts, and related env va
 
 - **CI gate:** pushes and PRs to `main`/`master` run `npm audit --audit-level=critical` after `npm ci`, unit tests, and `npm run build`.
 - **Full audit:** run `npm audit` locally. **SheetJS `xlsx`** was removed (prototype-pollution advisories); spreadsheets use **exceljs** / **read-excel-file**. **`file-type`** is overridden to **≥21.3.1** with an **officeparser** patch for ESM compatibility (`patches/officeparser+6.0.4.patch`). Re-run `npm audit` after dependency changes.
+- **2026-04-24 cleanup:** GitHub Dependabot alerts for `@xmldom/xmldom`, `dompurify`, and `hono` were cleared on `master`; the local audit was also cleared by replacing direct `uuid` usage with Node `crypto.randomUUID()` and pinning transitive `uuid` to `14.0.0`.
 
 ## Archon
 

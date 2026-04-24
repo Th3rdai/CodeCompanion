@@ -65,7 +65,8 @@ test.describe("Prompting Builder Mode", () => {
     await page.reload();
     await page.waitForResponse("**/api/models");
 
-    // Navigate to Prompting mode (icon + label — scope to main to avoid sidebar matches)
+    // Prompting is under More → Builders
+    await page.getByTestId("mode-tab-more").click();
     await page.getByTestId("mode-tab-prompting").click();
   });
 
@@ -130,14 +131,15 @@ test.describe("Prompting Builder Mode", () => {
       timeout: 15000,
     });
 
-    // Click on a category row button to expand suggestions
-    const structureBtn = page
-      .getByRole("button", { name: /structure/i })
-      .first();
+    const scoreReport = page.getByRole("region", {
+      name: /prompt builder score report/i,
+    });
+    const structureBtn = scoreReport.getByTestId("score-category-structure");
     await structureBtn.click();
 
-    // Suggestions should be visible after expanding
-    await expect(page.getByText(/add section headers/i)).toBeVisible({
+    const suggestion = page.getByText(/add section headers/i);
+    await suggestion.scrollIntoViewIfNeeded();
+    await expect(suggestion).toBeVisible({
       timeout: 5000,
     });
   });

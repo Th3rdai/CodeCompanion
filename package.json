@@ -1,6 +1,6 @@
 {
   "name": "code-companion",
-  "version": "1.6.5",
+  "version": "1.6.9",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
@@ -49,6 +49,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "validate:static": "npm run lint && npm run typecheck && npm run format:check",
+    "validate:p7": "bash scripts/validate-p7-workflows.sh",
     "audit:security": "npm audit --audit-level=critical",
     "mcp": "node mcp-server.js",
     "mcp:test": "node scripts/mcp-stdio-smoke.js",
@@ -71,7 +72,7 @@
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "docx": "^9.6.1",
-    "dompurify": "^3.3.3",
+    "dompurify": "^3.4.1",
     "dotenv": "^16.6.1",
     "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
@@ -89,7 +90,8 @@
     "officeparser": "^6.0.4",
     "pdf-parse": "^1.1.1",
     "pdfkit": "^0.18.0",
-    "postcss": "^8.5.8",
+    "playwright": "^1.58.2",
+    "postcss": "^8.5.10",
     "pptxgenjs": "^4.0.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -99,7 +101,6 @@
     "tailwindcss": "^4.2.1",
     "three": "^0.183.2",
     "tslib": "^2.8.1",
-    "uuid": "^9.0.0",
     "word-extractor": "^1.0.4",
     "zod": "^4.3.6"
   },
@@ -107,8 +108,10 @@
     "yauzl": ">=3.2.1",
     "file-type": "^21.3.4",
     "lodash-es": ">=4.18.1",
-    "hono": ">=4.12.12",
-    "@hono/node-server": ">=1.19.13"
+    "hono": ">=4.12.14",
+    "@hono/node-server": ">=1.19.13",
+    "@xmldom/xmldom": ">=0.8.13",
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",

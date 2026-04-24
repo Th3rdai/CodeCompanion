@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Sidebar `Invalid Date` history rows** — Conversation timestamps are now normalized end-to-end: `createdAt` is validated in `useChat` before save, malformed history rows are auto-repaired in `lib/history.js`, and sidebar rendering now has a safe date fallback.
+- **Playwright/browser tool-call deflection** — Strengthened agent tool prompt + chat capability lead-ins so browser automation requests use MCP `browser_*` tools directly instead of returning advisory “I can’t run this here” responses.
+- **Browser-vs-terminal tool precedence** — Added explicit AGENT BROWSER guidance when both terminal and browser tools are available so website navigation/snapshot tasks prefer Playwright tools over terminal-script suggestions.
+- **Server-side browser refusal fallback** — Chat tool loop now detects browser-execution refusal patterns (when browser tools are available), injects a corrective instruction, and retries once to recover into actual `TOOL_CALL` execution.
+- **Snapshot-call consistency for browser automation** — When the user explicitly asks for a snapshot/screenshot and the model emits browser actions without `browser_snapshot`, the chat route now appends a snapshot call before execution so navigate+snapshot behavior is consistent.
+- **Minimax parameter-style tool-call parsing** — Tool-call handler now parses `<minimax:tool_call><invoke ...><parameter ...>` format, fixing mixed prompt rounds that previously failed to execute browser/terminal tools from that output shape.
+- **File Browser loading hangs** — Added bounded file-tree scanning guardrails (`max scan ms`, `max nodes`, `max entries/dir`, symlink skip) and frontend request timeouts with a clear timeout error instead of indefinite loading states.
+
+### Changed
+
+- **Installed desktop app refreshed** — Local `/Applications/Code Companion.app` has been rebuilt/reinstalled with the above fixes so runtime behavior matches current workspace code.
+
+---
+
 ## [1.6.5] — 2026-04-09
 
 ### Fixed

@@ -99,9 +99,8 @@ module.exports = {
     "!CodeCompanion-Data",
     "!.env",
     "!.env.local",
-    "!node_modules/@playwright/**/*",
-    "!node_modules/playwright/**/*",
-    "!node_modules/playwright-core/**/*",
+    "!node_modules/@playwright/test/**/*",
+    "!node_modules/@playwright/experimental-ct-react/**/*",
     "!node_modules/electron/**/*",
     "!src/**/*",
     "!test/**/*",
@@ -121,7 +120,9 @@ module.exports = {
     category: "public.app-category.developer-tools",
     hardenedRuntime: macDistributionSign,
     identity: macDistributionSign ? macCodesignIdentity : "-",
-    ...(macNotarize ? { notarize: true } : {}),
+    // electron-builder 26+ auto-notarizes when APPLE_ID is in the environment.
+    // Explicitly set notarize: false when not requested to prevent that.
+    notarize: macNotarize ? true : false,
     gatekeeperAssess: false,
     extendInfo: {
       NSMicrophoneUsageDescription:

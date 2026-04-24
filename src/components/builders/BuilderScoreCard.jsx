@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -95,14 +95,36 @@ function GradeBadge({ grade, size = "lg" }) {
 
 function CategoryRow({ categoryKey, categoryData, categoryConfig, onRevise }) {
   const [expanded, setExpanded] = useState(false);
+  const rowRef = useRef(null);
   const IconComponent = ICONS[categoryConfig?.icon] || BookOpen;
   const _colors = GRADE_COLORS[categoryData?.grade] || GRADE_COLORS.C;
   const suggestions = categoryData?.suggestions || [];
 
+  function toggleExpanded() {
+    setExpanded((prev) => {
+      const next = !prev;
+      if (!prev && next) {
+        requestAnimationFrame(() => {
+          rowRef.current?.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+            behavior: "instant",
+          });
+        });
+      }
+      return next;
+    });
+  }
+
   return (
-    <div className="glass rounded-xl border border-slate-700/30 overflow-hidden transition-all hover:border-slate-600/50">
+    <div
+      ref={rowRef}
+      className="glass rounded-xl border border-slate-700/30 overflow-hidden transition-all hover:border-slate-600/50"
+    >
       <button
-        onClick={() => setExpanded(!expanded)}
+        type="button"
+        data-testid={`score-category-${categoryKey}`}
+        onClick={toggleExpanded}
         className="w-full flex items-center gap-3 p-4 hover:bg-slate-700/10 transition-colors text-left"
       >
         <GradeBadge grade={categoryData?.grade || "C"} size="sm" />

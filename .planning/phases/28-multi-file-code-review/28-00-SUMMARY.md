@@ -70,7 +70,7 @@ Each task was committed atomically:
 ## Files Created/Modified
 
 - `tests/unit/review-files.test.js` - 5 skipped node:test stubs for reviewFiles() behavior
-- `tests/integration/review-folder.test.js` - 4 skipped node:test stubs for /api/review/folder/* routes
+- `tests/integration/review-folder.test.js` - 4 skipped node:test stubs for /api/review/folder/\* routes
 
 ## Decisions Made
 
@@ -97,5 +97,6 @@ None - no external service configuration required.
 - All verify commands ready: `node --test tests/unit/review-files.test.js` and `node --test tests/integration/review-folder.test.js`
 
 ---
-*Phase: 28-multi-file-code-review*
-*Completed: 2026-04-09*
+
+_Phase: 28-multi-file-code-review_
+_Completed: 2026-04-09_

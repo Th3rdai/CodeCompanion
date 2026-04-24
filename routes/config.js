@@ -287,6 +287,17 @@ module.exports = function createRouter(appContext) {
       );
     }
 
+    if (req.body.agentBrowser !== undefined) {
+      config.agentBrowser = {
+        ...(config.agentBrowser || {}),
+        ...req.body.agentBrowser,
+      };
+      log(
+        "INFO",
+        `Agent browser config updated: enabled=${config.agentBrowser.enabled}`,
+      );
+    }
+
     if (
       req.body.autoModelMap !== undefined &&
       typeof req.body.autoModelMap === "object"

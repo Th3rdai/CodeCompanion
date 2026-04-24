@@ -59,16 +59,20 @@ function FileTreeNode({
       rootFolder
     ) {
       setLoadingChildren(true);
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 15000);
       try {
         const fullPath = rootFolder + "/" + node.path;
         const res = await apiFetch(
           `/api/files/tree?depth=3&folder=${encodeURIComponent(fullPath)}`,
+          { signal: ac.signal },
         );
         const data = await res.json();
         if (res.ok && data.tree) {
           setChildren(data.tree);
         }
       } catch {}
+      clearTimeout(timer);
       setLoadingChildren(false);
     }
   };
@@ -213,6 +217,7 @@ export default function FileBrowser({
   onSetFolder,
   attachLabel,
 }) {
+  const TREE_REQUEST_TIMEOUT_MS = 20000;
   const [tree, setTree] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -231,6 +236,21 @@ export default function FileBrowser({
   const dragCounter = useRef(0);
 
   const folderPath = tree?.root || projectFolder;
+
+  async function fetchTreeJson(targetPath) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), TREE_REQUEST_TIMEOUT_MS);
+    try {
+      const res = await apiFetch(
+        `/api/files/tree?depth=3&folder=${encodeURIComponent(targetPath)}`,
+        { signal: ac.signal },
+      );
+      const data = await res.json();
+      return { res, data };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 
   async function launchIDE(endpoint, name, setLoading) {
     if (!folderPath) {
@@ -272,10 +292,7 @@ export default function FileBrowser({
     setTree(null);
     setFolderError(null);
     try {
-      const res = await apiFetch(
-        `/api/files/tree?depth=3&folder=${encodeURIComponent(target)}`,
-      );
-      const data = await res.json();
+      const { res, data } = await fetchTreeJson(target);
       if (!res.ok) {
         setFolderError(data.error || "Could not load folder");
         setTree(null);
@@ -287,8 +304,12 @@ export default function FileBrowser({
           onSetFolder(data.root);
         }
       }
-    } catch {
-      setFolderError("Could not reach server");
+    } catch (err) {
+      setFolderError(
+        err?.name === "AbortError"
+          ? "Loading folder timed out. Try a smaller folder."
+          : "Could not reach server",
+      );
       setTree(null);
     }
     setLoading(false);
@@ -453,11 +474,8 @@ export default function FileBrowser({
       if (files[0].path) {
         setDropping({ total: 1, done: 0, message: "Opening folder..." });
         try {
-          const res = await apiFetch(
-            `/api/files/tree?depth=3&folder=${encodeURIComponent(files[0].path)}`,
-          );
-          const data = await res.json();
-          if (data.tree && onSetFolder) {
+          const { res, data } = await fetchTreeJson(files[0].path);
+          if (res.ok && data.tree && onSetFolder) {
             onSetFolder(files[0].path);
             setDropping({ total: 1, done: 1, message: "Folder loaded!" });
             setTimeout(() => setDropping(null), 1200);

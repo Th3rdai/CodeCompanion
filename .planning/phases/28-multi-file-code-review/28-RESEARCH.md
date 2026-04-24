@@ -7,9 +7,11 @@
 ---
 
 <user_constraints>
+
 ## User Constraints (from CONTEXT.md)
 
 ### Locked Decisions
+
 - One unified report card for the whole project (not per-file cards)
 - The AI sees all files together and produces a single overall grade with cross-file findings
 - Files with problems are identified within findings by filename (e.g., "Bug in auth.js: unvalidated input")
@@ -25,19 +27,23 @@
 - No additional actions needed — report card shape is identical regardless of input
 
 ### Claude's Discretion
+
 - None specified — all decisions were locked in the discussion phase
 
 ### Deferred Ideas (OUT OF SCOPE)
+
 - None — discussion stayed within phase scope
-</user_constraints>
+  </user_constraints>
 
 <phase_requirements>
+
 ## Phase Requirements
 
-| ID | Description | Research Support |
-|----|-------------|-----------------|
+| ID      | Description                                                     | Research Support                                                                                                   |
+| ------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | MREV-01 | User can review an entire project folder with aggregated grades | `readFolderFiles()` in `lib/file-browser.js` + new `/api/review/folder` route + `reviewFiles()` in `lib/review.js` |
-| MREV-02 | (GitHub repo by URL — deferred, not in this phase) | Out of scope for Phase 28 |
+| MREV-02 | (GitHub repo by URL — deferred, not in this phase)              | Out of scope for Phase 28                                                                                          |
+
 </phase_requirements>
 
 ---
@@ -58,15 +64,15 @@ The only non-trivial design choice is the system prompt: the existing `SYSTEM_PR
 
 ### Core — already in the project, no new installs
 
-| Library / Module | Version | Purpose | Status |
-|-----------------|---------|---------|--------|
-| `lib/file-browser.js` `readFolderFiles()` | — | Recursive server-side folder reader with size/count limits | Exists, used by pentest |
-| `lib/review.js` | — | Review orchestration; gets `reviewFiles()` companion | Exists, needs new export |
-| `routes/review.js` | — | Review route module; gets two new endpoints | Exists, needs additions |
-| `lib/rate-limiters-config.js` | — | Centralized rate limiter wiring | Exists, needs `/api/review/folder` entry |
-| `@headlessui/react` `Tab` | installed | Tab switcher UI (Paste Code / Upload / Browse / Scan Folder) | Already used in ReviewPanel |
-| `lucide-react` `FolderSearch` | installed | Icon for Scan Folder tab (same icon SecurityPanel uses) | Already imported in SecurityPanel |
-| `apiFetch` (`src/lib/api-fetch.js`) | — | Authenticated API calls from React | Already used in ReviewPanel |
+| Library / Module                          | Version   | Purpose                                                      | Status                                   |
+| ----------------------------------------- | --------- | ------------------------------------------------------------ | ---------------------------------------- |
+| `lib/file-browser.js` `readFolderFiles()` | —         | Recursive server-side folder reader with size/count limits   | Exists, used by pentest                  |
+| `lib/review.js`                           | —         | Review orchestration; gets `reviewFiles()` companion         | Exists, needs new export                 |
+| `routes/review.js`                        | —         | Review route module; gets two new endpoints                  | Exists, needs additions                  |
+| `lib/rate-limiters-config.js`             | —         | Centralized rate limiter wiring                              | Exists, needs `/api/review/folder` entry |
+| `@headlessui/react` `Tab`                 | installed | Tab switcher UI (Paste Code / Upload / Browse / Scan Folder) | Already used in ReviewPanel              |
+| `lucide-react` `FolderSearch`             | installed | Icon for Scan Folder tab (same icon SecurityPanel uses)      | Already imported in SecurityPanel        |
+| `apiFetch` (`src/lib/api-fetch.js`)       | —         | Authenticated API calls from React                           | Already used in ReviewPanel              |
 
 **Installation:** No new packages required.
 
@@ -108,7 +114,8 @@ async function reviewFiles(ollamaUrl, model, files, opts = {}) {
     .join("\n\n");
 
   // Scale timeout by file count (same formula as pentestFolder)
-  const baseTimeout = opts.timeoutMs ||
+  const baseTimeout =
+    opts.timeoutMs ||
     (opts.timeoutSec ? opts.timeoutSec * 1000 : getTimeoutForModel(model));
   const timeout = Math.min(
     baseTimeout * Math.max(1, Math.ceil(files.length / 5)),
@@ -172,7 +179,7 @@ The existing `/api/review` limiter (line 67–72) covers only the exact path. Th
 // Source: lib/rate-limiters-config.js existing pattern
 mount("/api/review/folder", {
   name: "review-folder",
-  max: REVIEW_RATE_LIMIT_MAX,  // reuse existing env var
+  max: REVIEW_RATE_LIMIT_MAX, // reuse existing env var
   windowMs: RATE_LIMIT_WINDOW_MS,
   methods: ["POST"],
 });
@@ -188,6 +195,7 @@ Note: The existing `/api/review` mount uses `methods: ["POST"]` so it does NOT a
 The Scan Folder tab UI structure is directly borrowed from SecurityPanel lines 1835–1847 (tab button) and lines 1971–2090 (tab panel with folder path input, Preview button, file list, warning, and scan button).
 
 Key state additions to ReviewPanel:
+
 ```javascript
 // Mirror SecurityPanel lines 156-160
 const [folderPath, setFolderPath] = useState("");
@@ -224,13 +232,13 @@ This keeps `SYSTEM_PROMPTS["review"]` unchanged and avoids any risk to single-fi
 
 ## Don't Hand-Roll
 
-| Problem | Don't Build | Use Instead | Why |
-|---------|-------------|-------------|-----|
-| Recursive folder reading | Custom `fs.readdir` walk | `readFolderFiles()` in `lib/file-browser.js` | Already handles IGNORE_DIRS, BINARY_EXTENSIONS, per-file size cap, total size cap, depth limit, dotfile allowlist |
-| Rate limiting | Manual request counting | `lib/rate-limiters-config.js` `registerRateLimiters` | Centralized, env-configurable, already tested |
-| Structured output + Zod validation | Custom JSON parsing | `chatStructured()` + `ReportCardSchema.parse()` via `reviewCode()` | Handles Ollama format param, fallback on parse failure, schema coercion |
-| Tab UI | Custom active-tab state | `@headlessui/react` `Tab` | Keyboard navigation, accessibility, already installed |
-| API fetch with auth key | `fetch()` directly | `apiFetch()` from `src/lib/api-fetch.js` | Injects `X-CC-API-Key` header when `VITE_CC_API_KEY` is set |
+| Problem                            | Don't Build              | Use Instead                                                        | Why                                                                                                               |
+| ---------------------------------- | ------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Recursive folder reading           | Custom `fs.readdir` walk | `readFolderFiles()` in `lib/file-browser.js`                       | Already handles IGNORE_DIRS, BINARY_EXTENSIONS, per-file size cap, total size cap, depth limit, dotfile allowlist |
+| Rate limiting                      | Manual request counting  | `lib/rate-limiters-config.js` `registerRateLimiters`               | Centralized, env-configurable, already tested                                                                     |
+| Structured output + Zod validation | Custom JSON parsing      | `chatStructured()` + `ReportCardSchema.parse()` via `reviewCode()` | Handles Ollama format param, fallback on parse failure, schema coercion                                           |
+| Tab UI                             | Custom active-tab state  | `@headlessui/react` `Tab`                                          | Keyboard navigation, accessibility, already installed                                                             |
+| API fetch with auth key            | `fetch()` directly       | `apiFetch()` from `src/lib/api-fetch.js`                           | Injects `X-CC-API-Key` header when `VITE_CC_API_KEY` is set                                                       |
 
 ---
 
@@ -291,6 +299,7 @@ function readFolderFiles(folder, opts = {}) {
 ```
 
 Called in the route exactly as in pentest:
+
 ```javascript
 const { files, totalSize, skipped } = readFolderFiles(folder, {
   maxFiles: 80,
@@ -319,7 +328,7 @@ if (model === "auto") {
     const estimatedTokens = Math.ceil(totalChars / 3.5);
     const r = await resolveAutoModel({
       requestedModel: model,
-      mode: "review",          // ← "review" not "pentest"
+      mode: "review", // ← "review" not "pentest"
       estimatedTokens,
       config,
       ollamaUrl: config.ollamaUrl,
@@ -328,7 +337,7 @@ if (model === "auto") {
     model = r.resolved;
   } catch (err) {
     const m = mergeAutoModelMap(config.autoModelMap);
-    model = m.review || m.chat || "llama3.2";  // ← review fallback chain
+    model = m.review || m.chat || "llama3.2"; // ← review fallback chain
   }
 }
 ```
@@ -363,6 +372,7 @@ Current tabs: Paste Code (index 0), Upload File (index 1), Browse Files (index 2
 New tab: Scan Folder (index 3) — inserted after Browse Files.
 
 Tab button pattern (indigo accent, matching existing):
+
 ```jsx
 // Source: ReviewPanel.jsx lines 1200-1211
 <Tab
@@ -384,24 +394,26 @@ Note: SecurityPanel uses `border-orange-500` accent. ReviewPanel uses `border-in
 ### >20 file warning (from SecurityPanel, lines ~2010-2025)
 
 ```jsx
-{folderPreview && folderPreview.files.length > 20 && (
-  <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-    <p className="text-sm text-amber-300">
-      This may take several minutes with {folderPreview.files.length} files.
-      You can proceed or narrow your scope.
-    </p>
-  </div>
-)}
+{
+  folderPreview && folderPreview.files.length > 20 && (
+    <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+      <p className="text-sm text-amber-300">
+        This may take several minutes with {folderPreview.files.length} files.
+        You can proceed or narrow your scope.
+      </p>
+    </div>
+  );
+}
 ```
 
 ---
 
 ## State of the Art
 
-| Old Approach | Current Approach | Impact |
-|--------------|------------------|--------|
-| Single-file review only | Multi-file folder scan (new) | Addresses MREV-01 |
+| Old Approach                     | Current Approach                                                 | Impact                                                              |
+| -------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Single-file review only          | Multi-file folder scan (new)                                     | Addresses MREV-01                                                   |
 | Manual combined string in client | Server-side `readFolderFiles` + concatenation in `reviewFiles()` | Files never transferred to client, respects 2MB cap, skips binaries |
 
 ---
@@ -423,22 +435,22 @@ Note: SecurityPanel uses `border-orange-500` accent. ReviewPanel uses `border-in
 
 ### Test Framework
 
-| Property | Value |
-|----------|-------|
-| Framework | Playwright (E2E, `tests/e2e/`), node:test (unit, `tests/unit/`) |
-| Config file | `playwright.config.js` (root) |
-| Quick run command | `node --test tests/unit/*.test.js` |
-| Full suite command | `npm run test:integration && npx playwright test` |
+| Property           | Value                                                           |
+| ------------------ | --------------------------------------------------------------- |
+| Framework          | Playwright (E2E, `tests/e2e/`), node:test (unit, `tests/unit/`) |
+| Config file        | `playwright.config.js` (root)                                   |
+| Quick run command  | `node --test tests/unit/*.test.js`                              |
+| Full suite command | `npm run test:integration && npx playwright test`               |
 
 ### Phase Requirements → Test Map
 
-| Req ID | Behavior | Test Type | Automated Command | File Exists? |
-|--------|----------|-----------|-------------------|-------------|
-| MREV-01 | `POST /api/review/folder/preview` returns file list | integration | `npm run test:integration` (add case) | ❌ Wave 0 |
-| MREV-01 | `POST /api/review/folder` returns `report-card` JSON | integration | `npm run test:integration` (add case) | ❌ Wave 0 |
-| MREV-01 | `reviewFiles()` builds correct combined string format | unit | `node --test tests/unit/review-files.test.js` | ❌ Wave 0 |
-| MREV-01 | ReviewPanel renders Scan Folder tab in input phase | e2e | `npx playwright test tests/e2e/review-workflow.spec.js` | ✅ (extend existing) |
-| MREV-01 | Folder preview API call and file list displayed | e2e | `npx playwright test tests/e2e/review-workflow.spec.js` | ❌ Wave 0 |
+| Req ID  | Behavior                                              | Test Type   | Automated Command                                       | File Exists?         |
+| ------- | ----------------------------------------------------- | ----------- | ------------------------------------------------------- | -------------------- |
+| MREV-01 | `POST /api/review/folder/preview` returns file list   | integration | `npm run test:integration` (add case)                   | ❌ Wave 0            |
+| MREV-01 | `POST /api/review/folder` returns `report-card` JSON  | integration | `npm run test:integration` (add case)                   | ❌ Wave 0            |
+| MREV-01 | `reviewFiles()` builds correct combined string format | unit        | `node --test tests/unit/review-files.test.js`           | ❌ Wave 0            |
+| MREV-01 | ReviewPanel renders Scan Folder tab in input phase    | e2e         | `npx playwright test tests/e2e/review-workflow.spec.js` | ✅ (extend existing) |
+| MREV-01 | Folder preview API call and file list displayed       | e2e         | `npx playwright test tests/e2e/review-workflow.spec.js` | ❌ Wave 0            |
 
 ### Sampling Rate
 
@@ -460,19 +472,19 @@ Note: SecurityPanel uses `border-orange-500` accent. ReviewPanel uses `border-in
 
 All findings are drawn from direct codebase reads — no external sources required for this phase.
 
-| File | What Was Verified |
-|------|------------------|
-| `lib/pentest.js` | `pentestFolder()` function signature, file concatenation format, timeout scaling formula |
-| `lib/review.js` | `reviewCode()` signature, return types (`report-card` / `chat-fallback`), timeout handling |
-| `routes/pentest.js` | Preview + folder endpoints, auto-model flow, SSE fallback pattern, meta payload shape |
-| `routes/review.js` | Existing single-file route structure, auth opts pattern, rate limiter comment |
-| `lib/file-browser.js` | `readFolderFiles()` signature, opts shape, return shape |
-| `lib/rate-limiters-config.js` | Existing `/api/review` limiter registration, `mount()` helper pattern |
+| File                               | What Was Verified                                                                                                                                 |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/pentest.js`                   | `pentestFolder()` function signature, file concatenation format, timeout scaling formula                                                          |
+| `lib/review.js`                    | `reviewCode()` signature, return types (`report-card` / `chat-fallback`), timeout handling                                                        |
+| `routes/pentest.js`                | Preview + folder endpoints, auto-model flow, SSE fallback pattern, meta payload shape                                                             |
+| `routes/review.js`                 | Existing single-file route structure, auth opts pattern, rate limiter comment                                                                     |
+| `lib/file-browser.js`              | `readFolderFiles()` signature, opts shape, return shape                                                                                           |
+| `lib/rate-limiters-config.js`      | Existing `/api/review` limiter registration, `mount()` helper pattern                                                                             |
 | `src/components/SecurityPanel.jsx` | Tab structure, folder state variables, `handleFolderPreview`, `handleSubmitFolderScan`, dual `useAbortable` pattern, file list UI, warning banner |
-| `src/components/ReviewPanel.jsx` | Existing 3-tab structure, state shape, `useAbortable` usage, `onSaveReview` call signature |
-| `lib/prompts.js` | `SYSTEM_PROMPTS["review"]` content — confirmed no multi-file instruction present |
-| `lib/review-schema.js` | `ReportCardSchema` shape — confirmed same schema used for folder review |
-| `lib/auto-model.js` | `review` mode key confirmed in `DEFAULT_AUTO_MODEL_MAP` |
+| `src/components/ReviewPanel.jsx`   | Existing 3-tab structure, state shape, `useAbortable` usage, `onSaveReview` call signature                                                        |
+| `lib/prompts.js`                   | `SYSTEM_PROMPTS["review"]` content — confirmed no multi-file instruction present                                                                  |
+| `lib/review-schema.js`             | `ReportCardSchema` shape — confirmed same schema used for folder review                                                                           |
+| `lib/auto-model.js`                | `review` mode key confirmed in `DEFAULT_AUTO_MODEL_MAP`                                                                                           |
 
 ---
 

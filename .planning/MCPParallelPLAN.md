@@ -36,10 +36,12 @@ This keeps dependency order while still parallelizing independent runs.
 ## Tool Safety Policy
 
 Default policy:
+
 - builtins are `parallel-safe` unless explicitly marked risky
 - unknown external MCP tools are treated as `risky` by default
 
 Explicit risky builtins for phase 1:
+
 - `run_terminal_cmd` (stateful terminal side effects and stream ordering)
 - `generate_office_file` (filesystem writes and larger resource footprint)
 - `write_file` (filesystem mutation)
@@ -136,7 +138,8 @@ After coding:
 ## Next Step After This Plan
 
 Implement in a small PR:
-1) segmentation correctness,
-2) chat loop execution wiring,
-3) test coverage,
-4) flag-off default rollout.
+
+1. segmentation correctness,
+2. chat loop execution wiring,
+3. test coverage,
+4. flag-off default rollout.

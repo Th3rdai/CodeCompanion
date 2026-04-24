@@ -110,6 +110,8 @@ export default function SettingsPanel({
 
   // Agent Terminal state
   const [terminalEnabled, setTerminalEnabled] = useState(false);
+  const [terminalTesting, setTerminalTesting] = useState(false);
+  const [terminalTestResult, setTerminalTestResult] = useState(null);
   const [terminalAllowlist, setTerminalAllowlist] = useState("");
   const [terminalTimeout, setTerminalTimeout] = useState(60);
   const [terminalConfirmBeforeRun, setTerminalConfirmBeforeRun] =
@@ -118,6 +120,8 @@ export default function SettingsPanel({
   // Agent tool toggles
   const [validateEnabled, setValidateEnabled] = useState(true);
   const [plannerEnabled, setPlannerEnabled] = useState(true);
+  const [browserEnabled, setBrowserEnabled] = useState(false);
+  const [browserHeaded, setBrowserHeaded] = useState(false);
 
   // GitHub token state (multi-PAT)
   const [ghToken, setGhToken] = useState("");
@@ -205,6 +209,10 @@ export default function SettingsPanel({
             setValidateEnabled(data.agentValidate.enabled !== false);
           if (data.agentPlanner != null)
             setPlannerEnabled(data.agentPlanner.enabled !== false);
+          if (data.agentBrowser != null) {
+            setBrowserEnabled(data.agentBrowser.enabled === true);
+            setBrowserHeaded(data.agentBrowser.headed === true);
+          }
           if (data.autoModelMap && typeof data.autoModelMap === "object")
             setAutoModelMap(data.autoModelMap);
           if (
@@ -641,6 +649,20 @@ export default function SettingsPanel({
     setDoclingTesting(false);
   }
 
+  async function handleTestTerminal() {
+    setTerminalTesting(true);
+    setTerminalTestResult(null);
+    try {
+      const res = await apiFetch("/api/agent-terminal/test");
+      const data = await res.json();
+      setTerminalTestResult(data);
+    } catch (err) {
+      setTerminalTestResult({ ok: false, error: err.message });
+    } finally {
+      setTerminalTesting(false);
+    }
+  }
+
   async function handleTestFolder() {
     setFolderResult(null);
     if (!folder.trim()) {
@@ -958,6 +980,7 @@ export default function SettingsPanel({
                   onClick={() => {
                     const next = !terminalEnabled;
                     setTerminalEnabled(next);
+                    setTerminalTestResult(null);
                     apiFetch("/api/config", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -978,6 +1001,36 @@ export default function SettingsPanel({
                 Allow the AI agent to run terminal commands in your project
                 folder. Commands are restricted to the allowlist below.
               </p>
+              <div className="flex items-center gap-2 mt-2 mb-3">
+                <button
+                  onClick={handleTestTerminal}
+                  disabled={terminalTesting || !terminalEnabled}
+                  title={
+                    !terminalEnabled
+                      ? "Enable Agent Terminal above to test"
+                      : undefined
+                  }
+                  className="px-3 py-1.5 rounded-lg text-sm bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-slate-200"
+                >
+                  {terminalTesting ? (
+                    <span className="inline-block spin mr-1">&#x27F3;</span>
+                  ) : null}
+                  {terminalTesting ? "Testing…" : "Test Terminal"}
+                </button>
+              </div>
+              {terminalTestResult && (
+                <div
+                  className={`text-xs rounded-lg px-3 py-2 mb-3 ${
+                    terminalTestResult.ok
+                      ? "bg-emerald-900/40 text-emerald-300"
+                      : "bg-red-900/40 text-red-300"
+                  }`}
+                >
+                  {terminalTestResult.ok
+                    ? `✓ Working — project folder: ${terminalTestResult.cwd}`
+                    : `✗ ${terminalTestResult.error}`}
+                </div>
+              )}
               {terminalEnabled && (
                 <>
                   <label className="block text-sm text-slate-300 mb-2 font-medium">
@@ -1097,6 +1150,69 @@ export default function SettingsPanel({
                 Allow the AI agent to score implementation plans with letter
                 grades (same as Planner mode).
               </p>
+            </div>
+
+            {/* Agent Web Browser */}
+            <div className="border-t border-slate-700/40 pt-4 mt-4">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-slate-300 font-medium">
+                  Agent Web Browser
+                </label>
+                <button
+                  onClick={() => {
+                    const next = !browserEnabled;
+                    setBrowserEnabled(next);
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ agentBrowser: { enabled: next } }),
+                    });
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${browserEnabled ? "bg-indigo-500" : "bg-slate-600"}`}
+                  aria-label="Toggle agent web browser"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${browserEnabled ? "translate-x-4" : ""}`}
+                  />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Allow the AI agent to open URLs in a headless browser, take
+                screenshots, and summarize web pages. Only public https:// URLs
+                are allowed.
+              </p>
+              {browserEnabled && (
+                <div className="flex items-center justify-between mt-3">
+                  <div>
+                    <p className="text-sm text-slate-300">
+                      Show Browser Window
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Open a visible browser so you can watch the agent interact
+                      with pages in real-time.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const next = !browserHeaded;
+                      setBrowserHeaded(next);
+                      apiFetch("/api/config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          agentBrowser: { headed: next },
+                        }),
+                      });
+                    }}
+                    className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ml-4 ${browserHeaded ? "bg-indigo-500" : "bg-slate-600"}`}
+                    aria-label="Toggle visible browser window"
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${browserHeaded ? "translate-x-4" : ""}`}
+                    />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Project Folder */}

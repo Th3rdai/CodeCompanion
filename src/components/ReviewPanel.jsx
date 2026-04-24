@@ -779,6 +779,24 @@ export default function ReviewPanel({
   }
 
   // ── Folder scan handlers ──────────────────────────
+  //
+  // TWO DISTINCT CODE PATHS in the "Scan Folder" tab:
+  //
+  // 1. Folder path text input → server-side scan → POST /api/review/folder
+  //    The user types (or pastes) the full absolute path to a local folder.
+  //    The server reads the files via readFolderFiles() and runs reviewFiles().
+  //    handleFolderPreview() previews the file list; handleSubmitFolderReview()
+  //    sends the full scan request.
+  //
+  // 2. Drag-and-drop a folder → populates the text input with the folder name.
+  //    Browser security prevents exposing the full filesystem path via drag-drop,
+  //    so handleFolderDrop() captures entry.name (the bare directory name) as a
+  //    starting hint. The user must complete the full absolute path in the input
+  //    before previewing/scanning. The actual scan still goes through path 1.
+  //
+  // NOTE: Dropping individual files (not folders) onto the "Code" tab uses a
+  // separate handleDrop() which reads file content client-side and posts to the
+  // single-file POST /api/review endpoint — it does NOT use this folder flow.
   async function handleFolderPreview() {
     setFolderError("");
     setFolderPreview(null);
@@ -824,7 +842,9 @@ export default function ReviewPanel({
           const meta = result.meta || {};
           setReportData(result.data);
           setFilename(folderPath);
-          setCode(`Scanned ${meta.fileCount} files (${(meta.totalSize / 1024).toFixed(1)}KB)`);
+          setCode(
+            `Scanned ${meta.fileCount} files (${(meta.totalSize / 1024).toFixed(1)}KB)`,
+          );
           setPhase("report");
           onSaveReview?.({
             type: "report-card",
@@ -837,7 +857,9 @@ export default function ReviewPanel({
           return;
         }
         // Error JSON
-        setFolderError(result.error || "Unexpected response from folder review endpoint.");
+        setFolderError(
+          result.error || "Unexpected response from folder review endpoint.",
+        );
         setPhase("input");
         return;
       }
@@ -911,6 +933,12 @@ export default function ReviewPanel({
         setFolderPath(entry.name);
         setFolderPreview(null);
         setFolderError("");
+        // Browsers don't expose the full filesystem path via drag-drop (security
+        // restriction). entry.name is just the folder name — the user must edit
+        // the input to provide the full absolute path before scanning.
+        onToast?.(
+          `Folder name captured: "${entry.name}". Enter the full path to scan.`,
+        );
         break;
       }
     }
@@ -1574,7 +1602,9 @@ export default function ReviewPanel({
                     >
                       {folderLoading ? (
                         <>
-                          <span className="inline-block animate-spin">&#x27F3;</span>
+                          <span className="inline-block animate-spin">
+                            &#x27F3;
+                          </span>
                           Scanning...
                         </>
                       ) : (
@@ -1583,7 +1613,8 @@ export default function ReviewPanel({
                     </button>
                     {folderPreview && (
                       <span className="text-xs text-slate-400">
-                        {folderPreview.files.length} file{folderPreview.files.length !== 1 ? "s" : ""} found
+                        {folderPreview.files.length} file
+                        {folderPreview.files.length !== 1 ? "s" : ""} found
                       </span>
                     )}
                   </div>
@@ -1604,8 +1635,9 @@ export default function ReviewPanel({
                         <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
                           <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <p className="text-sm text-amber-300">
-                            This may take several minutes with {folderPreview.files.length} files.
-                            You can proceed or narrow your scope.
+                            This may take several minutes with{" "}
+                            {folderPreview.files.length} files. You can proceed
+                            or narrow your scope.
                           </p>
                         </div>
                       )}
@@ -1630,11 +1662,14 @@ export default function ReviewPanel({
                       {/* Summary */}
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>
-                          Total: {(folderPreview.totalSize / 1024).toFixed(1)}KB across {folderPreview.files.length} file{folderPreview.files.length !== 1 ? "s" : ""}
+                          Total: {(folderPreview.totalSize / 1024).toFixed(1)}KB
+                          across {folderPreview.files.length} file
+                          {folderPreview.files.length !== 1 ? "s" : ""}
                         </span>
                         {folderPreview.skipped > 0 && (
                           <span className="text-slate-500">
-                            {folderPreview.skipped} file{folderPreview.skipped !== 1 ? "s" : ""} skipped
+                            {folderPreview.skipped} file
+                            {folderPreview.skipped !== 1 ? "s" : ""} skipped
                           </span>
                         )}
                       </div>

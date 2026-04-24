@@ -113,5 +113,6 @@ None — no external service configuration required.
 - Single-file review (Paste Code / Upload File / Browse Files tabs) unchanged
 
 ---
-*Phase: 28-multi-file-code-review*
-*Completed: 2026-04-09*
+
+_Phase: 28-multi-file-code-review_
+_Completed: 2026-04-09_

@@ -21,6 +21,25 @@ Code Companion stores most Settings in **`.cc-config.json`** (or **`${CC_DATA_DI
 
 HTTP/SSE MCP entries usually store only a **`url`**; secrets there are uncommon unless you put tokens in the URL (avoid that).
 
+## Agent browser (`agentBrowser`)
+
+Controls the Playwright-based browser the agent can use for `browse_url`, `browser_click`, `browser_snapshot`, and related tools.
+
+| Key                    | Type    | Default | Purpose                                                                                             |
+| ---------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `agentBrowser.enabled` | boolean | `false` | Allow the agent to open and control a browser. When `false`, browser tools are hidden from the LLM. |
+| `agentBrowser.headed`  | boolean | `false` | Show the browser window (`headed: true`) instead of running headless. Useful for debugging.         |
+
+Enable via Settings → General → **Agent Browser**, or with the API:
+
+```bash
+curl -sk -X POST https://localhost:8900/api/config \
+  -H 'Content-Type: application/json' \
+  -d '{"agentBrowser": {"enabled": true}}'
+```
+
+> **Note:** The stdio MCP server loads config at startup and does not react to live HTTP updates. Restart the stdio process after changing `agentBrowser`.
+
 ## Safer patterns
 
 - Put long-lived secrets in **`.env`** (also gitignored) where Code Companion supports overrides — see **[ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md)** (`OLLAMA_API_KEY`, `GITHUB_TOKEN`, `MCP_{id}__…`, etc.).

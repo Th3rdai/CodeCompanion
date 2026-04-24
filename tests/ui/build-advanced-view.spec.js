@@ -9,5 +9,7 @@ test.describe("Build Dashboard — Advanced View", () => {
     page: _page,
   }) => {});
   test.skip("shows planning file pills", async ({ page: _page }) => {});
-  test.skip("opens file viewer when pill clicked", async ({ page: _page }) => {});
+  test.skip("opens file viewer when pill clicked", async ({
+    page: _page,
+  }) => {});
 });

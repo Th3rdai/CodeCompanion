@@ -66,7 +66,7 @@ test("auditTerminalEvent creates logs/terminal-audit.log under CC_DATA_DIR", () 
   });
 });
 
-test("auditTerminalEvent appends multiple events as separate JSON lines", () => {
+test("auditTerminalEvent appends multiple events as separate JSON lines", async () => {
   const root = freshTmpRoot("append");
   auditTerminalEvent({ event: "denied", denyType: "allowlist", command: "rm" });
   auditTerminalEvent({ event: "executed", command: "ls", exitCode: 0 });
@@ -76,15 +76,16 @@ test("auditTerminalEvent appends multiple events as separate JSON lines", () => 
     error: "ENOENT",
   });
   const logFile = path.join(root, "logs", "terminal-audit.log");
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const lines = readLines(logFile);
-      assert.strictEqual(lines.length, 3);
-      const events = lines.map((l) => JSON.parse(l).event);
-      assert.deepStrictEqual(events, ["denied", "executed", "spawn-error"]);
-      resolve();
-    }, 50);
-  });
+  const deadline = Date.now() + 5000;
+  let lines = [];
+  while (Date.now() < deadline) {
+    lines = readLines(logFile);
+    if (lines.length >= 3) break;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  assert.strictEqual(lines.length, 3);
+  const events = lines.map((l) => JSON.parse(l).event);
+  assert.deepStrictEqual(events, ["denied", "executed", "spawn-error"]);
 });
 
 test("auditTerminalEvent never throws on bad input", () => {

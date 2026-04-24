@@ -131,37 +131,87 @@ function exportSvg(svgHtml) {
 }
 
 function exportPng(svgHtml, { onError } = {}) {
-  const svgBlob = new Blob([svgHtml], { type: "image/svg+xml" });
+  // Parse SVG and set explicit pixel dimensions so img.naturalWidth/Height are non-zero.
+  // Mermaid often emits width="100%" or style="max-width:Xpx" without a px height,
+  // which causes the browser to report naturalWidth=0 and the export to silently fail.
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgHtml, "image/svg+xml");
+  const svgEl = doc.querySelector("svg");
+
+  if (!svgEl) {
+    onError?.("No SVG element found.");
+    return;
+  }
+
+  // Derive pixel dimensions: prefer explicit attrs, fall back to viewBox, then style.
+  let w = parseFloat(svgEl.getAttribute("width"));
+  let h = parseFloat(svgEl.getAttribute("height"));
+
+  if (!w || !h) {
+    const viewBox = svgEl.getAttribute("viewBox");
+    if (viewBox) {
+      const parts = viewBox
+        .trim()
+        .split(/[\s,]+/)
+        .map(parseFloat);
+      w = w || parts[2] || 800;
+      h = h || parts[3] || 600;
+    }
+    // Also try max-width from inline style as a last resort
+    if (!w) {
+      const styleMax = (svgEl.getAttribute("style") || "").match(
+        /max-width\s*:\s*([\d.]+)px/,
+      );
+      if (styleMax) w = parseFloat(styleMax[1]);
+    }
+    w = w || 800;
+    h = h || 600;
+  }
+
+  svgEl.setAttribute("width", w);
+  svgEl.setAttribute("height", h);
+
+  const fixedSvg = new XMLSerializer().serializeToString(doc);
+  const svgBlob = new Blob([fixedSvg], { type: "image/svg+xml" });
   const url = URL.createObjectURL(svgBlob);
   const img = new window.Image();
+
   const fail = (reason) => {
     URL.revokeObjectURL(url);
     onError?.(reason);
   };
+
   img.onload = () => {
-    const w = img.naturalWidth;
-    const h = img.naturalHeight;
-    if (!w || !h) {
-      fail("Diagram has no size — try SVG export instead.");
-      return;
-    }
+    const pw = img.naturalWidth || w;
+    const ph = img.naturalHeight || h;
     const canvas = document.createElement("canvas");
     const scale = 2;
-    canvas.width = w * scale;
-    canvas.height = h * scale;
+    canvas.width = pw * scale;
+    canvas.height = ph * scale;
     const ctx = canvas.getContext("2d");
+    // Fill background to match diagram theme
+    ctx.fillStyle = "#141829";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0);
+    try {
+      ctx.drawImage(img, 0, 0);
+    } catch {
+      fail(
+        "Canvas export blocked by browser security — try SVG export instead.",
+      );
+      return;
+    }
     canvas.toBlob((blob) => {
       URL.revokeObjectURL(url);
       if (blob) {
         downloadBlob(blob, "diagram.png");
       } else {
-        fail("Could not create PNG (browser blocked canvas export — try SVG).");
+        fail("Could not create PNG — try SVG export instead.");
       }
     }, "image/png");
   };
-  img.onerror = () => fail("Could not load diagram for PNG export.");
+  img.onerror = () =>
+    fail("Could not load diagram for PNG export — try SVG export instead.");
   img.src = url;
 }
 

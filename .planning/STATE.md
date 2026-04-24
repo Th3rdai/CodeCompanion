@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-04-09T23:00:00.000Z"
-last_activity: "2026-04-09 — **Phase 28 complete**: Multi-File Code Review shipped — Scan Folder tab in Review mode with preview, drag-drop, amber warning for >20 files, unified report card via `reviewFiles()`. Also fixed FileBrowser flex-shrink bug (App.jsx) and vite.config.js proxy for self-signed HTTPS."
+last_updated: "2026-04-22T22:30:00.000Z"
+last_activity: "2026-04-22 — Post-Phase-28 stabilization shipped locally: Playwright/browser tool-call deflection fixes, browser retry guard in `routes/chat.js`, sidebar Invalid Date normalization, and File Browser load-time hang mitigation."
 progress:
   total_phases: 28
   completed_phases: 28
@@ -21,17 +21,31 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** All roadmap phases complete through **Phase 28** (including 24.5). Phase 27 remains deferred. Multi-File Code Review is now live in Review mode. MCP tool execution supports gated parallel segments and remains default-off.
+**Current focus:** All roadmap phases complete through **Phase 28** (including 24.5). Phase 27 remains deferred. Current work is post-phase stabilization: Playwright/browser execution reliability, File Browser responsiveness, and history timestamp correctness.
 
 ## Current Position
 
-Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec: 19/19 unit and 3/3 integration. Phase 28 (Multi-File Code Review) verified by user 2026-04-09.
+Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec remains gated/default-off. Phase 28 (Multi-File Code Review) verified; additional runtime fixes were completed 2026-04-22.
 
 **Current version:** 1.6.5 (released 2026-04-09).
 
-Last activity: 2026-04-09 — **Phase 28 complete**: Multi-File Code Review shipped — Scan Folder tab in Review mode with preview, drag-drop, amber warning for >20 files, unified report card via `reviewFiles()`. Also fixed FileBrowser flex-shrink bug (App.jsx) and vite.config.js proxy for self-signed HTTPS.
+Last activity: 2026-04-22 — **Stabilization pass complete**:
 
-Next: release v1.7.0 incorporating Phase 28, or plan new phases as demand emerges.
+- Browser automation/tool-call reliability:
+  - added explicit AGENT BROWSER prompt guidance,
+  - ensured browser capability lead-in appears even with terminal enabled,
+  - added one-time server retry when model emits browser-refusal text.
+- Sidebar history timestamps:
+  - normalized `createdAt` on save/list,
+  - auto-repaired malformed stored values,
+  - safe UI fallback for unparsable dates.
+- File Browser loading hangs:
+  - bounded file-tree scans in backend,
+  - added frontend tree request timeouts + clearer timeout error.
+- Desktop app refresh:
+  - rebuilt and reinstalled `/Applications/Code Companion.app` with these fixes.
+
+Next: cut and publish next patch release (via CI tag path) so updater users receive post-Phase-28 stabilization fixes.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 
@@ -166,31 +180,31 @@ Progress: [██████████] 100%
 
 _Updated after each plan completion_
 
-| Plan         | Duration (s) | Tasks   | Files    |
-| ------------ | ------------ | ------- | -------- |
-| Phase 02 P01 | 137          | 2 tasks | 2 files  |
-| Phase 02 P02 | 83           | 2 tasks | 2 files  |
-| Phase 03 P01 | 172          | 3 tasks | 4 files  |
-| Phase 03 P02 | 439          | 4 tasks | 5 files  |
-| Phase 04 P01 | 141          | 2 tasks | 4 files  |
-| Phase 04 P02 | 217          | 2 tasks | 4 files  |
-| Phase 05 P01 | 121          | 2 tasks | 1 files  |
-| Phase 05 P02 | 136          | 3 tasks | 7 files  |
-| Phase 06 P01 | 344          | 2 tasks | 11 files |
-| Phase 06 P03 | 209          | 2 tasks | 11 files |
-| Phase 06 P02 | 389          | 2 tasks | 8 files  |
-| Phase 06 P04 | 132          | 2 tasks | 0 files  |
-| Phase 16 P00 | 44           | 1 tasks | 5 files  |
-| Phase 16 P01 | 141          | 2 tasks | 4 files  |
-| Phase 16 P03 | 147          | 2 tasks | 4 files  |
-| Phase 16 P02 | 159          | 2 tasks | 2 files  |
-| Phase 16 P04 | 116          | 2 tasks | 3 files  |
-| Phase 18 P01 | 208          | 2 tasks | 5 files  |
-| Phase 18 P02 | 237          | 1 tasks | 2 files  |
-| Phase 18 P03 | 535          | 2 tasks | 5 files  |
-| Phase 28-multi-file-code-review P00 | 146 | 2 tasks | 2 files |
-| Phase 28-multi-file-code-review P01 | 322 | 2 tasks | 3 files |
-| Phase 28-multi-file-code-review P02 | 182 | 2 tasks | 1 files |
+| Plan                                | Duration (s) | Tasks   | Files    |
+| ----------------------------------- | ------------ | ------- | -------- |
+| Phase 02 P01                        | 137          | 2 tasks | 2 files  |
+| Phase 02 P02                        | 83           | 2 tasks | 2 files  |
+| Phase 03 P01                        | 172          | 3 tasks | 4 files  |
+| Phase 03 P02                        | 439          | 4 tasks | 5 files  |
+| Phase 04 P01                        | 141          | 2 tasks | 4 files  |
+| Phase 04 P02                        | 217          | 2 tasks | 4 files  |
+| Phase 05 P01                        | 121          | 2 tasks | 1 files  |
+| Phase 05 P02                        | 136          | 3 tasks | 7 files  |
+| Phase 06 P01                        | 344          | 2 tasks | 11 files |
+| Phase 06 P03                        | 209          | 2 tasks | 11 files |
+| Phase 06 P02                        | 389          | 2 tasks | 8 files  |
+| Phase 06 P04                        | 132          | 2 tasks | 0 files  |
+| Phase 16 P00                        | 44           | 1 tasks | 5 files  |
+| Phase 16 P01                        | 141          | 2 tasks | 4 files  |
+| Phase 16 P03                        | 147          | 2 tasks | 4 files  |
+| Phase 16 P02                        | 159          | 2 tasks | 2 files  |
+| Phase 16 P04                        | 116          | 2 tasks | 3 files  |
+| Phase 18 P01                        | 208          | 2 tasks | 5 files  |
+| Phase 18 P02                        | 237          | 1 tasks | 2 files  |
+| Phase 18 P03                        | 535          | 2 tasks | 5 files  |
+| Phase 28-multi-file-code-review P00 | 146          | 2 tasks | 2 files  |
+| Phase 28-multi-file-code-review P01 | 322          | 2 tasks | 3 files  |
+| Phase 28-multi-file-code-review P02 | 182          | 2 tasks | 1 files  |
 
 ## Accumulated Context
 

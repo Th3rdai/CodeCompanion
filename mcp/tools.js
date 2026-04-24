@@ -1,5 +1,6 @@
 const { SYSTEM_PROMPTS } = require("../lib/prompts");
 const { effectiveOllamaApiKey } = require("../lib/ollama-client");
+const { executeBuiltinTool } = require("../lib/builtin-agent-tools");
 const {
   modeToolSchema,
   browseFilesSchema,
@@ -7,6 +8,12 @@ const {
   listModelsSchema,
   getStatusSchema,
   listConversationsSchema,
+  runTerminalCmdSchema,
+  browseUrlSchema,
+  browserSnapshotSchema,
+  browserClickSchema,
+  browserTypeSchema,
+  browserScrollSchema,
 } = require("./schemas");
 
 const RESPONSE_CAP = 25000;
@@ -19,6 +26,24 @@ function capResponse(text) {
     );
   }
   return text;
+}
+
+// Convert browser tool result to MCP response format (image_for_analysis → image)
+function _browserMcpResult(result) {
+  if (result?.result?.content) {
+    const content = result.result.content
+      .filter((item) => item.type !== "image") // strip display-only; keep text + image_for_analysis
+      .map((item) =>
+        item.type === "image_for_analysis"
+          ? { type: "image", data: item.data, mimeType: item.mimeType }
+          : item,
+      );
+    return { isError: !result.success, content };
+  }
+  return {
+    isError: true,
+    content: [{ type: "text", text: "Unexpected result from browser tool." }],
+  };
 }
 
 /**
@@ -379,6 +404,187 @@ function registerAllTools(server, deps, disabledTools = []) {
           content: [{ type: "text", text: `Error: ${err.message}` }],
         };
       }
+    },
+  );
+
+  register(
+    "codecompanion_run_terminal_cmd",
+    "Run a shell command in the configured project folder. Commands must appear in the agent terminal allowlist (Settings → General → Agent Terminal). Agent Terminal must be enabled. Returns stdout/stderr and exit code.",
+    runTerminalCmdSchema,
+    async ({ command, args = [], cwd, timeoutMs = 30000 }) => {
+      try {
+        const config = getConfig();
+        if (!config.agentTerminal?.enabled) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: "Agent Terminal is disabled. Enable it in Settings → General → Agent Terminal.",
+              },
+            ],
+          };
+        }
+
+        const collectingCtx = {
+          onStart: () => {},
+          onData: () => {},
+          onStatus: () => {},
+        };
+
+        const result = await executeBuiltinTool(
+          "run_terminal_cmd",
+          { command, args, cwd, timeoutMs },
+          config,
+          _log,
+          "mcp",
+          collectingCtx,
+        );
+
+        if (result?.result?.content) {
+          return {
+            isError: !result.success,
+            content: result.result.content,
+          };
+        }
+
+        return {
+          isError: true,
+          content: [
+            { type: "text", text: "Unexpected result from terminal tool." },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Error: ${err.message}` }],
+        };
+      }
+    },
+  );
+  register(
+    "codecompanion_browse_url",
+    "Open a URL in a headless browser and return the page title, text content, and a screenshot for visual analysis. Use for visiting websites, reading live content, and analyzing web pages.",
+    browseUrlSchema,
+    async ({
+      url,
+      waitFor = "domcontentloaded",
+      screenshot = true,
+      timeoutMs = 30000,
+    }) => {
+      try {
+        const config = getConfig();
+        if (!config.agentBrowser?.enabled) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: "Agent Web Browser is disabled. Enable it in Settings → General → Agent Web Browser.",
+              },
+            ],
+          };
+        }
+        const result = await executeBuiltinTool(
+          "browse_url",
+          { url, waitFor, screenshot, timeoutMs },
+          config,
+          _log,
+          "mcp",
+          {},
+        );
+        if (result?.result?.content) {
+          // Convert image_for_analysis → MCP image type for external MCP clients
+          const content = result.result.content.map((item) =>
+            item.type === "image_for_analysis"
+              ? { type: "image", data: item.data, mimeType: item.mimeType }
+              : item,
+          );
+          return { isError: !result.success, content };
+        }
+        return {
+          isError: true,
+          content: [
+            { type: "text", text: "Unexpected result from browser tool." },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Error: ${err.message}` }],
+        };
+      }
+    },
+  );
+  register(
+    "codecompanion_browser_snapshot",
+    "Take a screenshot of the current browser page and return its visible text. Requires an active session (call codecompanion_browse_url first).",
+    browserSnapshotSchema,
+    async () => {
+      const config = getConfig();
+      const result = await executeBuiltinTool(
+        "browser_snapshot",
+        {},
+        config,
+        _log,
+        "mcp",
+        {},
+      );
+      return _browserMcpResult(result);
+    },
+  );
+
+  register(
+    "codecompanion_browser_click",
+    "Click an element on the current browser page by CSS selector or visible text. Returns a screenshot of the result. Requires an active session.",
+    browserClickSchema,
+    async ({ selector, text }) => {
+      const config = getConfig();
+      const result = await executeBuiltinTool(
+        "browser_click",
+        { selector, text },
+        config,
+        _log,
+        "mcp",
+        {},
+      );
+      return _browserMcpResult(result);
+    },
+  );
+
+  register(
+    "codecompanion_browser_type",
+    "Type text into a field on the current browser page. Returns a screenshot of the result. Requires an active session.",
+    browserTypeSchema,
+    async ({ selector, text, clear = false, pressEnter = false }) => {
+      const config = getConfig();
+      const result = await executeBuiltinTool(
+        "browser_type",
+        { selector, text, clear, pressEnter },
+        config,
+        _log,
+        "mcp",
+        {},
+      );
+      return _browserMcpResult(result);
+    },
+  );
+
+  register(
+    "codecompanion_browser_scroll",
+    "Scroll the current browser page. Returns a screenshot of the result. Requires an active session.",
+    browserScrollSchema,
+    async ({ direction = "down", amount = 500 }) => {
+      const config = getConfig();
+      const result = await executeBuiltinTool(
+        "browser_scroll",
+        { direction, amount },
+        config,
+        _log,
+        "mcp",
+        {},
+      );
+      return _browserMcpResult(result);
     },
   );
 }
