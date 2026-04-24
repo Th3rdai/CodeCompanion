@@ -12,7 +12,7 @@ const {
 const GsdBridge = require("../lib/gsd-bridge");
 const { isWithinBasePath } = require("../lib/file-browser");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey, chatComplete } = require("../lib/ollama-client");
+const { ollamaAuthOpts, chatComplete } = require("../lib/ollama-client");
 const {
   CLIENT_INTERNAL_ERROR,
   STREAM_INTERNAL_ERROR,
@@ -31,11 +31,6 @@ const PLANNING_FILE_WHITELIST = [
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, dataRoot } = appContext;
-
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   async function resolveIfAutoModel(model, mode, estimatedTokens, config) {
     if (model !== "auto") return model;

@@ -5,7 +5,7 @@ const os = require("os");
 
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey, chatComplete } = require("../lib/ollama-client");
+const { ollamaAuthOpts, chatComplete } = require("../lib/ollama-client");
 const { scaffoldProject } = require("../lib/icm-scaffolder");
 const { scaffoldBuildProject } = require("../lib/build-scaffolder");
 const { scanProjectForValidation } = require("../lib/validate");
@@ -14,11 +14,6 @@ const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, dataRoot: _dataRoot } = appContext;
-
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── GET /api/project-health ──────────────────────────
   router.get("/project-health", (req, res) => {

@@ -27,25 +27,19 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec remains gated/default-off. Phase 28 (Multi-File Code Review) verified; additional runtime fixes were completed 2026-04-22.
 
-**Current version:** 1.6.5 (released 2026-04-09).
+**Current version:** 1.6.9 (released 2026-04-24).
 
-Last activity: 2026-04-22 — **Stabilization pass complete**:
+Last activity: 2026-04-24 — **Codebase cleanup + security audit**:
 
-- Browser automation/tool-call reliability:
-  - added explicit AGENT BROWSER prompt guidance,
-  - ensured browser capability lead-in appears even with terminal enabled,
-  - added one-time server retry when model emits browser-refusal text.
-- Sidebar history timestamps:
-  - normalized `createdAt` on save/list,
-  - auto-repaired malformed stored values,
-  - safe UI fallback for unparsable dates.
-- File Browser loading hangs:
-  - bounded file-tree scans in backend,
-  - added frontend tree request timeouts + clearer timeout error.
-- Desktop app refresh:
-  - rebuilt and reinstalled `/Applications/Code Companion.app` with these fixes.
+- MCP per-tool enable/disable UI (v1.6.9).
+- Electron Restart menu item.
+- Dependabot security cleanup: patched `dompurify`, `postcss`, `hono`, `@xmldom/xmldom`; replaced `uuid` with `crypto.randomUUID()`; `npm audit` 0 vulnerabilities.
+- Dead code removed: `_MAX_ROUNDS` (tool-call-handler.js), `_historyHasUserImages` + `_currentMsgHasImages` (routes/chat.js).
+- `ollamaAuthOpts()` extracted to `lib/ollama-client.js` and exported — removed 11 duplicate local definitions across all route files and server.js.
+- Fixed missing `hasBrowserTool`/`hasBuiltinBrowserTool` flags in `getToolsPromptAndFlags()` early-return path.
+- `full-snapshot.md` added to `.gitignore`; leftover `example.com snapshot` artifact deleted.
 
-Next: cut and publish next patch release (via CI tag path) so updater users receive post-Phase-28 stabilization fixes.
+Next: cut next patch release via CI tag path; manually run Playwright regression prompts in-app.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

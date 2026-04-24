@@ -4,7 +4,7 @@ const path = require("path");
 
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey, chatComplete } = require("../lib/ollama-client");
+const { ollamaAuthOpts, chatComplete } = require("../lib/ollama-client");
 const {
   createBranch,
   getGitDiff,
@@ -17,11 +17,6 @@ const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, logDir, requireLocalOrApiKey } = appContext;
-
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── Helper: resolve repo path from config ────────────
   function getConfiguredGitRepoPathOrRespond(res) {

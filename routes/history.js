@@ -8,7 +8,7 @@ const {
   deleteConversation,
 } = require("../lib/history");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { chatComplete, effectiveOllamaApiKey } = require("../lib/ollama-client");
+const { chatComplete, ollamaAuthOpts } = require("../lib/ollama-client");
 const { extractAndStore } = require("../lib/memory");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
@@ -16,10 +16,6 @@ module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, debug } = appContext;
 
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── GET /api/history ─────────────────────────────────
   router.get("/history", (req, res) => {

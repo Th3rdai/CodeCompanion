@@ -3,7 +3,7 @@ const { Readable } = require("stream");
 
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey } = require("../lib/ollama-client");
+const { ollamaAuthOpts } = require("../lib/ollama-client");
 const { scoreContent } = require("../lib/builder-score");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
@@ -11,10 +11,6 @@ module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log } = appContext;
 
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── POST /api/score ───────────────────────────────────
   // Rate limiter applied as app.use('/api/score', ...) in server.js

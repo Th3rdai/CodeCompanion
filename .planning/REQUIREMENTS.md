@@ -120,18 +120,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUILD-01    | Phase 15 | Complete |
 | BUILD-02    | Phase 15 | Complete |
 | BUILD-03    | Phase 15 | Complete |
-| BDASH-P2-01 | Phase 16 | Planned  |
-| BDASH-P2-02 | Phase 16 | Planned  |
-| BDASH-P2-03 | Phase 16 | Planned  |
-| BDASH-P3-01 | Phase 16 | Planned  |
-| BDASH-P4-01 | Phase 16 | Planned  |
-| BDASH-P4-02 | Phase 16 | Planned  |
-| BDASH-P5-01 | Phase 16 | Planned  |
-| SEC-01      | Phase 18 | Planned  |
-| SEC-02      | Phase 18 | Planned  |
-| SEC-03      | Phase 18 | Planned  |
-| SEC-04      | Phase 18 | Planned  |
-| SEC-05      | Phase 18 | Planned  |
+| BDASH-P2-01 | Phase 16 | Complete |
+| BDASH-P2-02 | Phase 16 | Complete |
+| BDASH-P2-03 | Phase 16 | Complete |
+| BDASH-P3-01 | Phase 16 | Complete |
+| BDASH-P4-01 | Phase 16 | Complete |
+| BDASH-P4-02 | Phase 16 | Complete |
+| BDASH-P5-01 | Phase 16 | Complete |
+| SEC-01      | Phase 18 | Complete |
+| SEC-02      | Phase 18 | Complete |
+| SEC-03      | Phase 18 | Complete |
+| SEC-04      | Phase 18 | Complete |
+| SEC-05      | Phase 18 | Complete |
 
 **Coverage:**
 

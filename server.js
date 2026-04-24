@@ -18,13 +18,8 @@ const {
   listModels,
   checkConnection,
   chatComplete,
-  effectiveOllamaApiKey,
+  ollamaAuthOpts,
 } = require("./lib/ollama-client");
-
-function ollamaAuthOpts(cfg) {
-  const k = effectiveOllamaApiKey(cfg);
-  return k ? { apiKey: k } : {};
-}
 
 const { buildFileTree, readProjectFile } = require("./lib/file-browser");
 const McpClientManager = require("./lib/mcp-client-manager");

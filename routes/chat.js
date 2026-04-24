@@ -8,7 +8,7 @@ const { SYSTEM_PROMPTS } = require("../lib/prompts");
 const {
   chatStream,
   chatComplete,
-  effectiveOllamaApiKey,
+  ollamaAuthOpts,
 } = require("../lib/ollama-client");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { buildFileTree } = require("../lib/file-browser");
@@ -159,11 +159,6 @@ module.exports = function createRouter(appContext) {
     res.json({ ok: true });
   });
 
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
-
   // ── POST /api/chat (SSE streaming + tool-call loop) ──
   // Rate limiter applied as app.use('/api/chat', ...) in server.js
   router.post("/chat", async (req, res) => {
@@ -224,13 +219,6 @@ module.exports = function createRouter(appContext) {
     );
     const estimatedTokensPre = Math.ceil(totalCharsEstimate / 3.5);
     const hasImages = images && images.length > 0;
-    // Check if user uploaded images earlier in this conversation (not MCP-generated ones)
-    const _historyHasUserImages =
-      !hasImages &&
-      messages.some(
-        (m) =>
-          m.role === "user" && Array.isArray(m.images) && m.images.length > 0,
-      );
 
     const embModel = config.memory?.embeddingModel || "nomic-embed-text";
     const memoryConvId =
@@ -351,7 +339,6 @@ module.exports = function createRouter(appContext) {
     // Images were already rendered client-side; AI doesn't need megabytes of base64 in follow-ups
     const BASE64_IMG_RE =
       /!\[([^\]]*)\]\(data:image\/[^;]+;base64,[A-Za-z0-9+/=]{100,}\)/g;
-    const _currentMsgHasImages = images && images.length > 0;
     const cleanedMessages = messages.map((m, i) => {
       // Strip client-side tool-context marker — not a real Ollama field
       const { _toolContext, ...mClean } = m;
@@ -754,18 +741,6 @@ module.exports = function createRouter(appContext) {
               continue;
             }
 
-            // No tool calls found. If the response is suspiciously short on the first round,
-            // the model likely doesn't support TOOL_CALL: format — fall back to streaming mode
-            // so the user gets a full response instead of a stub like "Let me examine..."
-            if (round === 0 && responseText.length < 200) {
-              log(
-                "WARN",
-                `Model returned short non-tool response (${responseText.length} chars) on round 1 — falling back to streaming mode`,
-              );
-              // Break out and let the streaming path below handle the re-request
-              finalText = "";
-              break;
-            }
             debug("No TOOL_CALL patterns found, returning as final text");
             finalText = responseText;
             break;

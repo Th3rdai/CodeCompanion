@@ -2,7 +2,7 @@ const express = require("express");
 
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey } = require("../lib/ollama-client");
+const { effectiveOllamaApiKey, ollamaAuthOpts } = require("../lib/ollama-client");
 const { reviewCode, reviewFiles } = require("../lib/review");
 const { readFolderFiles, isWithinBasePath } = require("../lib/file-browser");
 const {
@@ -13,11 +13,6 @@ const {
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log } = appContext;
-
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── POST /api/review ──────────────────────────────────
   // Rate limiter applied as app.use('/api/review', ...) in server.js

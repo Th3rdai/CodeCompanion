@@ -93,3 +93,6 @@ CodeCompanion-Data/logs/**
 github-repos/
 .gitnexus
 release-staging/
+
+# Playwright snapshot artifacts
+full-snapshot.md

@@ -4,7 +4,7 @@ const path = require("path");
 
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey } = require("../lib/ollama-client");
+const { ollamaAuthOpts } = require("../lib/ollama-client");
 const {
   scanProjectForValidation,
   generateValidateCommand,
@@ -21,11 +21,6 @@ const {
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, requireLocalOrApiKey } = appContext;
-
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── POST /api/validate/scan ───────────────────────────
   router.post("/validate/scan", async (req, res) => {

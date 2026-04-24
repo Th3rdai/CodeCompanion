@@ -42,6 +42,7 @@ Stabilize agent tool behavior and runtime UX in the installed desktop app.
 
 - Manually run the 3-step Playwright regression prompts in-app after each release build.
 - Optionally cut `v1.6.6` (or next patch version) to ship these fixes through CI/GitHub Releases and updater feeds.
+- `routes/chat.js` has unstaged local changes — review before committing.
 
 </work_remaining>
 
@@ -55,8 +56,9 @@ Stabilize agent tool behavior and runtime UX in the installed desktop app.
 - Multi-File Code Review (Phase 28) is complete.
 - New follow-on stability fixes (Playwright/browser tooling + File Browser hang + timestamp normalization) are now implemented and locally installed.
 - Tool parallel execution remains default-off unless explicitly enabled in config (`toolExec.parallel: false`).
+- Git working tree has unstaged changes: `.env.example`, `journal/2026-04-24.md`, `journal/README.md`, `routes/chat.js`. Untracked: `example.com snapshot`, `full-snapshot.md`.
 
 **Recommended immediate next step**
 
 - Create release patch entry and publish via CI tag path so in-app update users get these fixes without local rebuild.
-  </context>
+</context>

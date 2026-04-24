@@ -12,7 +12,7 @@ const {
 const {
   listModels,
   embed,
-  effectiveOllamaApiKey,
+  ollamaAuthOpts,
 } = require("../lib/ollama-client");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
@@ -31,11 +31,6 @@ function validateMemoryId(req, res) {
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log } = appContext;
-
-  function ollamaAuthOpts(cfg) {
-    const k = effectiveOllamaApiKey(cfg);
-    return k ? { apiKey: k } : {};
-  }
 
   // ── GET /api/memory/stats ─────────────────────────────
   router.get("/memory/stats", (req, res) => {
