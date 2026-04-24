@@ -33,6 +33,150 @@ function transportLabel(t) {
   return "🌐 HTTP";
 }
 
+function ToolsModal({ client, onSaved, onClose }) {
+  const [tools, setTools] = useState([]);
+  const [disabled, setDisabled] = useState(new Set(client.disabledTools || []));
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    apiFetch(`/api/mcp/clients/${encodeURIComponent(client.id)}/tools`)
+      .then((r) => r.json())
+      .then((data) => {
+        setTools(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message || "Failed to load tools");
+        setLoading(false);
+      });
+  }, [client.id]);
+
+  function toggle(name) {
+    setDisabled((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await apiFetch(`/api/mcp/clients/${encodeURIComponent(client.id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabledTools: [...disabled] }),
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const enabledCount = tools.length - disabled.size;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="glass rounded-xl border border-slate-700/50 w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-200">
+              {client.name} — Tools
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {enabledCount} of {tools.length} enabled
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-200 text-lg leading-none px-1"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-3 space-y-1">
+          {loading && (
+            <p className="text-center text-slate-400 text-sm py-6">
+              Loading tools…
+            </p>
+          )}
+          {error && (
+            <p className="text-center text-red-400 text-sm py-6">{error}</p>
+          )}
+          {!loading && !error && tools.length === 0 && (
+            <p className="text-center text-slate-500 text-sm py-6">
+              No tools found
+            </p>
+          )}
+          {!loading &&
+            tools.map((t) => (
+              <label
+                key={t.name}
+                className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-700/30 cursor-pointer group"
+              >
+                <input
+                  type="checkbox"
+                  checked={!disabled.has(t.name)}
+                  onChange={() => toggle(t.name)}
+                  className="mt-0.5 shrink-0 accent-indigo-500"
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-mono text-slate-200 group-hover:text-white">
+                    {t.name}
+                  </p>
+                  {t.description && (
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                      {t.description}
+                    </p>
+                  )}
+                </div>
+              </label>
+            ))}
+        </div>
+
+        <div className="flex gap-2 justify-between items-center px-4 py-3 border-t border-slate-700/40">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDisabled(new Set())}
+              className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded hover:bg-slate-700/40"
+            >
+              Enable all
+            </button>
+            <button
+              onClick={() => setDisabled(new Set(tools.map((t) => t.name)))}
+              className="text-xs text-slate-400 hover:text-slate-200 px-2 py-1 rounded hover:bg-slate-700/40"
+            >
+              Disable all
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="text-xs px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-700/40 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={save}
+              disabled={saving}
+              className="btn-neon text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ServerModal({ mode, client, onSaved, onClose }) {
   const isEdit = mode === "edit";
   const [name, setName] = useState("");
@@ -358,6 +502,7 @@ export default function McpClientPanel() {
   const [fetchError, setFetchError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
+  const [toolsModalClient, setToolsModalClient] = useState(null);
 
   useEffect(() => {
     fetchClients();
@@ -497,7 +642,9 @@ export default function McpClientPanel() {
                     )}
                     {client.toolCount > 0 && (
                       <span className="text-xs text-slate-500">
-                        {client.toolCount} tools
+                        {client.disabledTools?.length > 0
+                          ? `${client.toolCount - client.disabledTools.length}/${client.toolCount} tools`
+                          : `${client.toolCount} tools`}
                       </span>
                     )}
                   </div>
@@ -528,6 +675,14 @@ export default function McpClientPanel() {
               </div>
 
               <div className="flex gap-1.5 justify-end pt-2 border-t border-slate-700/30">
+                {client.status === "connected" && client.toolCount > 0 && (
+                  <button
+                    onClick={() => setToolsModalClient(client)}
+                    className="text-xs px-2.5 py-1 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors"
+                  >
+                    Tools
+                  </button>
+                )}
                 <button
                   onClick={() => setEditingClient(client)}
                   className="text-xs px-2.5 py-1 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors"
@@ -559,6 +714,13 @@ export default function McpClientPanel() {
           client={editingClient}
           onSaved={fetchClients}
           onClose={() => setEditingClient(null)}
+        />
+      )}
+      {toolsModalClient && (
+        <ToolsModal
+          client={toolsModalClient}
+          onSaved={fetchClients}
+          onClose={() => setToolsModalClient(null)}
         />
       )}
     </div>
