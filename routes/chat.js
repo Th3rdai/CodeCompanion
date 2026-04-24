@@ -31,6 +31,55 @@ const DEFAULT_PROJECT_CONTEXT_FILES = [
   "INITIAL.md",
 ];
 const PROJECT_CONTEXT_MAX_CHARS = 8000;
+const TOOL_RESULTS_FINALIZER_MAX_CHARS = 30000;
+const BROWSER_CONTENT_FINALIZER_MIN_CHARS = 4000;
+
+function stripAgentToolsPrompt(content = "") {
+  return content
+    .replace(/\n\n---\nAGENT IDENTITY OVERRIDE[\s\S]*$/, "")
+    .replace(/\n\n---\nAGENT TOOLS[\s\S]*$/, "");
+}
+
+function appendCappedToolResults(existing, addition, maxChars) {
+  if (!addition || !addition.trim()) return existing;
+  const next = existing
+    ? `${existing}\n\n${addition.trim()}`
+    : addition.trim();
+  if (next.length <= maxChars) return next;
+  return `${next.slice(0, maxChars)}\n\n...(additional tool results omitted after ${maxChars} chars)`;
+}
+
+function latestUserText(messages = []) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg?.role === "user" && typeof msg.content === "string") {
+      return msg.content;
+    }
+  }
+  return "";
+}
+
+function userRequestedBrowserContentAnswer(messages = []) {
+  const text = latestUserText(messages).toLowerCase();
+  const asksForContent =
+    /\b(summarize|summarise|summary|headlines?|today'?s news|news|read|extract|what'?s on|what is on|visible content)\b/i.test(
+      text,
+    );
+  const browserTarget =
+    /\b(news\.google\.com|https?:\/\/|browser|navigate|open|web(?:site)?|page|url)\b/i.test(
+      text,
+    );
+  return asksForContent && browserTarget;
+}
+
+function hasUsefulBrowserContent(toolResults = "") {
+  return (
+    toolResults.length >= BROWSER_CONTENT_FINALIZER_MIN_CHARS &&
+    /Tool builtin\.(?:browse_url|browser_snapshot|browser_scroll) returned:\s*\nPage:/i.test(
+      toolResults,
+    )
+  );
+}
 
 function getCachedProjectPrompt(projectFolder) {
   if (!projectFolder || !fs.existsSync(projectFolder)) return "";
@@ -465,11 +514,55 @@ module.exports = function createRouter(appContext) {
         let browserContinuationRetries = 0;
         const MAX_BROWSER_CONTINUATION_RETRIES = 3;
         let lastRoundHadBrowserTool = false;
+        let accumulatedToolResults = "";
         const snapshotRequested = userRequestedBrowserSnapshot(messages);
+        const browserContentAnswerRequested =
+          userRequestedBrowserContentAnswer(messages);
         const browserDeflectionPattern =
           /(cannot|can't|unable to|don't have (?:the )?capability).{0,180}(browser|playwright).{0,180}(execute|run|automation)|would need to.{0,180}(script|manually|environment)/i;
         const browserCorrectionMessage =
           "Browser automation tools are available in this session. The user asked for website navigation/snapshot actions. Do not refuse or ask for manual scripts. Use TOOL_CALL with browser_* tools now (e.g. browser_navigate, then browser_snapshot), then report actual results.";
+
+        async function generateFinalTextFromToolResults(reason) {
+          log("WARN", reason);
+          try {
+            const finalizerMessages = fullMessages.map((m) =>
+              m.role === "system"
+                ? { ...m, content: stripAgentToolsPrompt(m.content) }
+                : m,
+            );
+            finalizerMessages.push({
+              role: "user",
+              content:
+                "Do not call any tools. Based only on the actual tool results gathered below, answer the user's original request now. " +
+                "If the task is incomplete, provide the best partial answer and briefly explain what blocked completion.\n\n" +
+                accumulatedToolResults,
+            });
+
+            const finalizerText = await chatComplete(
+              config.ollamaUrl,
+              model,
+              finalizerMessages,
+              effectiveTimeoutMs,
+              [],
+              {
+                ...ollamaOptions,
+                abortSignal: chatAbortController.signal,
+              },
+            );
+            const firstToolIdx = finalizerText.indexOf("TOOL_CALL:");
+            return firstToolIdx >= 0
+              ? finalizerText.slice(0, firstToolIdx).trim()
+              : finalizerText;
+          } catch (err) {
+            if (!chatAbortController.signal.aborted) {
+              log("ERROR", "Tool-result finalizer failed", {
+                error: err.message,
+              });
+            }
+            return "";
+          }
+        }
 
         for (let round = 0; round < MAX_ROUNDS; round++) {
           debug(`Tool-call round ${round + 1}/${MAX_ROUNDS}`);
@@ -801,6 +894,11 @@ module.exports = function createRouter(appContext) {
               toolResults += `\nTool ${call.serverId}.${call.toolName} failed: ${result.error}\n`;
             }
           }
+          accumulatedToolResults = appendCappedToolResults(
+            accumulatedToolResults,
+            `Round ${round + 1} tool results:\n${toolResults}`,
+            TOOL_RESULTS_FINALIZER_MAX_CHARS,
+          );
 
           // Feed tool results back as assistant + tool-result messages.
           // Strip everything after the first TOOL_CALL — models sometimes hallucinate
@@ -825,6 +923,10 @@ module.exports = function createRouter(appContext) {
               ].includes(c.toolName),
           );
           lastRoundHadBrowserTool = _executedBrowserTool;
+          const shouldFinalizeBrowserContent =
+            _executedBrowserTool &&
+            browserContentAnswerRequested &&
+            hasUsefulBrowserContent(accumulatedToolResults);
           const toolResultMsg = {
             role: "user",
             content: _executedBrowserTool
@@ -851,6 +953,25 @@ module.exports = function createRouter(appContext) {
             role: "user",
             content: `[Tool: ${toolCalls.map((c) => `${c.serverId}.${c.toolName}`).join(", ")}]\n${toolResults}`,
           });
+          if (shouldFinalizeBrowserContent) {
+            finalText = await generateFinalTextFromToolResults(
+              "Browser content gathered for read/summarize request; generating final answer without more browser actions",
+            );
+            if (finalText && finalText.trim()) {
+              break;
+            }
+          }
+        }
+
+        if (
+          !finalText &&
+          accumulatedToolResults.trim() &&
+          !chatAbortController.signal.aborted &&
+          !res.writableEnded
+        ) {
+          finalText = await generateFinalTextFromToolResults(
+            "Tool-call loop ended without final text; generating final answer from accumulated tool results",
+          );
         }
 
         // Send tool context to client so it can persist the tool-call chain in conversation history
@@ -871,6 +992,7 @@ module.exports = function createRouter(appContext) {
           }
         } else if (
           !finalText &&
+          !accumulatedToolResults &&
           !chatAbortController.signal.aborted &&
           !res.writableEnded
         ) {
@@ -882,10 +1004,7 @@ module.exports = function createRouter(appContext) {
               m.role === "system"
                 ? {
                     role: "system",
-                    content: m.content.replace(
-                      /\n\n---\nAGENT TOOLS[\s\S]*$/,
-                      "",
-                    ),
+                    content: stripAgentToolsPrompt(m.content),
                   }
                 : m,
             );

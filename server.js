@@ -455,7 +455,7 @@ const http = require("http");
 // ── Start docling-serve if enabled ───────────────────
 (async () => {
   const config = getConfig();
-  const doclingResult = await startDocling(config, log);
+  const doclingResult = await startDocling(config, (msg) => log("INFO", msg));
   if (doclingResult.managed) {
     log(
       "INFO",
