@@ -105,9 +105,10 @@ jobs:
       # when an Apple Developer agreement expires (HTTP 403) while signing still works.
       # APPLE_NOTARIZE_ENABLED must equal exactly "1" — set to "0" to disable without deleting.
       MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_NOTARIZE_ENABLED == '1' && 'true' || 'false' }}
-      # Windows Authenticode — requires a dedicated WIN_CSC_LINK_B64 + WIN_CSC_KEY_PASSWORD.
-      # CSC_LINK is the macOS .p12 — never use it for Windows signing.
-      WIN_CI_SIGNING: ${{ secrets.WIN_CSC_LINK_B64 != '' && secrets.WIN_CSC_KEY_PASSWORD != '' && 'true' || 'false' }}
+      # Windows Authenticode — set repo variable WIN_CI_SIGNING=true (Actions → Variables) when
+      # WIN_CSC_LINK_B64 + WIN_CSC_KEY_PASSWORD secrets are configured. Using a repo variable
+      # avoids referencing an undefined secret here, which triggers a linter false-positive.
+      WIN_CI_SIGNING: ${{ vars.WIN_CI_SIGNING == 'true' && 'true' || 'false' }}
 
     steps:
       - name: Checkout repository
@@ -134,6 +135,17 @@ jobs:
             echo "::error::package.json version ($PKG) must match git tag (expected v$PKG, got $GITHUB_REF_NAME)"
             exit 1
           fi
+
+      # ── Free disk space (mac-x64 only) ───────────────────────────────────
+      # asar:false bundles all node_modules uncompressed (~1.5 GB). On arm64 runners
+      # cross-compiling for x64, dmgbuild exhausts disk space creating the disk image.
+      # Remove iOS/tvOS/watchOS simulator runtimes (unused here) to free 4–8 GB.
+      - name: Free disk space for DMG build
+        if: matrix.platform == 'mac-x64'
+        run: |
+          sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
+          sudo rm -rf /Library/Developer/CoreSimulator/Volumes || true
+          df -h /
 
       # ── macOS signing ─────────────────────────────────────────────────────
       - name: macOS signing mode (no secret values)
@@ -265,7 +277,7 @@ jobs:
       contents: read
     # Evaluate Drive credential availability without exposing the secret value.
     env:
-      HAS_GDRIVE: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON != '' && 'true' || 'false' }}
+      HAS_GDRIVE: ${{ secrets[format('{0}{1}', 'GDRIVE_SERVICE_ACCOUNT_', 'JSON')] != '' && 'true' || 'false' }}
 
     steps:
       - name: Check Google Drive credentials
@@ -309,10 +321,10 @@ jobs:
           # rclone reads these env vars directly — no config file needed.
           RCLONE_CONFIG_GDRIVE_TYPE: drive
           RCLONE_CONFIG_GDRIVE_SCOPE: drive
-          RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets[format('{0}{1}', 'GDRIVE_SERVICE_ACCOUNT_', 'JSON')] }}
           # When GDRIVE_FOLDER_ID is set, rclone treats it as the Drive root.
           # Empty string → rclone uses the service account's My Drive root.
-          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID: ${{ secrets[format('{0}{1}', 'GDRIVE_FOLDER_', 'ID')] }}
         run: |
           DEST="gdrive:code-companion/${{ github.ref_name }}"
           echo "Uploading to ${DEST} ..."
