@@ -83,9 +83,10 @@ jobs:
           - os: macos-latest
             platform: mac
             script: electron:build:mac
-          - os: macos-13
+          - os: macos-latest
             platform: mac-x64
             script: electron:build:mac:x64
+            npm_config_arch: x64
           - os: windows-latest
             platform: win
             script: electron:build:win
@@ -134,17 +135,6 @@ jobs:
             echo "::error::package.json version ($PKG) must match git tag (expected v$PKG, got $GITHUB_REF_NAME)"
             exit 1
           fi
-
-      # ── Free disk space (mac-x64 only) ───────────────────────────────────
-      # asar:false bundles all node_modules uncompressed (~1.5 GB). On arm64 runners
-      # cross-compiling for x64, dmgbuild exhausts disk space creating the disk image.
-      # Remove iOS/tvOS/watchOS simulator runtimes (unused here) to free 4–8 GB.
-      - name: Free disk space for DMG build
-        if: matrix.platform == 'mac-x64'
-        run: |
-          sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
-          sudo rm -rf /Library/Developer/CoreSimulator/Volumes || true
-          df -h /
 
       # ── macOS signing ─────────────────────────────────────────────────────
       - name: macOS signing mode (no secret values)

@@ -141,6 +141,9 @@ module.exports = {
       { x: 160, y: 242 },
       { x: 460, y: 242, type: "link", path: "/Applications" },
     ],
+    // Fixed size so the mounted disk image has room for x64 signed binaries.
+    // Auto-sizing underestimates because code signatures expand binary sizes post-copy.
+    size: "2500m",
   },
   win: {
     target: ["nsis", "zip"],
