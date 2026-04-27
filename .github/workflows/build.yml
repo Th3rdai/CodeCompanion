@@ -4,14 +4,39 @@
 #
 # Triggers on version tags (v*) and manual dispatch (build only — no release unless tag push).
 #
-# macOS: ad-hoc signing by default. If repo secrets MAC_CERTS + MAC_CERTS_PASSWORD + MAC_CODESIGN_IDENTITY
-# are set, imports the .p12 and runs a Developer ID build (see BUILD.md → GitHub Actions).
-# Optional notarization: requires APPLE_NOTARIZE_ENABLED=1 secret IN ADDITION TO
-# APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD. This keeps builds green when
-# an Apple Developer agreement expires — signing still works, notarization is skipped.
+# ──────────────────────────────────────────────────────────────────────────────
+# REQUIRED SECRETS (none required for unsigned builds)
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# macOS Developer ID signing (optional — ad-hoc by default):
+#   MAC_CERTS               base64-encoded .p12 certificate (export from Keychain)
+#   MAC_CERTS_PASSWORD      password for the .p12 file
+#   MAC_CODESIGN_IDENTITY   full cert CN, e.g. "Developer ID Application: Your Name (TEAMID)"
+#
+# macOS Notarization (optional — requires signing secrets above + explicit opt-in):
+#   APPLE_NOTARIZE_ENABLED  set to "1" to enable notarization
+#   APPLE_TEAM_ID           10-char Apple team identifier
+#   APPLE_ID                Apple ID email used to log in to developer.apple.com
+#   APPLE_APP_SPECIFIC_PASSWORD  app-specific password (not your Apple ID password)
+#
+# Windows Authenticode signing (optional — unsigned by default).
+# Two accepted formats — use whichever matches what you have:
+#   WIN_CSC_LINK_B64        base64-encoded .pfx file  (preferred for new setups)
+#   WIN_CSC_KEY_PASSWORD    passphrase for WIN_CSC_LINK_B64
+#     — OR —
+#   CSC_LINK                base64-encoded .pfx file  (legacy name; already in repo secrets)
+#   CSC_KEY_PASSWORD        passphrase for CSC_LINK   (legacy name; already in repo secrets)
+#
+# Google Drive mirror (optional — skipped if secret is absent):
+#   GDRIVE_SERVICE_ACCOUNT_JSON  Google service account JSON (full contents, not base64)
+#                                  Grant this service account "Editor" on the target folder.
+#   GDRIVE_FOLDER_ID        (optional) ID of the Drive folder to upload into.
+#                            Leave empty to upload to the service account's My Drive root.
+#                            Find it in the Drive URL: drive.google.com/drive/folders/<ID>
+# ──────────────────────────────────────────────────────────────────────────────
 #
 # Architecture: each build job uploads directly to a draft GitHub Release (no artifact storage).
-# The release job publishes the draft and mirrors to Th3rdai/CodeCompanion.
+# The release job publishes the draft; the gdrive-upload job mirrors the assets to Google Drive.
 # This avoids GitHub Actions artifact storage quota limits entirely.
 
 name: Build Desktop Installers
@@ -73,12 +98,14 @@ jobs:
     name: Build (${{ matrix.platform }})
     permissions:
       contents: write
-    # secrets allowed in job env; step `if` uses env.* so cert import stays aligned with MAC_DISTRIBUTION_SIGN
+    # Evaluate signing availability once at job level using secrets (not exposed as values).
     env:
       MAC_CI_SIGNING: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && 'true' || 'false' }}
-      # Notarization is explicitly opt-in: set APPLE_NOTARIZE_ENABLED=1 as a repo secret.
-      # This prevents build failures when Apple Developer agreements expire (HTTP 403).
+      # Notarization is explicitly opt-in via APPLE_NOTARIZE_ENABLED=1 — prevents build failures
+      # when an Apple Developer agreement expires (HTTP 403) while signing still works.
       MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_NOTARIZE_ENABLED != '' && 'true' || 'false' }}
+      # Windows Authenticode — accepts either WIN_CSC_LINK_B64 (new) or CSC_LINK (existing).
+      WIN_CI_SIGNING: ${{ (secrets.WIN_CSC_LINK_B64 != '' || secrets.CSC_LINK != '') && (secrets.WIN_CSC_KEY_PASSWORD != '' || secrets.CSC_KEY_PASSWORD != '') && 'true' || 'false' }}
 
     steps:
       - name: Checkout repository
@@ -106,6 +133,7 @@ jobs:
             exit 1
           fi
 
+      # ── macOS signing ─────────────────────────────────────────────────────
       - name: macOS signing mode (no secret values)
         if: startsWith(matrix.platform, 'mac')
         run: |
@@ -125,21 +153,49 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
           rm /tmp/certs.p12
 
+      # ── Windows signing ───────────────────────────────────────────────────
+      # Accepts WIN_CSC_LINK_B64 (preferred) or falls back to CSC_LINK (existing repo secret).
+      # Both are treated as base64-encoded .pfx content and decoded to a temp file.
+      - name: Decode Windows signing certificate
+        if: matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true'
+        shell: bash
+        env:
+          WIN_CSC_LINK_B64: ${{ secrets.WIN_CSC_LINK_B64 }}
+          CSC_LINK_SECRET: ${{ secrets.CSC_LINK }}
+        run: |
+          CERT_B64="${WIN_CSC_LINK_B64:-$CSC_LINK_SECRET}"
+          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/win-cert.pfx"
+          echo "WIN_CSC_LINK=$RUNNER_TEMP/win-cert.pfx" >> "$GITHUB_ENV"
+
+      # ── Build ─────────────────────────────────────────────────────────────
       - name: Build Electron installer
         run: npm run ${{ matrix.script }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           npm_config_arch: ${{ matrix.npm_config_arch }}
+          # macOS
           MAC_DISTRIBUTION_SIGN: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true' && '1' || '' }}
           MAC_CODESIGN_IDENTITY: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_SIGNING == 'true' && secrets.MAC_CODESIGN_IDENTITY || '' }}
           MAC_NOTARIZE: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && '1' || '' }}
-          # Only pass Apple notarization credentials when notarization is enabled.
-          # electron-builder 26+ auto-notarizes if APPLE_ID is present in the environment,
-          # so we must omit these vars entirely when APPLE_NOTARIZE_ENABLED is not set.
+          # Only pass Apple notarization creds when notarization is enabled.
+          # electron-builder 26+ auto-notarizes if APPLE_ID is present — omit when not requested.
           APPLE_TEAM_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_TEAM_ID || '' }}
           APPLE_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_ID || '' }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          # Windows — WIN_CSC_LINK is set via GITHUB_ENV by the decode step above.
+          # electron-builder.config.js reads: process.env.WIN_CSC_KEY_PASSWORD || process.env.CSC_KEY_PASSWORD
+          # so passing both lets the config pick up whichever secret is populated.
+          WIN_DISTRIBUTION_SIGN: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && '1' || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && secrets.CSC_KEY_PASSWORD || '' }}
 
+      # ── Cleanup ───────────────────────────────────────────────────────────
+      - name: Clean Windows signing certificate
+        if: always() && matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true'
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/win-cert.pfx"
+
+      # ── Validation ────────────────────────────────────────────────────────
       - name: Verify updater metadata in release/ (per platform)
         run: node scripts/verify-release-output.js ${{ startsWith(matrix.platform, 'mac') && 'mac' || matrix.platform }}
 
@@ -148,6 +204,7 @@ jobs:
         shell: bash
         run: mv release/latest-mac.yml release/latest-x64-mac.yml
 
+      # ── Upload to GitHub Release draft ────────────────────────────────────
       - name: Upload to GitHub Release draft
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -200,3 +257,70 @@ jobs:
           else
             gh release edit "$GITHUB_REF_NAME" --draft=false --latest
           fi
+
+  gdrive-upload:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: release
+    runs-on: ubuntu-latest
+    name: Mirror to Google Drive
+    permissions:
+      contents: read
+    # Evaluate Drive credential availability without exposing the secret value.
+    env:
+      HAS_GDRIVE: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON != '' && 'true' || 'false' }}
+
+    steps:
+      - name: Check Google Drive credentials
+        run: |
+          if [ "$HAS_GDRIVE" = "true" ]; then
+            echo "GDRIVE_SERVICE_ACCOUNT_JSON found — will mirror release to Google Drive."
+          else
+            echo "::notice::GDRIVE_SERVICE_ACCOUNT_JSON secret not set — skipping Google Drive mirror."
+            echo "See docs/RELEASES-AND-UPDATES.md → Google Drive mirror for setup instructions."
+          fi
+
+      - name: Install rclone
+        if: env.HAS_GDRIVE == 'true'
+        run: |
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+          rclone version
+
+      - name: Download release assets from GitHub
+        if: env.HAS_GDRIVE == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release-assets
+          # Download all installer and updater-feed files from the published release.
+          gh release download "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir release-assets \
+            --pattern "*.dmg" \
+            --pattern "*.zip" \
+            --pattern "*.exe" \
+            --pattern "*.AppImage" \
+            --pattern "*.yml" \
+            --pattern "*.blockmap" \
+            --clobber
+          echo "--- Downloaded assets ---"
+          ls -lh release-assets/
+
+      - name: Upload to Google Drive via rclone
+        if: env.HAS_GDRIVE == 'true'
+        env:
+          # rclone reads these env vars directly — no config file needed.
+          RCLONE_CONFIG_GDRIVE_TYPE: drive
+          RCLONE_CONFIG_GDRIVE_SCOPE: drive
+          RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          # When GDRIVE_FOLDER_ID is set, rclone treats it as the Drive root.
+          # Empty string → rclone uses the service account's My Drive root.
+          RCLONE_CONFIG_GDRIVE_ROOT_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+        run: |
+          DEST="gdrive:code-companion/${{ github.ref_name }}"
+          echo "Uploading to ${DEST} ..."
+          rclone copy release-assets/ "$DEST" \
+            --progress \
+            --stats 30s \
+            --transfers 4 \
+            --checksum
+          echo "::notice::Assets mirrored to Google Drive path: code-companion/${{ github.ref_name }}"
