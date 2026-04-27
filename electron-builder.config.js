@@ -141,8 +141,6 @@ module.exports = {
       { x: 160, y: 242 },
       { x: 460, y: 242, type: "link", path: "/Applications" },
     ],
-    // Extra buffer so the mounted disk image doesn't run out of space during copy.
-    additionalDiskSpace: "500mb",
   },
   win: {
     target: ["nsis", "zip"],
