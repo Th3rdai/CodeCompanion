@@ -103,7 +103,8 @@ jobs:
       MAC_CI_SIGNING: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && 'true' || 'false' }}
       # Notarization is explicitly opt-in via APPLE_NOTARIZE_ENABLED=1 — prevents build failures
       # when an Apple Developer agreement expires (HTTP 403) while signing still works.
-      MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_NOTARIZE_ENABLED != '' && 'true' || 'false' }}
+      # APPLE_NOTARIZE_ENABLED must equal exactly "1" — set to "0" to disable without deleting.
+      MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_NOTARIZE_ENABLED == '1' && 'true' || 'false' }}
       # Windows Authenticode — accepts either WIN_CSC_LINK_B64 (new) or CSC_LINK (existing).
       WIN_CI_SIGNING: ${{ (secrets.WIN_CSC_LINK_B64 != '' || secrets.CSC_LINK != '') && (secrets.WIN_CSC_KEY_PASSWORD != '' || secrets.CSC_KEY_PASSWORD != '') && 'true' || 'false' }}
 

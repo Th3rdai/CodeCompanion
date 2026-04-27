@@ -130,23 +130,25 @@ module.exports = {
     },
   },
   dmg: {
+    title: "Code Companion Installer",
     background: "resources/dmg-background.png",
+    iconSize: 96,
+    window: {
+      width: 620,
+      height: 420,
+    },
     contents: [
-      { x: 130, y: 220 },
-      { x: 410, y: 220, type: "link", path: "/Applications" },
+      { x: 160, y: 242 },
+      { x: 460, y: 242, type: "link", path: "/Applications" },
     ],
   },
   win: {
     target: ["nsis", "zip"],
     icon: "resources/icon.ico",
-    ...(winDistributionSign && winPfxPath
-      ? {
-          certificateFile: winPfxPath,
-          certificatePassword:
-            process.env.WIN_CSC_KEY_PASSWORD || process.env.CSC_KEY_PASSWORD,
-          signingHashAlgorithms: ["sha256"],
-        }
-      : {}),
+    // electron-builder 26 removed certificateFile/certificatePassword from the win config schema.
+    // Signing is driven by env vars only: WIN_CSC_LINK (path to decoded .pfx) +
+    // WIN_CSC_KEY_PASSWORD / CSC_KEY_PASSWORD. The CI workflow decodes CSC_LINK from the repo
+    // secret and writes the path to GITHUB_ENV so electron-builder resolves it natively.
   },
   nsis: {
     oneClick: false,
