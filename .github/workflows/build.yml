@@ -105,8 +105,9 @@ jobs:
       # when an Apple Developer agreement expires (HTTP 403) while signing still works.
       # APPLE_NOTARIZE_ENABLED must equal exactly "1" — set to "0" to disable without deleting.
       MAC_CI_NOTARIZE: ${{ secrets.MAC_CERTS != '' && secrets.MAC_CERTS_PASSWORD != '' && secrets.MAC_CODESIGN_IDENTITY != '' && secrets.APPLE_TEAM_ID != '' && secrets.APPLE_ID != '' && secrets.APPLE_APP_SPECIFIC_PASSWORD != '' && secrets.APPLE_NOTARIZE_ENABLED == '1' && 'true' || 'false' }}
-      # Windows Authenticode — accepts either WIN_CSC_LINK_B64 (new) or CSC_LINK (existing).
-      WIN_CI_SIGNING: ${{ (secrets.WIN_CSC_LINK_B64 != '' || secrets.CSC_LINK != '') && (secrets.WIN_CSC_KEY_PASSWORD != '' || secrets.CSC_KEY_PASSWORD != '') && 'true' || 'false' }}
+      # Windows Authenticode — requires a dedicated WIN_CSC_LINK_B64 + WIN_CSC_KEY_PASSWORD.
+      # CSC_LINK is the macOS .p12 — never use it for Windows signing.
+      WIN_CI_SIGNING: ${{ secrets.WIN_CSC_LINK_B64 != '' && secrets.WIN_CSC_KEY_PASSWORD != '' && 'true' || 'false' }}
 
     steps:
       - name: Checkout repository
@@ -155,17 +156,15 @@ jobs:
           rm /tmp/certs.p12
 
       # ── Windows signing ───────────────────────────────────────────────────
-      # Accepts WIN_CSC_LINK_B64 (preferred) or falls back to CSC_LINK (existing repo secret).
-      # Both are treated as base64-encoded .pfx content and decoded to a temp file.
+      # WIN_CSC_LINK_B64 must be a base64-encoded Windows Authenticode .pfx.
+      # CSC_LINK (macOS .p12) is intentionally excluded — wrong format for Windows.
       - name: Decode Windows signing certificate
         if: matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true'
         shell: bash
         env:
           WIN_CSC_LINK_B64: ${{ secrets.WIN_CSC_LINK_B64 }}
-          CSC_LINK_SECRET: ${{ secrets.CSC_LINK }}
         run: |
-          CERT_B64="${WIN_CSC_LINK_B64:-$CSC_LINK_SECRET}"
-          echo "$CERT_B64" | base64 --decode > "$RUNNER_TEMP/win-cert.pfx"
+          echo "$WIN_CSC_LINK_B64" | base64 --decode > "$RUNNER_TEMP/win-cert.pfx"
           echo "WIN_CSC_LINK=$RUNNER_TEMP/win-cert.pfx" >> "$GITHUB_ENV"
 
       # ── Build ─────────────────────────────────────────────────────────────
@@ -183,12 +182,10 @@ jobs:
           APPLE_TEAM_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_TEAM_ID || '' }}
           APPLE_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_ID || '' }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          # Windows — WIN_CSC_LINK is set via GITHUB_ENV by the decode step above.
-          # electron-builder.config.js reads: process.env.WIN_CSC_KEY_PASSWORD || process.env.CSC_KEY_PASSWORD
-          # so passing both lets the config pick up whichever secret is populated.
+          # Windows — WIN_CSC_LINK set via GITHUB_ENV; password from WIN_CSC_KEY_PASSWORD only.
+          # CSC_KEY_PASSWORD is macOS-only and must never be passed to the Windows build.
           WIN_DISTRIBUTION_SIGN: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && '1' || '' }}
           WIN_CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && secrets.CSC_KEY_PASSWORD || '' }}
 
       # ── Cleanup ───────────────────────────────────────────────────────────
       - name: Clean Windows signing certificate
