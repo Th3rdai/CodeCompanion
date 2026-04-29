@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.19] — 2026-04-29
+
+### Fixed
+
+- **File Browser `+AI` quick-attach silently failed for files outside `chatFolder`** — Clicking the per-row `+AI` button (or the "Attach to Chat" preview button) appeared to do nothing when the FileBrowser was navigated to a folder different from your saved `chatFolder` (e.g. `chatFolder` is a Google Drive sync folder but you're browsing a project folder). Three issues combined: (1) `/api/files/read` defaulted its `folder` query to `cfg.chatFolder` when the param was omitted, so reads of files under `cfg.projectFolder` returned 403 "Access denied"; (2) `handleQuickAttach` and `handleFileClick` never sent `folder=tree.root` even though the FileBrowser knows which folder it's displaying; (3) `catch {}` wrapped the fetches and there was no `res.ok` check, so the 403 was silently dropped — no toast, no console error, click looked like a no-op. Now: (1) the FileBrowser sends `folder=tree.root` for `read`, `read-raw`, and convertible-document attach paths; (2) errors are surfaced via `onToast` (`"Access denied"`, `"File not found"`, `"Could not reach server"`); (3) `routes/files.js` adds `cfg.chatFolder` to the explicit-folder allowlist alongside `cfg.projectFolder` and the repo root. Path-traversal protection is unchanged.
+
 ## [1.6.18] — 2026-04-29
 
 ### Fixed
