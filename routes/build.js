@@ -222,7 +222,7 @@ module.exports = function createRouter(appContext) {
         config.ollamaUrl,
         model,
         messages,
-        30000,
+        (config.chatTimeoutSec || 600) * 1000,
         [],
         ollamaAuthOpts(config),
       );
