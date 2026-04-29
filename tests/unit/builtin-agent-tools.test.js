@@ -1,8 +1,10 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
 const {
+  getWhitelistedEnv,
   getBuiltinSafetyPreamble,
   getBuiltinTools,
+  validateCommand,
 } = require("../../lib/builtin-agent-tools.js");
 
 /**
@@ -44,6 +46,16 @@ test("getBuiltinSafetyPreamble includes terminal block when includeTerminal is t
   const p = getBuiltinSafetyPreamble({ includeTerminal: true });
   assert.ok(p.includes("TERMINAL TOOL SAFETY (builtin.run_terminal_cmd)"));
   assert.ok(p.includes("Prefer read-only commands first"));
+});
+
+test("getWhitelistedEnv extends packaged app PATH for developer tools", () => {
+  withProcessEnv({ PATH: "/usr/bin:/bin" }, () => {
+    const env = getWhitelistedEnv();
+    assert.ok(env.PATH.includes("/usr/local/bin"));
+    if (process.platform === "darwin") {
+      assert.ok(env.PATH.includes("/opt/homebrew/bin"));
+    }
+  });
 });
 
 test("getBuiltinTools includes run_terminal_cmd when terminal enabled and bind is loopback", () => {
@@ -202,4 +214,104 @@ test("getBuiltinSafetyPreamble can include both terminal and validate blocks", (
 test("getBuiltinSafetyPreamble includeValidate false suppresses validate block", () => {
   const p = getBuiltinSafetyPreamble({ includeValidate: false });
   assert.ok(!p.includes("VALIDATE TOOLS"));
+});
+
+// ── validateCommand: blocklist token-boundary matching ───────────────────────
+// Regression for false-positive substring matches (e.g. blocklist "su" wrongly
+// blocking `python3 -c "import sys; print('successful')"` because "successful"
+// contains the substring "su").
+
+const baseTerminalConfig = {
+  agentTerminal: {
+    enabled: true,
+    allowlist: ["python3", "ls", "cat", "echo"],
+    blocklist: ["sudo", "su", "rm -rf", "dd"],
+  },
+  projectFolder: "/tmp",
+};
+
+test("validateCommand: blocklist 'su' does not match 'sys' or 'successful'", () => {
+  const r = validateCommand(
+    "python3",
+    ["-c", "import sys; print('successful')"],
+    baseTerminalConfig,
+  );
+  // The semicolon will trigger the metachar guard (intended) but NOT the "su"
+  // blocklist — verify the deny reason is metachar, not blocklist.
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /metacharacters/i);
+  assert.doesNotMatch(r.reason, /security policy: "su"/);
+});
+
+test("validateCommand: blocklist 'su' does not block 'usable' or 'pseudo'", () => {
+  const r = validateCommand("echo", ["pseudo-usable-output"], baseTerminalConfig);
+  assert.equal(r.allowed, true);
+});
+
+test("validateCommand: blocklist 'su' still blocks bare 'su -' invocation", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "su"],
+    },
+  };
+  const r = validateCommand("su", ["-"], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /security policy: "su"/);
+});
+
+test("validateCommand: blocklist 'sudo' blocks 'sudo apt' but not 'pseudo'", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: [
+        ...baseTerminalConfig.agentTerminal.allowlist,
+        "sudo",
+        "pseudo",
+      ],
+    },
+  };
+  const blocked = validateCommand("sudo", ["apt", "install", "x"], cfg);
+  assert.equal(blocked.allowed, false);
+  assert.match(blocked.reason, /security policy: "sudo"/);
+
+  const ok = validateCommand("pseudo", ["arg"], cfg);
+  assert.equal(ok.allowed, true);
+});
+
+test("validateCommand: multi-token blocklist 'rm -rf' matches 'rm -rf /tmp'", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "rm"],
+    },
+  };
+  const r = validateCommand("rm", ["-rf", "/tmp"], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /security policy: "rm -rf"/);
+});
+
+test("validateCommand: blocklist 'dd' does not match 'add' or 'mkdir'", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "echo"],
+    },
+  };
+  // "add" and "mkdir" both contain "dd" as substring; word-boundary match must
+  // not flag them.
+  const r = validateCommand("echo", ["add", "mkdir"], cfg);
+  assert.equal(r.allowed, true);
+});
+
+test("validateCommand: terminal tool safety preamble guides away from shell features", () => {
+  const p = getBuiltinSafetyPreamble({ includeTerminal: true });
+  assert.match(p, /SINGLE BINARY/);
+  assert.match(p, /pass cwd as an argument/i);
+  assert.match(p, /Do NOT loop on denied commands/);
+  assert.match(p, /20-command-per-minute rate limit/);
 });
