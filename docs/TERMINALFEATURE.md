@@ -40,11 +40,11 @@ flowchart LR
 
 ## Security
 
-| Concern                                | Mitigation                                                                       |
-| -------------------------------------- | -------------------------------------------------------------------------------- |
-| Arbitrary path injection from renderer | Renderer suggests `cwd`; `main.js` validates it's an existing directory before honoring it. Falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`. (Once a shell is running the user can `cd` anywhere their `$SHELL` permits, so the gate constrains *initial* CWD only.) |
-| Unrestricted shell access              | Terminal mode is desktop-only; no LAN exposure                                   |
-| Zombie processes                       | PTY killed on `mainWindow.on('close')` and on `terminal-kill` IPC                |
+| Concern                                | Mitigation                                                                                                                                                                                                                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arbitrary path injection from renderer | Renderer suggests `cwd`; `main.js` validates it's an existing directory before honoring it. Falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`. (Once a shell is running the user can `cd` anywhere their `$SHELL` permits, so the gate constrains _initial_ CWD only.) |
+| Unrestricted shell access              | Terminal mode is desktop-only; no LAN exposure                                                                                                                                                                                                                                      |
+| Zombie processes                       | PTY killed on `mainWindow.on('close')` and on `terminal-kill` IPC                                                                                                                                                                                                                   |
 
 ## Difference from Agent Terminal
 

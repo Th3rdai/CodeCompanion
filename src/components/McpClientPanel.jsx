@@ -33,12 +33,46 @@ function transportLabel(t) {
   return "🌐 HTTP";
 }
 
+const SERVICE_LABELS = {
+  gmail: "Gmail",
+  drive: "Drive",
+  calendar: "Calendar",
+  calendars: "Calendar",
+  doc: "Docs",
+  docs: "Docs",
+  spreadsheet: "Sheets",
+  sheet: "Sheets",
+  chat: "Chat",
+  form: "Forms",
+  forms: "Forms",
+  presentation: "Slides",
+  task: "Tasks",
+  tasks: "Tasks",
+  contact: "Contacts",
+  contacts: "Contacts",
+  script: "Apps Script",
+  custom: "Custom Search",
+  search: "Search",
+  google: "Google Auth",
+};
+
+function getGroup(toolName) {
+  const parts = toolName.split("_");
+  const key = parts.length >= 2 ? parts[1].toLowerCase() : "";
+  return (
+    SERVICE_LABELS[key] ||
+    (key ? key.charAt(0).toUpperCase() + key.slice(1) : "General")
+  );
+}
+
 function ToolsModal({ client, onSaved, onClose }) {
   const [tools, setTools] = useState([]);
   const [disabled, setDisabled] = useState(new Set(client.disabledTools || []));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState({});
 
   useEffect(() => {
     apiFetch(`/api/mcp/clients/${encodeURIComponent(client.id)}/tools`)
@@ -52,6 +86,11 @@ function ToolsModal({ client, onSaved, onClose }) {
         setLoading(false);
       });
   }, [client.id]);
+
+  // Auto-expand all groups when user types — collapsed groups would hide matches
+  useEffect(() => {
+    if (search) setCollapsed({});
+  }, [search]);
 
   function toggle(name) {
     setDisabled((prev) => {
@@ -79,11 +118,68 @@ function ToolsModal({ client, onSaved, onClose }) {
     }
   }
 
-  const enabledCount = tools.length - disabled.size;
+  const filtered = tools.filter(
+    (t) =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      (t.description || "").toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const grouped = filtered.reduce((acc, t) => {
+    const g = getGroup(t.name);
+    (acc[g] = acc[g] || []).push(t);
+    return acc;
+  }, {});
+  const groupNames = Object.keys(grouped).sort();
+
+  // Only use grouped view for large servers (Google Workspace etc.)
+  const useGroups = tools.length > 10;
+
+  // Count against visible tool names to avoid negative counts from stale disabledTools
+  const disabledVisibleCount = tools.filter((t) => disabled.has(t.name)).length;
+  const enabledCount = tools.length - disabledVisibleCount;
+
+  function groupAllEnabled(group) {
+    return grouped[group].every((t) => !disabled.has(t.name));
+  }
+
+  function toggleGroup(group) {
+    setDisabled((prev) => {
+      const next = new Set(prev);
+      const allOn = grouped[group].every((t) => !next.has(t.name));
+      grouped[group].forEach((t) =>
+        allOn ? next.add(t.name) : next.delete(t.name),
+      );
+      return next;
+    });
+  }
+
+  const toolRow = (t) => (
+    <label
+      key={t.name}
+      className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-700/30 cursor-pointer group"
+    >
+      <input
+        type="checkbox"
+        checked={!disabled.has(t.name)}
+        onChange={() => toggle(t.name)}
+        className="mt-0.5 shrink-0 accent-indigo-500"
+      />
+      <div className="min-w-0">
+        <p className="text-xs font-mono text-slate-200 group-hover:text-white">
+          {t.name}
+        </p>
+        {t.description && (
+          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+            {t.description}
+          </p>
+        )}
+      </div>
+    </label>
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="glass rounded-xl border border-slate-700/50 w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl">
+      <div className="glass rounded-xl border border-slate-700/50 w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/40">
           <div>
             <h3 className="text-sm font-semibold text-slate-200">
@@ -115,30 +211,56 @@ function ToolsModal({ client, onSaved, onClose }) {
               No tools found
             </p>
           )}
-          {!loading &&
-            tools.map((t) => (
-              <label
-                key={t.name}
-                className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-700/30 cursor-pointer group"
-              >
-                <input
-                  type="checkbox"
-                  checked={!disabled.has(t.name)}
-                  onChange={() => toggle(t.name)}
-                  className="mt-0.5 shrink-0 accent-indigo-500"
-                />
-                <div className="min-w-0">
-                  <p className="text-xs font-mono text-slate-200 group-hover:text-white">
-                    {t.name}
-                  </p>
-                  {t.description && (
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-                      {t.description}
-                    </p>
-                  )}
-                </div>
-              </label>
-            ))}
+          {!loading && !error && tools.length > 0 && (
+            <>
+              <input
+                type="text"
+                placeholder="Search tools…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs rounded-lg bg-slate-800/60 border border-slate-700/50 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 mb-2"
+              />
+              {filtered.length === 0 && (
+                <p className="text-center text-slate-500 text-sm py-4">
+                  No tools match &quot;{search}&quot;
+                </p>
+              )}
+              {useGroups
+                ? groupNames.map((g) => (
+                    <div key={g} className="space-y-0.5">
+                      <div
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-slate-800/40 cursor-pointer select-none"
+                        onClick={() =>
+                          setCollapsed((p) => ({ ...p, [g]: !p[g] }))
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={groupAllEnabled(g)}
+                          onChange={() => toggleGroup(g)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="shrink-0 accent-indigo-500"
+                        />
+                        <span className="text-xs font-semibold text-slate-300 flex-1">
+                          {g}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {grouped[g].length}
+                        </span>
+                        <span className="text-slate-500 text-xs">
+                          {collapsed[g] ? "▶" : "▼"}
+                        </span>
+                      </div>
+                      {!collapsed[g] && (
+                        <div className="pl-4 space-y-0.5">
+                          {grouped[g].map(toolRow)}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                : filtered.map(toolRow)}
+            </>
+          )}
         </div>
 
         <div className="flex gap-2 justify-between items-center px-4 py-3 border-t border-slate-700/40">
@@ -209,7 +331,11 @@ function ServerModal({ mode, client, onSaved, onClose }) {
       transport,
       command: transport === "stdio" ? command : undefined,
       url: isRemote ? command : undefined,
-      args: args ? args.split("\n").filter((a) => a.trim()) : [],
+      args: args
+        ? args
+            .split("\n")
+            .flatMap((a) => (a.trim() ? a.trim().split(/\s+/) : []))
+        : [],
     };
   }
 

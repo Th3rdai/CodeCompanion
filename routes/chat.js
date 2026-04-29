@@ -34,6 +34,15 @@ const PROJECT_CONTEXT_MAX_CHARS = 8000;
 const TOOL_RESULTS_FINALIZER_MAX_CHARS = 30000;
 const BROWSER_CONTENT_FINALIZER_MIN_CHARS = 4000;
 
+function buildEmptyAssistantReplyMessage(model) {
+  const modelLabel = model || "the selected model";
+  return (
+    `I did not get any text back from ${modelLabel}. ` +
+    "The request reached Code Companion and Ollama, but the model returned an empty completion. " +
+    "Please try again, or switch from Auto to another model for this request."
+  );
+}
+
 function stripAgentToolsPrompt(content = "") {
   return content
     .replace(/\n\n---\nAGENT IDENTITY OVERRIDE[\s\S]*$/, "")
@@ -776,6 +785,15 @@ module.exports = function createRouter(appContext) {
               server: call.serverId,
               tool: call.toolName,
             });
+            // Show a progress indicator for image-generating tools (they can take 10-30s)
+            if (/generate.*image|image.*gen/i.test(call.toolName)) {
+              sendEvent({
+                terminalCmd: {
+                  command: call.toolName,
+                  args: [call.args?.prompt || ""],
+                },
+              });
+            }
             return await toolCallHandler.executeTool(
               call.serverId,
               call.toolName,
@@ -870,7 +888,7 @@ module.exports = function createRouter(appContext) {
                       tool: `${call.serverId}.${call.toolName}`,
                     },
                   });
-                  content += `\n[IMAGE_DELIVERED: image was rendered in the chat for the user. Describe what was generated. If the user asks for changes, call generate_image again with a revised prompt.]`;
+                  content += `\n[IMAGE_DELIVERED: The image has been generated and is NOW DISPLAYED in the chat above this message. It is already fully visible to the user — you do NOT need to embed markdown or placeholders. Write a brief, confident acknowledgment that you generated the image (describe its content based on the prompt you used) and ask if they would like any changes. Do NOT say you cannot see the image or that you are unable to view it.]`;
                 }
               }
               toolResults += `\nTool ${call.serverId}.${call.toolName} returned:\n${content}\n`;
@@ -969,10 +987,28 @@ module.exports = function createRouter(appContext) {
 
         // Stream the final text as SSE tokens (word by word for UX)
         if (finalText && finalText.trim()) {
-          const words = finalText.split(/(\s+)/);
-          for (const word of words) {
-            if (chatAbortController.signal.aborted || res.writableEnded) break;
-            sendEvent({ token: word });
+          // Strip <think>...</think> reasoning blocks — local models (e.g. qwen3) emit these
+          // as internal monologue; they are not useful to the user and often contain false
+          // statements like "I can't see the image".
+          const displayText = finalText
+            .replace(/<think>[\s\S]*?<\/think>/gi, "")
+            .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
+            .trim();
+          if (displayText) {
+            const words = displayText.split(/(\s+)/);
+            for (const word of words) {
+              if (chatAbortController.signal.aborted || res.writableEnded)
+                break;
+              sendEvent({ token: word });
+            }
+          } else if (
+            !chatAbortController.signal.aborted &&
+            !res.writableEnded
+          ) {
+            log("WARN", "Final assistant text was empty after cleanup", {
+              model,
+            });
+            sendEvent({ error: buildEmptyAssistantReplyMessage(model) });
           }
         } else if (
           !finalText &&
@@ -1010,6 +1046,14 @@ module.exports = function createRouter(appContext) {
               },
             );
             log("INFO", `Streaming fallback complete: ${tokenCount} tokens`);
+            if (
+              tokenCount === 0 &&
+              !chatAbortController.signal.aborted &&
+              !res.writableEnded
+            ) {
+              log("WARN", "Streaming fallback returned zero tokens", { model });
+              sendEvent({ error: buildEmptyAssistantReplyMessage(model) });
+            }
           } catch (err) {
             if (!chatAbortController.signal.aborted) {
               log("ERROR", "Streaming fallback failed", { error: err.message });
@@ -1253,3 +1297,6 @@ module.exports = function createRouter(appContext) {
 
   return router;
 };
+
+module.exports.buildEmptyAssistantReplyMessage =
+  buildEmptyAssistantReplyMessage;

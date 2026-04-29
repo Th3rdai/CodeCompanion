@@ -975,6 +975,17 @@ export default function ReviewPanel({
         className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
         aria-label="Code review report card"
       >
+        {reportData?.structureReviewOnly && (
+          <div className="max-w-3xl mx-auto mb-3 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm text-amber-300">
+            <span className="mt-0.5 text-base leading-none">📁</span>
+            <span>
+              <strong className="font-semibold">Structure review only.</strong>{" "}
+              This input looks like a directory listing, not source code. Paste
+              actual file contents to get a full code quality review with bug
+              and security findings.
+            </span>
+          </div>
+        )}
         {savedReview && (
           <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-xs text-slate-500">
             <History className="w-3.5 h-3.5" />

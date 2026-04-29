@@ -149,7 +149,7 @@ module.exports = function createRouter(appContext) {
 
   // ── POST /api/config ─────────────────────────────────
   router.post("/config", requireLocalOrApiKey, (req, res) => {
-    const { ollamaUrl, projectFolder, icmTemplatePath } = req.body;
+    const { ollamaUrl, projectFolder, chatFolder, icmTemplatePath } = req.body;
     const config = getConfig();
 
     if (req.body.brandAssets !== undefined) {
@@ -338,6 +338,40 @@ module.exports = function createRouter(appContext) {
         config.projectFolder = os.homedir() || process.cwd();
       }
       log("INFO", `Project folder set to: ${config.projectFolder || "(none)"}`);
+      // When projectFolder changes, reset chatFolder to the new projectFolder
+      // unless chatFolder was also provided in the same request
+      if (chatFolder === undefined) {
+        config.chatFolder = config.projectFolder;
+      }
+    }
+
+    if (chatFolder !== undefined) {
+      if (chatFolder) {
+        const resolvedChat = resolveFolder(chatFolder);
+        if (!resolvedChat) {
+          return res.status(400).json({ error: "Chat folder does not exist" });
+        }
+        if (!fs.statSync(resolvedChat).isDirectory()) {
+          return res
+            .status(400)
+            .json({ error: "chatFolder must be a directory" });
+        }
+        // chatFolder must be within projectFolder (the security boundary)
+        const boundary = config.projectFolder || os.homedir();
+        if (
+          !resolvedChat.startsWith(boundary + path.sep) &&
+          resolvedChat !== boundary
+        ) {
+          return res
+            .status(403)
+            .json({ error: "Chat folder must be within the project folder" });
+        }
+        config.chatFolder = resolvedChat;
+      } else {
+        config.chatFolder =
+          config.projectFolder || os.homedir() || process.cwd();
+      }
+      log("INFO", `Chat folder set to: ${config.chatFolder}`);
     }
 
     updateConfig(config);

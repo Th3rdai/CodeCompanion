@@ -16,7 +16,6 @@ module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, debug } = appContext;
 
-
   // ── GET /api/history ─────────────────────────────────
   router.get("/history", (req, res) => {
     try {

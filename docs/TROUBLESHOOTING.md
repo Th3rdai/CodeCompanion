@@ -27,6 +27,42 @@ The assistant **does not receive HTTP status codes** from your browser. If it me
 
 If **`logs/app.log`** contains **`Ollama chatComplete failed`** with **`"error":"fetch failed"`**, the **Node server** could not complete an HTTP request **to Ollama** (wrong **`ollamaUrl`**, Ollama stopped, firewall, or timeout on long runs). Confirm **`curl -s http://127.0.0.1:11434/api/tags`** (or your configured URL) from the same machine. Fix **`ollamaUrl`** in **`.cc-config.json`** or Settings if you use a LAN IP.
 
+## Nano Banana image generation: timeout/connection issues
+
+If image generation intermittently fails with **`MCP error -32001: Request timed out`** or **`MCP error -32000: Connection closed`**:
+
+1. **Check MCP call logs first** in `logs/app.log`:
+   - `MCP tool call started` includes `callId`, `toolName`, and `timeoutMs`.
+   - Match the same `callId` against `MCP tool call succeeded` / `MCP tool call failed`.
+2. **Reconnect nano banana** in **Settings → MCP Clients** when transport errors appear (`Connection closed`).
+3. **Increase image timeout budget** in `.env` if needed:
+   - `MCP_TOOL_TIMEOUT_MS` (all MCP tools, default `120000`)
+   - `MCP_IMAGE_TOOL_TIMEOUT_MS` (image calls, default `180000`)
+   - For `generate_image`, the app uses the larger of the two values.
+4. **Verify provider auth is loaded** for packaged Electron:
+   - macOS app data `.env`: `~/Library/Application Support/code-companion/.env`
+   - ensure `GEMINI_API_KEY` is set and nano banana is reconnected after key changes.
+
+If the tool call succeeds but the assistant text claims quota issues, check `debug.log` for `MCP tool result` (`partTypes`, `resultKeys`) to confirm the provider payload before trusting model interpretation.
+
+## Generated images: copy/download controls
+
+Generated assistant images now expose inline **Copy** and **Download** actions directly under each image in chat. If buttons are missing:
+
+1. Ensure you are on a build that includes the assistant-image UI update (desktop app rebuild/reinstall may be required).
+2. Confirm the message actually contains image payload (`partTypes: ["text","image"]` in `debug.log`).
+3. Clicking the image still opens the lightbox, which also includes download controls.
+
+## Assistant says “Generated image” but no image appears
+
+New chat guardrails now block unverified success claims. The assistant message text is sanitized unless a real `toolImage` payload is present in that response.
+
+If this still happens in an older build:
+
+1. Check `logs/app.log` for matching `MCP tool call started` + `MCP tool call succeeded` entries for the same `callId`.
+2. If there is no corresponding MCP success entry, treat the claim as unverified model text (not an actual generated image).
+3. Upgrade/rebuild to a version that includes `src/lib/chat-image-claims.js` + `useChat` sanitization.
+
 ## MCP clients missing in Settings
 
 **External MCP servers** are stored in **`mcpClients`** inside **`.cc-config.json`**, but the file location depends on how you run the app:

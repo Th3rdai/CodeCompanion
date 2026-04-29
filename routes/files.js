@@ -81,7 +81,7 @@ module.exports = function createRouter(appContext) {
   // ── GET /api/files/tree ───────────────────────────────
   router.get("/files/tree", (req, res) => {
     const config = getConfig();
-    let folder = req.query.folder || config.projectFolder;
+    let folder = req.query.folder || config.chatFolder || config.projectFolder;
     if (!folder)
       return res.status(400).json({ error: "No project folder configured" });
     folder = resolveFolder(folder);
@@ -114,7 +114,7 @@ module.exports = function createRouter(appContext) {
     const filePath = req.query.path;
     let folder = req.query.folder
       ? path.resolve(req.query.folder)
-      : config.projectFolder;
+      : config.chatFolder || config.projectFolder;
 
     if (!filePath || !folder)
       return res.status(400).json({ error: "Missing path or project folder" });

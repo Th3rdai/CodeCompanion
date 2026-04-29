@@ -45,6 +45,66 @@ The GitHub Actions workflow **fails** if the tag suffix does not match `package.
 
 ---
 
+## GitHub Actions secrets
+
+Configure these in **GitHub → repo → Settings → Secrets and variables → Actions**.
+
+### Always required
+
+| Secret         | Value                                                       |
+| -------------- | ----------------------------------------------------------- |
+| `GITHUB_TOKEN` | Automatically provided by GitHub Actions — no setup needed. |
+
+### macOS Developer ID signing (optional — ad-hoc by default)
+
+Without these secrets CI builds are signed ad-hoc (Gatekeeper may prompt on first launch). With them, CI signs with your Developer ID and users get silent installation.
+
+| Secret                  | How to get it                                                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `MAC_CERTS`             | Export your **Developer ID Application** certificate + private key from Keychain as a `.p12`, then base64-encode: `base64 -i cert.p12 \| pbcopy` |
+| `MAC_CERTS_PASSWORD`    | The password you set when exporting the `.p12`                                                                                                   |
+| `MAC_CODESIGN_IDENTITY` | Full certificate Common Name, e.g. `Developer ID Application: Your Name (TEAMID)`                                                                |
+
+### macOS notarization (optional — requires signing secrets above)
+
+Notarization removes all Gatekeeper prompts for downloaded apps. Requires the signing secrets plus:
+
+| Secret                        | How to get it                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `APPLE_NOTARIZE_ENABLED`      | Set to `1` to opt in — omit or leave empty to skip notarization even when other Apple secrets are present                 |
+| `APPLE_TEAM_ID`               | 10-character team ID from [developer.apple.com/account](https://developer.apple.com/account)                              |
+| `APPLE_ID`                    | Apple ID email associated with your developer account                                                                     |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password from [appleid.apple.com](https://appleid.apple.com) → Sign-In and Security → App-Specific Passwords |
+
+### Windows Authenticode signing (optional — unsigned by default)
+
+Without these secrets the Windows installer is unsigned and SmartScreen will warn on first run.
+
+| Secret                 | How to get it                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WIN_CSC_LINK_B64`     | Base64-encoded `.pfx` certificate file: `base64 -i cert.pfx \| pbcopy` (macOS) or `certutil -encode cert.pfx encoded.txt` (Windows). Obtain an Authenticode cert from DigiCert, Sectigo, or similar CA. |
+| `WIN_CSC_KEY_PASSWORD` | Passphrase for the `.pfx` file                                                                                                                                                                          |
+
+### Google Drive mirror (optional)
+
+When configured, a `gdrive-upload` job runs after each tag release and mirrors all installer artifacts to a Google Drive folder. Users can then download from Drive as an alternative to GitHub.
+
+**Setup steps:**
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com) → create a project → enable the **Google Drive API**.
+2. Create a **Service Account** → generate a JSON key → download it.
+3. Share the target Drive folder with the service account email (give it **Editor** access).
+4. Copy the folder ID from its URL: `drive.google.com/drive/folders/**<FOLDER_ID>**`.
+
+| Secret                        | Value                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `GDRIVE_SERVICE_ACCOUNT_JSON` | Full contents of the service account JSON key file (not base64 — paste the raw JSON)                     |
+| `GDRIVE_FOLDER_ID`            | ID of the Drive folder to upload into (optional — omit to upload to the service account's My Drive root) |
+
+If `GDRIVE_SERVICE_ACCOUNT_JSON` is not set the job runs but prints a notice and exits cleanly — it does not fail the release.
+
+---
+
 ## Recommended path: CI (tag push)
 
 **Workflow:** [`.github/workflows/build.yml`](../.github/workflows/build.yml)

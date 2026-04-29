@@ -1236,9 +1236,12 @@ export default function SettingsPanel({
                 </button>
               </div>
               <p className="text-xs text-slate-400 mt-1.5">
-                Defaults to your user (home) folder until you set another path.
-                Point me to your project and I&apos;ll open the file browser for
-                you.
+                <strong className="text-slate-300">
+                  System access boundary.
+                </strong>{" "}
+                All file reads and writes are restricted to this folder and its
+                subfolders. Use the File Browser to set the active project
+                context within this boundary.
               </p>
               {folderResult && (
                 <div

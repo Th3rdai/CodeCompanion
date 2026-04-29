@@ -81,10 +81,11 @@ All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 
 ## Agent tools & terminal (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`)
 
-| Variable                  | Purpose                                                                                                                                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `CC_ALLOW_AGENT_TERMINAL` | Set to `1` to allow the agent terminal when the server binds to **`0.0.0.0`** / **`::`** (see `CC_BIND_ALL` / `HOST`). Matches `lib/builtin-agent-tools.js` exposure check.                                                          |
-| `MCP_TOOL_TIMEOUT_MS`     | Optional. **Milliseconds** before an **MCP** `callTool` (not builtin) is aborted with a timeout error (default **`120000`**). Minimum **`50`** when set. Prevents a hung MCP server from blocking **`POST /api/chat`** indefinitely. |
+| Variable                    | Purpose                                                                                                                                                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CC_ALLOW_AGENT_TERMINAL`   | Set to `1` to allow the agent terminal when the server binds to **`0.0.0.0`** / **`::`** (see `CC_BIND_ALL` / `HOST`). Matches `lib/builtin-agent-tools.js` exposure check.                                                                                                                  |
+| `MCP_TOOL_TIMEOUT_MS`       | Optional. **Milliseconds** before an **MCP** `callTool` (not builtin) is aborted with a timeout error (default **`120000`**). Minimum **`50`** when set. Prevents a hung MCP server from blocking **`POST /api/chat`** indefinitely.                                                         |
+| `MCP_IMAGE_TOOL_TIMEOUT_MS` | Optional. **Milliseconds** timeout for image generation MCP calls (`toolName: generate_image`). Default **`180000`**. The app uses `max(MCP_TOOL_TIMEOUT_MS, MCP_IMAGE_TOOL_TIMEOUT_MS)` for image calls so normal tool timeouts can stay lower while image generation gets a longer budget. |
 
 Agent browser is configured in **`.cc-config.json`** (not via env variables). See `agentBrowser` in the `.cc-config.json` selected keys table above and **`docs/CC-CONFIG.md`**.
 

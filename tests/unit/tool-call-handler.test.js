@@ -6,12 +6,15 @@ const handlerPath = path.join(__dirname, "../../lib/tool-call-handler.js");
 
 function loadHandlerWithMcpTimeoutMs(ms) {
   const prev = process.env.MCP_TOOL_TIMEOUT_MS;
+  const prevImage = process.env.MCP_IMAGE_TOOL_TIMEOUT_MS;
   if (ms === undefined) delete process.env.MCP_TOOL_TIMEOUT_MS;
   else process.env.MCP_TOOL_TIMEOUT_MS = String(ms);
   delete require.cache[require.resolve(handlerPath)];
   const ToolCallHandler = require(handlerPath);
   if (prev === undefined) delete process.env.MCP_TOOL_TIMEOUT_MS;
   else process.env.MCP_TOOL_TIMEOUT_MS = prev;
+  if (prevImage === undefined) delete process.env.MCP_IMAGE_TOOL_TIMEOUT_MS;
+  else process.env.MCP_IMAGE_TOOL_TIMEOUT_MS = prevImage;
   return ToolCallHandler;
 }
 
@@ -90,6 +93,248 @@ test("executeTool MCP succeeds when callTool resolves within timeout", async () 
   const r = await h.executeTool("fast", "tool", {});
   assert.strictEqual(r.success, true);
   assert.strictEqual(r.result.content[0].text, "ok");
+});
+
+test("executeTool MCP writes start/success logs with duration", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  const logs = [];
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async () => ({ content: [{ type: "text", text: "ok" }] }),
+  };
+  const h = new ToolCallHandler(mockMcp, {
+    log: (level, msg, data) => logs.push({ level, msg, data }),
+  });
+
+  const result = await h.executeTool("nano-banana", "generate_image", {
+    prompt: "x",
+  });
+
+  assert.strictEqual(result.success, true);
+  const started = logs.find((entry) => entry.msg === "MCP tool call started");
+  assert.ok(started, "expected start log entry");
+  assert.equal(typeof started.data.callId, "string");
+  assert.ok(started.data.callId.startsWith("mcp_"));
+  assert.equal(started.data.maxAttempts, 2);
+  const success = logs.find((entry) => entry.msg === "MCP tool call succeeded");
+  assert.ok(success, "expected success log entry");
+  assert.equal(success.data.callId, started.data.callId);
+  assert.equal(success.data.serverId, "nano-banana");
+  assert.equal(success.data.toolName, "generate_image");
+  assert.equal(typeof success.data.durationMs, "number");
+});
+
+test("executeTool MCP adds API key hint and logs failure details", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  const logs = [];
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async () => {
+      throw new Error("API_KEY_INVALID: API key not valid");
+    },
+  };
+  const h = new ToolCallHandler(mockMcp, {
+    log: (level, msg, data) => logs.push({ level, msg, data }),
+  });
+
+  const result = await h.executeTool("nano-banana", "generate_image", {
+    prompt: "x",
+  });
+
+  assert.strictEqual(result.success, false);
+  assert.match(result.error, /GEMINI_API_KEY/i);
+  const started = logs.find((entry) => entry.msg === "MCP tool call started");
+  assert.ok(started, "expected start log entry");
+  assert.equal(started.data.maxAttempts, 2);
+  const failure = logs.find((entry) => entry.msg === "MCP tool call failed");
+  assert.ok(failure, "expected failure log entry");
+  assert.equal(failure.level, "ERROR");
+  assert.equal(failure.data.callId, started.data.callId);
+  assert.equal(failure.data.serverId, "nano-banana");
+  assert.equal(failure.data.toolName, "generate_image");
+  assert.match(failure.data.error, /API_KEY_INVALID/i);
+});
+
+test("executeTool MCP adds Google Workspace auth recovery hint", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async () => {
+      throw new Error("Unauthorized: OAuth consent required");
+    },
+  };
+  const h = new ToolCallHandler(mockMcp);
+
+  const result = await h.executeTool("google", "get_doc_content", {
+    documentId: "abc123",
+  });
+
+  assert.strictEqual(result.success, false);
+  assert.match(result.error, /authorization problem/i);
+  assert.match(result.error, /not a document-format limitation/i);
+  assert.match(result.error, /google\.start_google_auth/i);
+});
+
+test("executeTool MCP retries once on RESOURCE_EXHAUSTED and succeeds", async () => {
+  const prevDelay = process.env.MCP_TOOL_RETRY_DELAY_MS;
+  process.env.MCP_TOOL_RETRY_DELAY_MS = "1";
+  try {
+    const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+    const logs = [];
+    let callCount = 0;
+    const mockMcp = {
+      getAllTools: () => [],
+      callTool: async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          throw new Error("RESOURCE_EXHAUSTED: quota exceeded");
+        }
+        return { content: [{ type: "text", text: "ok-after-retry" }] };
+      },
+    };
+    const h = new ToolCallHandler(mockMcp, {
+      log: (level, msg, data) => logs.push({ level, msg, data }),
+    });
+
+    const result = await h.executeTool("nano-banana", "generate_image", {
+      prompt: "x",
+    });
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.result.content[0].text, "ok-after-retry");
+    assert.strictEqual(callCount, 2);
+    const started = logs.find((entry) => entry.msg === "MCP tool call started");
+    assert.ok(started, "expected start log entry");
+    assert.equal(started.data.maxAttempts, 2);
+    const failures = logs.filter(
+      (entry) => entry.msg === "MCP tool call failed",
+    );
+    assert.strictEqual(failures.length, 1);
+    assert.strictEqual(failures[0].data.retryable, true);
+    assert.strictEqual(failures[0].data.attempt, 1);
+    const success = logs.find(
+      (entry) => entry.msg === "MCP tool call succeeded",
+    );
+    assert.ok(success, "expected success log entry");
+    assert.strictEqual(success.data.attempt, 2);
+    assert.equal(success.data.callId, started.data.callId);
+  } finally {
+    if (prevDelay === undefined) delete process.env.MCP_TOOL_RETRY_DELAY_MS;
+    else process.env.MCP_TOOL_RETRY_DELAY_MS = prevDelay;
+  }
+});
+
+test("executeTool generate_image uses image timeout override over global timeout", async () => {
+  const prevImageTimeout = process.env.MCP_IMAGE_TOOL_TIMEOUT_MS;
+  process.env.MCP_IMAGE_TOOL_TIMEOUT_MS = "220";
+  try {
+    const ToolCallHandler = loadHandlerWithMcpTimeoutMs(80);
+    const mockMcp = {
+      getAllTools: () => [],
+      callTool: async () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () => resolve({ content: [{ type: "text", text: "image-ok" }] }),
+            120,
+          ),
+        ),
+    };
+    const h = new ToolCallHandler(mockMcp);
+    const r = await h.executeTool("nano-banana", "generate_image", {});
+    assert.strictEqual(r.success, true);
+    assert.strictEqual(r.result.content[0].text, "image-ok");
+  } finally {
+    if (prevImageTimeout === undefined)
+      delete process.env.MCP_IMAGE_TOOL_TIMEOUT_MS;
+    else process.env.MCP_IMAGE_TOOL_TIMEOUT_MS = prevImageTimeout;
+  }
+});
+
+test("executeTool MCP retries once on timeout and then succeeds", async () => {
+  const prevDelay = process.env.MCP_TOOL_RETRY_DELAY_MS;
+  process.env.MCP_TOOL_RETRY_DELAY_MS = "1";
+  try {
+    const ToolCallHandler = loadHandlerWithMcpTimeoutMs(50);
+    const logs = [];
+    let callCount = 0;
+    const mockMcp = {
+      getAllTools: () => [],
+      callTool: async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          return new Promise(() => {});
+        }
+        return { content: [{ type: "text", text: "ok-after-timeout-retry" }] };
+      },
+    };
+    const h = new ToolCallHandler(mockMcp, {
+      log: (level, msg, data) => logs.push({ level, msg, data }),
+    });
+
+    const result = await h.executeTool("nano-banana", "list_models", {});
+
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(result.result.content[0].text, "ok-after-timeout-retry");
+    assert.strictEqual(callCount, 2);
+    const failures = logs.filter(
+      (entry) => entry.msg === "MCP tool call failed",
+    );
+    assert.strictEqual(failures.length, 1);
+    assert.strictEqual(failures[0].data.retryable, true);
+    assert.match(failures[0].data.error, /timed out/i);
+  } finally {
+    if (prevDelay === undefined) delete process.env.MCP_TOOL_RETRY_DELAY_MS;
+    else process.env.MCP_TOOL_RETRY_DELAY_MS = prevDelay;
+  }
+});
+
+test("executeTool normalizes Google AI Studio image args to image model", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  let receivedArgs = null;
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async (_serverId, _toolName, args) => {
+      receivedArgs = args;
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  };
+  const h = new ToolCallHandler(mockMcp);
+
+  const result = await h.executeTool("google-ai-studio", "generate_content", {
+    user_prompt: "Draw a test icon",
+    enable_image_generation: true,
+    only_image: true,
+    model: "gemini-2.5-flash",
+  });
+
+  assert.strictEqual(result.success, true);
+  assert.ok(receivedArgs, "expected args passed to callTool");
+  assert.strictEqual(receivedArgs.enable_image_generation, true);
+  assert.strictEqual(receivedArgs.only_image, true);
+  assert.strictEqual(receivedArgs.model, "gemini-2.5-flash-image");
+});
+
+test("executeTool keeps explicit modern AI Studio image model unchanged", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  let receivedArgs = null;
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async (_serverId, _toolName, args) => {
+      receivedArgs = args;
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  };
+  const h = new ToolCallHandler(mockMcp);
+
+  const result = await h.executeTool("google-ai-studio", "generate_content", {
+    user_prompt: "Draw a test icon",
+    enable_image_generation: true,
+    model: "gemini-2.5-flash-image",
+  });
+
+  assert.strictEqual(result.success, true);
+  assert.ok(receivedArgs, "expected args passed to callTool");
+  assert.strictEqual(receivedArgs.model, "gemini-2.5-flash-image");
 });
 
 test("buildToolsPrompt includes anti-hallucination block and sourcePath hint for PDFs", () => {
@@ -300,6 +545,42 @@ test("buildToolsPrompt includes AGENT BROWSER guidance when browser tools are av
   );
 });
 
+test("buildToolsPrompt includes Google Workspace auth recovery guidance", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    {
+      getAllTools: () => [
+        {
+          serverId: "google",
+          serverName: "Google Workspace",
+          name: "start_google_auth",
+          description: "Start Google OAuth flow",
+        },
+        {
+          serverId: "google",
+          serverName: "Google Workspace",
+          name: "get_doc_content",
+          description: "Read Google Docs content",
+        },
+      ],
+    },
+    { getConfig: () => ({}) },
+  );
+  const p = h.buildToolsPrompt();
+  assert.ok(
+    p.includes("GOOGLE WORKSPACE AUTH:"),
+    "expected Google Workspace auth guidance",
+  );
+  assert.ok(
+    p.includes("google.start_google_auth"),
+    "expected concrete auth tool reference",
+  );
+  assert.ok(
+    p.includes("not an unsupported format"),
+    "expected format-vs-auth clarification",
+  );
+});
+
 test("buildToolsPrompt compacts large external MCP servers", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const longDescription =
@@ -398,4 +679,88 @@ test("buildToolsPrompt omits terminal when bind is exposed without CC_ALLOW_AGEN
     if (prevElectron === undefined) delete process.env.ELECTRON_RUN_AS_NODE;
     else process.env.ELECTRON_RUN_AS_NODE = prevElectron;
   }
+});
+
+test("executeTool MCP blocks disabled external tool before callTool", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  let called = false;
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async () => {
+      called = true;
+      return { content: [] };
+    },
+  };
+  const h = new ToolCallHandler(mockMcp, {
+    getConfig: () => ({
+      mcpClients: [
+        { id: "google-workspace", disabledTools: ["send_gmail_message"] },
+      ],
+    }),
+    log: () => {},
+  });
+
+  const result = await h.executeTool(
+    "google-workspace",
+    "send_gmail_message",
+    {},
+  );
+
+  assert.strictEqual(result.success, false);
+  assert.match(result.error, /google-workspace\.send_gmail_message.*disabled/i);
+  assert.strictEqual(called, false, "disabled tool must not call MCP server");
+});
+
+test("executeTool MCP allows enabled external tool", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  let called = false;
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async () => {
+      called = true;
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  };
+  const h = new ToolCallHandler(mockMcp, {
+    getConfig: () => ({
+      mcpClients: [
+        { id: "google-workspace", disabledTools: ["send_gmail_message"] },
+      ],
+    }),
+    log: () => {},
+  });
+
+  const result = await h.executeTool(
+    "google-workspace",
+    "search_gmail_messages",
+    {},
+  );
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(called, true);
+});
+
+test("executeTool MCP allows server with no disabledTools entry", async () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(5000);
+  let called = false;
+  const mockMcp = {
+    getAllTools: () => [],
+    callTool: async () => {
+      called = true;
+      return { content: [] };
+    },
+  };
+  const h = new ToolCallHandler(mockMcp, {
+    getConfig: () => ({
+      mcpClients: [
+        { id: "google-workspace", disabledTools: ["send_gmail_message"] },
+      ],
+    }),
+    log: () => {},
+  });
+
+  const result = await h.executeTool("other-server", "any_tool", {});
+
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(called, true);
 });

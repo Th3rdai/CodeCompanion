@@ -2,9 +2,13 @@ const express = require("express");
 
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { effectiveOllamaApiKey, ollamaAuthOpts } = require("../lib/ollama-client");
+const {
+  effectiveOllamaApiKey,
+  ollamaAuthOpts,
+} = require("../lib/ollama-client");
 const { reviewCode, reviewFiles } = require("../lib/review");
 const { readFolderFiles, isWithinBasePath } = require("../lib/file-browser");
+const { loadValidateReviewContext } = require("../lib/review-validate-context");
 const {
   CLIENT_INTERNAL_ERROR,
   STREAM_INTERNAL_ERROR,
@@ -43,6 +47,12 @@ module.exports = function createRouter(appContext) {
     });
 
     const config = getConfig();
+    const validateReviewContext = loadValidateReviewContext(
+      config.projectFolder,
+      {
+        searchFrom: filename || "",
+      },
+    );
 
     if (model === "auto") {
       try {
@@ -71,6 +81,7 @@ module.exports = function createRouter(appContext) {
         filename,
         timeoutSec: config.reviewTimeoutSec,
         images: images || [],
+        validateContext: validateReviewContext?.context || "",
         numCtx: config.numCtx || 0,
         autoAdjustContext: config.autoAdjustContext,
         ollamaApiKey: effectiveOllamaApiKey(config),
@@ -241,6 +252,12 @@ module.exports = function createRouter(appContext) {
     }
 
     const config = getConfig();
+    const validateReviewContext = loadValidateReviewContext(
+      config.projectFolder,
+      {
+        searchFrom: folder || "",
+      },
+    );
 
     if (
       config.projectFolder &&
@@ -294,6 +311,7 @@ module.exports = function createRouter(appContext) {
 
       const result = await reviewFiles(config.ollamaUrl, model, files, {
         timeoutSec: config.reviewTimeoutSec,
+        validateContext: validateReviewContext?.context || "",
         numCtx: config.numCtx || 0,
         autoAdjustContext: config.autoAdjustContext,
         ollamaApiKey: effectiveOllamaApiKey(config),

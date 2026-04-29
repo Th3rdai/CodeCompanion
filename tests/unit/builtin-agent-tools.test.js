@@ -244,7 +244,11 @@ test("validateCommand: blocklist 'su' does not match 'sys' or 'successful'", () 
 });
 
 test("validateCommand: blocklist 'su' does not block 'usable' or 'pseudo'", () => {
-  const r = validateCommand("echo", ["pseudo-usable-output"], baseTerminalConfig);
+  const r = validateCommand(
+    "echo",
+    ["pseudo-usable-output"],
+    baseTerminalConfig,
+  );
   assert.equal(r.allowed, true);
 });
 

@@ -5,6 +5,7 @@ import {
   estimateChatPostBodyBytes,
 } from "../lib/chat-payload";
 import { abortAll } from "./useAbortRegistry";
+import { sanitizeUnconfirmedImageClaims } from "../lib/chat-image-claims";
 
 export function useChat({
   mode,
@@ -403,7 +404,16 @@ export function useChat({
     chatAbortRef.current = ac;
 
     let assistantContent = "";
+    let assistantImages = [];
     let capturedToolContext = []; // tool round messages from toolContextMessages SSE event
+    const buildAssistantMessage = () => ({
+      role: "assistant",
+      content: sanitizeUnconfirmedImageClaims(
+        assistantContent,
+        assistantImages.length > 0,
+      ),
+      ...(assistantImages.length > 0 ? { images: assistantImages } : {}),
+    });
     const flushChatAssistantUi = () => {
       if (chatTokenRafRef.current) {
         cancelAnimationFrame(chatTokenRafRef.current);
@@ -413,13 +423,10 @@ export function useChat({
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
           const updated = [...prev];
-          updated[updated.length - 1] = {
-            role: "assistant",
-            content: assistantContent,
-          };
+          updated[updated.length - 1] = buildAssistantMessage();
           return updated;
         }
-        return [...prev, { role: "assistant", content: assistantContent }];
+        return [...prev, buildAssistantMessage()];
       });
     };
     try {
@@ -479,16 +486,10 @@ export function useChat({
                     const last = prev[prev.length - 1];
                     if (last?.role === "assistant") {
                       const updated = [...prev];
-                      updated[updated.length - 1] = {
-                        role: "assistant",
-                        content: assistantContent,
-                      };
+                      updated[updated.length - 1] = buildAssistantMessage();
                       return updated;
                     }
-                    return [
-                      ...prev,
-                      { role: "assistant", content: assistantContent },
-                    ];
+                    return [...prev, buildAssistantMessage()];
                   });
                 });
               }
@@ -563,14 +564,21 @@ export function useChat({
             if (parsed.toolImage) {
               const { mimeType, data, tool } = parsed.toolImage;
               if (data) {
-                assistantContent += `\n\n![${tool || "Tool Result"}](data:${mimeType};base64,${data})\n`;
+                const dataUri = `data:${mimeType};base64,${data}`;
+                assistantImages = [...assistantImages, dataUri];
+                if (!assistantContent.trim()) {
+                  assistantContent = `Generated image from ${tool || "tool"}.`;
+                }
                 flushChatAssistantUi();
               }
             }
           } catch {}
         }
         // Auto-save every 5 seconds during streaming
-        if (assistantContent && Date.now() - lastSaveTime > 5000) {
+        if (
+          (assistantContent || assistantImages.length) &&
+          Date.now() - lastSaveTime > 5000
+        ) {
           lastSaveTime = Date.now();
           const autoSaveMsgs =
             capturedToolContext.length > 0
@@ -580,16 +588,18 @@ export function useChat({
                     ...m,
                     _toolContext: true,
                   })),
-                  { role: "assistant", content: assistantContent },
+                  buildAssistantMessage(),
                 ]
-              : [
-                  ...newMessages,
-                  { role: "assistant", content: assistantContent },
-                ];
+              : [...newMessages, buildAssistantMessage()];
           saveConversation(autoSaveMsgs, mode, {
             _convId: conversationIdForChat,
           });
         }
+      }
+      if (!assistantContent.trim() && assistantImages.length === 0) {
+        assistantContent =
+          `I did not receive any assistant text from ${selectedModel || "the selected model"}. ` +
+          "The request finished, but the response body was empty. Please try again, or switch models if this keeps happening.";
       }
       flushChatAssistantUi();
       const finalMsgs =
@@ -597,9 +607,9 @@ export function useChat({
           ? [
               ...newMessages,
               ...capturedToolContext.map((m) => ({ ...m, _toolContext: true })),
-              { role: "assistant", content: assistantContent },
+              buildAssistantMessage(),
             ]
-          : [...newMessages, { role: "assistant", content: assistantContent }];
+          : [...newMessages, buildAssistantMessage()];
       saveConversation(finalMsgs, mode, { _convId: conversationIdForChat });
     } catch (err) {
       if (err.name === "AbortError") {
@@ -608,10 +618,13 @@ export function useChat({
           chatTokenRafRef.current = null;
         }
         setTerminalOutput(null);
-        if (assistantContent.trim()) {
+        if (assistantContent.trim() || assistantImages.length > 0) {
           const stoppedMessages = [
             ...newMessages,
-            { role: "assistant", content: assistantContent.trimEnd() },
+            {
+              ...buildAssistantMessage(),
+              content: assistantContent.trimEnd(),
+            },
           ];
           setMessages(stoppedMessages);
           saveConversation(stoppedMessages, mode, {

@@ -126,7 +126,11 @@ export default function ImageLightbox({
   };
 
   const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.5, 0.5));
+    setZoom((prev) => {
+      const next = Math.max(prev - 0.5, 0.5);
+      if (next <= 1) setPosition({ x: 0, y: 0 });
+      return next;
+    });
   };
 
   const handleDownload = () => {
@@ -144,6 +148,7 @@ export default function ImageLightbox({
 
   const handleMouseDown = (e) => {
     if (zoom > 1) {
+      e.preventDefault();
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     }
@@ -278,26 +283,30 @@ export default function ImageLightbox({
         </span>
       </div>
 
-      {/* Image Container */}
+      {/* Image Container — fills viewport minus controls, clips overflow, handles pan */}
       <div
-        className="max-w-[90vw] max-h-[90vh] overflow-auto"
+        className="absolute inset-0 top-16 bottom-14 left-0 right-0 overflow-hidden flex items-center justify-center"
+        style={{
+          cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "zoom-in",
+        }}
         onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <img
           ref={imageRef}
           src={imageSrc}
           alt={filename}
-          className={`max-w-full max-h-full object-contain transition-transform ${
-            zoom > 1 ? "cursor-move" : "cursor-zoom-in"
-          }`}
+          className="max-w-[90vw] max-h-[80vh] object-contain select-none"
           style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-            transformOrigin: "center",
+            transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+            transformOrigin: "center center",
+            transition: isDragging ? "none" : "transform 0.1s ease",
+            userSelect: "none",
+            pointerEvents: "none",
           }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
           draggable={false}
         />
       </div>
@@ -308,7 +317,7 @@ export default function ImageLightbox({
           <div>ESC to close</div>
           <div>+/- to zoom</div>
           {hasGallery && <div>← → to navigate</div>}
-          {zoom > 1 && <div>Drag to pan</div>}
+          {zoom > 1 && <div>Drag to pan • scroll to zoom</div>}
         </div>
       </div>
     </div>

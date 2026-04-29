@@ -11,7 +11,6 @@ module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log } = appContext;
 
-
   // ── POST /api/score ───────────────────────────────────
   // Rate limiter applied as app.use('/api/score', ...) in server.js
   router.post("/score", async (req, res) => {

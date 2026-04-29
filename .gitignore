@@ -16,6 +16,11 @@ memory/
 .env
 .env.local
 
+# cert keys
+cert/*.key
+cert/*.crt
+!cert/README.txt
+
 # Claude Code — optional MCP overrides (copy from .mcp.json.example)
 .mcp.local.json
 
