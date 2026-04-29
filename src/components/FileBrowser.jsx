@@ -182,7 +182,7 @@ function FileTreeNode({
             e.stopPropagation();
             onQuickAttach(node);
           }}
-          className="opacity-0 group-hover:opacity-100 shrink-0 px-1.5 py-1 mr-1 text-[10px] text-indigo-300 hover:text-white hover:bg-indigo-500/30 rounded transition-all"
+          className="opacity-70 group-hover:opacity-100 shrink-0 px-1.5 py-1 mr-1 text-[10px] text-indigo-300 hover:text-white hover:bg-indigo-500/30 rounded transition-all"
           title="Attach to chat"
           aria-label={`Attach ${node.name} to chat`}
         >
