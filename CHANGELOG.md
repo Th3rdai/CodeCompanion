@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.17] — 2026-04-29
+
 ### Changed
 
 - **Chat fetch timeout default raised to 10 min** — `chatTimeoutSec` default in `lib/config.js` and the fallback in `routes/chat.js` raised from 120s → 600s; `chatComplete` and `chatStructured` defaults in `lib/ollama-client.js` raised from 120 000ms → 600 000ms; `.cc-config.json.example` updated to match. Existing user configs still take precedence — only fresh installs see the new default. Fixes the 5-minute `fetch failed` hang seen with large local models (e.g. `qwen3-coder:30b`) under big contexts and tool-call rounds.
