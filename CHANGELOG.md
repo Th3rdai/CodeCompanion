@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Chat fetch timeout default raised to 10 min** — `chatTimeoutSec` default in `lib/config.js` and the fallback in `routes/chat.js` raised from 120s → 600s; `chatComplete` and `chatStructured` defaults in `lib/ollama-client.js` raised from 120 000ms → 600 000ms; `.cc-config.json.example` updated to match. Existing user configs still take precedence — only fresh installs see the new default. Fixes the 5-minute `fetch failed` hang seen with large local models (e.g. `qwen3-coder:30b`) under big contexts and tool-call rounds.
+- **Terminal CWD follows the active File Browser folder** — When opening Terminal mode, the renderer now passes its current folder (`chatFolder || projectFolder`) into `terminal-start`. The main process validates the path is an existing directory before honoring it; falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`. Changing the File Browser folder respawns the PTY at the new location. Previously the terminal always read `cfg.projectFolder` from disk and ignored in-app navigation.
+
 ### Fixed
 
 - **Sidebar `Invalid Date` history rows** — Conversation timestamps are now normalized end-to-end: `createdAt` is validated in `useChat` before save, malformed history rows are auto-repaired in `lib/history.js`, and sidebar rendering now has a safe date fallback.
@@ -18,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Snapshot-call consistency for browser automation** — When the user explicitly asks for a snapshot/screenshot and the model emits browser actions without `browser_snapshot`, the chat route now appends a snapshot call before execution so navigate+snapshot behavior is consistent.
 - **Minimax parameter-style tool-call parsing** — Tool-call handler now parses `<minimax:tool_call><invoke ...><parameter ...>` format, fixing mixed prompt rounds that previously failed to execute browser/terminal tools from that output shape.
 - **File Browser loading hangs** — Added bounded file-tree scanning guardrails (`max scan ms`, `max nodes`, `max entries/dir`, symlink skip) and frontend request timeouts with a clear timeout error instead of indefinite loading states.
+- **Nano Banana image-call reliability** — MCP image generation now uses a dedicated timeout path (`MCP_IMAGE_TOOL_TIMEOUT_MS`, default `180000`) and timeout-aware retry classification/hints; call-start logs now include `timeoutMs` for easier call correlation.
+- **Generated image actions in chat** — Restored inline **Copy** and **Download** controls for assistant-generated images by preserving tool-image payloads on assistant messages and rendering per-image action buttons in chat history.
+- **False image-success claims in chat** — Assistant text that says an image was generated is now filtered unless a real `toolImage` payload is present, preventing “Generated image…” messages when no image was actually returned.
 
 ### Changed
 

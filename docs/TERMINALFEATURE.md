@@ -26,7 +26,7 @@ flowchart LR
 
 1. User clicks **Terminal** in the mode sidebar.
 2. `TerminalPanel` detects `window.electronAPI.terminal` — present only in the Electron build.
-3. On mount, calls `api.start()` → IPC → `electron/main.js` reads `projectFolder` from `.cc-config.json` and spawns a PTY (`node-pty`) using `$SHELL` (or `cmd.exe` on Windows).
+3. On mount, calls `api.start(cwd)` with the active File Browser folder (`chatFolder || projectFolder` from App state) → IPC → `electron/main.js` validates the path is an existing directory (`fs.statSync(p).isDirectory()`); if missing or invalid, falls back to `cfg.chatFolder`, then `cfg.projectFolder`, then `$HOME`. Spawns a PTY (`node-pty`) at the resolved CWD using `$SHELL` (or `cmd.exe` on Windows). The `useEffect` deps include `projectFolder` so changing the File Browser folder respawns the PTY at the new location.
 4. PTY output is base64-encoded and sent to the renderer via `win.webContents.send('terminal-data', ...)`.
 5. `TerminalPanel` decodes it (`atob`) and writes to the `xterm.js` terminal.
 6. User keystrokes go the reverse direction: `term.onData → api.write → IPC → pty.write`.
@@ -42,7 +42,7 @@ flowchart LR
 
 | Concern                                | Mitigation                                                                       |
 | -------------------------------------- | -------------------------------------------------------------------------------- |
-| Arbitrary path injection from renderer | `cwd` is loaded from `.cc-config.json` in `main.js` — never passed from renderer |
+| Arbitrary path injection from renderer | Renderer suggests `cwd`; `main.js` validates it's an existing directory before honoring it. Falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`. (Once a shell is running the user can `cd` anywhere their `$SHELL` permits, so the gate constrains *initial* CWD only.) |
 | Unrestricted shell access              | Terminal mode is desktop-only; no LAN exposure                                   |
 | Zombie processes                       | PTY killed on `mainWindow.on('close')` and on `terminal-kill` IPC                |
 
@@ -58,6 +58,8 @@ flowchart LR
 ## Testing Checklist
 
 - [ ] Open Terminal mode in Electron dev (`npm run electron:dev`) → shell prompt appears
+- [ ] `pwd` matches the folder shown in the File Browser
+- [ ] Navigate to a different folder in the File Browser → switch to Terminal → `pwd` reflects the new folder (PTY respawned)
 - [ ] Type `ls` and press Enter → directory listing renders with colors
 - [ ] Type a command that produces ANSI colors (e.g. `ls -G`) → colors render correctly
 - [ ] Resize the app window → terminal reflows to new column width

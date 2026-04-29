@@ -3,7 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 
-export default function TerminalPanel() {
+export default function TerminalPanel({ projectFolder }) {
   const containerRef = useRef(null);
   const isElectron = Boolean(window.electronAPI?.terminal);
 
@@ -27,7 +27,7 @@ export default function TerminalPanel() {
     fitAddon.fit();
 
     const api = window.electronAPI.terminal;
-    api.start();
+    api.start(projectFolder || undefined);
     // data arrives as a binary string from atob() in preload — convert to
     // Uint8Array so xterm.js treats it as raw UTF-8 bytes, not Unicode code points.
     // Without this, multi-byte sequences (box-drawing chars, etc.) are garbled.
@@ -50,7 +50,7 @@ export default function TerminalPanel() {
       api.kill();
       term.dispose();
     };
-  }, [isElectron]);
+  }, [isElectron, projectFolder]);
 
   if (!isElectron) {
     return (

@@ -939,19 +939,36 @@ ipcMain.handle(
 
 // ── Terminal IPC Handlers ─────────────────────────────────────────────────────
 
-ipcMain.handle("terminal-start", async (event) => {
+ipcMain.handle("terminal-start", async (event, requestedCwd) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
 
-  // Resolve cwd from config (never from renderer — security boundary)
-  const configPath = path.join(dataDir, ".cc-config.json");
-  let cwd = os.homedir();
-  try {
-    const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    if (cfg.projectFolder && fs.existsSync(cfg.projectFolder)) {
-      cwd = cfg.projectFolder;
+  // Resolve cwd. Renderer can suggest one (the file browser's current folder)
+  // but main validates it's an existing directory. Falls back to config, then $HOME.
+  const isValidDir = (p) => {
+    try {
+      return (
+        typeof p === "string" && p.length > 0 && fs.statSync(p).isDirectory()
+      );
+    } catch {
+      return false;
     }
-  } catch {}
+  };
+
+  let cwd = os.homedir();
+  if (isValidDir(requestedCwd)) {
+    cwd = requestedCwd;
+  } else {
+    try {
+      const configPath = path.join(dataDir, ".cc-config.json");
+      const cfg = JSON.parse(fs.readFileSync(configPath, "utf8"));
+      if (isValidDir(cfg.chatFolder)) {
+        cwd = cfg.chatFolder;
+      } else if (isValidDir(cfg.projectFolder)) {
+        cwd = cfg.projectFolder;
+      }
+    } catch {}
+  }
 
   // Kill any existing session for this window before spawning a new one
   const existing = terminalSessions.get(win.id);

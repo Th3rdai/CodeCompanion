@@ -73,7 +73,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Integrated terminal (Electron-only; browser shows empty state)
   terminal: {
-    start: () => ipcRenderer.invoke("terminal-start"),
+    start: (cwd) => ipcRenderer.invoke("terminal-start", cwd),
     write: (data) => ipcRenderer.invoke("terminal-write", data),
     resize: (cols, rows) => ipcRenderer.invoke("terminal-resize", cols, rows),
     kill: () => ipcRenderer.invoke("terminal-kill"),

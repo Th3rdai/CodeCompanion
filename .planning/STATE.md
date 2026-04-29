@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-04-22T22:30:00.000Z"
-last_activity: "2026-04-22 — Post-Phase-28 stabilization shipped locally: Playwright/browser tool-call deflection fixes, browser retry guard in `routes/chat.js`, sidebar Invalid Date normalization, and File Browser load-time hang mitigation."
+last_updated: "2026-04-29T18:40:00.000Z"
+last_activity: "2026-04-29 — Chat fetch timeout default raised to 10 min (`lib/config.js`, `routes/chat.js`, `lib/ollama-client.js`, `.cc-config.json.example`); Terminal CWD now tracks the active File Browser folder (`electron/main.js`, `electron/preload.js`, `src/components/TerminalPanel.jsx`, `src/App.jsx`)."
 progress:
   total_phases: 28
   completed_phases: 28
@@ -27,19 +27,26 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec remains gated/default-off. Phase 28 (Multi-File Code Review) verified; additional runtime fixes were completed 2026-04-22.
 
-**Current version:** 1.6.9 (released 2026-04-24).
+**Current version:** 1.6.12 (released 2026-04-27).
 
-Last activity: 2026-04-24 — **Codebase cleanup + security audit**:
+Last activity: 2026-04-29 — **Chat timeout + Terminal CWD fixes**:
 
-- MCP per-tool enable/disable UI (v1.6.9).
-- Electron Restart menu item.
-- Dependabot security cleanup: patched `dompurify`, `postcss`, `hono`, `@xmldom/xmldom`; replaced `uuid` with `crypto.randomUUID()`; `npm audit` 0 vulnerabilities.
-- Dead code removed: `_MAX_ROUNDS` (tool-call-handler.js), `_historyHasUserImages` + `_currentMsgHasImages` (routes/chat.js).
-- `ollamaAuthOpts()` extracted to `lib/ollama-client.js` and exported — removed 11 duplicate local definitions across all route files and server.js.
-- Fixed missing `hasBrowserTool`/`hasBuiltinBrowserTool` flags in `getToolsPromptAndFlags()` early-return path.
-- `full-snapshot.md` added to `.gitignore`; leftover `example.com snapshot` artifact deleted.
+- **Chat fetch timeout default 120s → 600s** (`lib/config.js:72` `chatTimeoutSec`, `routes/chat.js:412` fallback, `lib/ollama-client.js:165,232` `chatComplete`/`chatStructured` defaults, `.cc-config.json.example:6`). Existing user configs unchanged; new installs get 10-min budget by default. Triage: 5-min `fetch failed` against `qwen3-coder:30b` with ~10K-token contexts.
+- **Terminal CWD = active File Browser folder** (`electron/main.js` `terminal-start` accepts renderer-supplied cwd, validates as existing dir, falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`; `electron/preload.js` `terminal.start(cwd)`; `src/components/TerminalPanel.jsx` `projectFolder` prop in `useEffect` deps so PTY respawns on folder change; `src/App.jsx` passes `chatFolder || projectFolder`). Docs updated: `CLAUDE.md` Terminal Mode section, `docs/TERMINALFEATURE.md` (How It Works, Security, Testing Checklist), `CHANGELOG.md`.
 
-Next: cut next patch release via CI tag path; manually run Playwright regression prompts in-app.
+Previous (2026-04-25) — **MCP per-tool enable/disable — implemented and verified**:
+
+- **ToolsModal UX** (`src/components/McpClientPanel.jsx`): `SERVICE_LABELS` + `getGroup()` at module level; grouped collapsible sections by service; real-time search (name + description, auto-expands collapsed groups); group-level checkbox; modal widened to `max-w-2xl`; flat list for ≤10-tool servers; accurate `enabledCount`.
+- **Execution-time denial guard** (`lib/tool-call-handler.js`): blocks disabled MCP tools before `callTool`; logs WARN; 3 new unit tests — **225 total pass**.
+- **Route hardening** (`lib/mcp-api-routes.js` + `lib/mcp-client-manager.js`): `disabledTools`-only saves skip disconnect; validation before disconnect; `disabledTools` entries trimmed/de-duped/type-checked.
+- Desktop app rebuilt and installed; production logs clean; `PUT /mcp/clients/google 200 0ms` confirms no reconnect on tool toggle.
+
+Previous (2026-04-24) — Codebase cleanup + security audit:
+
+- Dependabot: patched `dompurify`, `postcss`, `hono`, `@xmldom/xmldom`; replaced `uuid` with `crypto.randomUUID()`; 0 audit vulnerabilities.
+- Dead code removed; `ollamaAuthOpts()` deduplicated across 11 route files; `getToolsPromptAndFlags()` early-return flags fixed.
+
+Next: Prettier pass on `AGENTS.md`, `CLAUDE.md`, `lib/tool-call-handler.js` to clear P1 validation failure; then cut next patch release via CI tag.
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

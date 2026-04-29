@@ -280,8 +280,10 @@ module.exports = function createRouter(appContext) {
         ? `\n\n---\nBRAND ASSETS: The user has configured these brand/logo/image files. Use them when creating, building, generating reports, or producing diagrams that need branding:\n${brandAssets.map((a) => `- ${a.label || "Asset"}: ${a.path}${a.description ? " — " + a.description : ""}`).join("\n")}`
         : "";
 
-    // Inject project folder context (cached — large repos were slow on every message)
-    const projectPrompt = getCachedProjectPrompt(config.projectFolder);
+    // Inject chat folder context (the active project, may differ from the broader projectFolder access root)
+    const projectPrompt = getCachedProjectPrompt(
+      config.chatFolder || config.projectFolder,
+    );
 
     // Set client key for intra-request terminal rate limiting
     toolCallHandler.clientKey =
@@ -398,7 +400,7 @@ module.exports = function createRouter(appContext) {
     );
     const estimatedTokens = Math.ceil(totalChars / 3.5); // rough chars-to-tokens ratio
     let effectiveNumCtx = config.numCtx || 0;
-    let effectiveTimeoutMs = (config.chatTimeoutSec || 120) * 1000;
+    let effectiveTimeoutMs = (config.chatTimeoutSec || 600) * 1000;
 
     if (config.autoAdjustContext && estimatedTokens > 4096) {
       // Auto-boost num_ctx to fit content with headroom for response (~2K tokens)

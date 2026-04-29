@@ -3,7 +3,7 @@
   "ollamaApiKey": "",
   "icmTemplatePath": "",
   "reviewTimeoutSec": 300,
-  "chatTimeoutSec": 120,
+  "chatTimeoutSec": 600,
   "numCtx": 0,
   "autoAdjustContext": true,
   "preferredPort": 8900,

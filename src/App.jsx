@@ -293,6 +293,7 @@ export default function App() {
   );
   const [agentMaxRounds, setAgentMaxRounds] = useState(10);
   const [projectFolder, setProjectFolder] = useState("");
+  const [chatFolder, setChatFolder] = useState("");
   const [icmTemplatePath, setIcmTemplatePath] = useState("");
   const [mode, _setMode] = useState("chat");
 
@@ -653,6 +654,7 @@ export default function App() {
       const data = await res.json();
       setOllamaUrl(data.ollamaUrl || "");
       setProjectFolder(data.projectFolder || "");
+      setChatFolder(data.chatFolder || data.projectFolder || "");
       setIcmTemplatePath(data.icmTemplatePath || "");
       setImageSupportConfig(
         data.imageSupport && typeof data.imageSupport === "object"
@@ -685,6 +687,9 @@ export default function App() {
       if (data.projectFolder !== undefined)
         setProjectFolder(data.projectFolder);
       else if (newFolder !== undefined) setProjectFolder(newFolder);
+      if (data.chatFolder !== undefined) setChatFolder(data.chatFolder);
+      else if (data.projectFolder !== undefined)
+        setChatFolder(data.projectFolder);
       if (newIcmTemplatePath !== undefined)
         setIcmTemplatePath(newIcmTemplatePath);
       if (data.imageSupport && typeof data.imageSupport === "object") {
@@ -1609,7 +1614,7 @@ export default function App() {
                 models={models}
               />
             ) : mode === "terminal" ? (
-              <TerminalPanel />
+              <TerminalPanel projectFolder={chatFolder || projectFolder} />
             ) : BUILDER_MODES.includes(mode) ? (
               mode === "prompting" ? (
                 <PromptingPanel
@@ -2081,7 +2086,7 @@ export default function App() {
               aria-label="File browser"
             >
               <FileBrowser
-                projectFolder={projectFolder}
+                projectFolder={chatFolder || projectFolder}
                 onAttachFile={attachFile}
                 attachLabel={
                   BUILDER_MODES.includes(mode)
@@ -2096,21 +2101,21 @@ export default function App() {
                     const res = await apiFetch("/api/config", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ projectFolder: "" }),
+                      body: JSON.stringify({ chatFolder: "" }),
                     });
                     const data = await res.json();
-                    setProjectFolder(data.projectFolder || "");
+                    setChatFolder(data.chatFolder || data.projectFolder || "");
                   } catch {
-                    setProjectFolder("");
+                    setChatFolder(projectFolder);
                   }
                 }}
                 onSetFolder={async (folder) => {
-                  setProjectFolder(folder);
+                  setChatFolder(folder);
                   try {
                     await apiFetch("/api/config", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ projectFolder: folder }),
+                      body: JSON.stringify({ chatFolder: folder }),
                     });
                   } catch {}
                 }}
