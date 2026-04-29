@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-04-29T18:40:00.000Z"
-last_activity: "2026-04-29 — Chat fetch timeout default raised to 10 min (`lib/config.js`, `routes/chat.js`, `lib/ollama-client.js`, `.cc-config.json.example`); Terminal CWD now tracks the active File Browser folder (`electron/main.js`, `electron/preload.js`, `src/components/TerminalPanel.jsx`, `src/App.jsx`)."
+last_updated: "2026-04-29T19:50:00.000Z"
+last_activity: "2026-04-29 — Four-commit run: chat timeout default 10 min + Terminal CWD tracks File Browser (`a07b43b`); Build mode `next-action` honors `chatTimeoutSec` + macOS Python guidance (`a2a8207`); agent-terminal blocklist token-boundary fix + 7 unit tests + clearer no-shell/no-loop preamble (`dc18dfd`). 284 unit tests pass."
 progress:
   total_phases: 28
   completed_phases: 28
@@ -29,10 +29,15 @@ Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-ex
 
 **Current version:** 1.6.12 (released 2026-04-27).
 
-Last activity: 2026-04-29 — **Chat timeout + Terminal CWD fixes**:
+Last activity: 2026-04-29 — **Four-commit run on chat/build/Terminal/agent-terminal**:
 
-- **Chat fetch timeout default 120s → 600s** (`lib/config.js:72` `chatTimeoutSec`, `routes/chat.js:412` fallback, `lib/ollama-client.js:165,232` `chatComplete`/`chatStructured` defaults, `.cc-config.json.example:6`). Existing user configs unchanged; new installs get 10-min budget by default. Triage: 5-min `fetch failed` against `qwen3-coder:30b` with ~10K-token contexts.
-- **Terminal CWD = active File Browser folder** (`electron/main.js` `terminal-start` accepts renderer-supplied cwd, validates as existing dir, falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`; `electron/preload.js` `terminal.start(cwd)`; `src/components/TerminalPanel.jsx` `projectFolder` prop in `useEffect` deps so PTY respawns on folder change; `src/App.jsx` passes `chatFolder || projectFolder`). Docs updated: `CLAUDE.md` Terminal Mode section, `docs/TERMINALFEATURE.md` (How It Works, Security, Testing Checklist), `CHANGELOG.md`.
+- **`a07b43b` Chat fetch timeout default 120s → 600s** (`lib/config.js:72`, `routes/chat.js:412` fallback, `lib/ollama-client.js:165,232` `chatComplete`/`chatStructured` defaults, `.cc-config.json.example:6`). Triage: 5-min `fetch failed` against `qwen3-coder:30b` with ~10K-token contexts.
+- **`a07b43b` Terminal CWD = active File Browser folder** (`electron/main.js` `terminal-start` accepts renderer-supplied cwd, validates as existing dir, falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`; `electron/preload.js` `terminal.start(cwd)`; `src/components/TerminalPanel.jsx` `projectFolder` prop in `useEffect` deps so PTY respawns on folder change; `src/App.jsx` passes `chatFolder || projectFolder`).
+- **`a2a8207` Build mode `next-action` 30s → `chatTimeoutSec`** (`routes/build.js:225` hardcoded `30000` → `(config.chatTimeoutSec || 600) * 1000`). Three back-to-back `next-action failed: This operation was aborted` against TradingAgents triggered the change.
+- **`a2a8207` macOS/Linux Python guidance** in `BUILTIN_SAFETY_PREAMBLE_TERMINAL`: prefer `python3`/`pip3`/`uv pip`; multi-statement Python via `builtin.write_file` + run, never `python -c "stmt1; stmt2"` (semicolons trip metacharacter guard).
+- **`dc18dfd` Agent-terminal blocklist token-boundary fix** (`lib/builtin-agent-tools.js`): `validateCommand` now uses word-boundary regex (`commandContainsBlockedToken`) instead of `fullCmd.toLowerCase().includes(blocked)`. Genuine threats still match (`sudo apt`, `rm -rf /tmp`, `dd if=...`); false positives no longer match (`successful`/`pseudo` containing `"su"`, `add`/`mkdir` containing `"dd"`, etc.).
+- **`dc18dfd` Strengthened terminal-tool preamble**: explicit "SINGLE BINARY via spawn — no shell" (no `&&`, `;`, `|`, `2>&1`, `cd path && cmd`, `source venv && python ...`); "STOP after two same-shape denials" rule; install Python deps with `uv pip install -r requirements.txt` before retrying ImportError scripts.
+- **284 unit tests pass** (was 277). 7 new tests in `tests/unit/builtin-agent-tools.test.js` cover the blocklist regression. Docs updated: `CLAUDE.md` Terminal Mode section, `docs/TERMINALFEATURE.md` (How It Works, Security, Testing Checklist), `CHANGELOG.md`. All four commits pushed to `origin/master`.
 
 Previous (2026-04-25) — **MCP per-tool enable/disable — implemented and verified**:
 

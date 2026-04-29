@@ -4,6 +4,32 @@ Implement MCP per-tool enable/disable controls (MCPFIX) for Code Companion v1.6.
 
 <work_completed>
 
+**Build/agent-terminal hardening (2026-04-29 afternoon)**
+
+Two follow-up commits after the morning's chat-timeout + Terminal-CWD work, triggered by reviewing the installed app's `app.log` and a TradingAgents debugging session that hit a 25-round terminal-failure loop.
+
+- **`a2a8207` — `routes/build.js` next-action timeout + macOS Python guidance**:
+  - `routes/build.js:225`: hardcoded `30000` → `(config.chatTimeoutSec || 600) * 1000`. Three back-to-back `next-action failed: This operation was aborted` (each ~30s) triggered the change.
+  - `lib/builtin-agent-tools.js` `BUILTIN_SAFETY_PREAMBLE_TERMINAL`: added macOS/Linux guidance to use `python3`/`pip3` (bare `python`/`pip` returns exit 127 on macOS); multi-statement Python via `builtin.write_file` + run, never `python -c "stmt1; stmt2"` (semicolons trip the metacharacter guard).
+
+- **`dc18dfd` — agent-terminal blocklist token-boundary fix + clearer no-shell guidance + 7 unit tests**:
+  - `validateCommand` was using `fullCmd.toLowerCase().includes(blocked)` for the blocklist check. With the default blocklist entry `"su"`, this wrongly blocked `python3 -c "import sys; print('Import successful')"` because `"successful"` contains the substring `"su"`. Same false-positive shape for `"dd"` matching `"add"`/`"mkdir"`, `"su"` matching `"sys"`/`"pseudo"`, etc.
+  - New helper `commandContainsBlockedToken(fullCmd, blocked)` uses a word-boundary regex (`(^|\s)<blocked>($|\s)`). Genuine threats still match (`sudo apt`, `rm -rf /tmp`, `dd if=/dev/zero`); false positives no longer do.
+  - `BUILTIN_SAFETY_PREAMBLE_TERMINAL` strengthened with: "SINGLE BINARY via spawn — no shell" (no `&&`, `;`, `|`, `>`, `<`, `2>&1`, `$()`, backticks, `cd path && cmd`, `source venv && python ...`), "STOP after two same-shape denials" rule, "install Python deps with `uv pip install -r requirements.txt` before retrying ImportError scripts."
+  - 7 new unit tests in `tests/unit/builtin-agent-tools.test.js` cover the regression: `su`/`sys`, `su`/`successful`, `sudo`/`pseudo`, multi-token `rm -rf`, `dd`/`add`/`mkdir`, plus a preamble assertion that the new no-shell + rate-limit guidance is present. **284 total pass** (was 277).
+
+- **Diagnosis trail (so the next pass doesn't re-derive it)**:
+  - The user reported "undefined errors" across rounds 1–25. Reading `~/Library/Application Support/code-companion/logs/{app.log,debug.log}` showed the actual failures: model emitting compound shell commands, tripping the metacharacter guard; one specific round (13) tripped the false-positive `"su"` blocklist match on `print('successful')`; rounds 21–23 hit the 20-cmd/min rate limit because the model kept retrying same-shape variations.
+  - Root cause was _not_ an environmental glitch — the model was misreading structured deny responses as "undefined" in its summary. The preamble update is the durable fix.
+
+- **User's live config (`~/Library/Application Support/code-companion/.cc-config.json`)**:
+  - `chatTimeoutSec` bumped from 510 → 600 in-place (backup at `.cc-config.json.before-timeoutfix.bak`) so the installed v1.6.16 stops hitting the 5-min `fetch failed` until the next signed release ships.
+  - User's blocklist still contains `"su"` — the installed v1.6.16 has the substring-match bug. Workaround until next release: remove the bare `"su"` entry in Settings → Agent Terminal → Blocklist.
+
+- **Dev build state**: PID 46181 running `electron electron/main.js` against `https://localhost:8900` (HTTPS, repo `cert/`), patched code loaded. All four of today's commits (`a07b43b`, `a2a8207`, `dc18dfd`) are on `origin/master`.
+
+---
+
 **Chat timeout + Terminal CWD fixes (2026-04-29)**
 
 - **Chat fetch timeout default raised to 10 min**:
@@ -26,7 +52,7 @@ Implement MCP per-tool enable/disable controls (MCPFIX) for Code Companion v1.6.
 - **Notes for the next signed release**:
   - Source-side timeout fix means new installs default to 10-min chat budget without needing the Settings slider.
   - Terminal CWD change is renderer + main + preload — one PR's worth of scope.
-  - During this session, the *installed* `/Applications/Code Companion.app` was patched in-place to verify the timeout fix; that broke the bundle's notarized signature and the bundle had to be restored from `~/Library/Caches/code-companion-updater/pending/code-companion-1.6.16-arm64.zip`. Lesson: never edit a signed bundle's resources — apply the fix at source, ship a new release. The user is currently using the dev build (`npm run electron:dev`) until the next release ships.
+  - During this session, the _installed_ `/Applications/Code Companion.app` was patched in-place to verify the timeout fix; that broke the bundle's notarized signature and the bundle had to be restored from `~/Library/Caches/code-companion-updater/pending/code-companion-1.6.16-arm64.zip`. Lesson: never edit a signed bundle's resources — apply the fix at source, ship a new release. The user is currently using the dev build (`npm run electron:dev`) until the next release ships.
 
 ---
 
