@@ -122,6 +122,7 @@ module.exports = function createRouter(appContext) {
     if (req.query.folder) {
       const allowedRoots = [
         config.projectFolder,
+        config.chatFolder,
         path.join(__dirname, ".."),
       ].filter(Boolean);
       const absFolder = path.resolve(folder);

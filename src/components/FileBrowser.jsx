@@ -216,6 +216,7 @@ export default function FileBrowser({
   onClearFolder,
   onSetFolder,
   attachLabel,
+  onToast,
 }) {
   const TREE_REQUEST_TIMEOUT_MS = 20000;
   const [tree, setTree] = useState(null);
@@ -320,8 +321,11 @@ export default function FileBrowser({
     if (node.convertible) {
       setConverting(node.path);
       try {
+        const folderParam = tree?.root
+          ? `&folder=${encodeURIComponent(tree.root)}`
+          : "";
         const rawRes = await apiFetch(
-          `/api/files/read-raw?path=${encodeURIComponent(node.path)}`,
+          `/api/files/read-raw?path=${encodeURIComponent(node.path)}${folderParam}`,
         );
         if (!rawRes.ok) throw new Error("Failed to read file");
         const blob = await rawRes.blob();
@@ -354,12 +358,25 @@ export default function FileBrowser({
 
     setLoadingFile(true);
     try {
+      const folderParam = tree?.root
+        ? `&folder=${encodeURIComponent(tree.root)}`
+        : "";
       const res = await apiFetch(
-        `/api/files/read?path=${encodeURIComponent(node.path)}`,
+        `/api/files/read?path=${encodeURIComponent(node.path)}${folderParam}`,
       );
       const data = await res.json();
-      setPreview(data);
-    } catch {}
+      if (!res.ok) {
+        const msg = data?.error || `Could not read file (${res.status})`;
+        if (onToast) onToast(msg);
+        else console.error("File preview failed:", msg);
+      } else {
+        setPreview(data);
+      }
+    } catch (err) {
+      const msg = err?.message || "Could not reach server to read file";
+      if (onToast) onToast(msg);
+      else console.error("File preview failed:", err);
+    }
     setLoadingFile(false);
   }
 
@@ -380,8 +397,11 @@ export default function FileBrowser({
     if (node.convertible) {
       setConverting(node.path);
       try {
+        const folderParam = tree?.root
+          ? `&folder=${encodeURIComponent(tree.root)}`
+          : "";
         const rawRes = await apiFetch(
-          `/api/files/read-raw?path=${encodeURIComponent(node.path)}`,
+          `/api/files/read-raw?path=${encodeURIComponent(node.path)}${folderParam}`,
         );
         if (!rawRes.ok) throw new Error("Failed to read file");
         const blob = await rawRes.blob();
@@ -404,19 +424,30 @@ export default function FileBrowser({
     }
 
     try {
+      const folderParam = tree?.root
+        ? `&folder=${encodeURIComponent(tree.root)}`
+        : "";
       const res = await apiFetch(
-        `/api/files/read?path=${encodeURIComponent(node.path)}`,
+        `/api/files/read?path=${encodeURIComponent(node.path)}${folderParam}`,
       );
-      const data = await res.json();
-      if (data.content !== undefined) {
-        onAttachFile({
-          name: data.name,
-          path: data.path,
-          content: data.content,
-          lines: data.lines,
-        });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.content === undefined) {
+        const msg = data?.error || `Could not attach file (${res.status})`;
+        if (onToast) onToast(msg);
+        else console.error("Quick attach failed:", msg);
+        return;
       }
-    } catch {}
+      onAttachFile({
+        name: data.name,
+        path: data.path,
+        content: data.content,
+        lines: data.lines,
+      });
+    } catch (err) {
+      const msg = err?.message || "Could not reach server to attach file";
+      if (onToast) onToast(msg);
+      else console.error("Quick attach failed:", err);
+    }
   }
 
   function handleShareStructure() {

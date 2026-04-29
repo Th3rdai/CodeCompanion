@@ -2088,6 +2088,7 @@ export default function App() {
               <FileBrowser
                 projectFolder={chatFolder || projectFolder}
                 onAttachFile={attachFile}
+                onToast={showToast}
                 attachLabel={
                   BUILDER_MODES.includes(mode)
                     ? "Load into Form"
