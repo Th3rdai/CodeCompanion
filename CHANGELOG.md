@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.18] — 2026-04-29
+
+### Fixed
+
+- **File Browser per-row `+AI` attach button always visible** — The button used `opacity-0 group-hover:opacity-100`, leaving it invisible until you hovered the specific row, with no visual cue that hovering would reveal it. Several users reported the button as "gone." Now `opacity-70 group-hover:opacity-100` so it's always visible and brightens on hover. No behavior change to the click handler — just discoverability.
+
 ## [1.6.17] — 2026-04-29
 
 ### Changed
