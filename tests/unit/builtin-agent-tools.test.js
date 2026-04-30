@@ -48,6 +48,23 @@ test("getBuiltinSafetyPreamble includes terminal block when includeTerminal is t
   assert.ok(p.includes("Prefer read-only commands first"));
 });
 
+test("getBuiltinSafetyPreamble routes project markdown creation to write_file", () => {
+  const p = getBuiltinSafetyPreamble();
+  assert.ok(
+    p.includes("Do NOT use this tool for project/source Markdown files"),
+  );
+  assert.ok(
+    p.includes(
+      "Always use this tool when creating or editing project Markdown/source files",
+    ),
+  );
+  assert.ok(
+    p.includes("Do NOT create Markdown files through terminal redirection"),
+  );
+  assert.ok(p.includes("builtin.write_file"));
+  assert.ok(p.includes("docs/notes.md"));
+});
+
 test("getWhitelistedEnv extends packaged app PATH for developer tools", () => {
   withProcessEnv({ PATH: "/usr/bin:/bin" }, () => {
     const env = getWhitelistedEnv();
@@ -318,4 +335,84 @@ test("validateCommand: terminal tool safety preamble guides away from shell feat
   assert.match(p, /pass cwd as an argument/i);
   assert.match(p, /Do NOT loop on denied commands/);
   assert.match(p, /20-command-per-minute rate limit/);
+  assert.match(p, /NEVER report "undefined error"/);
+});
+
+// ── METACHAR_PATTERN: && / || are now denied for consistency with ; / | ───
+// Previously `cd path && cmd` slipped through the metacharacter check while
+// `cmd1; cmd2` and `cmd | grep` were rejected — the inconsistency confused the
+// model and produced partial executions.
+
+test("validateCommand: && conditional chaining is denied", () => {
+  const r = validateCommand(
+    "cd",
+    ["/Users/james/Projects/x", "&&", "ls", "-la"],
+    {
+      ...baseTerminalConfig,
+      agentTerminal: {
+        ...baseTerminalConfig.agentTerminal,
+        allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "cd"],
+      },
+    },
+  );
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /metacharacters/i);
+  assert.match(r.reason, /&&/);
+});
+
+test("validateCommand: || conditional chaining is denied", () => {
+  const r = validateCommand(
+    "echo",
+    ["foo", "||", "echo", "bar"],
+    baseTerminalConfig,
+  );
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /metacharacters/i);
+});
+
+// ── Deny payloads include an actionable ACTION line for the model ─────────
+// Without a clear next step, the model has been summarizing structured deny
+// messages as "undefined errors" to the user.
+
+test("validateCommand: allowlist deny includes ACTION instructing the model how to surface it", () => {
+  const r = validateCommand("chmod", ["+x", "deploy.sh"], baseTerminalConfig);
+  assert.equal(r.allowed, false);
+  assert.ok(r.action, "deny should carry an action field");
+  assert.match(r.action, /^ACTION:/);
+  assert.match(r.action, /Add 'chmod' to Settings/);
+  assert.match(r.action, /Do NOT retry/);
+});
+
+test("validateCommand: metacharacter deny ACTION explains there is no shell", () => {
+  const r = validateCommand(
+    "echo",
+    ["a", "|", "grep", "b"],
+    baseTerminalConfig,
+  );
+  assert.equal(r.allowed, false);
+  assert.ok(r.action);
+  assert.match(r.action, /^ACTION:/);
+  assert.match(r.action, /no shell/i);
+  assert.match(r.action, /spawn/);
+});
+
+test("validateCommand: blocklist deny ACTION explains it's a security policy", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "sudo"],
+    },
+  };
+  const r = validateCommand("sudo", ["apt", "install", "x"], cfg);
+  assert.equal(r.allowed, false);
+  assert.ok(r.action);
+  assert.match(r.action, /^ACTION:/);
+  assert.match(r.action, /security policy/i);
+});
+
+test("validateCommand: allowed commands return no action field", () => {
+  const r = validateCommand("ls", ["-la"], baseTerminalConfig);
+  assert.equal(r.allowed, true);
+  assert.equal(r.action, undefined);
 });
