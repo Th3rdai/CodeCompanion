@@ -21,7 +21,8 @@ cert/*.key
 cert/*.crt
 !cert/README.txt
 
-# Claude Code — optional MCP overrides (copy from .mcp.json.example)
+# Claude Code — optional MCP config (local paths/keys; copy from .mcp.json.example)
+.mcp.json
 .mcp.local.json
 
 # License signing keys (NEVER commit)
