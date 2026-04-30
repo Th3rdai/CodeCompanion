@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.22] — 2026-04-30
+
 ### Added
 
 - **Experiment mode** — New **Experiment** app mode (under **More → Analyze**) for bounded hypothesis → change → measure loops: `POST /api/experiment/start`, `POST /api/experiment/:id/step` (SSE, reuses `lib/chat-post-handler.js` with `mode: "experiment"`), `GET /api/experiment/:id`, `GET /api/experiment/:id/events`, `POST /api/experiment/:id/note-step`. Runs are stored under **`${CC_DATA_DIR}/experiments/`** (`lib/experiment-store.js`). **Settings → General** toggles **`experimentMode.enabled`** (default **on**) and caps **`maxRounds` / `maxDurationSec`**. Chat tool policy: when `mode === "experiment"`, MCP tools are hidden/blocked and only builtins `write_file`, `run_terminal_cmd`, `validate_scan_project`, `validate_generate_command`, `view_pdf_pages` execute (`lib/tool-call-handler.js`). **`SYSTEM_PROMPTS.experiment`** in `lib/prompts.js`. Auto-model map includes **`experiment`**. Tests: `tests/unit/experiment-store.test.js`, `tests/unit/prompts-experiment.test.js`, `tests/unit/tool-call-handler-experiment.test.js`, `tests/integration/experiment-api.test.js`, `tests/e2e/experiment-mode.spec.js`.
