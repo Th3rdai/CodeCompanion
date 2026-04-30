@@ -291,7 +291,7 @@ export default function App() {
   const [splashDismissed, setSplashDismissed] = useState(
     () => sessionStorage.getItem("th3rdai_splash_dismissed") === "true",
   );
-  const [agentMaxRounds, setAgentMaxRounds] = useState(10);
+  const [agentMaxRounds, setAgentMaxRounds] = useState(15);
   const [projectFolder, setProjectFolder] = useState("");
   const [chatFolder, setChatFolder] = useState("");
   const [icmTemplatePath, setIcmTemplatePath] = useState("");

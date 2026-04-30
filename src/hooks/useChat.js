@@ -507,6 +507,15 @@ export function useChat({
               assistantContent += `\n\nError: ${parsed.error}`;
               flushChatAssistantUi();
             }
+            if (parsed.notice && parsed.notice.message) {
+              // Inline notice from the server (e.g. round_limit). Show it to the
+              // user above the partial answer the finalizer is about to stream so
+              // they understand why the chat is wrapping up early.
+              assistantContent +=
+                (assistantContent ? "\n\n" : "") +
+                `> ⚠️ ${parsed.notice.message}\n\n`;
+              flushChatAssistantUi();
+            }
             if (parsed.toolCallRound !== undefined) {
               // Show tool execution progress in terminal output indicator
               const calls = parsed.toolCalls || [];

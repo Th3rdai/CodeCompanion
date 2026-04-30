@@ -522,17 +522,22 @@ module.exports = function createRouter(appContext) {
         const browserCorrectionMessage =
           "Browser automation tools are available in this session. The user asked for website navigation/snapshot actions. Do not refuse or ask for manual scripts. Use TOOL_CALL with browser_* tools now (e.g. browser_navigate, then browser_snapshot), then report actual results.";
 
-        async function generateFinalTextFromToolResults(reason) {
+        async function generateFinalTextFromToolResults(reason, opts = {}) {
           log("WARN", reason);
+          const { roundLimitHit = false, roundsUsed = 0 } = opts;
           try {
             const finalizerMessages = fullMessages.map((m) =>
               m.role === "system"
                 ? { ...m, content: stripAgentToolsPrompt(m.content) }
                 : m,
             );
+            const limitNote = roundLimitHit
+              ? `IMPORTANT: You used all ${roundsUsed} of your tool-call rounds for this turn. Start your reply with one short sentence telling the user this — e.g. "I hit the tool-call round limit (${roundsUsed}) for this turn, so here is what I found before stopping." Then give the best answer you can from the actual results below. If commands were denied (shell metacharacters like &&, ;, |, redirects), name a couple specifically and tell the user to either retry without shell features or raise Settings → Agent → Max Rounds. `
+              : "";
             finalizerMessages.push({
               role: "user",
               content:
+                limitNote +
                 "Do not call any tools. Based only on the actual tool results gathered below, answer the user's original request now. " +
                 "If the task is incomplete, provide the best partial answer and briefly explain what blocked completion. " +
                 "Only include a limitations, errors, or 'what did not work' section when the tool results show an actual error, blocked page, missing content, or incomplete task. " +
@@ -971,8 +976,18 @@ module.exports = function createRouter(appContext) {
           !chatAbortController.signal.aborted &&
           !res.writableEnded
         ) {
+          // Surface the round-cap hit to the client so the chat UI shows a visible
+          // reason for the stop instead of a short, unexplained reply.
+          sendEvent({
+            notice: {
+              kind: "round_limit",
+              rounds: MAX_ROUNDS,
+              message: `Hit max tool-call rounds (${MAX_ROUNDS}) for this turn. Generating a final answer from the tool results gathered so far. Raise the limit in Settings → Agent → Max Rounds if this happens often.`,
+            },
+          });
           finalText = await generateFinalTextFromToolResults(
-            "Tool-call loop ended without final text; generating final answer from accumulated tool results",
+            `Tool-call loop ended without final text after ${MAX_ROUNDS} rounds; generating final answer from accumulated tool results`,
+            { roundLimitHit: true, roundsUsed: MAX_ROUNDS },
           );
         }
 
