@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.21] — 2026-04-30
+
+### Fixed
+
+- **Auto-update no longer stuck in "Restart to apply" loop on signature mismatch** — When the auto-updater downloaded a new release whose code-signature designated requirement didn't match the running app's, Squirrel.Mac silently failed to swap the bundle and the app relaunched on the OLD version. The renderer kept showing "Restart to apply" because `lastDownloadedInfo` was never cleared and the same version was found again on next check, looping indefinitely. Three pieces now break the loop: (1) `electron/updater.js` persists `dataDir/.update-attempt.json` before `quitAndInstall()`; on the next launch, if the running version still differs from the recorded target, the loop guard suppresses the restart prompt for that version; (2) the `error` event now traps Squirrel's "code signature ... did not pass validation" / "code requirement(s)" strings via a new `isCodeSignatureError` helper and forwards an `update-error` IPC event with `{ kind: "code-signature", targetVersion, runningVersion, message }`; (3) `SettingsPanel` subscribes to `update-error` and renders the existing `error` state with a clear "install manually from GitHub Releases" message. 10 new unit tests cover the helpers.
+- **Agent terminal denials now carry an actionable `ACTION:` line** — Previously the model received `Command denied: <reason>` and often summarized to the user as "undefined error" or kept retrying the same denied shape. `validateCommand` now also returns an `action` string per deny path; the deny payload to the model becomes `Command denied: <reason>\nACTION: <next step>`. Allowlist miss → `Tell the user verbatim "Add 'X' to Settings → Agent Terminal → Allowlist"`. Metacharacter hit → `run_terminal_cmd executes a single binary via spawn() — there is NO shell. Re-run as a single binary; pass cwd as a tool arg`. Blocklist hit → `security policy ... do not retry`. Plus terminal-disabled / no-project-folder / empty-allowlist actions.
+- **Agent terminal `&&` and `||` chaining now denied consistently with `;`, `|`, redirects** — `METACHAR_PATTERN` extended to include `&&` and `||`. Previously these slipped past the metacharacter guard, letting `cd path && cmd` partially execute (spawning `cd` with confusing args) while `cmd1; cmd2` and `cmd | grep` were properly denied. Now any shell-feature chaining is denied uniformly with the same actionable hint to use the `cwd` tool argument instead of `cd path && ...`.
+- **Agent prompt: never report "undefined" / "unknown" terminal errors** — `BUILTIN_SAFETY_PREAMBLE_TERMINAL` extended with explicit "NEVER report 'undefined error' / 'unknown error' / 'the terminal failed' to the user — every deny starts with literal `Command denied:` followed by the exact reason. Quote it. If allowlist miss, name the command to add."
+
 ## [1.6.20] — 2026-04-30
 
 ### Fixed
