@@ -60,7 +60,7 @@ test("parallel tools — parallel segment executes faster than serial", async ()
 
 test("parallel tools — error in one parallel call doesn't block others", async () => {
   class FailingMcpClient {
-    async callTool(serverId, toolName, args) {
+    async callTool(serverId, toolName, _args) {
       if (toolName === "read_special") throw new Error("read_special failed!");
       return { content: [{ type: "text", text: "OK from " + toolName }] };
     }

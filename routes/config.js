@@ -298,6 +298,30 @@ module.exports = function createRouter(appContext) {
       );
     }
 
+    if (req.body.experimentMode !== undefined) {
+      const prev = config.experimentMode || {};
+      const incoming = req.body.experimentMode;
+      if (typeof incoming === "object" && incoming) {
+        config.experimentMode = { ...prev, ...incoming };
+        if (typeof config.experimentMode.maxRounds === "number") {
+          config.experimentMode.maxRounds = Math.min(
+            Math.max(Math.floor(config.experimentMode.maxRounds), 1),
+            25,
+          );
+        }
+        if (typeof config.experimentMode.maxDurationSec === "number") {
+          config.experimentMode.maxDurationSec = Math.min(
+            Math.max(Math.floor(config.experimentMode.maxDurationSec), 60),
+            7200,
+          );
+        }
+        log(
+          "INFO",
+          `Experiment mode config updated: enabled=${config.experimentMode.enabled}`,
+        );
+      }
+    }
+
     if (
       req.body.autoModelMap !== undefined &&
       typeof req.body.autoModelMap === "object"

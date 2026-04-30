@@ -9,6 +9,7 @@ export const AUTO_MODEL_MODE_ROWS = [
   { id: "diagram", label: "Diagram" },
   { id: "pentest", label: "Security" },
   { id: "validate", label: "Validate" },
+  { id: "experiment", label: "Experiment" },
   { id: "review", label: "Review" },
   { id: "prompting", label: "Prompting" },
   { id: "skillz", label: "Skillz" },

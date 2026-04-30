@@ -70,6 +70,10 @@ describe("UI Label Validation", () => {
       "plan",
       "build",
       "terminal",
+      "experiment",
+      "try",
+      "test",
+      "run",
     ];
 
     for (const mode of modes) {

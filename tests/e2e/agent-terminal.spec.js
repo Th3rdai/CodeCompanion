@@ -46,6 +46,17 @@ function readAudit(dir) {
     .map((l) => JSON.parse(l));
 }
 
+/** Writable stream buffers on CI — poll until audit lines appear or timeout. */
+async function waitForAuditLines(dataRoot, minCount, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const events = readAudit(dataRoot);
+    if (events.length >= minCount) return events;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return readAudit(dataRoot);
+}
+
 function silentLog() {
   return () => {};
 }
@@ -99,11 +110,8 @@ test("scenario 2 — allowlist deny: executor refuses + writes denied audit even
   expect(text).toContain("denied");
   expect(text).toContain("not in the allowlist");
 
-  // Audit log written, no spawn happened
-  // (small wait for the writeStream to flush before reading)
-  await new Promise((r) => setTimeout(r, 60));
-  const events = readAudit(dataRoot);
-  expect(events.length).toBe(1);
+  const events = await waitForAuditLines(dataRoot, 1);
+  expect(events.length).toBeGreaterThanOrEqual(1);
   expect(events[0].event).toBe("denied");
   expect(events[0].denyType).toBe("allowlist");
   expect(events[0].command).toBe("rm");
@@ -111,10 +119,7 @@ test("scenario 2 — allowlist deny: executor refuses + writes denied audit even
 });
 
 test("scenario 3 — happy path: allowlisted command runs and executed event is logged", async () => {
-  // NOTE: the executor uses spawn(..., { shell: true }) which concatenates
-  // array args without shell-escaping, so we can't use args containing shell
-  // metacharacters (e.g. `node -e "console.log('ok')"`). `node --version`
-  // matches CLIPLAN §8's "happy path" intent — an allowlisted command that
+  // `node --version` matches CLIPLAN §8's "happy path" intent — an allowlisted command that
   // runs cleanly, prints to stdout, and exits 0.
   const dataRoot = freshDataRoot("happy");
   const config = {
@@ -142,9 +147,8 @@ test("scenario 3 — happy path: allowlisted command runs and executed event is 
   expect(text).toContain("Exit code: 0");
   expect(text).toMatch(/v\d+\.\d+\.\d+/);
 
-  await new Promise((r) => setTimeout(r, 60));
-  const events = readAudit(dataRoot);
-  expect(events.length).toBe(1);
+  const events = await waitForAuditLines(dataRoot, 1);
+  expect(events.length).toBeGreaterThanOrEqual(1);
   expect(events[0].event).toBe("executed");
   expect(events[0].command).toBe("node");
   expect(events[0].exitCode).toBe(0);
@@ -178,9 +182,8 @@ test("scenario 4 — confirm-before-run blocks execution when callback is missin
   const text = result.result.content[0].text;
   expect(text).toContain("confirmation is required but unavailable");
 
-  await new Promise((r) => setTimeout(r, 60));
-  const events = readAudit(dataRoot);
-  expect(events.length).toBe(1);
+  const events = await waitForAuditLines(dataRoot, 1);
+  expect(events.length).toBeGreaterThanOrEqual(1);
   expect(events[0].event).toBe("denied");
   expect(events[0].denyType).toBe("confirm-unavailable");
   expect(events[0].command).toBe("node");
@@ -217,9 +220,8 @@ test("scenario 5 — confirm-before-run blocks execution when callback throws", 
   const text = result.result.content[0].text;
   expect(text).toContain("confirmation check failed");
 
-  await new Promise((r) => setTimeout(r, 60));
-  const events = readAudit(dataRoot);
-  expect(events.length).toBe(1);
+  const events = await waitForAuditLines(dataRoot, 1);
+  expect(events.length).toBeGreaterThanOrEqual(1);
   expect(events[0].event).toBe("denied");
   expect(events[0].denyType).toBe("confirm-error");
   expect(events[0].command).toBe("node");

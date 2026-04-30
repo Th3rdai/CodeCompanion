@@ -51,6 +51,10 @@ export default function EmptyStateScene({
       "Describe a feature idea — I'll draft the specs",
       "Tell me what users want — I'll write the tech requirements",
     ],
+    experiment: [
+      "State a hypothesis — we'll test it in small steps",
+      "Describe what to validate; you can turn Experiment off in Settings if you prefer",
+    ],
   };
 
   const trySuggestions = suggestions[mode] || suggestions.chat;

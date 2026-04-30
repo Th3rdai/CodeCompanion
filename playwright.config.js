@@ -1,5 +1,9 @@
 const { defineConfig, devices } = require("@playwright/test");
 
+if (process.env.FORCE_COLOR && process.env.NO_COLOR) {
+  delete process.env.NO_COLOR;
+}
+
 // Must match webServer below (FORCE_HTTP=1). Override with BASE_URL for HTTPS preview (e.g. self-signed :4173).
 const baseURL = process.env.BASE_URL || "http://127.0.0.1:4173";
 const useHTTPS = baseURL.startsWith("https://");
@@ -29,7 +33,8 @@ module.exports = defineConfig({
   ],
   webServer: {
     // Build so E2E matches current src (server serves dist/).
-    command: "npm run build && FORCE_HTTP=1 PORT=4173 node server.js",
+    command:
+      "npm run build && FORCE_HTTP=1 CC_SKIP_MCP_AUTOCONNECT=1 PORT=4173 node server.js",
     port: 4173,
     // If true, an old process on :4173 can serve stale dist/ (selectors drift) — opt in: PW_REUSE_SERVER=1
     reuseExistingServer: process.env.PW_REUSE_SERVER === "1",

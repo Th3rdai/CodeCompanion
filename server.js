@@ -13,6 +13,7 @@ const os = require("os");
 const { createLogger } = require("./lib/logger");
 const { initConfig, getConfig, updateConfig } = require("./lib/config");
 const { initHistory, listConversations } = require("./lib/history");
+const { initExperimentStore } = require("./lib/experiment-store");
 const { initMemory } = require("./lib/memory");
 const {
   listModels,
@@ -54,6 +55,7 @@ const useHttps =
 const dataRoot = process.env.CC_DATA_DIR || __dirname;
 initConfig(dataRoot);
 initHistory(dataRoot);
+initExperimentStore(dataRoot);
 initMemory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 
@@ -94,6 +96,7 @@ function jsonBodyLimit(req) {
   const p = req.path || "";
   if (
     p === "/api/chat" ||
+    p.startsWith("/api/experiment/") ||
     p === "/api/review" ||
     p === "/api/convert-document" ||
     p.startsWith("/api/pentest")
@@ -237,6 +240,7 @@ const createConfigRouter = require("./routes/config");
 const createOfficeRouter = require("./routes/office");
 const createLaunchRouter = require("./routes/launch");
 const createChatRouter = require("./routes/chat");
+const createExperimentRouter = require("./routes/experiment");
 const createReviewRouter = require("./routes/review");
 const createPentestRouter = require("./routes/pentest");
 const createProjectsRouter = require("./routes/projects");
@@ -273,6 +277,7 @@ app.use("/api", createBuildRouter(appContext));
 app.use("/api", createGithubRouter(appContext));
 app.use("/api", createGitRouter(appContext));
 app.use("/api", createChatRouter(appContext));
+app.use("/api", createExperimentRouter(appContext));
 app.use("/api", createReviewRouter(appContext));
 app.use("/api", createPentestRouter(appContext));
 
@@ -552,8 +557,12 @@ const server = serverInstance.listen(PORT, HOST, () => {
     process.send({ type: "server-ready", port: PORT });
   }
 
-  // Auto-connect configured MCP clients
-  const autoClients = (config.mcpClients || []).filter((c) => c.autoConnect);
+  // Auto-connect configured MCP clients. Test harnesses can opt out to keep
+  // unavailable external services from polluting validation logs.
+  const skipMcpAutoConnect = process.env.CC_SKIP_MCP_AUTOCONNECT === "1";
+  const autoClients = skipMcpAutoConnect
+    ? []
+    : (config.mcpClients || []).filter((c) => c.autoConnect);
   if (autoClients.length > 0) {
     log("INFO", `Auto-connecting ${autoClients.length} MCP client(s)...`);
     for (const clientConfig of autoClients) {

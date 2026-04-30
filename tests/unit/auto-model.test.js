@@ -10,6 +10,10 @@ test("mergeAutoModelMap fills defaults and applies overrides", () => {
   const m = mergeAutoModelMap({ chat: "my-model:latest" });
   assert.equal(m.chat, "my-model:latest");
   assert.equal(m.review, DEFAULT_AUTO_MODEL_MAP.review);
+  assert.ok(
+    typeof m.experiment === "string" && m.experiment.length > 0,
+    "experiment default present",
+  );
 });
 
 test("isCloudModelName detects cloud-tagged names", () => {

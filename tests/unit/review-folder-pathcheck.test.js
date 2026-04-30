@@ -85,12 +85,6 @@ describe("SYSTEM_PROMPTS review-multi", () => {
 
 describe("reviewFiles system prompt selection", () => {
   it("reviewFiles passes review-multi as systemPrompt option to reviewCode", async () => {
-    const { SYSTEM_PROMPTS } = require("../../lib/prompts");
-
-    // Capture what systemPrompt reviewCode receives by monkey-patching
-    let capturedOpts = null;
-    const review = require("../../lib/review");
-
     // We intercept by temporarily replacing chatStructured in ollama-client
     // Since we can't easily inject, verify indirectly by checking the exported
     // reviewFiles signature passes opts through correctly.

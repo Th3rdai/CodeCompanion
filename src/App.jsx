@@ -24,6 +24,7 @@ import {
 import ReviewPanel from "./components/ReviewPanel";
 import SecurityPanel from "./components/SecurityPanel";
 import ValidatePanel from "./components/ValidatePanel";
+import ExperimentPanel from "./components/ExperimentPanel";
 import PromptingPanel from "./components/builders/PromptingPanel";
 import SkillzPanel from "./components/builders/SkillzPanel";
 import AgenticPanel from "./components/builders/AgenticPanel";
@@ -133,6 +134,13 @@ const MODES = [
     placeholder: "",
   },
   {
+    id: "experiment",
+    label: "Experiment",
+    icon: "🧪",
+    desc: "Bounded hypothesis → change → measure loops",
+    placeholder: "",
+  },
+  {
     id: "review",
     label: "Review",
     icon: "📝",
@@ -213,7 +221,7 @@ const MORE_MENU_GROUPS = [
     label: "Builders",
     ids: ["prompting", "skillz", "agentic", "planner"],
   },
-  { label: "Analyze", ids: ["validate"] },
+  { label: "Analyze", ids: ["validate", "experiment"] },
   { label: "Tools", ids: ["terminal"] },
 ];
 
@@ -1183,6 +1191,8 @@ export default function App() {
               📂 Files
             </button>
             <button
+              type="button"
+              data-testid="header-settings-button"
               onClick={() => setShowSettings(true)}
               className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border transition-colors ${
                 connected
@@ -1613,6 +1623,15 @@ export default function App() {
                 onToast={showToast}
                 models={models}
               />
+            ) : mode === "experiment" ? (
+              <ExperimentPanel
+                selectedModel={selectedModel}
+                connected={connected}
+                onToast={showToast}
+                projectFolder={projectFolder}
+                chatFolder={chatFolder}
+                agentMaxRounds={agentMaxRounds}
+              />
             ) : mode === "terminal" ? (
               <TerminalPanel projectFolder={chatFolder || projectFolder} />
             ) : BUILDER_MODES.includes(mode) ? (
@@ -1891,21 +1910,28 @@ export default function App() {
             )}
 
             {/* Stats — holographic token counter */}
-            {stats && mode !== "review" && mode !== "pentest" && (
-              <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
-                <span>
-                  Model:{" "}
-                  <strong className="text-slate-400">{selectedModel}</strong>
-                </span>
-                <TokenCounter tokens={stats.tokens} duration={stats.duration} />
-              </div>
-            )}
+            {stats &&
+              mode !== "review" &&
+              mode !== "pentest" &&
+              mode !== "experiment" && (
+                <div className="glass border-t border-slate-700/30 px-4 py-1.5 flex items-center gap-4 text-xs text-slate-500">
+                  <span>
+                    Model:{" "}
+                    <strong className="text-slate-400">{selectedModel}</strong>
+                  </span>
+                  <TokenCounter
+                    tokens={stats.tokens}
+                    duration={stats.duration}
+                  />
+                </div>
+              )}
 
             {/* Input — hidden in Create, Review, and Terminal modes */}
             {mode !== "create" &&
               mode !== "build" &&
               mode !== "review" &&
               mode !== "pentest" &&
+              mode !== "experiment" &&
               mode !== "terminal" &&
               !BUILDER_MODES.includes(mode) && (
                 <div

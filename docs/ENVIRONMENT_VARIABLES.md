@@ -19,6 +19,7 @@ Code Companion reads **environment variables** for the Node server, tests, and t
 | `memory`                              | Optional embedding memory (Settings → **Memory**): `enabled`, `embeddingModel`, `maxContextTokens`, `autoExtract`, `maxMemories`. **Retrieval is per-conversation** — only memories whose `source` matches the active conversation id are injected into chat (see **`lib/memory.js`**).                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `toolExec`                            | MCP parallel tool execution (see **`.planning/MCPParallelPLAN.md`** and **`lib/tool-call-handler.js`**). Keys: **`parallel`** (boolean, default **`false`**) — when **`false`**, all tool calls in a chat round execute serially, preserving pre-v1.6.4 behavior. When **`true`**, contiguous parallel-safe calls run concurrently as a single segment while risky calls (e.g. `builtin.write_file`, `builtin.run_terminal_cmd`, `builtin.generate_office_file`) remain serial checkpoints. **`maxConcurrent`** (number, default **`4`**) — caps the worker pool inside a parallel segment. Safety classification for builtins lives in **`lib/builtin-agent-tools.js`** (`parallelSafe` field); unknown external MCP tools are conservatively treated as risky. |
 | `agentBrowser`                        | Playwright browser for builtin agent tools (`browse_url`, `browser_click`, `browser_snapshot`, etc.). Keys: **`enabled`** (boolean, default **`false`**) — when `false` browser tools are hidden from the LLM; **`headed`** (boolean, default **`false`**) — show the browser window instead of running headless. See **`docs/CC-CONFIG.md`** (Agent browser section).                                                                                                                                                                                                                                                                                                                                                                                           |
+| `experimentMode`                      | **Experiment** mode (Settings → General). Keys: **`enabled`** (boolean, default **`true`**) — when `false`, **`POST /api/experiment/start`** returns 403 and the UI shows a gated empty state. **`maxRounds`** (1–25, default **`8`**) — server caps **`agentMaxRounds`** per step. **`maxDurationSec`** (60–7200, default **`900`**) — wall-clock limit from experiment **`createdAt`**. **`commandProfile`** (reserved, default **`safe`**). **`confirmBeforeApply`** (reserved). Experiment JSON lives under **`${CC_DATA_DIR}/experiments/`**. See **`routes/experiment.js`**, **`lib/experiment-store.js`**.                                                                                                                                                |
 
 ### Where `.cc-config.json` is loaded from
 
@@ -61,29 +62,30 @@ When **`memory.enabled`** is true, the server runs **`buildMemoryContext()`** be
 | `GITHUB_TOKEN_0`, `GITHUB_TOKEN_1`, … | unset                 | **Multi-account PATs** — when **`githubTokens[n].token`** in config is empty, the server uses **`GITHUB_TOKEN_n`** (same order as the array).                                                                                                                                                                                            |
 | `MCP_{id}__…`                         | unset                 | **Per–stdio-MCP secrets** — e.g. **`MCP_github_3rdaai_admin__GITHUB_PERSONAL_ACCESS_TOKEN`** so two GitHub MCP clients can use different PATs (see intro above).                                                                                                                                                                         |
 
-**Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, and **`POST /mcp`** (HTTP MCP). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
+**Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, **`POST /mcp`** (HTTP MCP), and **`/api/experiment/*`** (status, start, step, note-step, snapshot). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
 
 ## Rate limiting (optional overrides)
 
 All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 
-| Variable                      | Default | Applies to                                                                      |
-| ----------------------------- | ------- | ------------------------------------------------------------------------------- |
-| `RATE_LIMIT_WINDOW_MS`        | `60000` | All rate limiters below                                                         |
-| `RATE_LIMIT_MAX_CHAT`         | `30`    | `POST /api/chat`                                                                |
-| `RATE_LIMIT_MAX_CREATE`       | `12`    | Create/build project endpoints                                                  |
-| `RATE_LIMIT_MAX_GITHUB_CLONE` | `6`     | `POST /api/github/clone`                                                        |
-| `RATE_LIMIT_MAX_MCP_TEST`     | `12`    | `POST /api/mcp/clients/test-connection`                                         |
-| `RATE_LIMIT_MAX_REVIEW`       | `20`    | `POST /api/review`, `/api/pentest`                                              |
-| `RATE_LIMIT_MAX_SCORE`        | `20`    | `POST /api/score`                                                               |
-| `RATE_LIMIT_MAX_MEMORY`       | `30`    | Memory write/delete routes                                                      |
-| `RATE_LIMIT_MAX_API_GLOBAL`   | `300`   | Broad cap per IP for **all** `/api/*` methods (in addition to per-route limits) |
+| Variable                      | Default | Applies to                                                                        |
+| ----------------------------- | ------- | --------------------------------------------------------------------------------- |
+| `RATE_LIMIT_WINDOW_MS`        | `60000` | All rate limiters below                                                           |
+| `RATE_LIMIT_MAX_CHAT`         | `30`    | `POST /api/chat` and **`POST /api/experiment`** (same bucket as chat-style POSTs) |
+| `RATE_LIMIT_MAX_CREATE`       | `12`    | Create/build project endpoints                                                    |
+| `RATE_LIMIT_MAX_GITHUB_CLONE` | `6`     | `POST /api/github/clone`                                                          |
+| `RATE_LIMIT_MAX_MCP_TEST`     | `12`    | `POST /api/mcp/clients/test-connection`                                           |
+| `RATE_LIMIT_MAX_REVIEW`       | `20`    | `POST /api/review`, `/api/pentest`                                                |
+| `RATE_LIMIT_MAX_SCORE`        | `20`    | `POST /api/score`                                                                 |
+| `RATE_LIMIT_MAX_MEMORY`       | `30`    | Memory write/delete routes                                                        |
+| `RATE_LIMIT_MAX_API_GLOBAL`   | `300`   | Broad cap per IP for **all** `/api/*` methods (in addition to per-route limits)   |
 
 ## Agent tools & terminal (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`)
 
 | Variable                    | Purpose                                                                                                                                                                                                                                                                                      |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `CC_ALLOW_AGENT_TERMINAL`   | Set to `1` to allow the agent terminal when the server binds to **`0.0.0.0`** / **`::`** (see `CC_BIND_ALL` / `HOST`). Matches `lib/builtin-agent-tools.js` exposure check.                                                                                                                  |
+| `CC_SKIP_MCP_AUTOCONNECT`   | Set to `1` to skip startup auto-connect for configured MCP clients. Intended for validation/test harnesses where optional external MCP servers may be offline.                                                                                                                               |
 | `MCP_TOOL_TIMEOUT_MS`       | Optional. **Milliseconds** before an **MCP** `callTool` (not builtin) is aborted with a timeout error (default **`120000`**). Minimum **`50`** when set. Prevents a hung MCP server from blocking **`POST /api/chat`** indefinitely.                                                         |
 | `MCP_IMAGE_TOOL_TIMEOUT_MS` | Optional. **Milliseconds** timeout for image generation MCP calls (`toolName: generate_image`). Default **`180000`**. The app uses `max(MCP_TOOL_TIMEOUT_MS, MCP_IMAGE_TOOL_TIMEOUT_MS)` for image calls so normal tool timeouts can stay lower while image generation gets a longer budget. |
 

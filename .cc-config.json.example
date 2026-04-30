@@ -56,6 +56,13 @@
     "maxOutputKB": 256,
     "confirmBeforeRun": false
   },
+  "experimentMode": {
+    "enabled": true,
+    "maxRounds": 8,
+    "maxDurationSec": 900,
+    "commandProfile": "safe",
+    "confirmBeforeApply": false
+  },
   "mcpServer": {
     "httpEnabled": true
   }

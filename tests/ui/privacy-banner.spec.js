@@ -1,18 +1,6 @@
-import { test, expect } from "@playwright/test";
-import browserAppReady from "../helpers/app-ready.js";
-
-async function reloadAndWaitForModels(page) {
-  const modelsPromise = page.waitForResponse(
-    (r) => r.url().includes("/api/models"),
-    { timeout: 30_000 },
-  );
-  await page.reload();
-  await modelsPromise;
-  await page.waitForSelector("#model-select", {
-    state: "visible",
-    timeout: 30_000,
-  });
-}
+const { test, expect } = require("@playwright/test");
+const browserAppReady = require("../helpers/app-ready.js");
+const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 
 test.describe("Privacy banner", () => {
   test.beforeEach(async ({ page }) => {

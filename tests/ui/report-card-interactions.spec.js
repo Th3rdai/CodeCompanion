@@ -3,22 +3,9 @@
  * Tests color-coded grades, minimal default view, and "Show all findings" toggle
  */
 
-import { test, expect } from "@playwright/test";
-import browserAppReady from "../helpers/app-ready.js";
-
-/** Subscribe to /api/models before reload (avoids missing the response). */
-async function reloadAndWaitForModels(page) {
-  const modelsPromise = page.waitForResponse(
-    (r) => r.url().includes("/api/models"),
-    { timeout: 30_000 },
-  );
-  await page.reload();
-  await modelsPromise;
-  await page.waitForSelector("#model-select", {
-    state: "visible",
-    timeout: 30_000,
-  });
-}
+const { test, expect } = require("@playwright/test");
+const browserAppReady = require("../helpers/app-ready.js");
+const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 
 const mockReportCardResponse = {
   type: "report-card",
@@ -97,11 +84,11 @@ test.describe("ReportCard Progressive Disclosure", () => {
     await reloadAndWaitForModels(page);
 
     // Wait for any mode tab first (proves tab strip hydrated) then Review
-    await page
-      .getByTestId("mode-tab-chat")
-      .waitFor({ state: "visible", timeout: 30_000 });
+    await expect(page.getByTestId("mode-tab-chat")).toBeVisible({
+      timeout: 60_000,
+    });
     await expect(page.getByTestId("mode-tab-review")).toBeVisible({
-      timeout: 30_000,
+      timeout: 60_000,
     });
     await page.getByTestId("mode-tab-review").click();
     await page

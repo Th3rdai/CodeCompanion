@@ -3,20 +3,8 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const browserAppReady = require("../helpers/app-ready.js");
+const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 const { createModeTab } = require("../helpers/mode-tabs.js");
-
-async function reloadAndWaitForModels(page) {
-  const modelsPromise = page.waitForResponse(
-    (r) => r.url().includes("/api/models"),
-    { timeout: 30_000 },
-  );
-  await page.reload();
-  await modelsPromise;
-  await page.waitForSelector("#model-select", {
-    state: "visible",
-    timeout: 30_000,
-  });
-}
 
 function slugify(value) {
   return (

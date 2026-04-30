@@ -13,10 +13,12 @@ const ignorePatterns = [
   "**/test-results/**",
   "**/playwright-report/**",
   "**/.gitnexus/**",
+  "**/.claude/worktrees/**",
   "**/ARCHIVES/**",
   "**/*.min.js",
   "**/patches/**",
   "**/github-repos/**",
+  "**/release-staging/**",
 ];
 
 export default [

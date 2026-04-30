@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source not "../**/*.md";
 
 @theme {
   --color-base: #0c0f1a;

@@ -15,7 +15,6 @@ import {
   Download,
   Wrench,
 } from "lucide-react";
-import JSZip from "jszip";
 import { copyText } from "../lib/clipboard";
 import SecurityReport from "./SecurityReport";
 import MessageBubble from "./MessageBubble";
@@ -1378,6 +1377,7 @@ ${fallbackContent
 
       // Parse the AI response into report + files
       setRemediationProgress("Building zip...");
+      const JSZip = (await import("jszip")).default;
       const zip = new JSZip();
 
       // Split on the REVISED_FILES marker

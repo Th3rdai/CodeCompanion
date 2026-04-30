@@ -1,19 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const browserAppReady = require("../helpers/app-ready.js");
+const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 const { reviewModeTab, securityModeTab } = require("../helpers/mode-tabs.js");
-
-async function reloadAndWaitForModels(
-  page,
-  { timeout = 20_000, okOnly = false } = {},
-) {
-  const modelsPromise = page.waitForResponse(
-    (r) => r.url().includes("/api/models") && (!okOnly || r.ok()),
-    { timeout },
-  );
-  await page.reload();
-  await modelsPromise;
-  await page.waitForSelector("#model-select", { state: "visible", timeout });
-}
 
 /** App expects SSE from POST /api/chat (data: JSON lines + [DONE]). */
 function mockSseChatBody(assistantText) {
@@ -421,22 +409,17 @@ test.describe("Image Upload E2E - Security Mode", () => {
       });
     });
 
-    // Navigate and switch to Security mode
+    // Navigate and switch to Security mode (same BFCache-safe models wait as Chat)
     await page.addInitScript(browserAppReady);
     await page.goto("/");
     await page.evaluate(() => {
       localStorage.setItem("cc-image-privacy-accepted", "true");
     });
-    await page.reload();
-    await page.waitForLoadState("domcontentloaded");
-    await page.waitForResponse(
-      (r) => r.url().includes("/api/models") && r.ok(),
-      { timeout: 20_000 },
-    );
+    await reloadAndWaitForModels(page, { timeout: 25_000, okOnly: true });
 
-    await expect(page.getByTestId("mode-tab-pentest")).toBeVisible({
-      timeout: 25_000,
-    });
+    const pentestTab = page.getByTestId("mode-tab-pentest");
+    await pentestTab.scrollIntoViewIfNeeded();
+    await expect(pentestTab).toBeVisible({ timeout: 30_000 });
     await securityModeTab(page).click();
 
     const modelSelect = page.locator("#model-select");
@@ -480,18 +463,25 @@ test.describe("Image Upload E2E - Security Mode", () => {
 });
 
 test.describe("Image Upload E2E - Settings", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    await context.route("**/api/models", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(mockModels),
+      });
+    });
+
     await page.addInitScript(browserAppReady);
     await page.goto("/");
-    await page.reload();
+    await page.evaluate(() => {
+      localStorage.setItem("cc-image-privacy-accepted", "true");
+    });
+    await reloadAndWaitForModels(page, { timeout: 25_000, okOnly: true });
   });
 
   test("should configure image support settings", async ({ page }) => {
-    // Open settings
-    const settingsButton = page
-      .getByRole("button", { name: /settings/i })
-      .first();
-    await settingsButton.click();
+    await page.getByTestId("header-settings-button").click();
 
     // Look for Image Support section
     const imageSupportSection = page.getByText(/image support/i);

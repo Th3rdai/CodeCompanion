@@ -71,6 +71,12 @@ const MODE_QUIPS = {
     "Adding guardrails and safety nets",
     "Training the agent apprentice...",
   ],
+  experiment: [
+    "Running a careful trial...",
+    "Measuring twice, coding once",
+    "Checking the lab goggles...",
+    "Isolating variables...",
+  ],
 };
 
 const DEFAULT_QUIPS = [

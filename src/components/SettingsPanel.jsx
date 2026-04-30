@@ -123,6 +123,10 @@ export default function SettingsPanel({
   const [browserEnabled, setBrowserEnabled] = useState(false);
   const [browserHeaded, setBrowserHeaded] = useState(false);
 
+  const [experimentModeEnabled, setExperimentModeEnabled] = useState(true);
+  const [experimentMaxRounds, setExperimentMaxRounds] = useState(8);
+  const [experimentMaxDurationSec, setExperimentMaxDurationSec] = useState(900);
+
   // GitHub token state (multi-PAT)
   const [ghToken, setGhToken] = useState("");
   const [ghTokenLabel, setGhTokenLabel] = useState("");
@@ -212,6 +216,24 @@ export default function SettingsPanel({
           if (data.agentBrowser != null) {
             setBrowserEnabled(data.agentBrowser.enabled === true);
             setBrowserHeaded(data.agentBrowser.headed === true);
+          }
+          if (data.experimentMode && typeof data.experimentMode === "object") {
+            setExperimentModeEnabled(data.experimentMode.enabled === true);
+            setExperimentMaxRounds(
+              Math.min(
+                Math.max(parseInt(data.experimentMode.maxRounds, 10) || 8, 1),
+                25,
+              ),
+            );
+            setExperimentMaxDurationSec(
+              Math.min(
+                Math.max(
+                  parseInt(data.experimentMode.maxDurationSec, 10) || 900,
+                  60,
+                ),
+                7200,
+              ),
+            );
           }
           if (data.autoModelMap && typeof data.autoModelMap === "object")
             setAutoModelMap(data.autoModelMap);
@@ -1434,6 +1456,122 @@ export default function SettingsPanel({
                 How long to wait for chat responses. Increase for large
                 documents or slow models.
               </p>
+            </div>
+
+            {/* Experiment mode */}
+            <div className="glass rounded-lg p-4 border border-indigo-500/20">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">
+                    Experiment mode
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Bounded runs in{" "}
+                    <span className="text-indigo-300">Experiment</span> mode
+                    with restricted tools and saved timelines (off by default).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !experimentModeEnabled;
+                    setExperimentModeEnabled(next);
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        experimentMode: { enabled: next },
+                      }),
+                    }).catch(() => {});
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${experimentModeEnabled ? "bg-indigo-500" : "bg-slate-600"}`}
+                  aria-label="Toggle experiment mode"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${experimentModeEnabled ? "translate-x-4" : ""}`}
+                  />
+                </button>
+              </div>
+              {experimentModeEnabled && (
+                <div className="space-y-3 mt-3 pt-3 border-t border-slate-700/40">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Default max tool rounds per step ({experimentMaxRounds})
+                    </label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={25}
+                      value={experimentMaxRounds}
+                      onChange={(e) =>
+                        setExperimentMaxRounds(parseInt(e.target.value, 10))
+                      }
+                      onMouseUp={() => {
+                        apiFetch("/api/config", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            experimentMode: { maxRounds: experimentMaxRounds },
+                          }),
+                        }).catch(() => {});
+                      }}
+                      onTouchEnd={() => {
+                        apiFetch("/api/config", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            experimentMode: { maxRounds: experimentMaxRounds },
+                          }),
+                        }).catch(() => {});
+                      }}
+                      className="w-full accent-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">
+                      Max experiment wall time ({experimentMaxDurationSec}s)
+                    </label>
+                    <input
+                      type="range"
+                      min={300}
+                      max={3600}
+                      step={60}
+                      value={experimentMaxDurationSec}
+                      onChange={(e) =>
+                        setExperimentMaxDurationSec(
+                          parseInt(e.target.value, 10),
+                        )
+                      }
+                      onMouseUp={() => {
+                        apiFetch("/api/config", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            experimentMode: {
+                              maxDurationSec: experimentMaxDurationSec,
+                            },
+                          }),
+                        }).catch(() => {});
+                      }}
+                      onTouchEnd={() => {
+                        apiFetch("/api/config", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            experimentMode: {
+                              maxDurationSec: experimentMaxDurationSec,
+                            },
+                          }),
+                        }).catch(() => {});
+                      }}
+                      className="w-full accent-indigo-500"
+                    />
+                    <p className="text-[10px] text-slate-600 mt-1">
+                      5 min — 60 min
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Context Window & Auto-Adjust */}
