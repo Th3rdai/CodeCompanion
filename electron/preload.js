@@ -55,6 +55,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       callback(progress),
     );
   },
+  onUpdateError: (callback) => {
+    ipcRenderer.on("update-error", (event, info) => callback(info));
+  },
 
   // IDE launcher
   launchIDE: (ide, folder) => ipcRenderer.invoke("launch-ide", { ide, folder }),

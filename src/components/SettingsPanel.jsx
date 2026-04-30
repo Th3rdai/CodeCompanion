@@ -351,6 +351,19 @@ export default function SettingsPanel({
         setUpdateStatus("ready");
         setUpdateInfo(info);
       });
+      window.electronAPI.onUpdateError?.((info) => {
+        // Auto-update could not be applied (e.g. code-signature mismatch).
+        // Replace the "Restart to apply" affordance with a manual-install
+        // message so the user does not get stuck in a restart loop.
+        setUpdateStatus("error");
+        setUpdateError(
+          info?.message ||
+            "Auto-update failed. Please install the latest version manually from GitHub Releases.",
+        );
+        if (info?.targetVersion) {
+          setUpdateInfo({ version: info.targetVersion });
+        }
+      });
     }
   }, [isElectron]);
 
