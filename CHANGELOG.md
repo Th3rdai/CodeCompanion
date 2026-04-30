@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.20] — 2026-04-30
+
+### Fixed
+
+- **Chat now explains when it stops at the tool-call round limit** — Previously, if the agent exhausted its `agentMaxRounds` budget without producing a final reply (often because the model burned rounds on denied compound shell commands like `cmd | grep`, `a && b`), the finalizer summarized from accumulated tool results into a short, unexplained message. From the user side, the chat just stopped. Now: (1) when the loop exits without final text the route sends a new `notice: { kind: "round_limit", rounds, message }` SSE event, (2) `useChat` renders it as a visible `> ⚠️ ...` blockquote above the partial answer, (3) the finalizer prompt is told to lead with one sentence acknowledging the limit hit and to name a couple of denied calls if any. Default `agentMaxRounds` raised 10 → 15 for headroom (UI slider still ranges to the server's 25 cap).
+
 ## [1.6.19] — 2026-04-29
 
 ### Fixed
