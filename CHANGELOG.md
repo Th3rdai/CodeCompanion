@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.31] — 2026-05-01
+
+### Fixed
+
+- **Stop hallucinating "Command failed with 'undefined' error" on non-zero exits.** Reported in dogfood: model ran `python3 -m pytest --collect-only tests/`, pytest exited 2 with 6KB of real `ImportError` output, model summarized as "Command failed with 'undefined' error" — discarding the actual diagnostic info. Two interacting bugs:
+  - **`runTerminalCmd` returned `success: false` on any non-zero exit** (`lib/builtin-agent-tools.js`). The chat handler then prefixed the model's tool-result message with `Tool builtin.run_terminal_cmd **failed**: …` instead of `**returned**: …`. qwen3-32k saw "failed" + non-zero code and fell into its generic-error template without reading the body. Fix: `success: true` whenever the tool actually executed (even with non-zero exit). Reserve `success: false` for genuine tool failures (timeout/killed). Pytest exit 2, ruff exit 1, grep exit 1 — all useful diagnostic outputs the model now reads as data, not as "the tool broke".
+  - **The "never report 'undefined error'" instruction** (`BUILTIN_SAFETY_PREAMBLE_TERMINAL`) was scoped to **deny** responses only. Extended to cover non-zero exits explicitly: "**Non-zero exit codes are NOT undefined errors:** pytest exits 2 on collection errors, ruff exits 1 on lint findings, grep exits 1 when nothing matches. The tool result includes the real stdout/stderr below the Exit-code line — read those errors and describe them specifically (e.g. 'pytest exited 2 with 6 ImportError messages: …')."
+
 ## [1.6.30] — 2026-05-01
 
 ### Fixed
