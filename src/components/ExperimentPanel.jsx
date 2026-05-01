@@ -50,8 +50,15 @@ export default function ExperimentPanel({
   const [existingRunId, setExistingRunId] = useState(null);
   const [activeStep, setActiveStep] = useState(null); // { step, index } | { outcome: true }
   const [deepDiveMessages, setDeepDiveMessages] = useState([]);
+  const [progress, setProgress] = useState(null);
+  // progress shape:
+  //   { phase: 'thinking' | 'tool' | 'streaming' | 'finalizing',
+  //     round: number, maxRounds: number, label: string, startedAt: number,
+  //     toolName?: string, toolDetail?: string }
   const stepAbortRef = useRef(null);
   const pollRef = useRef(null);
+  const elapsedTickRef = useRef(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
 
   // Load server defaults (enabled flag, max rounds, max duration) on mount,
   // and the global agent-terminal allowlist used to seed the input form's
@@ -227,6 +234,19 @@ export default function ExperimentPanel({
 
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
+      const startedAt = Date.now();
+      setElapsedSec(0);
+      elapsedTickRef.current = setInterval(() => {
+        setElapsedSec(Math.floor((Date.now() - startedAt) / 1000));
+      }, 1000);
+      setProgress({
+        phase: "thinking",
+        round: 1,
+        maxRounds: cap,
+        label: `Waiting for ${selectedModel} to start…`,
+        startedAt,
+      });
+
       try {
         const res = await apiFetch(
           `/api/experiment/${encodeURIComponent(expId)}/step`,
@@ -264,6 +284,17 @@ export default function ExperimentPanel({
             try {
               const parsed = JSON.parse(payload);
               if (parsed.token) {
+                if (assistantContent === "") {
+                  setProgress((p) =>
+                    p
+                      ? {
+                          ...p,
+                          phase: "streaming",
+                          label: "Streaming response…",
+                        }
+                      : p,
+                  );
+                }
                 assistantContent += parsed.token;
                 setMessages((prev) => {
                   const copy = [...prev];
@@ -276,8 +307,66 @@ export default function ExperimentPanel({
               if (parsed.toolImage?.data) {
                 assistantImages.push(parsed.toolImage.data);
               }
+              if (parsed.toolCallRound) {
+                setProgress((p) =>
+                  p
+                    ? {
+                        ...p,
+                        phase: "thinking",
+                        round: parsed.toolCallRound,
+                        label: `Round ${parsed.toolCallRound} of ${p.maxRounds}: deciding next action…`,
+                      }
+                    : p,
+                );
+              }
+              if (parsed.terminalCmd) {
+                const cmd = parsed.terminalCmd.command || "";
+                const args = Array.isArray(parsed.terminalCmd.args)
+                  ? parsed.terminalCmd.args.join(" ")
+                  : "";
+                setProgress((p) =>
+                  p
+                    ? {
+                        ...p,
+                        phase: "tool",
+                        toolName: "run_terminal_cmd",
+                        toolDetail: `${cmd} ${args}`.trim().slice(0, 80),
+                        label: `Running: ${cmd}`,
+                      }
+                    : p,
+                );
+              }
+              if (parsed.terminalStatus) {
+                const code = parsed.terminalStatus.exitCode;
+                const ok = code === 0 || code === undefined;
+                setProgress((p) =>
+                  p
+                    ? {
+                        ...p,
+                        phase: "thinking",
+                        label: ok
+                          ? "Terminal command finished — analyzing output…"
+                          : `Command exited ${code} — analyzing…`,
+                      }
+                    : p,
+                );
+              }
+              if (parsed.notice) {
+                setProgress((p) =>
+                  p ? { ...p, label: parsed.notice.message || p.label } : p,
+                );
+              }
               if (parsed.error) {
                 assistantContent += `\n\nError: ${parsed.error}`;
+                setProgress((p) =>
+                  p
+                    ? {
+                        ...p,
+                        phase: "thinking",
+                        label: `Error: ${parsed.error}`.slice(0, 100),
+                      }
+                    : p,
+                );
               }
             } catch {
               /* */
@@ -316,6 +405,11 @@ export default function ExperimentPanel({
       } finally {
         stepAbortRef.current = null;
         setStreaming(false);
+        if (elapsedTickRef.current) {
+          clearInterval(elapsedTickRef.current);
+          elapsedTickRef.current = null;
+        }
+        setProgress(null);
       }
     },
     [
@@ -519,12 +613,18 @@ export default function ExperimentPanel({
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="shrink-0 border-b border-slate-700/50 glass px-4 py-2 space-y-2">
         <div className="flex items-center gap-2 flex-wrap justify-between">
-          <div className="min-w-0">
-            <div className="text-[10px] uppercase text-slate-500">
-              Running experiment
-            </div>
-            <div className="text-sm text-slate-200 truncate">
-              {experiment?.hypothesis || "(starting…)"}
+          <div className="min-w-0 flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={`inline-block w-2 h-2 rounded-full bg-emerald-400 motion-safe:animate-pulse motion-reduce:opacity-80`}
+            />
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase text-slate-500">
+                Running experiment
+              </div>
+              <div className="text-sm text-slate-200 truncate">
+                {experiment?.hypothesis || "(starting…)"}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -541,6 +641,11 @@ export default function ExperimentPanel({
             </button>
           </div>
         </div>
+        <RunningProgress
+          progress={progress}
+          elapsedSec={elapsedSec}
+          streaming={streaming}
+        />
       </div>
 
       <div
@@ -562,13 +667,6 @@ export default function ExperimentPanel({
             />
           </div>
         ))}
-        {streaming &&
-          messages[messages.length - 1]?.role === "assistant" &&
-          !messages[messages.length - 1]?.content && (
-            <div className="text-xs text-slate-500 px-2 py-1">
-              Working on it…
-            </div>
-          )}
       </div>
 
       {experiment?.steps?.length > 0 && (
@@ -589,6 +687,85 @@ export default function ExperimentPanel({
           </ol>
         </div>
       )}
+    </div>
+  );
+}
+
+function fmtElapsed(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+const PHASE_PILLS = {
+  thinking: {
+    text: "Thinking",
+    cls: "bg-indigo-500/15 border-indigo-500/30 text-indigo-200",
+  },
+  tool: {
+    text: "Tool",
+    cls: "bg-amber-500/15 border-amber-500/30 text-amber-200",
+  },
+  streaming: {
+    text: "Streaming",
+    cls: "bg-emerald-500/15 border-emerald-500/30 text-emerald-200",
+  },
+  finalizing: {
+    text: "Wrapping up",
+    cls: "bg-slate-500/15 border-slate-500/30 text-slate-200",
+  },
+};
+
+function RunningProgress({ progress, elapsedSec, streaming }) {
+  if (!streaming && !progress) return null;
+  const phase = progress?.phase || "thinking";
+  const pill = PHASE_PILLS[phase] || PHASE_PILLS.thinking;
+  const round = progress?.round || 1;
+  const max = progress?.maxRounds || 1;
+  const pct = Math.min(
+    100,
+    Math.round(((round - 1) / Math.max(1, max - 1)) * 100),
+  );
+  const label = progress?.label || "Working…";
+
+  return (
+    <div className="space-y-1.5" aria-live="polite" aria-atomic="true">
+      <div className="flex items-center gap-2 text-[11px]">
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 font-semibold uppercase tracking-wide ${pill.cls}`}
+        >
+          {pill.text}
+        </span>
+        <span className="text-slate-400 font-mono">
+          Round {round}/{max}
+        </span>
+        <span className="text-slate-500 font-mono ml-auto tabular-nums">
+          {fmtElapsed(elapsedSec)}
+        </span>
+      </div>
+      <div className="text-xs text-slate-300 truncate" title={label}>
+        {label}
+      </div>
+      <div
+        className="h-1 bg-slate-800 rounded overflow-hidden"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Round progress: ${round} of ${max}`}
+      >
+        <div
+          className={`h-full rounded transition-all duration-300 ease-out ${
+            phase === "tool"
+              ? "bg-amber-400/80"
+              : phase === "streaming"
+                ? "bg-emerald-400/80 motion-safe:animate-pulse"
+                : "bg-indigo-400/80 motion-safe:animate-pulse"
+          }`}
+          style={{ width: `${Math.max(6, pct)}%` }}
+        />
+      </div>
     </div>
   );
 }
