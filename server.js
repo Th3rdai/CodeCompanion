@@ -13,7 +13,10 @@ const os = require("os");
 const { createLogger } = require("./lib/logger");
 const { initConfig, getConfig, updateConfig } = require("./lib/config");
 const { initHistory, listConversations } = require("./lib/history");
-const { initExperimentStore } = require("./lib/experiment-store");
+const {
+  initExperimentStore,
+  sweepStaleActiveExperiments,
+} = require("./lib/experiment-store");
 const { initMemory } = require("./lib/memory");
 const {
   listModels,
@@ -58,6 +61,15 @@ initHistory(dataRoot);
 initExperimentStore(dataRoot);
 initMemory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
+
+try {
+  const sweepResult = sweepStaleActiveExperiments(Date.now(), getConfig());
+  if (sweepResult.swept || sweepResult.restored) {
+    log("INFO", "Experiment sweep on startup", sweepResult);
+  }
+} catch (err) {
+  log("WARN", "Experiment sweep failed", { error: err.message });
+}
 
 const {
   createRequireLocalOrApiKey,

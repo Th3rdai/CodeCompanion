@@ -1,14 +1,30 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { apiFetch } from "../lib/api-fetch";
 import MessageBubble from "./MessageBubble";
+import ExperimentInputForm from "./ExperimentInputForm";
+import ExperimentReport from "./ExperimentReport";
+import DeepDivePanel from "./DeepDivePanel";
 import { sanitizeUnconfirmedImageClaims } from "../lib/chat-image-claims";
 import {
   MAX_CHAT_POST_BYTES,
   estimateChatPostBodyBytes,
 } from "../lib/chat-payload";
 
+const TERMINAL_STATUSES = new Set([
+  "completed",
+  "aborted",
+  "failed",
+  "timeout",
+]);
+
 /**
- * Bounded experiment loops: hypothesis → steps via POST /api/experiment/:id/step (SSE).
+ * Phase-machine orchestrator for Experiment Mode.
+ *
+ *   input → running → report → [deep-dive] ↻ report → input (New experiment)
+ *
+ * The actual SSE pipe (POST /api/experiment/:id/step) is unchanged on the wire.
+ * The "running" phase shows a live message stream + step ticker as the model
+ * works; on terminal status the panel auto-transitions to "report".
  */
 export default function ExperimentPanel({
   selectedModel,
@@ -18,29 +34,47 @@ export default function ExperimentPanel({
   chatFolder,
   agentMaxRounds,
 }) {
-  const [status, setStatus] = useState({ enabled: false, maxRounds: 8 });
-  const [hypothesis, setHypothesis] = useState("");
-  const [budgetRounds, setBudgetRounds] = useState(8);
-  const [experimentId, setExperimentId] = useState(null);
+  const [defaultCommandAllowlist, setDefaultCommandAllowlist] = useState([]);
+  const [status, setStatus] = useState({
+    enabled: false,
+    maxRounds: 8,
+    maxDurationSec: 900,
+  });
+  const [phase, setPhase] = useState("input"); // 'input' | 'running' | 'report' | 'deep-dive'
+  const [experiment, setExperiment] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [timeline, setTimeline] = useState([]);
-  const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [convId, setConvId] = useState(null);
-
+  const [starting, setStarting] = useState(false);
+  const [errorBanner, setErrorBanner] = useState(null);
+  const [existingRunId, setExistingRunId] = useState(null);
+  const [activeStep, setActiveStep] = useState(null); // { step, index } | { outcome: true }
+  const [deepDiveMessages, setDeepDiveMessages] = useState([]);
   const stepAbortRef = useRef(null);
+  const pollRef = useRef(null);
 
+  // Load server defaults (enabled flag, max rounds, max duration) on mount,
+  // and the global agent-terminal allowlist used to seed the input form's
+  // commands chip-row.
   useEffect(() => {
     apiFetch("/api/experiment/status")
       .then((r) => r.json())
-      .then((j) => {
-        setStatus(j);
-        const cap = Math.min(Math.max(parseInt(j.maxRounds, 10) || 8, 1), 25);
-        setBudgetRounds(cap);
+      .then((j) => setStatus(j))
+      .catch(() =>
+        setStatus({ enabled: false, maxRounds: 8, maxDurationSec: 900 }),
+      );
+    apiFetch("/api/config")
+      .then((r) => r.json())
+      .then((cfg) => {
+        const allow = Array.isArray(cfg?.agentTerminal?.allowlist)
+          ? cfg.agentTerminal.allowlist
+          : [];
+        setDefaultCommandAllowlist(allow);
       })
-      .catch(() => setStatus({ enabled: false, maxRounds: 8 }));
+      .catch(() => setDefaultCommandAllowlist([]));
   }, []);
 
+  // Esc aborts any in-flight step request.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape" && streaming) stepAbortRef.current?.abort();
@@ -49,13 +83,46 @@ export default function ExperimentPanel({
     return () => window.removeEventListener("keydown", onKey);
   }, [streaming]);
 
+  // Poll the experiment record while running, so the report-card transitions
+  // happen on terminal status (completed/aborted/timeout) without depending on
+  // SSE state — server is the source of truth.
+  useEffect(() => {
+    if (!experiment?.id || phase !== "running") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
+    const tick = async () => {
+      try {
+        const res = await apiFetch(
+          `/api/experiment/${encodeURIComponent(experiment.id)}`,
+        );
+        if (!res.ok) return;
+        const fresh = await res.json();
+        setExperiment(fresh);
+        if (TERMINAL_STATUSES.has(fresh.status)) {
+          setPhase("report");
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    pollRef.current = setInterval(tick, 2500);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
+    };
+  }, [experiment?.id, phase]);
+
   const saveHistory = useCallback(
     async (msgs, overrides = {}) => {
       const title =
         overrides.title ||
         msgs.find((m) => m.role === "user")?.content?.slice(0, 60) ||
         "Experiment";
-      const expField = overrides.experimentId ?? experimentId;
+      const expField = overrides.experimentId ?? experiment?.id;
       try {
         const res = await apiFetch("/api/history", {
           method: "POST",
@@ -67,7 +134,7 @@ export default function ExperimentPanel({
             mode: "experiment",
             model: selectedModel,
             messages: msgs,
-            ...(expField ? { experimentId: expField } : {}),
+            ...(expField ? { experimentIds: [expField] } : {}),
           }),
         });
         const { id } = await res.json();
@@ -77,32 +144,46 @@ export default function ExperimentPanel({
         return null;
       }
     },
-    [convId, experimentId, selectedModel],
+    [convId, experiment?.id, selectedModel],
   );
 
+  const refreshExperiment = useCallback(async (id) => {
+    try {
+      const r = await apiFetch(`/api/experiment/${encodeURIComponent(id)}`);
+      if (!r.ok) return;
+      const fresh = await r.json();
+      setExperiment(fresh);
+      if (TERMINAL_STATUSES.has(fresh.status)) {
+        setPhase("report");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const noteStep = useCallback(
-    async (summary, idOverride) => {
-      const eid = idOverride ?? experimentId;
-      if (!eid || !summary?.trim()) return;
+    async (rawAssistantText, idOverride) => {
+      const eid = idOverride ?? experiment?.id;
+      if (!eid || !rawAssistantText?.trim()) return;
       try {
         await apiFetch(`/api/experiment/${encodeURIComponent(eid)}/note-step`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ summary: summary.slice(0, 4000) }),
+          body: JSON.stringify({
+            rawAssistantText: rawAssistantText.slice(0, 8000),
+          }),
         });
-        const r = await apiFetch(`/api/experiment/${encodeURIComponent(eid)}`);
-        const exp = await r.json();
-        setTimeline(exp.steps || []);
+        await refreshExperiment(eid);
       } catch {
         /* ignore */
       }
     },
-    [experimentId],
+    [experiment?.id, refreshExperiment],
   );
 
   const runStep = useCallback(
     async (nextMessages, conversationIdOverride, experimentIdOverride) => {
-      const expId = experimentIdOverride ?? experimentId;
+      const expId = experimentIdOverride ?? experiment?.id;
       if (!expId || !selectedModel || streaming) return;
       setStreaming(true);
       stepAbortRef.current?.abort();
@@ -110,6 +191,11 @@ export default function ExperimentPanel({
       stepAbortRef.current = ac;
 
       const convForChat = conversationIdOverride ?? convId;
+      const cap = Math.min(
+        experiment?.maxRounds ?? status.maxRounds ?? 8,
+        agentMaxRounds || status.maxRounds || 8,
+        status.maxRounds || 8,
+      );
 
       const postBody = {
         model: selectedModel,
@@ -119,11 +205,7 @@ export default function ExperimentPanel({
           ...(m.images && { images: m.images }),
         })),
         conversationId: convForChat || undefined,
-        agentMaxRounds: Math.min(
-          budgetRounds,
-          agentMaxRounds || budgetRounds,
-          status.maxRounds || budgetRounds,
-        ),
+        agentMaxRounds: cap,
       };
       const bytes = estimateChatPostBodyBytes(postBody);
       if (bytes > MAX_CHAT_POST_BYTES) {
@@ -185,8 +267,7 @@ export default function ExperimentPanel({
                 assistantContent += parsed.token;
                 setMessages((prev) => {
                   const copy = [...prev];
-                  const last = copy[copy.length - 1];
-                  if (last?.role === "assistant") {
+                  if (copy[copy.length - 1]?.role === "assistant") {
                     copy[copy.length - 1] = buildAssistantMessage();
                   }
                   return copy;
@@ -199,18 +280,14 @@ export default function ExperimentPanel({
                 assistantContent += `\n\nError: ${parsed.error}`;
               }
             } catch {
-              /* line parse */
+              /* */
             }
           }
         }
         const finalMsgs = [...nextMessages, buildAssistantMessage()];
         setMessages(finalMsgs);
-        await saveHistory(finalMsgs);
-        await noteStep(
-          assistantContent.slice(0, 2000) ||
-            "(assistant message empty or tool-only)",
-          expId,
-        );
+        await saveHistory(finalMsgs, { experimentId: expId });
+        await noteStep(assistantContent, expId);
       } catch (e) {
         if (e.name === "AbortError") {
           setMessages((prev) => {
@@ -223,16 +300,14 @@ export default function ExperimentPanel({
           setMessages((prev) => {
             const copy = [...prev];
             const last = copy[copy.length - 1];
+            const errorMsg = {
+              role: "assistant",
+              content: `**Experiment step failed**\n\n${errText}`,
+            };
             if (last?.role === "assistant") {
-              copy[copy.length - 1] = {
-                role: "assistant",
-                content: `**Experiment step failed**\n\n${errText}`,
-              };
+              copy[copy.length - 1] = errorMsg;
             } else {
-              copy.push({
-                role: "assistant",
-                content: `**Experiment step failed**\n\n${errText}`,
-              });
+              copy.push(errorMsg);
             }
             return copy;
           });
@@ -244,11 +319,11 @@ export default function ExperimentPanel({
       }
     },
     [
-      experimentId,
+      experiment?.id,
+      experiment?.maxRounds,
       selectedModel,
       streaming,
       convId,
-      budgetRounds,
       agentMaxRounds,
       status.maxRounds,
       saveHistory,
@@ -257,209 +332,222 @@ export default function ExperimentPanel({
     ],
   );
 
-  async function handleStart() {
-    if (!status.enabled) {
-      onToast?.("Turn on Experiment mode in Settings → General.");
-      return;
-    }
-    if (!hypothesis.trim()) {
-      onToast?.("Write a short hypothesis first.");
-      return;
-    }
-    if (!connected || !selectedModel) {
-      onToast?.("Pick a model and ensure Ollama is connected.");
-      return;
-    }
-    try {
-      const res = await apiFetch("/api/experiment/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hypothesis: hypothesis.trim(),
-          maxRounds: budgetRounds,
-        }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || res.statusText);
+  const handleStart = useCallback(
+    async (payload) => {
+      if (!status.enabled) {
+        onToast?.("Turn on Experiment mode in Settings → General.");
+        return;
       }
-      const { id, record } = await res.json();
-      setExperimentId(id);
-      setConvId(null);
-      const seed = [
+      if (!connected || !selectedModel) {
+        onToast?.("Pick a model and ensure Ollama is connected.");
+        return;
+      }
+      setErrorBanner(null);
+      setExistingRunId(null);
+      setStarting(true);
+      try {
+        const res = await apiFetch("/api/experiment/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          if (res.status === 409 && j?.existingId) {
+            setExistingRunId(j.existingId);
+            setErrorBanner({
+              title: "An experiment is already running",
+              message:
+                "This project already has an active experiment. Resume it or wait for it to finish before starting another.",
+            });
+            return;
+          }
+          throw new Error(j.error || res.statusText);
+        }
+        const { id, record } = await res.json();
+        setExperiment(record || { id, ...payload });
+        setConvId(null);
+        setMessages([]);
+        const seed = [
+          {
+            role: "user",
+            content:
+              `**Experiment hypothesis**\n\n${payload.hypothesis}\n\n` +
+              `Work in small steps. Use the Step summary block when you finish each turn — include the **Done** marker on the final turn.`,
+          },
+        ];
+        setMessages(seed);
+        setPhase("running");
+        const hid = await saveHistory(seed, {
+          experimentId: id,
+          title: payload.hypothesis.slice(0, 60),
+        });
+        await runStep(seed, hid || undefined, id);
+      } catch (e) {
+        onToast?.(`❌ ${e.message}`);
+      } finally {
+        setStarting(false);
+      }
+    },
+    [status.enabled, connected, selectedModel, onToast, saveHistory, runStep],
+  );
+
+  const handleResumeExisting = useCallback(async () => {
+    if (!existingRunId) return;
+    try {
+      const r = await apiFetch(
+        `/api/experiment/${encodeURIComponent(existingRunId)}`,
+      );
+      if (!r.ok) return;
+      const fresh = await r.json();
+      setExperiment(fresh);
+      setErrorBanner(null);
+      setExistingRunId(null);
+      if (TERMINAL_STATUSES.has(fresh.status)) {
+        setPhase("report");
+      } else {
+        setPhase("running");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [existingRunId]);
+
+  const handleAbort = useCallback(async () => {
+    if (!experiment?.id) return;
+    stepAbortRef.current?.abort();
+    try {
+      await apiFetch(
+        `/api/experiment/${encodeURIComponent(experiment.id)}/abort`,
         {
-          role: "user",
-          content:
-            `**Experiment hypothesis**\n\n${hypothesis.trim()}\n\n` +
-            `Work in small steps. State a success metric per step. Use the Step summary block when you finish each turn.`,
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "user" }),
         },
-      ];
-      setMessages(seed);
-      setTimeline(record?.steps || []);
-      const hid = await saveHistory(seed, {
-        experimentId: id,
-        title: hypothesis.trim().slice(0, 60),
-      });
-      await runStep(seed, hid || undefined, id);
+      );
+      await refreshExperiment(experiment.id);
     } catch (e) {
       onToast?.(`❌ ${e.message}`);
     }
-  }
+  }, [experiment?.id, onToast, refreshExperiment]);
 
-  async function handleSendFollowUp() {
-    const t = input.trim();
-    if (!t || streaming || !experimentId) return;
-    const next = [...messages, { role: "user", content: t }];
-    setMessages(next);
-    setInput("");
-    await saveHistory(next);
-    await runStep(next);
-  }
+  const handleNewExperiment = useCallback(() => {
+    setExperiment(null);
+    setMessages([]);
+    setConvId(null);
+    setActiveStep(null);
+    setDeepDiveMessages([]);
+    setPhase("input");
+  }, []);
 
-  const scopeFolder = chatFolder || projectFolder || "(not set)";
+  const handleAskAboutStep = useCallback((step, index) => {
+    setActiveStep({ step, index });
+    setDeepDiveMessages([]);
+    setPhase("deep-dive");
+  }, []);
 
-  if (!status.enabled) {
+  const handleAskAboutOutcome = useCallback(() => {
+    setActiveStep({ outcome: true });
+    setDeepDiveMessages([]);
+    setPhase("deep-dive");
+  }, []);
+
+  const handleBackFromDeepDive = useCallback(() => {
+    setActiveStep(null);
+    setPhase("report");
+  }, []);
+
+  // ── Render dispatch ────────────────────────────────
+
+  if (!status.enabled || phase === "input") {
     return (
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-8 max-w-2xl mx-auto text-center">
-        <div className="text-4xl mb-3">🧪</div>
-        <h2 className="text-lg font-semibold text-slate-200 mb-2">
-          Experiment mode is off
-        </h2>
-        <p className="text-sm text-slate-400 mb-4">
-          Enable <strong className="text-slate-300">Experiment mode</strong> in{" "}
-          <strong className="text-slate-300">Settings → General</strong> to run
-          bounded hypothesis → change → measure loops with a restricted tool set
-          and saved run history.
-        </p>
-      </div>
+      <ExperimentInputForm
+        status={status}
+        connected={connected}
+        selectedModel={selectedModel}
+        projectFolder={chatFolder || projectFolder}
+        defaultCommandAllowlist={defaultCommandAllowlist}
+        starting={starting}
+        errorBanner={errorBanner}
+        existingRunId={existingRunId}
+        onStart={handleStart}
+        onResumeExisting={handleResumeExisting}
+        onDismissError={() => setErrorBanner(null)}
+      />
     );
   }
 
+  if (phase === "deep-dive" && experiment) {
+    const sysPrompt = activeStep?.outcome
+      ? `You are helping the user understand the outcome of an experiment they ran. The hypothesis was: ${experiment.hypothesis}. The final status was ${experiment.status}. Final metric value: ${experiment.finalMetricValue}. Be specific — quote step Did/Observed text when relevant.`
+      : `You are helping the user understand a single step from an experiment. Hypothesis: ${experiment.hypothesis}. Step ${activeStep?.index + 1} did: ${activeStep?.step?.did || "(unparsed)"}. Observed: ${activeStep?.step?.observed || "(unparsed)"}. Next: ${activeStep?.step?.next || "(unparsed)"}. Be specific and reference what actually happened.`;
+    const seedQuestion = activeStep?.outcome
+      ? "Walk me through what just happened. What worked, what didn't, and what would you try next?"
+      : `Tell me more about this step. Why did the model choose this approach, and what does the observation imply?`;
+    return (
+      <DeepDivePanel
+        title={
+          activeStep?.outcome
+            ? "Deep Dive · outcome"
+            : `Deep Dive · step ${(activeStep?.index ?? 0) + 1}`
+        }
+        systemPrompt={sysPrompt}
+        initialUserMessage={seedQuestion}
+        initialMessages={deepDiveMessages.length > 0 ? deepDiveMessages : null}
+        selectedModel={selectedModel}
+        connected={connected}
+        onBack={handleBackFromDeepDive}
+        onMessagesChange={setDeepDiveMessages}
+      />
+    );
+  }
+
+  if (phase === "report" && experiment) {
+    return (
+      <ExperimentReport
+        experiment={experiment}
+        onNewExperiment={handleNewExperiment}
+        onAskAboutStep={handleAskAboutStep}
+        onAskAboutOutcome={handleAskAboutOutcome}
+      />
+    );
+  }
+
+  // running phase: show live stream + tiny banner with abort
+  const scopeFolder = chatFolder || projectFolder || "(not set)";
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <div className="shrink-0 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur px-4 py-3 space-y-3">
-        <div className="flex flex-wrap items-center gap-2 justify-between">
-          <span className="text-xs text-slate-500 uppercase tracking-wide">
-            Experiment
-          </span>
-          <span className="text-[11px] text-slate-500 font-mono truncate max-w-[60%]">
-            Scope: {scopeFolder}
-          </span>
-        </div>
-        <label className="block text-xs text-slate-400">
-          Hypothesis{" "}
-          <span className="text-[10px] text-slate-600">
-            (⌘/Ctrl + Enter to start)
-          </span>
-        </label>
-        <textarea
-          value={hypothesis}
-          onChange={(e) => setHypothesis(e.target.value)}
-          onKeyDown={(e) => {
-            // Cmd/Ctrl+Enter starts the experiment without leaving the textarea.
-            // Plain Enter still inserts a newline so multi-line hypotheses work.
-            if (
-              e.key === "Enter" &&
-              (e.metaKey || e.ctrlKey) &&
-              !experimentId &&
-              !streaming &&
-              connected &&
-              selectedModel &&
-              hypothesis.trim()
-            ) {
-              e.preventDefault();
-              handleStart();
-            }
-          }}
-          disabled={Boolean(experimentId)}
-          rows={3}
-          placeholder="e.g. If we cache X, the dashboard load time should drop below 2s. (⌘/Ctrl+Enter to start)"
-          className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none resize-y min-h-[72px] disabled:opacity-60"
-        />
-        <div className="flex flex-wrap items-end gap-4">
-          {streaming && (
+      <div className="shrink-0 border-b border-slate-700/50 glass px-4 py-2 space-y-2">
+        <div className="flex items-center gap-2 flex-wrap justify-between">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase text-slate-500">
+              Running experiment
+            </div>
+            <div className="text-sm text-slate-200 truncate">
+              {experiment?.hypothesis || "(starting…)"}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-slate-500 font-mono truncate max-w-[220px]">
+              scope: {scopeFolder}
+            </span>
             <button
               type="button"
-              onClick={() => stepAbortRef.current?.abort()}
-              className="rounded-lg px-3 py-2 text-sm bg-red-600/90 text-white hover:bg-red-500"
+              onClick={handleAbort}
+              disabled={!experiment?.id}
+              className="rounded-lg px-3 py-1.5 text-xs bg-red-600/90 text-white hover:bg-red-500 disabled:opacity-40"
             >
-              Stop
+              Abort
             </button>
-          )}
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">
-              Max tool rounds / step cap ({budgetRounds})
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={Math.min(status.maxRounds || 25, 25)}
-              value={budgetRounds}
-              onChange={(e) =>
-                setBudgetRounds(parseInt(e.target.value, 10) || 1)
-              }
-              disabled={Boolean(experimentId)}
-              className="w-40 accent-indigo-500"
-            />
-          </div>
-          <div className="flex gap-2">
-            {!experimentId ? (
-              <button
-                type="button"
-                onClick={handleStart}
-                disabled={!connected || !selectedModel || streaming}
-                className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
-              >
-                Start experiment
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setExperimentId(null);
-                  setMessages([]);
-                  setTimeline([]);
-                  setConvId(null);
-                  setHypothesis("");
-                }}
-                className="rounded-lg px-4 py-2 text-sm border border-slate-600 text-slate-300 hover:bg-slate-800"
-              >
-                New experiment
-              </button>
-            )}
           </div>
         </div>
       </div>
-
-      {timeline.length > 0 && (
-        <div className="shrink-0 max-h-36 overflow-y-auto scrollbar-thin border-b border-slate-700/40 px-4 py-2 bg-slate-900/40">
-          <div className="text-[10px] uppercase text-slate-500 mb-1">
-            Run timeline
-          </div>
-          <ol className="space-y-1 text-xs text-slate-400">
-            {timeline.map((s, i) => (
-              <li key={i} className="border-l-2 border-indigo-500/40 pl-2">
-                <span className="text-slate-500">
-                  {new Date(s.at).toLocaleTimeString()}
-                </span>{" "}
-                {s.summary?.slice(0, 160)}
-                {s.summary?.length > 160 ? "…" : ""}
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
 
       <div
         className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
         role="log"
         aria-label="Experiment messages"
       >
-        {messages.length === 0 && (
-          <p className="text-sm text-slate-500 text-center mt-8">
-            Describe what you want to test, set a round budget, then start.
-          </p>
-        )}
         {messages.map((msg, i) => (
           <div key={i} className="relative group mb-3">
             <MessageBubble
@@ -474,38 +562,33 @@ export default function ExperimentPanel({
             />
           </div>
         ))}
+        {streaming &&
+          messages[messages.length - 1]?.role === "assistant" &&
+          !messages[messages.length - 1]?.content && (
+            <div className="text-xs text-slate-500 px-2 py-1">
+              Working on it…
+            </div>
+          )}
       </div>
 
-      <div className="shrink-0 glass-heavy border-t border-slate-700/30 p-4 space-y-2">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={!experimentId || streaming}
-          rows={2}
-          placeholder={
-            experimentId
-              ? "Follow-up instruction for the next step…"
-              : "Start an experiment to continue the thread…"
-          }
-          className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none resize-none disabled:opacity-50"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSendFollowUp();
-            }
-          }}
-        />
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleSendFollowUp}
-            disabled={!experimentId || streaming || !input.trim()}
-            className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40"
-          >
-            Run step
-          </button>
+      {experiment?.steps?.length > 0 && (
+        <div className="shrink-0 max-h-32 overflow-y-auto scrollbar-thin border-t border-slate-700/40 px-4 py-2 bg-slate-900/40">
+          <div className="text-[10px] uppercase text-slate-500 mb-1">
+            Steps so far ({experiment.steps.length})
+          </div>
+          <ol className="space-y-1 text-xs text-slate-400">
+            {experiment.steps.slice(-3).map((s, i) => (
+              <li key={i} className="border-l-2 border-indigo-500/40 pl-2">
+                <span className="text-slate-500">
+                  {s.at ? new Date(s.at).toLocaleTimeString() : ""}
+                </span>{" "}
+                {(s.did || s.summary || "").slice(0, 160)}
+                {(s.did || s.summary || "").length > 160 ? "…" : ""}
+              </li>
+            ))}
+          </ol>
         </div>
-      </div>
+      )}
     </div>
   );
 }

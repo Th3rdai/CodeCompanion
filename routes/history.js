@@ -7,6 +7,7 @@ const {
   saveConversation,
   deleteConversation,
 } = require("../lib/history");
+const { getExperiment } = require("../lib/experiment-store");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { chatComplete, ollamaAuthOpts } = require("../lib/ollama-client");
 const { extractAndStore } = require("../lib/memory");
@@ -31,6 +32,20 @@ module.exports = function createRouter(appContext) {
   router.get("/history/:id", (req, res) => {
     try {
       const data = getConversation(req.params.id);
+      const include = String(req.query.include || "");
+      if (include.split(",").includes("experiments")) {
+        const ids = Array.isArray(data.experimentIds) ? data.experimentIds : [];
+        const cfg = getConfig();
+        data.experiments = ids
+          .map((id) => {
+            try {
+              return getExperiment(id, cfg);
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+      }
       res.json(data);
     } catch (err) {
       const status = err.message.includes("Invalid conversation id")

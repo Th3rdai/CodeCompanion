@@ -1319,7 +1319,7 @@ export default function App() {
                 {autoResolvedLabel ? `→ ${autoResolvedLabel}` : "→ …"}
               </span>
             )}
-            {mode === "chat" && (
+            {(mode === "chat" || mode === "experiment") && (
               <div className="flex items-center gap-1.5">
                 <label
                   htmlFor="rounds-select"

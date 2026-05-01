@@ -9,6 +9,7 @@ release/
 logs/
 history/
 memory/
+experiments/
 *.log
 
 # Config with secrets

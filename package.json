@@ -1,6 +1,6 @@
 {
   "name": "code-companion",
-  "version": "1.6.23",
+  "version": "1.6.24",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
@@ -49,6 +49,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "validate:static": "npm run lint && npm run typecheck && npm run format:check",
+    "validate:fast": "npm run validate:static && npx vite build && npm run test:unit && npm run test:integration && node scripts/smoke-test-server.js",
     "validate:p7": "bash scripts/validate-p7-workflows.sh",
     "audit:security": "npm audit --audit-level=critical",
     "mcp": "node mcp-server.js",
