@@ -100,6 +100,7 @@ export default function BaseBuilderPanel({
   const [formData, setFormData] = useState({});
   const [scoreData, setScoreData] = useState(null);
   const [scoreError, setScoreError] = useState("");
+  const [proseFallback, setProseFallback] = useState("");
   const [reviseInput, setReviseInput] = useState("");
   const [reviseMessages, setReviseMessages] = useState([]);
   const [reviseStreaming, setReviseStreaming] = useState(false);
@@ -164,6 +165,7 @@ export default function BaseBuilderPanel({
         formDataRef.current = parsed;
         setScoreData(null);
         setScoreError("");
+        setProseFallback("");
         setReviseMessages([]);
         setPhase("input");
         // Track source file for save-back (path from File Browser, or just name from native picker)
@@ -239,6 +241,7 @@ export default function BaseBuilderPanel({
 
     setPhase("loading");
     setScoreError("");
+    setProseFallback("");
     setScoreData(null);
 
     try {
@@ -284,6 +287,8 @@ export default function BaseBuilderPanel({
         const decoder = new TextDecoder();
         let buffer = "";
         let accumulated = "";
+        let fallbackReason = null;
+        let serverError = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -299,14 +304,43 @@ export default function BaseBuilderPanel({
             try {
               const parsed = JSON.parse(payload);
               if (parsed.token) accumulated += parsed.token;
-              if (parsed.error) accumulated += `\nError: ${parsed.error}`;
+              if (parsed.fallback) fallbackReason = parsed.reason || "unknown";
+              if (parsed.error) serverError = parsed.error;
             } catch {}
           }
         }
 
-        // Try to parse accumulated as JSON score data
-        try {
-          const parsed = JSON.parse(accumulated);
+        if (serverError) {
+          setScoreError(`Score failed: ${serverError}`);
+          setPhase("input");
+          return;
+        }
+
+        // Try to parse accumulated as JSON score data — model may have ignored
+        // the schema and emitted prose, or wrapped JSON in ```json fences.
+        const tryParseJson = (text) => {
+          try {
+            return JSON.parse(text);
+          } catch {
+            const fenced = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
+            if (fenced) {
+              try {
+                return JSON.parse(fenced[1]);
+              } catch {}
+            }
+            const firstBrace = text.indexOf("{");
+            const lastBrace = text.lastIndexOf("}");
+            if (firstBrace >= 0 && lastBrace > firstBrace) {
+              try {
+                return JSON.parse(text.slice(firstBrace, lastBrace + 1));
+              } catch {}
+            }
+            return null;
+          }
+        };
+
+        const parsed = tryParseJson(accumulated);
+        if (parsed && typeof parsed === "object") {
           setScoreData(parsed);
           setPhase("scored");
           onSaveBuilder?.({
@@ -315,10 +349,20 @@ export default function BaseBuilderPanel({
             model: selectedModel,
             modeId: config.modeId,
           });
-        } catch {
+        } else {
+          // Fall back to showing the prose response so the user gets *something*
+          // actionable. Surface the actual server-side reason rather than the
+          // misleading "model may need to be larger" copy.
+          const detail =
+            fallbackReason && fallbackReason !== "unknown"
+              ? ` (server: ${fallbackReason})`
+              : "";
           setScoreError(
-            "Could not parse score response. The model may need to be larger.",
+            `${selectedModel} didn't return a structured score${detail}. Try Auto model or pick one known to honor JSON output.`,
           );
+          if (accumulated.trim()) {
+            setProseFallback(accumulated.trim());
+          }
           setPhase("input");
         }
         return;
@@ -412,6 +456,7 @@ export default function BaseBuilderPanel({
     setFormData(initial);
     setScoreData(null);
     setScoreError("");
+    setProseFallback("");
     setReviseMessages([]);
     setReviseInput("");
     setSourceFile(null);
@@ -1149,6 +1194,17 @@ Format your response as:
             <span className="text-red-400 shrink-0">&times;</span>
             <div className="flex-1">
               <p className="text-sm text-red-300">{scoreError}</p>
+              {proseFallback && (
+                <details className="mt-2">
+                  <summary className="text-xs text-red-200/80 cursor-pointer hover:text-red-100">
+                    Show what the model returned (
+                    {proseFallback.length.toLocaleString()} chars)
+                  </summary>
+                  <pre className="mt-2 max-h-64 overflow-y-auto scrollbar-thin whitespace-pre-wrap text-[11px] text-slate-300 bg-slate-900/60 border border-slate-700/40 rounded p-2">
+                    {proseFallback}
+                  </pre>
+                </details>
+              )}
               {scoreError.includes("Pro") && (
                 <button
                   onClick={() => {

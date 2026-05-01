@@ -78,6 +78,11 @@ module.exports = function createRouter(appContext) {
 
       // Fallback: stream response
       if (result.type === "chat-fallback") {
+        log("WARN", "Score fallback to chat (structured output failed)", {
+          model,
+          mode,
+          reason: result.error,
+        });
         res.setHeader("Content-Type", "text/event-stream");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");

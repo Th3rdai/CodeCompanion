@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.28] — 2026-05-01
+
+### Fixed
+
+- **Builder score: stop telling 1T-parameter cloud models they need to be larger.** Reported in dogfood: scoring a Planner doc against `minimax-m2:cloud` returned "Could not parse score response. The model may need to be larger." — actively misleading for a 1T model. Root cause: `routes/score.js` falls back to `chat-fallback` when the structured (Zod-validated) call fails (cloud models often don't honor Ollama's `format` constraint), then SSE-streams prose. The client at `src/components/builders/BaseBuilderPanel.jsx` ignored the server's `{fallback: true, reason}` event entirely and just tried `JSON.parse(accumulated)` on prose, then surfaced the size copy. Three changes:
+  - **Surface the actual reason.** Client now captures `parsed.fallback` / `parsed.reason` from the SSE stream and shows `<model> didn't return a structured score (server: <reason>). Try Auto model or pick one known to honor JSON output.` instead of the size copy.
+  - **Salvage useful prose.** When parsing fails, accumulated text is kept and rendered under a `<details>` "Show what the model returned" expander so the user can read what the model actually said.
+  - **Tolerant JSON extraction.** Before giving up, the client tries to find ` ```json ... ``` ` fenced blocks and the largest `{...}` substring inside the prose — recovers a score-card when the model emitted valid JSON wrapped in markdown.
+  - **Server-side log line** (`routes/score.js`) — `Score fallback to chat (structured output failed) {model, mode, reason}` so future debugging skips the log archaeology.
+
 ## [1.6.27] — 2026-05-01
 
 ### Fixed
