@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.25] — 2026-05-01
+
+### Added
+
+- **Live progress indicator on the Experiment running phase** (`src/components/ExperimentPanel.jsx`) — the v1.6.24 running phase showed a blank screen until the first token streamed (which on a cold local 30B model can take 30–60s). New `RunningProgress` strip drives off the SSE events `lib/chat-post-handler.js` already emits: a phase pill (Thinking / Tool / Streaming / Wrapping up), a "Round N of max" counter (from `toolCallRound`), an elapsed mm:ss timer (tabular-nums so the layout doesn't jitter), and a one-line activity label ("Waiting for <model> to start…", "Running: pytest -q", "Terminal command finished — analyzing output…", "Streaming response…", round-limit notices). Includes a 1px progress bar tinted to match phase, an emerald "still alive" dot on the header, `aria-live="polite"` + proper `progressbar` role, and `motion-safe` / `motion-reduce` variants for `prefers-reduced-motion`. Zero backend change.
+
 ## [1.6.24] — 2026-05-01
 
 ### Added
