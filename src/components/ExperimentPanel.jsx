@@ -34,6 +34,8 @@ export default function ExperimentPanel({
   projectFolder,
   chatFolder,
   agentMaxRounds,
+  /** When agent terminal "confirm before run" is on, wire SSE `confirmRequired` to App's modal */
+  setPendingConfirm,
 }) {
   const [defaultCommandAllowlist, setDefaultCommandAllowlist] = useState([]);
   const [status, setStatus] = useState({
@@ -53,6 +55,7 @@ export default function ExperimentPanel({
   const [deepDiveMessages, setDeepDiveMessages] = useState([]);
   const [progress, setProgress] = useState(null);
   const [restoredFromServer, setRestoredFromServer] = useState(false);
+  const [followUpInput, setFollowUpInput] = useState("");
   // progress shape:
   //   { phase: 'thinking' | 'tool' | 'streaming' | 'finalizing',
   //     round: number, maxRounds: number, label: string, startedAt: number,
@@ -436,6 +439,9 @@ export default function ExperimentPanel({
                     : p,
                 );
               }
+              if (parsed.confirmRequired && setPendingConfirm) {
+                setPendingConfirm(parsed.confirmRequired);
+              }
             } catch {
               /* */
             }
@@ -491,6 +497,7 @@ export default function ExperimentPanel({
       saveHistory,
       noteStep,
       onToast,
+      setPendingConfirm,
     ],
   );
 
@@ -611,6 +618,66 @@ export default function ExperimentPanel({
     }
   }, [experiment?.id, onToast, refreshExperiment]);
 
+  const handleSendFollowUp = useCallback(async () => {
+    const t = followUpInput.trim();
+    if (!t || streaming || !experiment?.id) return;
+    setRestoredFromServer(false);
+    const next = [...messages, { role: "user", content: t }];
+    setMessages(next);
+    setFollowUpInput("");
+    await saveHistory(next, { experimentId: experiment.id });
+    await runStep(next);
+  }, [
+    followUpInput,
+    streaming,
+    experiment?.id,
+    messages,
+    saveHistory,
+    runStep,
+  ]);
+
+  // Force-finalize when the model clearly completed but didn't emit **Done**.
+  // This routes through finalizeExperiment with status "completed" so the panel
+  // transitions to the report card cleanly.
+  const handleMarkComplete = useCallback(async () => {
+    if (!experiment?.id || streaming) return;
+    try {
+      const finalValue = (() => {
+        const steps = experiment?.steps || [];
+        for (let i = steps.length - 1; i >= 0; i--) {
+          const v = steps[i]?.metric?.value;
+          if (typeof v === "number") return v;
+        }
+        return null;
+      })();
+      const res = await apiFetch(
+        `/api/experiment/${encodeURIComponent(experiment.id)}/note-step`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rawAssistantText: "### Step summary\n- **Done**\n",
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      await refreshExperiment(experiment.id);
+      // Server fires finalizeExperiment when it parses Done. Belt-and-suspenders:
+      // if for some reason status is still active, show a toast.
+      if (typeof finalValue === "number") {
+        // No-op; server already extracted finalMetricValue from the latest step.
+      }
+    } catch (e) {
+      onToast?.(`❌ ${e.message}`);
+    }
+  }, [
+    experiment?.id,
+    experiment?.steps,
+    streaming,
+    refreshExperiment,
+    onToast,
+  ]);
+
   const handleNewExperiment = useCallback(() => {
     setExperiment(null);
     setMessages([]);
@@ -679,6 +746,7 @@ export default function ExperimentPanel({
         connected={connected}
         onBack={handleBackFromDeepDive}
         onMessagesChange={setDeepDiveMessages}
+        setPendingConfirm={setPendingConfirm}
       />
     );
   }
@@ -799,6 +867,48 @@ export default function ExperimentPanel({
           </ol>
         </div>
       )}
+
+      <div className="shrink-0 glass-heavy border-t border-slate-700/30 p-3 space-y-2">
+        <textarea
+          value={followUpInput}
+          onChange={(e) => setFollowUpInput(e.target.value)}
+          disabled={!experiment?.id || streaming}
+          rows={2}
+          placeholder={
+            streaming
+              ? "Model is working — wait for the current step to finish."
+              : "Follow-up instruction for the next step (e.g. 'now run the tests' or 'try the alternative approach')…"
+          }
+          className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none resize-none disabled:opacity-50"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSendFollowUp();
+            }
+          }}
+        />
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleMarkComplete}
+            disabled={
+              !experiment?.id || streaming || !experiment?.steps?.length
+            }
+            className="rounded-lg px-3 py-1.5 text-xs border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-40"
+            title="Force-finalize this experiment as completed. Use when the model is clearly done but didn't include a **Done** marker."
+          >
+            ✓ Mark complete
+          </button>
+          <button
+            type="button"
+            onClick={handleSendFollowUp}
+            disabled={!experiment?.id || streaming || !followUpInput.trim()}
+            className="btn-neon text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-40"
+          >
+            Run step
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.29] — 2026-05-01
+
+### Fixed
+
+- **Experiment running phase: missing follow-up input.** Reported in dogfood: model produced one step and the panel had no way to drive the next round — only Abort. Regression from the v1.6.24 chat-bubble → phase-machine rewrite (the old UX had a "Run step" textarea + button at the bottom; the rewrite dropped it). Restored: a textarea + **Run step** button at the bottom of the running phase. Enter sends; Shift+Enter for newlines (matches chat-mode muscle memory).
+- **Experiment never auto-finalizes when the model writes `Decision: keep` without `**Done**`.** The server only finalizes on a parsed `done: true` marker, so a model that says "I'm satisfied with my work" via `Decision: keep` but forgets the explicit `**Done**` tag leaves the run stuck `active` until budget timeout. Added a **✓ Mark complete** button in the running phase that POSTs a synthetic `### Step summary\n- **Done**` to `/note-step`, which routes through `finalizeExperiment` with `status: "completed"` and pulls the latest numeric metric value as `finalMetricValue`. Auto-transitions to the report card on the next poll.
+
 ## [1.6.28] — 2026-05-01
 
 ### Fixed
