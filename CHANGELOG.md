@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.27] — 2026-05-01
+
+### Fixed
+
+- **Switching tabs no longer wipes an active Experiment.** Reported in dogfood: a long Experiment session was lost when the user clicked away to another mode and back. Root cause: switching modes unmounts `ExperimentPanel` (`src/App.jsx` conditionally renders it), so all local state — `phase`, `experiment`, `messages`, `convId` — was gone on remount and the panel reset to the empty input form even though the run was still active server-side. Fix: on mount, `ExperimentPanel` now calls `GET /api/experiment?projectFolder=…&limit=1`; if the latest record is still `active` (or terminal but updated within the last hour), it rehydrates the experiment record and pulls the linked chat history via `GET /api/history/<conversationId>` so the message thread comes back. While restored-but-not-streaming, a yellow banner explains "This run was paused when you switched tabs" with a green **Resume** button (sends a short nudge message to continue the conversation) alongside the existing **Abort**. Older terminal records aren't auto-loaded — those are reached via history navigation.
+
 ## [1.6.26] — 2026-05-01
 
 ### Added

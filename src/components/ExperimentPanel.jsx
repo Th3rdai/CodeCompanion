@@ -52,6 +52,7 @@ export default function ExperimentPanel({
   const [activeStep, setActiveStep] = useState(null); // { step, index } | { outcome: true }
   const [deepDiveMessages, setDeepDiveMessages] = useState([]);
   const [progress, setProgress] = useState(null);
+  const [restoredFromServer, setRestoredFromServer] = useState(false);
   // progress shape:
   //   { phase: 'thinking' | 'tool' | 'streaming' | 'finalizing',
   //     round: number, maxRounds: number, label: string, startedAt: number,
@@ -81,6 +82,72 @@ export default function ExperimentPanel({
       })
       .catch(() => setDefaultCommandAllowlist([]));
   }, []);
+
+  // Recover from mount-after-tab-switch: switching modes unmounts ExperimentPanel
+  // and wipes local state. On remount, look up the latest experiment for this
+  // project and restore the user's view (running banner + step stream, or report
+  // card). Conversation history is rehydrated via the linked conversationId so
+  // the user doesn't lose what they already chatted through.
+  useEffect(() => {
+    const folder = chatFolder || projectFolder;
+    if (!folder) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const listRes = await apiFetch(
+          `/api/experiment?projectFolder=${encodeURIComponent(folder)}&limit=1`,
+        );
+        if (!listRes.ok || cancelled) return;
+        const { items } = await listRes.json();
+        const latest = items?.[0];
+        if (!latest || cancelled) return;
+
+        // Skip if this user has already started a fresh run on this mount.
+        if (experiment || phase !== "input") return;
+
+        // Only auto-restore if it's still active OR very recently completed
+        // (≤ 1h). Older terminal records are accessed via history, not auto-loaded.
+        const ageMs = Date.now() - new Date(latest.updatedAt).getTime();
+        const isActive = !TERMINAL_STATUSES.has(latest.status);
+        if (!isActive && (Number.isNaN(ageMs) || ageMs > 60 * 60 * 1000))
+          return;
+
+        const expRes = await apiFetch(
+          `/api/experiment/${encodeURIComponent(latest.id)}`,
+        );
+        if (!expRes.ok || cancelled) return;
+        const fullRec = await expRes.json();
+        if (cancelled || experiment) return;
+
+        setExperiment(fullRec);
+        setPhase(isActive ? "running" : "report");
+        setRestoredFromServer(true);
+
+        if (fullRec.conversationId) {
+          try {
+            const histRes = await apiFetch(
+              `/api/history/${encodeURIComponent(fullRec.conversationId)}`,
+            );
+            if (histRes.ok && !cancelled) {
+              const hist = await histRes.json();
+              if (Array.isArray(hist.messages)) {
+                setMessages(hist.messages);
+                setConvId(hist.id || fullRec.conversationId);
+              }
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatFolder, projectFolder]);
 
   // Esc aborts any in-flight step request.
   useEffect(() => {
@@ -508,6 +575,24 @@ export default function ExperimentPanel({
     }
   }, [existingRunId]);
 
+  const handleResume = useCallback(async () => {
+    if (!experiment?.id || streaming) return;
+    setRestoredFromServer(false);
+    // Continue the conversation by sending a short user nudge — the model picks
+    // up the prior thread and produces the next step. We don't auto-replay the
+    // last assistant message because the SSE that produced it was killed by
+    // navigation and may have only partially completed.
+    const resumeNudge = {
+      role: "user",
+      content:
+        "(Resuming this experiment after a tab switch — please continue from where you left off. If your previous turn ended mid-thought, finish it now and produce a Step summary block.)",
+    };
+    const next = [...messages, resumeNudge];
+    setMessages(next);
+    await saveHistory(next, { experimentId: experiment.id });
+    await runStep(next);
+  }, [experiment?.id, streaming, messages, saveHistory, runStep]);
+
   const handleAbort = useCallback(async () => {
     if (!experiment?.id) return;
     stepAbortRef.current?.abort();
@@ -532,6 +617,7 @@ export default function ExperimentPanel({
     setConvId(null);
     setActiveStep(null);
     setDeepDiveMessages([]);
+    setRestoredFromServer(false);
     setPhase("input");
   }, []);
 
@@ -632,6 +718,16 @@ export default function ExperimentPanel({
             <span className="text-[11px] text-slate-500 font-mono truncate max-w-[220px]">
               scope: {scopeFolder}
             </span>
+            {restoredFromServer && !streaming && (
+              <button
+                type="button"
+                onClick={handleResume}
+                disabled={!experiment?.id}
+                className="rounded-lg px-3 py-1.5 text-xs bg-emerald-600/90 text-white hover:bg-emerald-500 disabled:opacity-40"
+              >
+                Resume
+              </button>
+            )}
             <button
               type="button"
               onClick={handleAbort}
@@ -642,6 +738,16 @@ export default function ExperimentPanel({
             </button>
           </div>
         </div>
+        {restoredFromServer && !streaming && (
+          <div
+            className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-200"
+            role="status"
+          >
+            This run was paused when you switched tabs. Click{" "}
+            <strong>Resume</strong> to continue, or <strong>Abort</strong> to
+            stop. Your conversation is restored.
+          </div>
+        )}
         <ChatSessionProgress
           active={streaming}
           detail="Experiment · Running step"
