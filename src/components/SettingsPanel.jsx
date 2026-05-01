@@ -1468,7 +1468,9 @@ export default function SettingsPanel({
                   <p className="text-xs text-slate-500 mt-0.5">
                     Bounded runs in{" "}
                     <span className="text-indigo-300">Experiment</span> mode
-                    with restricted tools and saved timelines (off by default).
+                    with restricted tools and saved timelines. Find it under the{" "}
+                    <strong className="text-slate-300">Experiment</strong> tab
+                    in the main mode strip.
                   </p>
                 </div>
                 <button

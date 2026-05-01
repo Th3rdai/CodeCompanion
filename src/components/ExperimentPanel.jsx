@@ -346,13 +346,34 @@ export default function ExperimentPanel({
             Scope: {scopeFolder}
           </span>
         </div>
-        <label className="block text-xs text-slate-400">Hypothesis</label>
+        <label className="block text-xs text-slate-400">
+          Hypothesis{" "}
+          <span className="text-[10px] text-slate-600">
+            (⌘/Ctrl + Enter to start)
+          </span>
+        </label>
         <textarea
           value={hypothesis}
           onChange={(e) => setHypothesis(e.target.value)}
+          onKeyDown={(e) => {
+            // Cmd/Ctrl+Enter starts the experiment without leaving the textarea.
+            // Plain Enter still inserts a newline so multi-line hypotheses work.
+            if (
+              e.key === "Enter" &&
+              (e.metaKey || e.ctrlKey) &&
+              !experimentId &&
+              !streaming &&
+              connected &&
+              selectedModel &&
+              hypothesis.trim()
+            ) {
+              e.preventDefault();
+              handleStart();
+            }
+          }}
           disabled={Boolean(experimentId)}
           rows={3}
-          placeholder="e.g. If we cache X, the dashboard load time should drop below 2s."
+          placeholder="e.g. If we cache X, the dashboard load time should drop below 2s. (⌘/Ctrl+Enter to start)"
           className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none resize-y min-h-[72px] disabled:opacity-60"
         />
         <div className="flex flex-wrap items-end gap-4">

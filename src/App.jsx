@@ -210,6 +210,7 @@ const PRIMARY_MODE_IDS = [
   "build",
   "create",
   "diagram",
+  "experiment",
 ];
 
 const MORE_MENU_GROUPS = [
@@ -221,7 +222,7 @@ const MORE_MENU_GROUPS = [
     label: "Builders",
     ids: ["prompting", "skillz", "agentic", "planner"],
   },
-  { label: "Analyze", ids: ["validate", "experiment"] },
+  { label: "Analyze", ids: ["validate"] },
   { label: "Tools", ids: ["terminal"] },
 ];
 

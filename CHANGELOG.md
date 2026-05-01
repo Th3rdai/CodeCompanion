@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.23] — 2026-05-01
+
+### Changed
+
+- **Experiment mode is now a primary tab** (`src/App.jsx`) — promoted from `MORE_MENU_GROUPS → Analyze` to `PRIMARY_MODE_IDS`, so it appears next to **Chat / Review / Security / Build / Create / Diagram** in the main mode strip. Several users (verified via `~/Library/Application Support/code-companion/logs/app.log`) opened v1.6.22, enabled the feature flag in Settings, then never found the panel — they kept pasting their experiment prompts into Chat mode. Three rounds of "I switched to Experiment but it stays stuck" turned out to be "the run never started because nobody clicked More → Analyze → Experiment." Fixing discoverability now rather than waiting for usage data.
+- **Settings copy** (`src/components/SettingsPanel.jsx`) — replaced the misleading `(off by default)` parenthetical (it actually ships **on**) with a one-line pointer telling users where to find the panel.
+
+### Added
+
+- **`⌘/Ctrl + Enter` from the Hypothesis textarea starts the experiment** (`src/components/ExperimentPanel.jsx`) — matches chat-mode keyboard muscle memory. Plain `Enter` still inserts newlines so multi-paragraph hypotheses still work. Label updated to surface the shortcut.
+
 ## [1.6.22] — 2026-04-30
 
 ### Added
