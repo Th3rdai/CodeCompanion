@@ -66,18 +66,32 @@ export default function ExperimentInputForm({
   }, [status?.maxRounds, status?.maxDurationSec]);
 
   function addPath() {
-    const p = pathInput.trim();
-    if (!p) return;
-    if (!scopePaths.includes(p)) setScopePaths([...scopePaths, p]);
+    const parts = pathInput
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    setScopePaths((prev) => {
+      const next = [...prev];
+      for (const p of parts) if (!next.includes(p)) next.push(p);
+      return next;
+    });
     setPathInput("");
   }
   function removePath(p) {
     setScopePaths(scopePaths.filter((x) => x !== p));
   }
   function addCommand() {
-    const c = commandInput.trim();
-    if (!c) return;
-    if (!scopeCommands.includes(c)) setScopeCommands([...scopeCommands, c]);
+    const parts = commandInput
+      .split(/[,\s]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    setScopeCommands((prev) => {
+      const next = [...prev];
+      for (const c of parts) if (!next.includes(c)) next.push(c);
+      return next;
+    });
     setCommandInput("");
   }
   function removeCommand(c) {
@@ -295,7 +309,7 @@ export default function ExperimentInputForm({
                     addPath();
                   }
                 }}
-                placeholder="/absolute/path…"
+                placeholder="/absolute/path… (comma-separated for multiple)"
                 className="input-glow text-slate-100 rounded-lg px-2 py-1 text-xs outline-none flex-1 min-w-[180px] font-mono"
               />
               <button
@@ -335,7 +349,7 @@ export default function ExperimentInputForm({
                     addCommand();
                   }
                 }}
-                placeholder="binary name (e.g. python3)"
+                placeholder="binary names (e.g. python3, pip3, uv, pytest — comma or space separated)"
                 className="input-glow text-slate-100 rounded-lg px-2 py-1 text-xs outline-none flex-1 min-w-[140px] font-mono"
               />
               <button

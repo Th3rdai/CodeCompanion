@@ -95,6 +95,26 @@ test("parseStepSummary: trailing whitespace and stray markdown stripped", () => 
   assert.equal(out.done, true);
 });
 
+test("parseStepSummary: bullet-prefixed Done (- **Done**) flips done flag", () => {
+  // Regression for v1.6.29 dogfood: Mark complete sent "### Step summary\n- **Done**\n"
+  // but the parser regex only allowed standalone or | -separated **Done**, not bullets.
+  // Result: status stayed active, user spammed Mark complete out of frustration.
+  const cases = [
+    "### Step summary\n- **Done**\n",
+    "### Step summary\n* **Done**",
+    "### Step summary\n• Done",
+    "### Step summary\n- Did: thing\n- Observed: x\n- Next: y\n- **Done**\n",
+  ];
+  for (const raw of cases) {
+    const out = parseStepSummary(raw);
+    assert.equal(
+      out.done,
+      true,
+      `expected done:true for input ${JSON.stringify(raw)}`,
+    );
+  }
+});
+
 test("parseStepSummary: ignores Decision label without confusing field extraction", () => {
   const raw = `### Step summary
 - **Did:** thing

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.30] — 2026-05-01
+
+### Fixed
+
+- **Mark complete actually finalizes the run now.** Reported in dogfood: clicking the **✓ Mark complete** button (added v1.6.29) didn't transition the experiment to `completed` — status stayed `active`, panel kept polling, user spammed the button (8 rapid clicks captured in `app.log` at 22:00:08–14). Root cause in `lib/experiment-step-parser.js#parseStepSummary`: the Done-detection regex accepted `**Done**` standalone or after `|` (the inline `Next: … | **Done**` shape), but **not** with a bullet prefix — `- **Done**` or `* **Done**` didn't match. Both the prompt's example block and the Mark complete synthetic text use the bulleted form, so the parser always returned `done: false`, the server never called `finalizeExperiment`, and the run sat active forever. Fix: regex now accepts an optional `[-*•]\s*` bullet prefix on the Done line. Added 4 regression test cases (`tests/unit/experiment-step-parser.test.js`) covering `- **Done**`, `* **Done**`, `• Done`, and the canonical bulleted Step summary form.
+- **Mark complete is now a no-op when the run is already terminal.** Defensive guard against the rapid-click spam pattern: `handleMarkComplete` early-returns if `experiment.status` is in `TERMINAL_STATUSES` (`completed`, `aborted`, `failed`, `timeout`). Even with the regex fix, this prevents extra `/note-step` round-trips when the user clicks twice before the next 2.5s poll has updated `experiment.status`.
+- **Comma- and space-separated scope chips** in the Experiment input form (`src/components/ExperimentInputForm.jsx`). Both Paths and Commands inputs now split on commas, newlines, or whitespace when you press Enter or click +Path / +Command — paste `python3, pip3, uv, uvx, pytest` and get 5 chips at once instead of one giant useless string. Placeholders updated to advertise: `binary names (e.g. python3, pip3, uv, pytest — comma or space separated)`.
+
 ## [1.6.29] — 2026-05-01
 
 ### Fixed

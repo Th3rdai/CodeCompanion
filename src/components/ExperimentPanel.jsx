@@ -427,6 +427,37 @@ export default function ExperimentPanel({
                   p ? { ...p, label: parsed.notice.message || p.label } : p,
                 );
               }
+              if (parsed.modelWait) {
+                const wr = parsed.modelWait.round;
+                const wm = parsed.modelWait.maxRounds;
+                setProgress((p) =>
+                  p
+                    ? {
+                        ...p,
+                        phase: "thinking",
+                        ...(typeof wr === "number" ? { round: wr } : {}),
+                        ...(typeof wm === "number" ? { maxRounds: wm } : {}),
+                        label:
+                          typeof parsed.modelWait.message === "string"
+                            ? parsed.modelWait.message
+                            : p.label,
+                      }
+                    : p,
+                );
+              }
+              if (parsed.heartbeat) {
+                const wr = parsed.waitRound;
+                const wm = parsed.waitMaxRounds;
+                setProgress((p) =>
+                  p
+                    ? {
+                        ...p,
+                        phase: "thinking",
+                        label: `Still waiting for the model (round ${wr ?? p.round}/${wm ?? p.maxRounds})…`,
+                      }
+                    : p,
+                );
+              }
               if (parsed.error) {
                 assistantContent += `\n\nError: ${parsed.error}`;
                 setProgress((p) =>
@@ -641,6 +672,7 @@ export default function ExperimentPanel({
   // transitions to the report card cleanly.
   const handleMarkComplete = useCallback(async () => {
     if (!experiment?.id || streaming) return;
+    if (TERMINAL_STATUSES.has(experiment?.status)) return;
     try {
       const finalValue = (() => {
         const steps = experiment?.steps || [];
@@ -672,6 +704,7 @@ export default function ExperimentPanel({
     }
   }, [
     experiment?.id,
+    experiment?.status,
     experiment?.steps,
     streaming,
     refreshExperiment,
@@ -763,7 +796,10 @@ export default function ExperimentPanel({
   }
 
   // running phase: show live stream + tiny banner with abort
+  // phase stays "running" until server status is terminal — after each step,
+  // streaming is false while we wait for follow-up; don't look "still busy".
   const scopeFolder = chatFolder || projectFolder || "(not set)";
+  const betweenSteps = !streaming;
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className="shrink-0 border-b border-slate-700/50 glass px-4 py-2 space-y-2">
@@ -771,11 +807,17 @@ export default function ExperimentPanel({
           <div className="min-w-0 flex items-center gap-2">
             <span
               aria-hidden="true"
-              className={`inline-block w-2 h-2 rounded-full bg-emerald-400 motion-safe:animate-pulse motion-reduce:opacity-80`}
+              className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                betweenSteps
+                  ? "bg-slate-500"
+                  : "bg-emerald-400 motion-safe:animate-pulse motion-reduce:opacity-80"
+              }`}
             />
             <div className="min-w-0">
               <div className="text-[10px] uppercase text-slate-500">
-                Running experiment
+                {betweenSteps
+                  ? "Experiment active · your turn"
+                  : "Running experiment"}
               </div>
               <div className="text-sm text-slate-200 truncate">
                 {experiment?.hypothesis || "(starting…)"}
@@ -817,8 +859,14 @@ export default function ExperimentPanel({
           </div>
         )}
         <ChatSessionProgress
-          active={streaming}
-          detail="Experiment · Running step"
+          active={streaming || betweenSteps}
+          busy={streaming}
+          headline={streaming ? "Working" : "Your turn"}
+          detail={
+            streaming
+              ? "Experiment · model or tools running"
+              : `Experiment · ${experiment?.steps?.length ?? 0} step(s) on file — add a follow-up below, then Run step`
+          }
           testId="experiment-session-progress"
         />
         <RunningProgress
@@ -826,6 +874,20 @@ export default function ExperimentPanel({
           elapsedSec={elapsedSec}
           streaming={streaming}
         />
+        {betweenSteps && (
+          <p
+            className="text-[11px] text-slate-400 leading-snug border-t border-slate-700/40 pt-2 mt-1"
+            role="status"
+          >
+            The last step finished. Use the box below to tell the model what to
+            do next, then <strong className="text-slate-300">Run step</strong>.
+            If the hypothesis is fully answered, use{" "}
+            <strong className="text-slate-300">Mark complete</strong> (or have
+            the model end a step with{" "}
+            <code className="text-indigo-300">**Done**</code> in the step
+            summary) to open the report.
+          </p>
+        )}
       </div>
 
       <div
@@ -877,7 +939,7 @@ export default function ExperimentPanel({
           placeholder={
             streaming
               ? "Model is working — wait for the current step to finish."
-              : "Follow-up instruction for the next step (e.g. 'now run the tests' or 'try the alternative approach')…"
+              : 'Next instruction for the model (required to run another step). Example: "Run pytest" or "Summarize what we learned"…'
           }
           className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none resize-none disabled:opacity-50"
           onKeyDown={(e) => {
@@ -970,7 +1032,7 @@ function RunningProgress({ progress, elapsedSec, streaming }) {
         {label}
       </div>
       <div
-        className="h-1 bg-slate-800 rounded overflow-hidden"
+        className="h-2 bg-slate-800 rounded overflow-hidden"
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
@@ -985,7 +1047,7 @@ function RunningProgress({ progress, elapsedSec, streaming }) {
                 ? "bg-emerald-400/80 motion-safe:animate-pulse"
                 : "bg-indigo-400/80 motion-safe:animate-pulse"
           }`}
-          style={{ width: `${Math.max(6, pct)}%` }}
+          style={{ width: `${Math.max(8, pct)}%` }}
         />
       </div>
     </div>
