@@ -18,6 +18,28 @@ function loadHandlerWithMcpTimeoutMs(ms) {
   return ToolCallHandler;
 }
 
+test("parseToolCalls minimax bare format (no <invoke> wrapper) parses with stray brace", () => {
+  // Regression for v1.6.31 dogfood: minimax-m2:cloud emitted a <minimax:tool_call>
+  // block with NO <invoke name=...> wrapper — just the server.tool name on one
+  // line then JSON args. Plus a stray trailing `}` between args close and the
+  // closing tag. Old parser found 0 tool calls; install never ran.
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<minimax:tool_call>
+builtin.run_terminal_cmd
+{"command": "uv", "args": ["pip", "install", "langgraph", "langchain-core"]}
+}
+</minimax:tool_call>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].serverId, "builtin");
+  assert.strictEqual(calls[0].toolName, "run_terminal_cmd");
+  assert.deepStrictEqual(calls[0].args, {
+    command: "uv",
+    args: ["pip", "install", "langgraph", "langchain-core"],
+  });
+});
+
 test("parseToolCalls XML fallback parses reliably on repeated invocations", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler({});

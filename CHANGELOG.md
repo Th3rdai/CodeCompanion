@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.32] — 2026-05-01
+
+### Fixed
+
+- **MiniMax tool calls now execute even without the `<invoke>` wrapper.** Reported in dogfood with `minimax-m2:cloud`: the model emitted a `<minimax:tool_call>` block with the server.tool name on its own line and the JSON args on the next, plus a stray trailing `}` before the closing tag — no `<invoke name="…">` wrapper. The parser found 0 tool calls and the install never ran. Added a fallback in `lib/tool-call-handler.js#parseToolCalls`: when a `<minimax:tool_call>` block has no `<invoke>` tag, treat the first line matching `server.tool` as the call header, walk a brace-balanced JSON object as args, and ignore trailing junk before the closing tag. Regression test in `tests/unit/tool-call-handler.test.js`.
+
 ## [1.6.31] — 2026-05-01
 
 ### Fixed
