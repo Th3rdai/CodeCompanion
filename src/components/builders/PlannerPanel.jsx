@@ -1,4 +1,5 @@
 import BaseBuilderPanel from "./BaseBuilderPanel";
+import { parsePlannerLoaded } from "../../lib/planner-parse-loaded.js";
 
 const PLANNER_CONFIG = {
   modeId: "planner",
@@ -109,80 +110,7 @@ const PLANNER_CONFIG = {
 
     return lines.join("\n");
   },
-  parseLoaded: (content) => {
-    const result = {
-      planName: "",
-      goal: "",
-      scope: "",
-      steps: "",
-      dependencies: "",
-      testing: "",
-      risks: "",
-    };
-    if (!content) return result;
-
-    let body = content;
-
-    // Handle YAML frontmatter
-    const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-    if (fmMatch) {
-      const fm = fmMatch[1];
-      body = fmMatch[2].trim();
-      const descMatch = fm.match(/description:\s*(.+)/);
-      if (descMatch)
-        result.goal = descMatch[1].trim().replace(/^["']|["']$/g, "");
-    }
-
-    const nameMatch = body.match(/^# (.+)$/m);
-    if (nameMatch) result.planName = nameMatch[1];
-
-    const sections = body.split(/\n## /);
-
-    let hasStepsSection = false;
-    for (let i = 1; i < sections.length; i++) {
-      const section = sections[i];
-      const headerEnd = section.indexOf("\n");
-      const header = section.substring(0, headerEnd).trim().toLowerCase();
-      const sectionBody = section.substring(headerEnd).trim();
-
-      if (
-        header.includes("goal") ||
-        header.includes("objective") ||
-        header.includes("overview")
-      )
-        result.goal = sectionBody;
-      else if (header.includes("scope")) result.scope = sectionBody;
-      else if (
-        header.includes("step") ||
-        header.includes("implementation") ||
-        header.includes("plan")
-      ) {
-        result.steps = sectionBody;
-        hasStepsSection = true;
-      } else if (header.includes("depend") || header.includes("prerequisite"))
-        result.dependencies = sectionBody;
-      else if (
-        header.includes("test") ||
-        header.includes("verification") ||
-        header.includes("validat")
-      )
-        result.testing = sectionBody;
-      else if (
-        header.includes("risk") ||
-        header.includes("mitigation") ||
-        header.includes("pitfall")
-      )
-        result.risks = sectionBody;
-    }
-
-    // If no ## Implementation Steps section, treat body as steps
-    if (!hasStepsSection && sections.length <= 1) {
-      const afterHeading = body.replace(/^# .+\n*/, "").trim();
-      if (afterHeading) result.steps = afterHeading;
-    }
-
-    return result;
-  },
+  parseLoaded: parsePlannerLoaded,
   fileExtension: ".md",
   defaultFilename: "plan",
   nameField: "planName",

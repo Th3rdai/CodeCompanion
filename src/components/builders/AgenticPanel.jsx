@@ -1,4 +1,5 @@
 import BaseBuilderPanel from "./BaseBuilderPanel";
+import { parseAgenticLoaded } from "../../lib/agentic-parse-loaded.js";
 
 const AGENTIC_CONFIG = {
   modeId: "agentic",
@@ -106,66 +107,7 @@ const AGENTIC_CONFIG = {
 
     return lines.join("\n");
   },
-  parseLoaded: (content) => {
-    const result = {
-      agentName: "",
-      purpose: "",
-      tools: "",
-      instructions: "",
-      workflow: "",
-      guardrails: "",
-    };
-    if (!content) return result;
-
-    let body = content;
-
-    // Handle YAML frontmatter
-    const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-    if (fmMatch) {
-      const fm = fmMatch[1];
-      body = fmMatch[2].trim();
-      const descMatch = fm.match(/description:\s*(.+)/);
-      if (descMatch)
-        result.purpose = descMatch[1].trim().replace(/^["']|["']$/g, "");
-    }
-
-    const nameMatch = body.match(/^# (.+)$/m);
-    if (nameMatch) result.agentName = nameMatch[1];
-
-    const sections = body.split(/\n## /);
-
-    let hasInstructionSection = false;
-    for (let i = 1; i < sections.length; i++) {
-      const section = sections[i];
-      const headerEnd = section.indexOf("\n");
-      const header = section.substring(0, headerEnd).trim().toLowerCase();
-      const sectionBody = section.substring(headerEnd).trim();
-
-      if (header.includes("purpose")) result.purpose = sectionBody;
-      else if (header.includes("tool")) {
-        result.tools = sectionBody
-          .split("\n")
-          .filter((l) => l.trim())
-          .map((l) =>
-            l.replace(/^-\s*\*\*(.+?)\*\*:\s*/, "$1 — ").replace(/^-\s*/, ""),
-          )
-          .join("\n");
-      } else if (header.includes("instruction")) {
-        result.instructions = sectionBody;
-        hasInstructionSection = true;
-      } else if (header.includes("workflow")) result.workflow = sectionBody;
-      else if (header.includes("safety") || header.includes("guardrail"))
-        result.guardrails = sectionBody;
-    }
-
-    // If no ## Instructions section, treat the body as instructions
-    if (!hasInstructionSection && sections.length <= 1) {
-      const afterHeading = body.replace(/^# .+\n*/, "").trim();
-      if (afterHeading) result.instructions = afterHeading;
-    }
-
-    return result;
-  },
+  parseLoaded: parseAgenticLoaded,
   fileExtension: ".md",
   defaultFilename: "agent",
   nameField: "agentName",

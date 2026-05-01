@@ -9,6 +9,7 @@ import {
   MAX_CHAT_POST_BYTES,
   estimateChatPostBodyBytes,
 } from "../lib/chat-payload";
+import ChatSessionProgress from "./ui/ChatSessionProgress";
 
 const TERMINAL_STATUSES = new Set([
   "completed",
@@ -641,6 +642,11 @@ export default function ExperimentPanel({
             </button>
           </div>
         </div>
+        <ChatSessionProgress
+          active={streaming}
+          detail="Experiment · Running step"
+          testId="experiment-session-progress"
+        />
         <RunningProgress
           progress={progress}
           elapsedSec={elapsedSec}

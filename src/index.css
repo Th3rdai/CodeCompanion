@@ -123,6 +123,52 @@ body {
   animation: border-glow 3s ease-in-out infinite;
 }
 
+/* Indeterminate chat / agent activity bar (ChatSessionProgress) */
+@keyframes cc-chat-progress-slide {
+  0% {
+    transform: translate3d(-120%, 0, 0);
+  }
+  100% {
+    transform: translate3d(320%, 0, 0);
+  }
+}
+.cc-chat-progress-track {
+  position: relative;
+  height: 3px;
+  width: 100%;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.75);
+}
+.cc-chat-progress-segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36%;
+  max-width: 200px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(129, 140, 248, 0.15),
+    rgba(165, 180, 252, 0.95),
+    rgba(129, 140, 248, 0.15),
+    transparent
+  );
+  box-shadow: 0 0 14px rgba(129, 140, 248, 0.45);
+  animation: cc-chat-progress-slide 1.25s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-chat-progress-segment {
+    animation: none;
+    left: 32%;
+    right: 32%;
+    width: auto;
+    max-width: none;
+    transform: none;
+    opacity: 0.92;
+  }
+}
+
 /* ── Futuristic Glass Effects ────────── */
 .glass {
   background: rgba(20, 24, 41, 0.6);

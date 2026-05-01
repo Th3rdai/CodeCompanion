@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Braces, Code2, Wind } from "lucide-react";
 import { apiFetch } from "../lib/api-fetch";
 import { convertDocument } from "../lib/document-processor";
 
@@ -631,7 +632,7 @@ export default function FileBrowser({
               disabled={launchingVSCode || !folderPath}
               className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 border border-blue-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <img src="/ide-logos/vscode.png" alt="" className="w-4 h-4" />
+              <Code2 className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
               {launchingVSCode ? "Opening..." : "VS Code"}
             </button>
             <button
@@ -659,7 +660,7 @@ export default function FileBrowser({
               disabled={launchingWindsurf || !folderPath}
               className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30 border border-cyan-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <img src="/ide-logos/windsurf.png" alt="" className="w-4 h-4" />
+              <Wind className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
               {launchingWindsurf ? "Opening..." : "Windsurf"}
             </button>
             <button
@@ -673,7 +674,7 @@ export default function FileBrowser({
               disabled={launchingOpenCode || !folderPath}
               className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 hover:bg-orange-500/30 border border-orange-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <img src="/ide-logos/opencode.png" alt="" className="w-4 h-4" />
+              <Braces className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
               {launchingOpenCode ? "Opening..." : "OpenCode"}
             </button>
           </div>

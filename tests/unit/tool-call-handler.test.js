@@ -69,6 +69,42 @@ test("parseToolCalls parses minimax parameter-style invoke format", () => {
   });
 });
 
+test("parseToolCalls tolerates MiniMax malformed path/content tags on write_file", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<minimax:tool_call>
+<invoke name="builtin.write_file">
+<path">UIXPLAN.md</path>
+<content># Plan line 1
+
+More body</content>
+</invoke>
+</minimax:tool_call>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].serverId, "builtin");
+  assert.strictEqual(calls[0].toolName, "write_file");
+  assert.strictEqual(calls[0].args.path, "UIXPLAN.md");
+  assert.ok(String(calls[0].args.content).includes("Plan line 1"));
+});
+
+test("parseToolCalls parses bracket [TOOL_CALL] block with JSON body", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `[TOOL_CALL]
+builtin.run_terminal_cmd
+{"command": "ls", "args": ["-la", "UIXPLAN.md"]}
+[/TOOL_CALL]`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].serverId, "builtin");
+  assert.strictEqual(calls[0].toolName, "run_terminal_cmd");
+  assert.deepStrictEqual(calls[0].args, {
+    command: "ls",
+    args: ["-la", "UIXPLAN.md"],
+  });
+});
+
 test("executeTool MCP returns error when callTool exceeds timeout", async () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(80);
   const mockMcp = {

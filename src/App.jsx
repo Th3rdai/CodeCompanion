@@ -10,6 +10,7 @@ import GitHubPanel from "./components/GitHubPanel";
 import TerminalPanel from "./components/TerminalPanel";
 import Sidebar from "./components/Sidebar";
 import Splite from "./components/ui/Splite";
+import ChatSessionProgress from "./components/ui/ChatSessionProgress";
 import SplashScreen from "./components/3d/SplashScreen";
 import HeaderScene from "./components/3d/HeaderScene";
 import EmptyStateScene from "./components/3d/EmptyStateScene";
@@ -1496,6 +1497,11 @@ export default function App() {
                 <Search className="h-4 w-4" aria-hidden />
               </button>
             </div>
+
+            <ChatSessionProgress
+              active={streaming}
+              modeLabel={currentMode?.label || ""}
+            />
 
             {showModePalette && (
               <div

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Global session progress strip (`ChatSessionProgress`)** — Indeterminate “Working” bar with mode-specific subtitle, `aria-busy` / `aria-live`, and `prefers-reduced-motion` handling (`src/components/ui/ChatSessionProgress.jsx`, `src/index.css` `.cc-chat-progress-*`). Wired wherever the user waits on the model: **main chat** under the mode tab bar when `streaming` (`src/App.jsx`); **builders** scoring + revise (`src/components/builders/BaseBuilderPanel.jsx`); **Review** loading, report inline chat, fallback SSE, deep dive (`src/components/ReviewPanel.jsx`); **Security** loading, remediation, fallback SSE + follow-up, deep dive (`src/components/SecurityPanel.jsx`); **Experiment** running step (`src/components/ExperimentPanel.jsx`); **shared `DeepDivePanel`**; **Build simple** research/plan + What’s Next loading (`src/components/BuildSimpleView.jsx`). Per-surface `data-testid` values avoid collisions (`chat-session-progress`, `builder-session-progress`, `review-session-progress`, etc.). See **`docs/SESSION-PROGRESS.md`**.
+
 ## [1.6.25] — 2026-05-01
 
 ### Added

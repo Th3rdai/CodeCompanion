@@ -1,4 +1,5 @@
 import BaseBuilderPanel from "./BaseBuilderPanel";
+import { parsePromptingLoaded } from "../../lib/prompting-parse-loaded.js";
 
 const PROMPTING_CONFIG = {
   modeId: "prompting",
@@ -65,42 +66,7 @@ const PROMPTING_CONFIG = {
     }
     return lines.join("\n");
   },
-  parseLoaded: (content) => {
-    const result = {
-      content: "",
-      purpose: "",
-      targetModel: "",
-      variables: [],
-      constraints: "",
-    };
-    if (!content) return result;
-
-    const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-    if (fmMatch) {
-      const fm = fmMatch[1];
-      const body = fmMatch[2].trim();
-
-      const purposeMatch = fm.match(/purpose:\s*"([^"]*)"/);
-      if (purposeMatch) result.purpose = purposeMatch[1];
-
-      const modelMatch = fm.match(/target_model:\s*"([^"]*)"/);
-      if (modelMatch) result.targetModel = modelMatch[1];
-
-      const varsMatch = fm.match(/variables:\s*\[(.*?)\]/);
-      if (varsMatch)
-        result.variables = varsMatch[1]
-          .split(",")
-          .map((v) => v.trim().replace(/"/g, ""))
-          .filter(Boolean);
-
-      const constraintSplit = body.split(/\n## Constraints\n/);
-      result.content = constraintSplit[0].trim();
-      if (constraintSplit[1]) result.constraints = constraintSplit[1].trim();
-    } else {
-      result.content = content;
-    }
-    return result;
-  },
+  parseLoaded: parsePromptingLoaded,
   fileExtension: ".md",
   defaultFilename: "prompt",
   nameField: "purpose",

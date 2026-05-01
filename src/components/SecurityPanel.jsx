@@ -20,6 +20,7 @@ import SecurityReport from "./SecurityReport";
 import MessageBubble from "./MessageBubble";
 import MarkdownContent from "./MarkdownContent";
 import LoadingAnimation from "./LoadingAnimation";
+import ChatSessionProgress from "./ui/ChatSessionProgress";
 import ImageThumbnail from "./ImageThumbnail";
 import DictateButton from "./DictateButton";
 import ImageLightbox from "./ImageLightbox";
@@ -29,6 +30,11 @@ import {
   convertDocument,
   validateDocument,
 } from "../lib/document-processor";
+import {
+  parseMarkdownCodeFences,
+  parseOriginalMultiFileBlocks,
+  parseRemediationFileBlocks,
+} from "../lib/security-remediation-zip.js";
 
 // ── Model tier system (same as ReviewPanel) ──────────
 const MODEL_TIERS = {
@@ -162,6 +168,8 @@ export default function SecurityPanel({
   const [fallbackMessages, setFallbackMessages] = useState([]);
   const [fallbackInput, setFallbackInput] = useState("");
   const [fallbackStreaming, setFallbackStreaming] = useState(false);
+  /** True while initial conversational (markdown) scan is streaming over SSE. */
+  const [fallbackMarkdownSse, setFallbackMarkdownSse] = useState(false);
   const fallbackEndRef = useRef(null);
 
   // Remediation state
@@ -273,42 +281,47 @@ export default function SecurityPanel({
 
       if (contentType.includes("text/event-stream")) {
         setPhase("fallback");
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let accumulated = "";
+        setFallbackMarkdownSse(true);
+        try {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let accumulated = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const payload = line.slice(6);
-            if (payload === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(payload);
-              if (parsed.token) {
-                accumulated += parsed.token;
-                setFallbackContent(accumulated);
-              }
-              if (parsed.error) {
-                accumulated += `\n\nError: ${parsed.error}`;
-                setFallbackContent(accumulated);
-              }
-            } catch {}
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6);
+              if (payload === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(payload);
+                if (parsed.token) {
+                  accumulated += parsed.token;
+                  setFallbackContent(accumulated);
+                }
+                if (parsed.error) {
+                  accumulated += `\n\nError: ${parsed.error}`;
+                  setFallbackContent(accumulated);
+                }
+              } catch {}
+            }
           }
+          setFallbackContent(accumulated);
+          onSavePentest?.({
+            fallbackContent: accumulated,
+            filename: filename || undefined,
+            code: code.trim(),
+            model: selectedModel,
+          });
+        } finally {
+          setFallbackMarkdownSse(false);
         }
-        setFallbackContent(accumulated);
-        onSavePentest?.({
-          fallbackContent: accumulated,
-          filename: filename || undefined,
-          code: code.trim(),
-          model: selectedModel,
-        });
         return;
       }
 
@@ -892,6 +905,7 @@ export default function SecurityPanel({
     setFilename("");
     setReportData(null);
     setFallbackContent("");
+    setFallbackMarkdownSse(false);
     setDeepDiveMessages([]);
     setScanError("");
     setFolderPreview(null);
@@ -1033,45 +1047,50 @@ export default function SecurityPanel({
 
       if (contentType.includes("text/event-stream")) {
         setPhase("fallback");
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let accumulated = "";
+        setFallbackMarkdownSse(true);
+        try {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let accumulated = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const payload = line.slice(6);
-            if (payload === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(payload);
-              if (parsed.meta) setFolderMeta(parsed.meta);
-              if (parsed.token) {
-                accumulated += parsed.token;
-                setFallbackContent(accumulated);
-              }
-              if (parsed.error) {
-                accumulated += `\n\nError: ${parsed.error}`;
-                setFallbackContent(accumulated);
-              }
-            } catch {}
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6);
+              if (payload === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(payload);
+                if (parsed.meta) setFolderMeta(parsed.meta);
+                if (parsed.token) {
+                  accumulated += parsed.token;
+                  setFallbackContent(accumulated);
+                }
+                if (parsed.error) {
+                  accumulated += `\n\nError: ${parsed.error}`;
+                  setFallbackContent(accumulated);
+                }
+              } catch {}
+            }
           }
-        }
 
-        setFallbackContent(accumulated);
-        setFilename(`Folder: ${folderPath.trim()}`);
-        onSavePentest?.({
-          fallbackContent: accumulated,
-          filename: `Folder: ${folderPath.trim()}`,
-          code: "",
-          model: selectedModel,
-        });
+          setFallbackContent(accumulated);
+          setFilename(`Folder: ${folderPath.trim()}`);
+          onSavePentest?.({
+            fallbackContent: accumulated,
+            filename: `Folder: ${folderPath.trim()}`,
+            code: "",
+            model: selectedModel,
+          });
+        } finally {
+          setFallbackMarkdownSse(false);
+        }
         return;
       }
 
@@ -1094,9 +1113,16 @@ export default function SecurityPanel({
   // ── Render: Loading ───────────────────────────────
   if (phase === "loading") {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <LoadingAnimation filename={filename} />
-        <StopButton onClick={handleStop} label="Stop Scan" />
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <ChatSessionProgress
+          active
+          detail="Security · Running scan"
+          testId="pentest-session-progress"
+        />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 min-h-0">
+          <LoadingAnimation filename={filename} />
+          <StopButton onClick={handleStop} label="Stop Scan" />
+        </div>
       </div>
     );
   }
@@ -1105,25 +1131,32 @@ export default function SecurityPanel({
   if (phase === "report" && reportData) {
     return (
       <section
-        className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
         aria-label="Security scan report"
       >
-        {savedPentest && (
-          <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-xs text-slate-500">
-            <History className="w-3.5 h-3.5" />
-            <span>Saved scan</span>
-          </div>
-        )}
-        <SecurityReport
-          data={reportData}
-          filename={filename}
-          onDeepDive={handleDeepDive}
-          onNewScan={handleNewScan}
-          onToast={onToast}
-          onRemediate={handleRemediate}
-          remediating={remediating}
-          remediationProgress={remediationProgress}
+        <ChatSessionProgress
+          active={remediating}
+          detail="Security · Remediation"
+          testId="pentest-session-progress"
         />
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
+          {savedPentest && (
+            <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-xs text-slate-500">
+              <History className="w-3.5 h-3.5" />
+              <span>Saved scan</span>
+            </div>
+          )}
+          <SecurityReport
+            data={reportData}
+            filename={filename}
+            onDeepDive={handleDeepDive}
+            onNewScan={handleNewScan}
+            onToast={onToast}
+            onRemediate={handleRemediate}
+            remediating={remediating}
+            remediationProgress={remediationProgress}
+          />
+        </div>
       </section>
     );
   }
@@ -1397,47 +1430,32 @@ ${fallbackContent
       zip.file("REMEDIATION-REPORT.md", reportMd);
 
       // Add original code
-      const isMultiFile = code.includes("── File: ");
-      if (isMultiFile) {
-        // Multi-file: parse and add each original file
+      const originalFiles = parseOriginalMultiFileBlocks(code);
+      if (originalFiles?.length) {
         const origFolder = zip.folder("original");
-        const fileBlocks = code.split(/── File: /);
-        for (const block of fileBlocks) {
-          if (!block.trim()) continue;
-          const nlIdx = block.indexOf("\n");
-          const fpath = block.slice(0, nlIdx).replace(/ ──$/, "").trim();
-          const content = block.slice(nlIdx + 1).trim();
-          if (fpath) origFolder.file(fpath, content);
+        for (const { path: fpath, content } of originalFiles) {
+          origFolder.file(fpath, content);
         }
       } else {
         zip.folder("original").file(filename || "code.txt", code);
       }
 
-      // Parse revised files from the AI response
-      const fileRegex = /---FILE:\s*(.+?)---\n([\s\S]*?)---END_FILE---/g;
-      let match;
       const remediatedFolder = zip.folder("remediated");
+      const revised = parseRemediationFileBlocks(filesSection);
       let fileCount = 0;
-
-      while ((match = fileRegex.exec(filesSection)) !== null) {
-        const fpath = match[1].trim();
-        const content = match[2].trim();
+      for (const { path: fpath, content } of revised) {
         remediatedFolder.file(fpath, content);
         fileCount++;
       }
 
-      // If no files were parsed with markers, try to extract code blocks
-      if (fileCount === 0 && filesSection) {
-        const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/g;
-        let cbMatch;
+      if (fileCount === 0 && accumulated) {
+        const fences = parseMarkdownCodeFences(accumulated);
         let cbIdx = 0;
-        while ((cbMatch = codeBlockRegex.exec(accumulated)) !== null) {
+        for (const { content } of fences) {
           cbIdx++;
-          remediatedFolder.file(
-            filename || `fixed-${cbIdx}.txt`,
-            cbMatch[1].trim(),
-          );
+          remediatedFolder.file(filename || `fixed-${cbIdx}.txt`, content);
         }
+        fileCount = fences.length;
       }
 
       // Generate and download
@@ -1470,6 +1488,15 @@ ${fallbackContent
         className="flex-1 flex flex-col min-h-0 overflow-hidden"
         aria-label="Security scan (conversation mode)"
       >
+        <ChatSessionProgress
+          active={fallbackMarkdownSse || fallbackStreaming}
+          detail={
+            fallbackMarkdownSse
+              ? "Security · Streaming response"
+              : "Security · Follow-up"
+          }
+          testId="pentest-session-progress"
+        />
         <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
           <div className="max-w-3xl mx-auto space-y-4">
             <div className="glass rounded-xl border border-amber-500/20 p-3 flex items-center gap-2">
@@ -1665,6 +1692,12 @@ ${fallbackContent
           </button>
           <span className="text-xs text-slate-500">Security Deep Dive</span>
         </div>
+
+        <ChatSessionProgress
+          active={deepDiveStreaming}
+          detail="Security · Deep dive"
+          testId="pentest-session-progress"
+        />
 
         <div
           className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"

@@ -3,6 +3,7 @@ import { apiFetch } from "../../lib/api-fetch";
 import { useAbortable } from "../../hooks/useAbortable";
 import { registerAbort, unregisterAbort } from "../../hooks/useAbortRegistry";
 import StopButton from "../ui/StopButton";
+import ChatSessionProgress from "../ui/ChatSessionProgress";
 import LoadingAnimation from "../LoadingAnimation";
 import MarkdownContent from "../MarkdownContent";
 import BuilderScoreCard from "./BuilderScoreCard";
@@ -643,9 +644,16 @@ Format your response as:
   // ── Render: Loading Phase ────────────────────────────
   if (phase === "loading") {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <LoadingAnimation />
-        <StopButton onClick={handleStop} label="Stop Scoring" />
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <ChatSessionProgress
+          active
+          detail={`${config.title} · Scoring…`}
+          testId="builder-session-progress"
+        />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 min-h-0">
+          <LoadingAnimation />
+          <StopButton onClick={handleStop} label="Stop Scoring" />
+        </div>
       </div>
     );
   }
@@ -654,217 +662,224 @@ Format your response as:
   if (phase === "scored" && scoreData) {
     return (
       <section
-        className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
         aria-label={`${config.title} score report`}
       >
-        <div className="max-w-3xl mx-auto space-y-4">
-          {/* Source file info */}
-          {sourceFile && (
-            <div className="glass rounded-lg border border-slate-700/30 px-3 py-2 flex items-center gap-2 text-xs">
-              <span className="text-slate-500">Source:</span>
-              <span className="text-indigo-300 font-medium truncate">
-                {sourceFile.name}
-              </span>
-              <span
-                className="text-slate-600 truncate flex-1"
-                title={sourceFile.folder + "/" + sourceFile.path}
-              >
-                {sourceFile.folder}/{sourceFile.path}
-              </span>
-            </div>
-          )}
-
-          <BuilderScoreCard
-            data={scoreData}
-            categories={config.categories}
-            onRevise={handleCategoryRevise}
-          />
-
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            {/* Ask AI to Improve — builds all suggestions into a prompt */}
-            {scoreData?.categories &&
-              (() => {
-                const allSuggestions = Object.entries(
-                  scoreData.categories,
-                ).flatMap(([k, v]) =>
-                  (v.suggestions || []).map((s) => `[${k}] ${s}`),
-                );
-                return allSuggestions.length > 0 ? (
-                  <button
-                    onClick={() => {
-                      const prompt =
-                        `Improve this ${config.title.toLowerCase()} based on these suggestions:\n` +
-                        allSuggestions
-                          .map((s, i) => `${i + 1}. ${s}`)
-                          .join("\n");
-                      setReviseInput(prompt);
-                      setReviseMessages([]);
-                      setPhase("revising");
-                      onToast?.(
-                        "Suggestions loaded — click Send to get improvements",
-                      );
-                    }}
-                    className="text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
-                  >
-                    Ask AI to Improve
-                  </button>
-                ) : null;
-              })()}
-            <button
-              onClick={handleSave}
-              className="text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
-            >
-              Save
-            </button>
-            <button
-              onClick={handleDownload}
-              className="text-xs px-4 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
-            >
-              Download
-            </button>
+        <ChatSessionProgress
+          active={reviseStreaming}
+          detail={`${config.title} · Revise with AI`}
+          testId="builder-session-progress"
+        />
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
+          <div className="max-w-3xl mx-auto space-y-4">
+            {/* Source file info */}
             {sourceFile && (
-              <button
-                onClick={handleSaveToFile}
-                className="text-xs px-4 py-2 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 transition-colors"
-              >
-                Save to File
-              </button>
-            )}
-            <button
-              onClick={() => {
-                setReviseMessages([]);
-                setReviseInput("");
-                setPhase("revising");
-              }}
-              className="text-xs px-4 py-2 rounded-lg border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 transition-colors"
-            >
-              Revise with AI
-            </button>
-            <button
-              onClick={handleScore}
-              className="text-xs px-4 py-2 rounded-lg border border-blue-500/30 text-blue-300 hover:bg-blue-500/10 transition-colors"
-            >
-              Re-Score
-            </button>
-            <button
-              onClick={handleNew}
-              className="text-xs px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 transition-colors"
-            >
-              New
-            </button>
-          </div>
-
-          {/* Inline chat — discuss the score */}
-          <div className="space-y-3">
-            <InputToolbar
-              textareaRef={inlineChatRef}
-              getText={() => reviseInput}
-              setText={(val) => setReviseInput((prev) => prev + val)}
-              messages={
-                reviseMessages.length
-                  ? reviseMessages
-                  : [
-                      {
-                        role: "assistant",
-                        content:
-                          scoreData?.summary || JSON.stringify(scoreData),
-                      },
-                    ]
-              }
-              mode={config.title}
-              onToast={onToast}
-              onClear={() => setReviseInput("")}
-              connected={connected}
-              streaming={reviseStreaming}
-              hideButtons={["upload", "paste"]}
-            />
-
-            {/* Show conversation messages inline */}
-            {reviseMessages.filter(
-              (m) => m.role === "user" || m.role === "assistant",
-            ).length > 0 && (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
-                {reviseMessages
-                  .filter((m) => m.role === "user" || m.role === "assistant")
-                  .map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`rounded-xl p-3 text-sm ${
-                        msg.role === "user"
-                          ? "glass border border-indigo-500/20 ml-8 text-slate-200"
-                          : "glass border border-slate-700/30 mr-8"
-                      }`}
-                    >
-                      <div className="text-[10px] text-slate-500 mb-1 uppercase font-semibold">
-                        {msg.role === "user" ? "You" : "AI"}
-                      </div>
-                      {msg.role === "assistant" ? (
-                        <MarkdownContent content={msg.content} />
-                      ) : (
-                        <p>{msg.content}</p>
-                      )}
-                    </div>
-                  ))}
-                {reviseStreaming && (
-                  <div className="flex items-center gap-2 text-slate-400 text-sm py-2">
-                    <div className="flex gap-1">
-                      <span
-                        className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "0ms" }}
-                      ></span>
-                      <span
-                        className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "150ms" }}
-                      ></span>
-                      <span
-                        className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                        style={{ animationDelay: "300ms" }}
-                      ></span>
-                    </div>
-                    <span>Thinking...</span>
-                  </div>
-                )}
-                <div ref={reviseEndRef} />
+              <div className="glass rounded-lg border border-slate-700/30 px-3 py-2 flex items-center gap-2 text-xs">
+                <span className="text-slate-500">Source:</span>
+                <span className="text-indigo-300 font-medium truncate">
+                  {sourceFile.name}
+                </span>
+                <span
+                  className="text-slate-600 truncate flex-1"
+                  title={sourceFile.folder + "/" + sourceFile.path}
+                >
+                  {sourceFile.folder}/{sourceFile.path}
+                </span>
               </div>
             )}
 
-            {/* Chat input */}
-            <div className="flex gap-2">
-              <textarea
-                ref={inlineChatRef}
-                value={reviseInput}
-                onChange={(e) => setReviseInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (reviseInput.trim()) {
-                      setPhase("revising");
-                      setTimeout(() => handleRevise(), 50);
-                    }
-                  }
-                }}
-                placeholder={`Ask about the score or how to improve your ${config.title.toLowerCase()}...`}
-                rows={2}
-                disabled={reviseStreaming || !connected}
-                className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
-              />
-              {reviseStreaming ? (
-                <StopButton onClick={handleStop} className="min-w-[60px]" />
-              ) : (
+            <BuilderScoreCard
+              data={scoreData}
+              categories={config.categories}
+              onRevise={handleCategoryRevise}
+            />
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {/* Ask AI to Improve — builds all suggestions into a prompt */}
+              {scoreData?.categories &&
+                (() => {
+                  const allSuggestions = Object.entries(
+                    scoreData.categories,
+                  ).flatMap(([k, v]) =>
+                    (v.suggestions || []).map((s) => `[${k}] ${s}`),
+                  );
+                  return allSuggestions.length > 0 ? (
+                    <button
+                      onClick={() => {
+                        const prompt =
+                          `Improve this ${config.title.toLowerCase()} based on these suggestions:\n` +
+                          allSuggestions
+                            .map((s, i) => `${i + 1}. ${s}`)
+                            .join("\n");
+                        setReviseInput(prompt);
+                        setReviseMessages([]);
+                        setPhase("revising");
+                        onToast?.(
+                          "Suggestions loaded — click Send to get improvements",
+                        );
+                      }}
+                      className="text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+                    >
+                      Ask AI to Improve
+                    </button>
+                  ) : null;
+                })()}
+              <button
+                onClick={handleSave}
+                className="text-xs px-4 py-2 rounded-lg border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={handleDownload}
+                className="text-xs px-4 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+              >
+                Download
+              </button>
+              {sourceFile && (
                 <button
-                  onClick={() => {
-                    if (reviseInput.trim()) {
-                      setPhase("revising");
-                      setTimeout(() => handleRevise(), 50);
-                    }
-                  }}
-                  disabled={!reviseInput.trim() || !connected}
-                  className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+                  onClick={handleSaveToFile}
+                  className="text-xs px-4 py-2 rounded-lg border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 transition-colors"
                 >
-                  Ask
+                  Save to File
                 </button>
               )}
+              <button
+                onClick={() => {
+                  setReviseMessages([]);
+                  setReviseInput("");
+                  setPhase("revising");
+                }}
+                className="text-xs px-4 py-2 rounded-lg border border-purple-500/30 text-purple-300 hover:bg-purple-500/10 transition-colors"
+              >
+                Revise with AI
+              </button>
+              <button
+                onClick={handleScore}
+                className="text-xs px-4 py-2 rounded-lg border border-blue-500/30 text-blue-300 hover:bg-blue-500/10 transition-colors"
+              >
+                Re-Score
+              </button>
+              <button
+                onClick={handleNew}
+                className="text-xs px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 transition-colors"
+              >
+                New
+              </button>
+            </div>
+
+            {/* Inline chat — discuss the score */}
+            <div className="space-y-3">
+              <InputToolbar
+                textareaRef={inlineChatRef}
+                getText={() => reviseInput}
+                setText={(val) => setReviseInput((prev) => prev + val)}
+                messages={
+                  reviseMessages.length
+                    ? reviseMessages
+                    : [
+                        {
+                          role: "assistant",
+                          content:
+                            scoreData?.summary || JSON.stringify(scoreData),
+                        },
+                      ]
+                }
+                mode={config.title}
+                onToast={onToast}
+                onClear={() => setReviseInput("")}
+                connected={connected}
+                streaming={reviseStreaming}
+                hideButtons={["upload", "paste"]}
+              />
+
+              {/* Show conversation messages inline */}
+              {reviseMessages.filter(
+                (m) => m.role === "user" || m.role === "assistant",
+              ).length > 0 && (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+                  {reviseMessages
+                    .filter((m) => m.role === "user" || m.role === "assistant")
+                    .map((msg, i) => (
+                      <div
+                        key={i}
+                        className={`rounded-xl p-3 text-sm ${
+                          msg.role === "user"
+                            ? "glass border border-indigo-500/20 ml-8 text-slate-200"
+                            : "glass border border-slate-700/30 mr-8"
+                        }`}
+                      >
+                        <div className="text-[10px] text-slate-500 mb-1 uppercase font-semibold">
+                          {msg.role === "user" ? "You" : "AI"}
+                        </div>
+                        {msg.role === "assistant" ? (
+                          <MarkdownContent content={msg.content} />
+                        ) : (
+                          <p>{msg.content}</p>
+                        )}
+                      </div>
+                    ))}
+                  {reviseStreaming && (
+                    <div className="flex items-center gap-2 text-slate-400 text-sm py-2">
+                      <div className="flex gap-1">
+                        <span
+                          className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        ></span>
+                        <span
+                          className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        ></span>
+                        <span
+                          className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        ></span>
+                      </div>
+                      <span>Thinking...</span>
+                    </div>
+                  )}
+                  <div ref={reviseEndRef} />
+                </div>
+              )}
+
+              {/* Chat input */}
+              <div className="flex gap-2">
+                <textarea
+                  ref={inlineChatRef}
+                  value={reviseInput}
+                  onChange={(e) => setReviseInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (reviseInput.trim()) {
+                        setPhase("revising");
+                        setTimeout(() => handleRevise(), 50);
+                      }
+                    }
+                  }}
+                  placeholder={`Ask about the score or how to improve your ${config.title.toLowerCase()}...`}
+                  rows={2}
+                  disabled={reviseStreaming || !connected}
+                  className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+                />
+                {reviseStreaming ? (
+                  <StopButton onClick={handleStop} className="min-w-[60px]" />
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (reviseInput.trim()) {
+                        setPhase("revising");
+                        setTimeout(() => handleRevise(), 50);
+                      }
+                    }}
+                    disabled={!reviseInput.trim() || !connected}
+                    className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+                  >
+                    Ask
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -901,6 +916,12 @@ Format your response as:
             </span>
           )}
         </div>
+
+        <ChatSessionProgress
+          active={reviseStreaming}
+          detail={`${config.title} · Revise with AI`}
+          testId="builder-session-progress"
+        />
 
         {/* Current content + score summary */}
         <div className="px-4 py-3 border-b border-slate-700/20">

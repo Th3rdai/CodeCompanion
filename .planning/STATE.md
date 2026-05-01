@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-04-29T19:50:00.000Z"
-last_activity: "2026-04-29 — Four-commit run: chat timeout default 10 min + Terminal CWD tracks File Browser (`a07b43b`); Build mode `next-action` honors `chatTimeoutSec` + macOS Python guidance (`a2a8207`); agent-terminal blocklist token-boundary fix + 7 unit tests + clearer no-shell/no-loop preamble (`dc18dfd`). 284 unit tests pass."
+last_updated: "2026-05-01T20:00:00.000Z"
+last_activity: "2026-05-01 — `ChatSessionProgress` shipped app-wide (chat, builders, Review, Security, Experiment, DeepDivePanel, Build simple) + `docs/SESSION-PROGRESS.md`; CHANGELOG [Unreleased]. 388 unit tests / validate:static / vite build green."
 progress:
   total_phases: 28
   completed_phases: 28
@@ -27,9 +27,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 
 Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec remains gated/default-off. Phase 28 (Multi-File Code Review) verified; additional runtime fixes were completed 2026-04-22.
 
-**Current version:** 1.6.12 (released 2026-04-27).
+**Current version:** 1.6.25 (see `package.json`; next desktop build should include [Unreleased] UI).
 
-Last activity: 2026-04-29 — **Four-commit run on chat/build/Terminal/agent-terminal**:
+Last activity: 2026-05-01 — **Session progress strip** (`src/components/ui/ChatSessionProgress.jsx`) for consistent “Working” feedback across modes; documented in `docs/SESSION-PROGRESS.md`.
+
+Previous (2026-04-29) — **Four-commit run on chat/build/Terminal/agent-terminal**:
 
 - **`a07b43b` Chat fetch timeout default 120s → 600s** (`lib/config.js:72`, `routes/chat.js:412` fallback, `lib/ollama-client.js:165,232` `chatComplete`/`chatStructured` defaults, `.cc-config.json.example:6`). Triage: 5-min `fetch failed` against `qwen3-coder:30b` with ~10K-token contexts.
 - **`a07b43b` Terminal CWD = active File Browser folder** (`electron/main.js` `terminal-start` accepts renderer-supplied cwd, validates as existing dir, falls back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`; `electron/preload.js` `terminal.start(cwd)`; `src/components/TerminalPanel.jsx` `projectFolder` prop in `useEffect` deps so PTY respawns on folder change; `src/App.jsx` passes `chatFolder || projectFolder`).

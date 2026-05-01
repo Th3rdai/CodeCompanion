@@ -17,6 +17,7 @@ import MessageBubble from "./MessageBubble";
 import InputToolbar from "./ui/InputToolbar";
 import MarkdownContent from "./MarkdownContent";
 import LoadingAnimation from "./LoadingAnimation";
+import ChatSessionProgress from "./ui/ChatSessionProgress";
 import ImageThumbnail from "./ImageThumbnail";
 import ImageLightbox from "./ImageLightbox";
 import { validateImage, processImage, hashImage } from "../lib/image-processor";
@@ -150,6 +151,8 @@ export default function ReviewPanel({
   const [deepDiveMessages, setDeepDiveMessages] = useState([]);
   const [deepDiveInput, setDeepDiveInput] = useState("");
   const [deepDiveStreaming, setDeepDiveStreaming] = useState(false);
+  /** True while SSE markdown is streaming for conversational (fallback) review. */
+  const [fallbackSseActive, setFallbackSseActive] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [dragging, setDragging] = useState(false);
 
@@ -274,43 +277,48 @@ export default function ReviewPanel({
       if (contentType.includes("text/event-stream")) {
         // SSE fallback stream
         setPhase("fallback");
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let accumulated = "";
+        setFallbackSseActive(true);
+        try {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let accumulated = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const payload = line.slice(6);
-            if (payload === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(payload);
-              if (parsed.token) {
-                accumulated += parsed.token;
-                setFallbackContent(accumulated);
-              }
-              if (parsed.error) {
-                accumulated += `\n\nError: ${parsed.error}`;
-                setFallbackContent(accumulated);
-              }
-            } catch {}
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6);
+              if (payload === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(payload);
+                if (parsed.token) {
+                  accumulated += parsed.token;
+                  setFallbackContent(accumulated);
+                }
+                if (parsed.error) {
+                  accumulated += `\n\nError: ${parsed.error}`;
+                  setFallbackContent(accumulated);
+                }
+              } catch {}
+            }
           }
+          setFallbackContent(accumulated);
+          // Persist fallback review to history
+          onSaveReview?.({
+            fallbackContent: accumulated,
+            filename: filename || undefined,
+            code: code.trim(),
+            model: selectedModel,
+          });
+        } finally {
+          setFallbackSseActive(false);
         }
-        setFallbackContent(accumulated);
-        // Persist fallback review to history
-        onSaveReview?.({
-          fallbackContent: accumulated,
-          filename: filename || undefined,
-          code: code.trim(),
-          model: selectedModel,
-        });
         return;
       }
 
@@ -713,6 +721,7 @@ export default function ReviewPanel({
     setFilename("");
     setReportData(null);
     setFallbackContent("");
+    setFallbackSseActive(false);
     setDeepDiveMessages([]);
     setReviewError("");
     // Phase 9.1: Clear attached images
@@ -867,42 +876,47 @@ export default function ReviewPanel({
       if (contentType.includes("text/event-stream")) {
         // SSE fallback stream
         setPhase("fallback");
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let accumulated = "";
+        setFallbackSseActive(true);
+        try {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let accumulated = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop();
 
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const payload = line.slice(6);
-            if (payload === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(payload);
-              if (parsed.token) {
-                accumulated += parsed.token;
-                setFallbackContent(accumulated);
-              }
-              if (parsed.error) {
-                accumulated += `\n\nError: ${parsed.error}`;
-                setFallbackContent(accumulated);
-              }
-            } catch {}
+            for (const line of lines) {
+              if (!line.startsWith("data: ")) continue;
+              const payload = line.slice(6);
+              if (payload === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(payload);
+                if (parsed.token) {
+                  accumulated += parsed.token;
+                  setFallbackContent(accumulated);
+                }
+                if (parsed.error) {
+                  accumulated += `\n\nError: ${parsed.error}`;
+                  setFallbackContent(accumulated);
+                }
+              } catch {}
+            }
           }
+          setFallbackContent(accumulated);
+          onSaveReview?.({
+            fallbackContent: accumulated,
+            filename: folderPath,
+            code: `Scanned folder: ${folderPath}`,
+            model: selectedModel,
+          });
+        } finally {
+          setFallbackSseActive(false);
         }
-        setFallbackContent(accumulated);
-        onSaveReview?.({
-          fallbackContent: accumulated,
-          filename: folderPath,
-          code: `Scanned folder: ${folderPath}`,
-          model: selectedModel,
-        });
         return;
       }
 
@@ -948,9 +962,16 @@ export default function ReviewPanel({
   // ── Render: Loading ───────────────────────────────
   if (phase === "loading") {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <LoadingAnimation filename={filename} />
-        <StopButton onClick={handleStop} label="Stop Review" />
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <ChatSessionProgress
+          active
+          detail="Review · Running code review"
+          testId="review-session-progress"
+        />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 min-h-0">
+          <LoadingAnimation filename={filename} />
+          <StopButton onClick={handleStop} label="Stop Review" />
+        </div>
       </div>
     );
   }
@@ -972,192 +993,201 @@ export default function ReviewPanel({
 
     return (
       <section
-        className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
         aria-label="Code review report card"
       >
-        {reportData?.structureReviewOnly && (
-          <div className="max-w-3xl mx-auto mb-3 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm text-amber-300">
-            <span className="mt-0.5 text-base leading-none">📁</span>
-            <span>
-              <strong className="font-semibold">Structure review only.</strong>{" "}
-              This input looks like a directory listing, not source code. Paste
-              actual file contents to get a full code quality review with bug
-              and security findings.
-            </span>
-          </div>
-        )}
-        {savedReview && (
-          <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-xs text-slate-500">
-            <History className="w-3.5 h-3.5" />
-            <span>Saved review</span>
-          </div>
-        )}
-        <ReportCard
-          data={reportData}
-          filename={filename}
-          onDeepDive={handleDeepDive}
-          onNewReview={handleNewReview}
-          onReviewRevision={async () => {
-            // Keep filename, clear previous results, auto-reload the file
-            setReportData(null);
-            setDeepDiveMessages([]);
-            setDeepDiveInput("");
-            setFallbackContent("");
-            // Try to reload the file from the project folder
-            if (filename) {
-              try {
-                const res = await apiFetch(
-                  `/api/files/read?path=${encodeURIComponent(filename)}`,
-                );
-                if (res.ok) {
-                  const data = await res.json();
-                  if (data.content) {
-                    setCode(data.content);
-                    setPhase("input");
-                    onToast?.(
-                      `Loaded revised ${filename} — click Run Code Review to re-score`,
-                    );
-                    return;
-                  }
-                }
-              } catch {}
-            }
-            setCode("");
-            setPhase("input");
-            onToast?.(
-              `Ready to review revised ${filename || "file"} — paste or upload the updated code`,
-            );
-          }}
-          onPasteFixPrompts={(prompts) => {
-            setDeepDiveInput("");
-            setTimeout(() => {
-              setDeepDiveInput(prompts);
-              deepDiveInputRef.current?.focus();
-              onToast?.("Fix prompts ready — click Ask to send");
-            }, 50);
-          }}
+        <ChatSessionProgress
+          active={deepDiveStreaming}
+          detail="Review · Discuss findings"
+          testId="review-session-progress"
         />
-        {/* Inline chat for discussing findings */}
-        <div className="max-w-3xl mx-auto mt-3 space-y-3">
-          <InputToolbar
-            textareaRef={deepDiveInputRef}
-            getText={() => deepDiveInput}
-            setText={(val) => setDeepDiveInput((prev) => prev + val)}
-            messages={
-              deepDiveMessages.length
-                ? deepDiveMessages
-                : [
-                    {
-                      role: "assistant",
-                      content: JSON.stringify(reportData, null, 2),
-                    },
-                  ]
-            }
-            mode="Review"
-            onToast={onToast}
-            onClear={() => setDeepDiveInput("")}
-            connected={connected}
-            streaming={deepDiveStreaming}
-            hideButtons={["upload", "paste"]}
-          />
-
-          {/* Show conversation messages inline */}
-          {deepDiveMessages.filter(
-            (m) => m.role === "user" || m.role === "assistant",
-          ).length > 0 && (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
-              {deepDiveMessages
-                .filter((m) => m.role === "user" || m.role === "assistant")
-                .map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-xl p-3 text-sm ${
-                      msg.role === "user"
-                        ? "glass border border-indigo-500/20 ml-8 text-slate-200"
-                        : "glass border border-slate-700/30 mr-8"
-                    }`}
-                  >
-                    <div className="text-[10px] text-slate-500 mb-1 uppercase font-semibold">
-                      {msg.role === "user" ? "You" : "AI"}
-                    </div>
-                    {msg.role === "assistant" ? (
-                      <MarkdownContent content={msg.content} />
-                    ) : (
-                      <p>{msg.content}</p>
-                    )}
-                  </div>
-                ))}
-              {deepDiveStreaming && (
-                <div className="flex items-center gap-2 text-slate-400 text-sm py-2">
-                  <div className="flex gap-1">
-                    <span
-                      className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    ></span>
-                    <span
-                      className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    ></span>
-                    <span
-                      className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    ></span>
-                  </div>
-                  <span>Thinking...</span>
-                </div>
-              )}
-              <div ref={deepDiveEndRef} />
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
+          {reportData?.structureReviewOnly && (
+            <div className="max-w-3xl mx-auto mb-3 flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-sm text-amber-300">
+              <span className="mt-0.5 text-base leading-none">📁</span>
+              <span>
+                <strong className="font-semibold">
+                  Structure review only.
+                </strong>{" "}
+                This input looks like a directory listing, not source code.
+                Paste actual file contents to get a full code quality review
+                with bug and security findings.
+              </span>
             </div>
           )}
-
-          {/* Chat input */}
-          <div className="flex gap-2">
-            <textarea
-              ref={deepDiveInputRef}
-              value={deepDiveInput}
-              onChange={(e) => setDeepDiveInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleDeepDiveFollowUp();
-                }
-              }}
-              placeholder="Paste fix prompts or ask about the findings..."
-              rows={2}
-              disabled={deepDiveStreaming || !connected}
-              className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
-            />
-            {deepDiveStreaming ? (
-              <StopButton onClick={handleStop} className="min-w-[60px]" />
-            ) : (
-              <button
-                onClick={() => handleDeepDiveFollowUp()}
-                disabled={!deepDiveInput.trim() || !connected}
-                className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
-              >
-                Ask
-              </button>
-            )}
-          </div>
-        </div>
-        {isSuspicious && suggestedModel && (
-          <div className="max-w-3xl mx-auto mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
-            <div className="flex-1 text-sm text-amber-200/80">
-              For a deeper review, try <strong>{suggestedModel.name}</strong> —
-              larger models catch more subtle issues.
+          {savedReview && (
+            <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-xs text-slate-500">
+              <History className="w-3.5 h-3.5" />
+              <span>Saved review</span>
             </div>
-            <button
-              onClick={() => {
-                onSetSelectedModel?.(suggestedModel.name);
-                setPhase("input");
-              }}
-              className="px-3 py-1.5 text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Try it
-            </button>
+          )}
+          <ReportCard
+            data={reportData}
+            filename={filename}
+            onDeepDive={handleDeepDive}
+            onNewReview={handleNewReview}
+            onReviewRevision={async () => {
+              // Keep filename, clear previous results, auto-reload the file
+              setReportData(null);
+              setDeepDiveMessages([]);
+              setDeepDiveInput("");
+              setFallbackContent("");
+              // Try to reload the file from the project folder
+              if (filename) {
+                try {
+                  const res = await apiFetch(
+                    `/api/files/read?path=${encodeURIComponent(filename)}`,
+                  );
+                  if (res.ok) {
+                    const data = await res.json();
+                    if (data.content) {
+                      setCode(data.content);
+                      setPhase("input");
+                      onToast?.(
+                        `Loaded revised ${filename} — click Run Code Review to re-score`,
+                      );
+                      return;
+                    }
+                  }
+                } catch {}
+              }
+              setCode("");
+              setPhase("input");
+              onToast?.(
+                `Ready to review revised ${filename || "file"} — paste or upload the updated code`,
+              );
+            }}
+            onPasteFixPrompts={(prompts) => {
+              setDeepDiveInput("");
+              setTimeout(() => {
+                setDeepDiveInput(prompts);
+                deepDiveInputRef.current?.focus();
+                onToast?.("Fix prompts ready — click Ask to send");
+              }, 50);
+            }}
+          />
+          {/* Inline chat for discussing findings */}
+          <div className="max-w-3xl mx-auto mt-3 space-y-3">
+            <InputToolbar
+              textareaRef={deepDiveInputRef}
+              getText={() => deepDiveInput}
+              setText={(val) => setDeepDiveInput((prev) => prev + val)}
+              messages={
+                deepDiveMessages.length
+                  ? deepDiveMessages
+                  : [
+                      {
+                        role: "assistant",
+                        content: JSON.stringify(reportData, null, 2),
+                      },
+                    ]
+              }
+              mode="Review"
+              onToast={onToast}
+              onClear={() => setDeepDiveInput("")}
+              connected={connected}
+              streaming={deepDiveStreaming}
+              hideButtons={["upload", "paste"]}
+            />
+
+            {/* Show conversation messages inline */}
+            {deepDiveMessages.filter(
+              (m) => m.role === "user" || m.role === "assistant",
+            ).length > 0 && (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+                {deepDiveMessages
+                  .filter((m) => m.role === "user" || m.role === "assistant")
+                  .map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`rounded-xl p-3 text-sm ${
+                        msg.role === "user"
+                          ? "glass border border-indigo-500/20 ml-8 text-slate-200"
+                          : "glass border border-slate-700/30 mr-8"
+                      }`}
+                    >
+                      <div className="text-[10px] text-slate-500 mb-1 uppercase font-semibold">
+                        {msg.role === "user" ? "You" : "AI"}
+                      </div>
+                      {msg.role === "assistant" ? (
+                        <MarkdownContent content={msg.content} />
+                      ) : (
+                        <p>{msg.content}</p>
+                      )}
+                    </div>
+                  ))}
+                {deepDiveStreaming && (
+                  <div className="flex items-center gap-2 text-slate-400 text-sm py-2">
+                    <div className="flex gap-1">
+                      <span
+                        className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0ms" }}
+                      ></span>
+                      <span
+                        className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "150ms" }}
+                      ></span>
+                      <span
+                        className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "300ms" }}
+                      ></span>
+                    </div>
+                    <span>Thinking...</span>
+                  </div>
+                )}
+                <div ref={deepDiveEndRef} />
+              </div>
+            )}
+
+            {/* Chat input */}
+            <div className="flex gap-2">
+              <textarea
+                ref={deepDiveInputRef}
+                value={deepDiveInput}
+                onChange={(e) => setDeepDiveInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleDeepDiveFollowUp();
+                  }
+                }}
+                placeholder="Paste fix prompts or ask about the findings..."
+                rows={2}
+                disabled={deepDiveStreaming || !connected}
+                className="flex-1 input-glow text-slate-100 text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
+              />
+              {deepDiveStreaming ? (
+                <StopButton onClick={handleStop} className="min-w-[60px]" />
+              ) : (
+                <button
+                  onClick={() => handleDeepDiveFollowUp()}
+                  disabled={!deepDiveInput.trim() || !connected}
+                  className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
+                >
+                  Ask
+                </button>
+              )}
+            </div>
           </div>
-        )}
+          {isSuspicious && suggestedModel && (
+            <div className="max-w-3xl mx-auto mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              <div className="flex-1 text-sm text-amber-200/80">
+                For a deeper review, try <strong>{suggestedModel.name}</strong>{" "}
+                — larger models catch more subtle issues.
+              </div>
+              <button
+                onClick={() => {
+                  onSetSelectedModel?.(suggestedModel.name);
+                  setPhase("input");
+                }}
+                className="px-3 py-1.5 text-sm font-medium text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Try it
+              </button>
+            </div>
+          )}
+        </div>
       </section>
     );
   }
@@ -1166,59 +1196,66 @@ export default function ReviewPanel({
   if (phase === "fallback") {
     return (
       <section
-        className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
+        className="flex-1 flex flex-col min-h-0 overflow-hidden"
         aria-label="Code review (conversation mode)"
       >
-        <div className="max-w-3xl mx-auto space-y-4">
-          <div className="glass rounded-xl border border-amber-500/20 p-3 flex items-center gap-2">
-            <span className="text-amber-400">⚠️</span>
-            <p className="text-xs text-amber-300">
-              The model couldn't produce a structured report card, so here's a
-              conversational review instead.
-            </p>
-          </div>
-          <div className="glass rounded-xl border border-slate-700/30 p-4">
-            {fallbackContent ? (
-              <MarkdownContent content={fallbackContent} />
-            ) : (
-              <div className="flex items-center gap-2 text-slate-400">
-                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
-                <span className="text-sm">Streaming review...</span>
-              </div>
-            )}
-          </div>
-          <InputToolbar
-            textareaRef={null}
-            getText={() => ""}
-            setText={() => {}}
-            messages={[{ role: "assistant", content: fallbackContent }]}
-            mode="Review"
-            onToast={onToast}
-            connected={connected}
-            streaming={false}
-            hideButtons={["upload", "paste", "clear", "dictate"]}
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleNewReview}
-              className="text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 transition-colors"
-            >
-              Review Another
-            </button>
-            <button
-              onClick={() => {
-                setDeepDiveMessages([
-                  {
-                    role: "system",
-                    content: `You are a senior developer helping fix code issues found during a review. You have the COMPLETE original source code below — do NOT ask the user to share it again.\n\nFilename: ${filename}\n\nORIGINAL CODE:\n\`\`\`\n${code}\n\`\`\`\n\nREVIEW FINDINGS:\n${fallbackContent}\n\nINSTRUCTIONS:\n1. Fix ALL issues listed in the review findings.\n2. Show the COMPLETE corrected file in a single code block.\n3. Explain each change briefly.\n4. MANDATORY: After showing the corrected code, you MUST save it by calling:\nTOOL_CALL: builtin.write_file({"path": "${filename}", "content": "YOUR CORRECTED FILE CONTENT HERE"})\nThis creates a .backup automatically. You MUST make this tool call — do not skip it.\n5. Do NOT ask the user to share the code — you already have it above.\n6. Do NOT apologize or say you lack access.`,
-                  },
-                ]);
-                setPhase("deep-dive");
-              }}
-              className="text-xs px-3 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
-            >
-              Continue Discussion
-            </button>
+        <ChatSessionProgress
+          active={fallbackSseActive}
+          detail="Review · Streaming response"
+          testId="review-session-progress"
+        />
+        <div className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4">
+          <div className="max-w-3xl mx-auto space-y-4">
+            <div className="glass rounded-xl border border-amber-500/20 p-3 flex items-center gap-2">
+              <span className="text-amber-400">⚠️</span>
+              <p className="text-xs text-amber-300">
+                The model couldn't produce a structured report card, so here's a
+                conversational review instead.
+              </p>
+            </div>
+            <div className="glass rounded-xl border border-slate-700/30 p-4">
+              {fallbackContent ? (
+                <MarkdownContent content={fallbackContent} />
+              ) : (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+                  <span className="text-sm">Streaming review...</span>
+                </div>
+              )}
+            </div>
+            <InputToolbar
+              textareaRef={null}
+              getText={() => ""}
+              setText={() => {}}
+              messages={[{ role: "assistant", content: fallbackContent }]}
+              mode="Review"
+              onToast={onToast}
+              connected={connected}
+              streaming={false}
+              hideButtons={["upload", "paste", "clear", "dictate"]}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleNewReview}
+                className="text-xs px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/40 transition-colors"
+              >
+                Review Another
+              </button>
+              <button
+                onClick={() => {
+                  setDeepDiveMessages([
+                    {
+                      role: "system",
+                      content: `You are a senior developer helping fix code issues found during a review. You have the COMPLETE original source code below — do NOT ask the user to share it again.\n\nFilename: ${filename}\n\nORIGINAL CODE:\n\`\`\`\n${code}\n\`\`\`\n\nREVIEW FINDINGS:\n${fallbackContent}\n\nINSTRUCTIONS:\n1. Fix ALL issues listed in the review findings.\n2. Show the COMPLETE corrected file in a single code block.\n3. Explain each change briefly.\n4. MANDATORY: After showing the corrected code, you MUST save it by calling:\nTOOL_CALL: builtin.write_file({"path": "${filename}", "content": "YOUR CORRECTED FILE CONTENT HERE"})\nThis creates a .backup automatically. You MUST make this tool call — do not skip it.\n5. Do NOT ask the user to share the code — you already have it above.\n6. Do NOT apologize or say you lack access.`,
+                    },
+                  ]);
+                  setPhase("deep-dive");
+                }}
+                className="text-xs px-3 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+              >
+                Continue Discussion
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1246,6 +1283,12 @@ export default function ReviewPanel({
           </button>
           <span className="text-xs text-slate-500">Deep Dive Conversation</span>
         </div>
+
+        <ChatSessionProgress
+          active={deepDiveStreaming}
+          detail="Review · Deep dive"
+          testId="review-session-progress"
+        />
 
         {/* Messages */}
         <div

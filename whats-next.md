@@ -4,6 +4,13 @@ Implement MCP per-tool enable/disable controls (MCPFIX) for Code Companion v1.6.
 
 <work_completed>
 
+**Session progress UI — complete (2026-05-01)**
+
+- **`ChatSessionProgress`** (`src/components/ui/ChatSessionProgress.jsx` + `src/index.css`): indeterminate bar, glass strip, `aria-*`, `prefers-reduced-motion`.
+- **Wired** in `App.jsx` (main chat `streaming`), `BaseBuilderPanel.jsx` (score + revise), `ReviewPanel.jsx` (loading / report / fallback SSE / deep dive), `SecurityPanel.jsx` (loading / remediation / fallback / deep dive), `ExperimentPanel.jsx` (running step), `DeepDivePanel.jsx`, `BuildSimpleView.jsx` (research + plan + What’s Next loading).
+- **Docs:** `docs/SESSION-PROGRESS.md`, `CHANGELOG.md` [Unreleased], `CLAUDE.md` project table, `design-system/README.md` link.
+- **Verification:** `npm run validate:static`, `npm run test:unit` (388), `npx vite build` all pass.
+
 **Build/agent-terminal hardening (2026-04-29 afternoon)**
 
 Two follow-up commits after the morning's chat-timeout + Terminal-CWD work, triggered by reviewing the installed app's `app.log` and a TradingAgents debugging session that hit a 25-round terminal-failure loop.
@@ -107,9 +114,8 @@ Two follow-up commits after the morning's chat-timeout + Terminal-CWD work, trig
 
 <work_remaining>
 
-- **Prettier formatting pass** on `AGENTS.md`, `CLAUDE.md`, `lib/tool-call-handler.js` to clear the P1 failure from the 2026-04-24 `/validate-project --thorough` run.
-- **Cut next patch release** via CI tag push to ship MCPFIX changes through GitHub Releases + in-app updater.
-- **Run `/validate-project --thorough`** after Prettier fix to confirm full green.
+- **Cut next patch release** (e.g. tag after merging [Unreleased] CHANGELOG) so desktop users get `ChatSessionProgress` + any other pending [Unreleased] items via GitHub Releases / auto-update.
+- **Optional:** Playwright assertion on `data-testid="chat-session-progress"` during mocked SSE.
 
 </work_remaining>
 

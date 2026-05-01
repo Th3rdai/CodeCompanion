@@ -10,11 +10,12 @@ Design documentation for **Code Companion** lives in **`.md` files** in this dir
 
 ## Other references
 
-| Path                            | Notes                                            |
-| ------------------------------- | ------------------------------------------------ |
-| `code-companion/MASTER.md`      | Generated / page-override design notes (v1 flow) |
-| `code-companion-v2.0/MASTER.md` | Generated master + `pages/*.md` per feature area |
-| `.pdf` files                    | Optional exports — **do not treat as canonical** |
+| Path                            | Notes                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `docs/SESSION-PROGRESS.md`      | **Working** strip during chat / review / security / builders / build — layout + `data-testid` map |
+| `code-companion/MASTER.md`      | Generated / page-override design notes (v1 flow)                                                  |
+| `code-companion-v2.0/MASTER.md` | Generated master + `pages/*.md` per feature area                                                  |
+| `.pdf` files                    | Optional exports — **do not treat as canonical**                                                  |
 
 ## For contributors
 

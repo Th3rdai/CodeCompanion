@@ -11,6 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import MarkdownContent from "./MarkdownContent";
+import ChatSessionProgress from "./ui/ChatSessionProgress";
 import ClaudeCodeHandoff from "./ClaudeCodeHandoff";
 
 /**
@@ -284,6 +285,19 @@ export default function BuildSimpleView({
 
   return (
     <div className="space-y-4">
+      <ChatSessionProgress
+        active={isStreaming || !!(ollamaConnected && loading)}
+        detail={
+          loading
+            ? "Build · What's next"
+            : streaming === "research"
+              ? `Build · Research (phase ${phaseNumber})`
+              : streaming === "plan"
+                ? `Build · Plan (phase ${phaseNumber})`
+                : "Build · Working"
+        }
+        testId="build-simple-session-progress"
+      />
       {/* What's Next AI Card */}
       <div className="glass-neon rounded-xl p-5 space-y-3">
         <div className="flex items-center justify-between">

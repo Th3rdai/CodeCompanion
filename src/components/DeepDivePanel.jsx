@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import { apiFetch } from "../lib/api-fetch";
+import ChatSessionProgress from "./ui/ChatSessionProgress";
 import { sanitizeUnconfirmedImageClaims } from "../lib/chat-image-claims";
 
 /**
@@ -167,6 +168,12 @@ export default function DeepDivePanel({
         </button>
         <span className="text-xs text-slate-500">{title}</span>
       </div>
+
+      <ChatSessionProgress
+        active={streaming}
+        detail={`${title} · Generating response`}
+        testId="deep-dive-session-progress"
+      />
 
       <div
         className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
