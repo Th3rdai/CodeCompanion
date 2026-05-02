@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-05-02T05:05:00.000Z"
-last_activity: "2026-05-02 — Nine releases shipped (v1.6.24 → v1.6.33): Experiment redesign (form-and-report phase machine, server-enforced scope, trust boundary), AGENTSKILL Phase 0/0.5/1 (chat agent app-skill builtins with pinned envelope contracts; service extraction for review/pentest/score), v1.6.33 cleanup sweep (CI flake fix, LinkedExperimentChips, ReviewPanel deep-dive consolidated to shared DeepDivePanel). 403 unit / 8 integration / 36 UI / 23 E2E green. CI workflow green on v1.6.33 (first time today). Details: journal/2026-05-01.md."
+last_updated: "2026-05-02T23:40:00.000Z"
+last_activity: "2026-05-02 evening — Post-v1.6.33 cleanup: 7 commits ahead of v1.6.33 (5 mine, 2 Cursor's). MCP error-handler ReferenceError fixed (manual-connect failures now surface real transport error in banner + app.log). Auto-connect noise downgraded ERROR → WARN with hint. LinkedExperimentChips legacy fallback for v1.6.23 singular `experimentId`. New `POST /experiment/:id/link-conversation` endpoint backfills `conversationId` after chat is saved (closes the chip-restore-loses-conversation gap). Prettier on 4 unformatted Cursor files. Smoke against installed app v1.6.33: A/B/D PASS, C surfaced two real bugs both fixed in same session. Archon API service degraded (`api_service:false`); task updates blocked. Will bundle into v1.6.34. Details: journal/2026-05-02.md (today's morning v1.6.24–v1.6.33 sequence in journal/2026-05-01.md)."
 progress:
   total_phases: 28
   completed_phases: 28

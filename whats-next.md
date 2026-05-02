@@ -4,6 +4,36 @@ Implement MCP per-tool enable/disable controls (MCPFIX) for Code Companion v1.6.
 
 <work_completed>
 
+**Post-v1.6.33 cleanup + smoke (2026-05-02 evening)**
+
+Day-after follow-ups to the v1.6.24 → v1.6.33 ship cycle. Master is **7 commits ahead of v1.6.33** (5 mine, 2 Cursor's); will bundle into **v1.6.34** when cut. Full per-commit table + smoke results in `journal/2026-05-02.md`.
+
+- **`50d0d00` — MCP error-handler ReferenceError fix**: `logMcpConnectFailure()` was declared at module top-level in `lib/mcp-api-routes.js` but referenced the closure variable `log`. Every call threw a silent `ReferenceError`, which Express converted to a generic 500 with no message. Manual-connect failures looked like "undefined" to the user. Moved the helper inside `createMcpApiRoutes(...)` so `log` is in scope. Real transport errors (e.g. `connect ECONNREFUSED 192.168.50.7:8051`) now surface in both the banner and `app.log`. Worth a future scan for similar shapes — top-level helpers referencing closure vars compile fine and only fail at runtime when the error path runs.
+- **`4f07c69` — Archon auto-connect noise downgrade**: ERROR → WARN with hint `(hint: set "autoConnect": false in .cc-config.json#mcpClients to skip on next startup)`. Was paging on every cold start while Archon's API service is degraded.
+- **`cc2c247` — `useChat` legacy `experimentId` fallback**: v1.6.24 migrated `experimentId` → `experimentIds[]` on writes but the read-side in `loadConversation()` only checked the plural field. Existing experiment-mode chats showed empty `LinkedExperimentChips` rows. Now reads `Array.isArray(conv.experimentIds) ? conv.experimentIds : (conv.experimentId ? [conv.experimentId] : [])`.
+- **`87401cf` — experiment ↔ conversation back-pointer**: New `POST /api/experiment/:id/link-conversation` endpoint + `ExperimentPanel` call after `saveHistory(...)` returns the chat id. Closes the order-of-operations gap where the experiment was created before the chat existed, leaving `conversationId: null` on the experiment record (chip-restore lost chat context). Idempotent; fire-and-forget on failure.
+- **`08728bb` — prettier + .gitignore cleanup**: Format-fixed four files Cursor committed unformatted (`CLAUDE.md`, `docs/CRAWL4AI-RAG-MCP.md`, `lib/resolve-mcp-test-config-root.js`, `scripts/test-mcp-clients.js`); added `e2e-screenshots/` + `e2e-test-report.md` to `.gitignore` so Playwright artifacts stop polluting the tree.
+- **Cursor: `c60e3c3` + `0d73e3f`** — Crawl4AI prefer-over-Playwright prompt; MCP smoke-test config resolution + Crawl4AI docs + Settings log hints.
+
+**Smoke test against installed app v1.6.33** (4 parallel sub-agents against `http://127.0.0.1:8910`):
+
+- **A — Experiment lifecycle**: PASS 9/9. Duplicate-start 409, trust boundary (server ignored client-supplied `done:true`/`decision:keep` and used parser output `done:false`/`decision:iterate`), abort, migration shim — all working.
+- **B — Review/Score/Pentest**: PASS 5/5. Review grade A in 13.7s, Pentest grade F in 24s; both returned structured JSON, no SSE fallback. Error envelopes match v1.6.33 wording.
+- **C — History → experimentIds chip**: PARTIAL → drove the two fixes above. Endpoint plumbing correct (`?include=experiments` hydrates), but 0 of 29 conversations had `experimentIds` populated; both experiment-mode chats used the legacy singular field. Surfaced `cc2c247` + `87401cf`.
+- **D — `app.log` scan**: CLEAN. 0 real code issues in 11 ERROR+WARN lines (all known/expected/external). 36 tool-call rounds. Duplicate-experiment guard fired once (working as designed).
+
+**Archon status (blocking task-sync)**: Connection to `http://192.168.50.7:8051/mcp` works (handshake + tool list), but `health_check` returns `{"status":"degraded","api_service":false,"agents_service":false}` and `find_projects` returns `connection_error`. Task management via Archon MCP is unavailable until the upstream service is back; doc updates captured locally in `journal/2026-05-02.md` + `journal/README.md` + `.planning/STATE.md` + this file. Re-sync to Archon when the API service recovers.
+
+**End-of-day verification**: `validate:fast` clean (lint + typecheck + format + vite + 403 unit + 8 integration + smoke); working tree empty before this commit; installed app v1.6.33 (auto-updater will offer v1.6.34 once tagged).
+
+**Lessons worth keeping**:
+
+- **Smoke-test sub-agents in parallel** worked well. Four endpoint domains × four sub-agents × ~1 min each, vs. ~4 min sequential. Each report was concise enough to surface real findings (the singular-`experimentId` legacy schema would not have been obvious from code review alone).
+- **Error-handler bugs are silent** because the error path itself rarely runs in tests. The `logMcpConnectFailure` ReferenceError lurked for at least a few releases, only surfacing when MCP servers actually failed and the user clicked Connect. Worth scanning for similar shapes: top-level functions in modules that reference closure variables.
+- **Schema migrations on read are cheap insurance.** v1.6.24's `_migrate()` shim covered the experiment record migration but the corresponding `experimentId` → `experimentIds` migration on the chat-history side was missed. Pattern to consider when shipping schema changes: add a read-side fallback for at least one prior shape on top of the write-side migration.
+
+---
+
 **Experiment redesign + AGENTSKILL Phase 1 + cleanup sweep — v1.6.24 → v1.6.33 (2026-05-01 → 2026-05-02)**
 
 Nine tagged releases shipped in one day. CI workflow finally went green on **v1.6.33** after 9 consecutive red runs (the cause was a `tests/unit/review-files.test.js` fetch-after-test-end leak). Full per-release breakdown in `journal/2026-05-01.md`. Headline deliverables:
