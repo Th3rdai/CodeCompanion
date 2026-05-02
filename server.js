@@ -587,9 +587,15 @@ const server = serverInstance.listen(PORT, HOST, () => {
           );
         })
         .catch((err) => {
+          // Auto-connect failures are usually expected (server not running
+          // locally, OAuth not refreshed yet, etc.). Log at WARN so the line
+          // shows up but doesn't poison every dev startup with red [ERROR]
+          // for a deliberately-not-running optional server. Hint how to mute
+          // it permanently for clients the user has chosen not to run.
           log(
-            "ERROR",
-            `Auto-connect failed for ${clientConfig.name}: ${err.message}`,
+            "WARN",
+            `Auto-connect failed for ${clientConfig.name}: ${err.message} ` +
+              `(hint: set "autoConnect": false in .cc-config.json#mcpClients to skip on next startup)`,
           );
         });
     }
