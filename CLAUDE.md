@@ -50,7 +50,7 @@ Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Cod
 
 ### Terminal Mode (Electron-only)
 
-Interactive PTY shell (`node-pty`) spawned in `electron/main.js`, communicated to the renderer via IPC, rendered by `xterm.js` (`@xterm/xterm` + `@xterm/addon-fit`) in `src/components/TerminalPanel.jsx`. CWD follows the **active File Browser folder** (`chatFolder`): the renderer passes its current folder to `terminal-start`, and the main process validates it's an existing directory before honoring it. Falls back to `cfg.chatFolder`, then `cfg.projectFolder`, then `$HOME` if the renderer-supplied path is missing/invalid. Changing the File Browser folder respawns the PTY. One PTY per window; killed on window close. Browser users see a "desktop app only" empty state. Chat input/toolbar are hidden in this mode. See `docs/TERMINALFEATURE.md`.
+Interactive PTY shell (`node-pty`) spawned in `electron/main.js`, communicated to the renderer via IPC, rendered by `xterm.js` (`@xterm/xterm` + `@xterm/addon-fit`) in `src/components/TerminalPanel.jsx`. **Header “⌨️ Terminal”** (Electron) jumps to this mode. CWD follows the **active File Browser folder** (`chatFolder`): the renderer passes its current folder to `terminal-start`, and the main process validates it's an existing directory before honoring it. Falls back to `cfg.chatFolder`, then `cfg.projectFolder`, then `$HOME` if the renderer-supplied path is missing/invalid. Changing the File Browser folder respawns the PTY. One PTY per window; killed on window close. Browser users see a "desktop app only" empty state. Chat input/toolbar are hidden in this mode. See `docs/TERMINALFEATURE.md`.
 
 ### Save Chat
 

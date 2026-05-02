@@ -1211,6 +1211,22 @@ export default function App() {
             >
               📂 Files
             </button>
+            {isElectron && window.electronAPI?.terminal ? (
+              <button
+                type="button"
+                data-testid="header-open-terminal-button"
+                onClick={() => setMode("terminal")}
+                className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
+                  ${mode === "terminal" ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"}`}
+                title={
+                  (chatFolder || projectFolder || "").trim()
+                    ? `Open integrated terminal in: ${(chatFolder || projectFolder).length > 72 ? `…${(chatFolder || projectFolder).slice(-71)}` : chatFolder || projectFolder}`
+                    : "Open integrated terminal — set Project folder in Settings if empty"
+                }
+              >
+                ⌨️ Terminal
+              </button>
+            ) : null}
             <button
               type="button"
               data-testid="header-settings-button"

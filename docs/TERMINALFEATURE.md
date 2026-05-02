@@ -24,7 +24,7 @@ flowchart LR
 
 ## How It Works
 
-1. User clicks **Terminal** in the mode sidebar.
+1. User opens Terminal mode: **Terminal** in the mode sidebar, or the **⌨️ Terminal** button in the main header (Electron only; same CWD as File Browser / project folder).
 2. `TerminalPanel` detects `window.electronAPI.terminal` — present only in the Electron build.
 3. On mount, calls `api.start(cwd)` with the active File Browser folder (`chatFolder || projectFolder` from App state) → IPC → `electron/main.js` validates the path is an existing directory (`fs.statSync(p).isDirectory()`); if missing or invalid, falls back to `cfg.chatFolder`, then `cfg.projectFolder`, then `$HOME`. Spawns a PTY (`node-pty`) at the resolved CWD using `$SHELL` (or `cmd.exe` on Windows). The `useEffect` deps include `projectFolder` so changing the File Browser folder respawns the PTY at the new location.
 4. PTY output is base64-encoded and sent to the renderer via `win.webContents.send('terminal-data', ...)`.
