@@ -534,6 +534,12 @@ test("getToolsPromptAndFlags returns prompt + flags from single builtinTools pas
       "boolean",
       "hasAppSkillTool is boolean",
     );
+    assert.strictEqual(
+      typeof result.hasCrawl4aiResearchTools,
+      "boolean",
+      "hasCrawl4aiResearchTools is boolean",
+    );
+    assert.strictEqual(result.hasCrawl4aiResearchTools, false);
     // buildToolsPrompt() wrapper returns the same prompt
     assert.strictEqual(
       h.buildToolsPrompt(),
@@ -605,6 +611,45 @@ test("buildToolsPrompt includes AGENT BROWSER guidance when browser tools are av
   assert.ok(
     p.includes("browser_navigate"),
     "expected browser_navigate example in AGENT BROWSER guidance",
+  );
+});
+
+test("buildToolsPrompt steers web search toward Crawl4AI when search_web and Playwright both exist", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    {
+      getAllTools: () => [
+        {
+          serverId: "crawl4ai-rag",
+          serverName: "Crawl4AI RAG",
+          name: "search_web",
+          description: "Search the web",
+        },
+        {
+          serverId: "playwright",
+          name: "browser_navigate",
+          description: "Navigate browser to URL",
+        },
+      ],
+    },
+    { getConfig: () => ({}) },
+  );
+  const r = h.getToolsPromptAndFlags();
+  assert.strictEqual(r.hasCrawl4aiResearchTools, true);
+  assert.strictEqual(r.hasBrowserTool, true);
+  const { prompt: p } = r;
+  assert.ok(p.includes("WEB / SEARCH / CRAWL:"), "crawl steering block");
+  assert.ok(
+    p.includes("TOOL_CALL: crawl4ai-rag.search_web"),
+    "concrete search_web example",
+  );
+  assert.ok(
+    p.includes("Prefer them over Playwright"),
+    "Playwright demotion for crawl/search tasks",
+  );
+  assert.ok(
+    p.indexOf("WEB / SEARCH / CRAWL:") < p.indexOf("AGENT BROWSER:"),
+    "crawl guidance appears before AGENT BROWSER",
   );
 });
 
@@ -710,6 +755,7 @@ test("getToolsPromptAndFlags flags are all false when gated tools disabled (alwa
   assert.strictEqual(result.hasValidateTool, false);
   assert.strictEqual(result.hasPlannerTool, false);
   assert.strictEqual(result.hasAppSkillTool, false);
+  assert.strictEqual(result.hasCrawl4aiResearchTools, false);
 });
 
 test("buildToolsPrompt omits terminal when bind is exposed without CC_ALLOW_AGENT_TERMINAL (matches getBuiltinTools)", () => {
