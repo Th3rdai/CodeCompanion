@@ -611,6 +611,23 @@ export default function ExperimentPanel({
           experimentId: id,
           title: payload.hypothesis.slice(0, 60),
         });
+        // Back-fill conversationId on the experiment record now that the
+        // chat exists. Without this, experiment.conversationId stays null
+        // and the chip-restore path skips loading chat history. Fire-and-
+        // forget — failure is non-fatal (the chat→experiment link in
+        // history.experimentIds remains intact regardless).
+        if (hid) {
+          apiFetch(
+            `/api/experiment/${encodeURIComponent(id)}/link-conversation`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ conversationId: hid }),
+            },
+          ).catch(() => {
+            /* non-fatal */
+          });
+        }
         await runStep(seed, hid || undefined, id);
       } catch (e) {
         onToast?.(`❌ ${e.message}`);

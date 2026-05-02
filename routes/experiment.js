@@ -4,6 +4,7 @@ const { getConfig } = require("../lib/config");
 const {
   createExperiment,
   getExperiment,
+  updateExperiment,
   appendStep,
   finalizeExperiment,
   listExperiments,
@@ -180,6 +181,46 @@ module.exports = function createExperimentRouter(appContext) {
         }
         log("ERROR", "experiment/start failed", { error: err.message });
         return res.status(500).json({ error: "Could not create experiment" });
+      }
+    },
+  );
+
+  /**
+   * Back-fill `conversationId` on an experiment after the chat record is
+   * saved. ExperimentPanel calls /experiment/start BEFORE the chat exists
+   * (start mints the id, then saveHistory writes the chat with
+   * experimentIds: [id]). Without this endpoint, experiment.conversationId
+   * stays null, and clicking the linked-experiment chip restores the report
+   * but loses the conversation context. One-shot, idempotent: if the field
+   * is already set to the same value, it's a no-op; only sets when null OR
+   * when the caller is updating to a different conv (rare).
+   */
+  router.post(
+    "/experiment/:id/link-conversation",
+    requireLocalOrApiKey,
+    express.json({ limit: "8kb" }),
+    (req, res) => {
+      if (!experimentEnabled()) {
+        return res.status(403).json({ error: "Experiment mode is disabled" });
+      }
+      const exp = getExperiment(req.params.id, getConfig());
+      if (!exp) return res.status(404).json({ error: "Not found" });
+      const conversationId = req.body?.conversationId;
+      if (typeof conversationId !== "string" || !conversationId.trim()) {
+        return res.status(400).json({ error: "conversationId is required" });
+      }
+      if (exp.conversationId === conversationId) {
+        return res.json({ ok: true, status: "already-linked" });
+      }
+      try {
+        updateExperiment(req.params.id, { conversationId });
+        log("INFO", "Experiment linked to conversation", {
+          id: exp.id,
+          conversationId,
+        });
+        res.json({ ok: true, status: "linked" });
+      } catch (e) {
+        res.status(500).json({ error: e.message });
       }
     },
   );
