@@ -87,9 +87,18 @@ export function useChat({
       }
       // Surface linked experiments so the UI can offer entry points back
       // into Experiment mode for runs spawned from this conversation.
-      setLinkedExperimentIds(
-        Array.isArray(conv.experimentIds) ? conv.experimentIds : [],
-      );
+      // Schema migration: v1.6.23 wrote a singular `experimentId` per chat;
+      // v1.6.24 switched to plural `experimentIds: string[]`. Read both so
+      // LinkedExperimentChips renders for legacy chats too — without this
+      // fallback, every pre-v1.6.24 experiment chat shows no chip even
+      // though the experiment record on disk is fine.
+      let linkedIds = [];
+      if (Array.isArray(conv.experimentIds)) {
+        linkedIds = conv.experimentIds;
+      } else if (typeof conv.experimentId === "string" && conv.experimentId) {
+        linkedIds = [conv.experimentId];
+      }
+      setLinkedExperimentIds(linkedIds);
     } catch {}
   }
 
