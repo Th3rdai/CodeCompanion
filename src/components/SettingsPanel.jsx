@@ -123,6 +123,11 @@ export default function SettingsPanel({
   const [browserEnabled, setBrowserEnabled] = useState(false);
   const [browserHeaded, setBrowserHeaded] = useState(false);
 
+  const [agentAppSkillsMaster, setAgentAppSkillsMaster] = useState(false);
+  const [agentAppReview, setAgentAppReview] = useState(false);
+  const [agentAppPentest, setAgentAppPentest] = useState(false);
+  const [agentAppBuilderScore, setAgentAppBuilderScore] = useState(false);
+
   const [experimentModeEnabled, setExperimentModeEnabled] = useState(true);
   const [experimentMaxRounds, setExperimentMaxRounds] = useState(8);
   const [experimentMaxDurationSec, setExperimentMaxDurationSec] = useState(900);
@@ -216,6 +221,12 @@ export default function SettingsPanel({
           if (data.agentBrowser != null) {
             setBrowserEnabled(data.agentBrowser.enabled === true);
             setBrowserHeaded(data.agentBrowser.headed === true);
+          }
+          if (data.agentAppSkills && typeof data.agentAppSkills === "object") {
+            setAgentAppSkillsMaster(data.agentAppSkills.enabled === true);
+            setAgentAppReview(data.agentAppSkills.review === true);
+            setAgentAppPentest(data.agentAppSkills.pentest === true);
+            setAgentAppBuilderScore(data.agentAppSkills.builderScore === true);
           }
           if (data.experimentMode && typeof data.experimentMode === "object") {
             setExperimentModeEnabled(data.experimentMode.enabled === true);
@@ -1185,6 +1196,114 @@ export default function SettingsPanel({
                 Allow the AI agent to score implementation plans with letter
                 grades (same as Planner mode).
               </p>
+            </div>
+
+            {/* Agent app skills (Review / Security / Builder from chat) */}
+            <div className="border-t border-slate-700/40 pt-4 mt-4">
+              <p className="text-sm text-slate-300 font-medium mb-2">
+                Agent app skills (Chat)
+              </p>
+              <p className="text-xs text-slate-500 mb-3">
+                Optional builtins that call the same Review, Security scan, and
+                builder scoring pipelines as the app modes. Off by default; turn
+                the master switch on, then enable each skill you trust.
+              </p>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm text-slate-300 font-medium">
+                  Enable app skills
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextMaster = !agentAppSkillsMaster;
+                    setAgentAppSkillsMaster(nextMaster);
+                    if (!nextMaster) {
+                      setAgentAppReview(false);
+                      setAgentAppPentest(false);
+                      setAgentAppBuilderScore(false);
+                    }
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        agentAppSkills: {
+                          enabled: nextMaster,
+                          review: nextMaster ? agentAppReview : false,
+                          pentest: nextMaster ? agentAppPentest : false,
+                          builderScore: nextMaster
+                            ? agentAppBuilderScore
+                            : false,
+                        },
+                      }),
+                    });
+                  }}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${agentAppSkillsMaster ? "bg-indigo-500" : "bg-slate-600"}`}
+                  aria-label="Toggle agent app skills master"
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${agentAppSkillsMaster ? "translate-x-4" : ""}`}
+                  />
+                </button>
+              </div>
+              {[
+                {
+                  key: "review",
+                  label: "Review (review_run)",
+                  state: agentAppReview,
+                  setState: setAgentAppReview,
+                  field: "review",
+                },
+                {
+                  key: "pentest",
+                  label: "Security scan (pentest_scan)",
+                  state: agentAppPentest,
+                  setState: setAgentAppPentest,
+                  field: "pentest",
+                },
+                {
+                  key: "builder",
+                  label: "Builder score (builder_score)",
+                  state: agentAppBuilderScore,
+                  setState: setAgentAppBuilderScore,
+                  field: "builderScore",
+                },
+              ].map(({ key, label, state, setState, field }) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between mb-2 opacity-100"
+                >
+                  <label className="text-xs text-slate-400">{label}</label>
+                  <button
+                    type="button"
+                    disabled={!agentAppSkillsMaster}
+                    onClick={() => {
+                      if (!agentAppSkillsMaster) return;
+                      const next = !state;
+                      setState(next);
+                      const payload = {
+                        enabled: true,
+                        review: field === "review" ? next : agentAppReview,
+                        pentest: field === "pentest" ? next : agentAppPentest,
+                        builderScore:
+                          field === "builderScore"
+                            ? next
+                            : agentAppBuilderScore,
+                      };
+                      apiFetch("/api/config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ agentAppSkills: payload }),
+                      });
+                    }}
+                    className={`relative w-9 h-5 rounded-full transition-colors disabled:opacity-40 ${state ? "bg-indigo-500" : "bg-slate-600"}`}
+                    aria-label={`Toggle ${label}`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${state ? "translate-x-4" : ""}`}
+                    />
+                  </button>
+                </div>
+              ))}
             </div>
 
             {/* Agent Web Browser */}

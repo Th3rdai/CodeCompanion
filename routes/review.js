@@ -1,14 +1,11 @@
 const express = require("express");
 
 const { getConfig } = require("../lib/config");
-const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const {
-  effectiveOllamaApiKey,
-  ollamaAuthOpts,
-} = require("../lib/ollama-client");
-const { reviewCode, reviewFiles } = require("../lib/review");
 const { readFolderFiles, isWithinBasePath } = require("../lib/file-browser");
-const { loadValidateReviewContext } = require("../lib/review-validate-context");
+const {
+  runReviewSnippetPhase,
+  runReviewFolderPhase,
+} = require("../lib/review-service");
 const {
   CLIENT_INTERNAL_ERROR,
   STREAM_INTERNAL_ERROR,
@@ -31,8 +28,6 @@ module.exports = function createRouter(appContext) {
       return res.status(400).json({ error: "Missing model or code" });
     }
 
-    let model = reqModel;
-
     if (images && !Array.isArray(images)) {
       log("ERROR", "Images must be an array");
       return res.status(400).json({ error: "Images must be an array" });
@@ -42,49 +37,28 @@ module.exports = function createRouter(appContext) {
       return res.status(400).json({ error: "Maximum 10 images per message" });
     }
 
-    log("INFO", `Review request: model=${model} code=${code.length} chars`, {
+    log("INFO", `Review request: model=${reqModel} code=${code.length} chars`, {
       imageCount: images?.length || 0,
     });
 
     const config = getConfig();
-    const validateReviewContext = loadValidateReviewContext(
-      config.projectFolder,
-      {
-        searchFrom: filename || "",
-      },
-    );
-
-    if (model === "auto") {
-      try {
-        const estimatedTokens = Math.ceil(code.length / 3.5);
-        const r = await resolveAutoModel({
-          requestedModel: model,
-          mode: "review",
-          estimatedTokens,
-          config,
-          ollamaUrl: config.ollamaUrl,
-          ollamaOpts: ollamaAuthOpts(config),
-        });
-        model = r.resolved;
-        log("INFO", `Auto-model resolved: mode=review → ${model}`);
-      } catch (err) {
-        log("WARN", "Auto-model resolution failed (review)", {
-          error: err.message,
-        });
-        const m = mergeAutoModelMap(config.autoModelMap);
-        model = m.review || m.chat || "llama3.2";
-      }
-    }
+    const httpAbort = new AbortController();
+    // Do not use req.on("close") — it can fire when the request body stream ends,
+    // aborting before Ollama runs. Socket close = actual connection drop.
+    const onSocketClose = () => {
+      if (!res.writableEnded) httpAbort.abort();
+    };
+    req.socket?.once?.("close", onSocketClose);
 
     try {
-      const result = await reviewCode(config.ollamaUrl, model, code, {
+      const { model, result } = await runReviewSnippetPhase({
+        config,
+        log,
+        reqModel,
+        code,
         filename,
-        timeoutSec: config.reviewTimeoutSec,
-        images: images || [],
-        validateContext: validateReviewContext?.context || "",
-        numCtx: config.numCtx || 0,
-        autoAdjustContext: config.autoAdjustContext,
-        ollamaApiKey: effectiveOllamaApiKey(config),
+        images,
+        abortSignal: httpAbort.signal,
       });
 
       if (result.type === "report-card") {
@@ -205,6 +179,9 @@ module.exports = function createRouter(appContext) {
         reader.cancel().catch(() => {});
       });
     } catch (err) {
+      if (err.httpStatus === 400 && !res.headersSent) {
+        return res.status(400).json({ error: err.message });
+      }
       log("ERROR", "Review failed completely", { error: err.message });
       if (!res.headersSent) {
         res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -252,12 +229,6 @@ module.exports = function createRouter(appContext) {
     }
 
     const config = getConfig();
-    const validateReviewContext = loadValidateReviewContext(
-      config.projectFolder,
-      {
-        searchFrom: folder || "",
-      },
-    );
 
     if (
       config.projectFolder &&
@@ -267,6 +238,12 @@ module.exports = function createRouter(appContext) {
         .status(403)
         .json({ error: "Folder is outside the configured project folder" });
     }
+
+    const httpAbort = new AbortController();
+    const onSocketCloseFolder = () => {
+      if (!res.writableEnded) httpAbort.abort();
+    };
+    req.socket?.once?.("close", onSocketCloseFolder);
 
     try {
       const { files, totalSize, skipped } = readFolderFiles(folder, {
@@ -280,41 +257,20 @@ module.exports = function createRouter(appContext) {
           .json({ error: "No reviewable text files found in folder" });
       }
 
-      let model = reqModel;
-      if (model === "auto") {
-        try {
-          const totalChars = files.reduce(
-            (s, f) => s + (f.content?.length || 0),
-            0,
-          );
-          const estimatedTokens = Math.ceil(totalChars / 3.5);
-          const r = await resolveAutoModel({
-            requestedModel: model,
-            mode: "review",
-            estimatedTokens,
-            config,
-            ollamaUrl: config.ollamaUrl,
-            ollamaOpts: ollamaAuthOpts(config),
-          });
-          model = r.resolved;
-          log("INFO", `Auto-model resolved: mode=review (folder) → ${model}`);
-        } catch (err) {
-          const m = mergeAutoModelMap(config.autoModelMap);
-          model = m.review || m.chat || "llama3.2";
-        }
-      }
-
       log(
         "INFO",
         `Review folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ""}`,
       );
 
-      const result = await reviewFiles(config.ollamaUrl, model, files, {
-        timeoutSec: config.reviewTimeoutSec,
-        validateContext: validateReviewContext?.context || "",
-        numCtx: config.numCtx || 0,
-        autoAdjustContext: config.autoAdjustContext,
-        ollamaApiKey: effectiveOllamaApiKey(config),
+      const { model, result } = await runReviewFolderPhase({
+        config,
+        log,
+        reqModel,
+        folder,
+        files,
+        totalSize,
+        skipped,
+        abortSignal: httpAbort.signal,
       });
 
       if (result.type === "report-card") {
@@ -424,6 +380,9 @@ module.exports = function createRouter(appContext) {
         reader.cancel().catch(() => {});
       });
     } catch (err) {
+      if (err.httpStatus === 400 && !res.headersSent) {
+        return res.status(400).json({ error: err.message });
+      }
       log("ERROR", "Review folder failed", { error: err.message });
       if (!res.headersSent) {
         res.status(500).json({ error: CLIENT_INTERNAL_ERROR });

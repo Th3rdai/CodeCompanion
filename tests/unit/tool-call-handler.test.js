@@ -529,6 +529,11 @@ test("getToolsPromptAndFlags returns prompt + flags from single builtinTools pas
       "boolean",
       "hasPlannerTool is boolean",
     );
+    assert.strictEqual(
+      typeof result.hasAppSkillTool,
+      "boolean",
+      "hasAppSkillTool is boolean",
+    );
     // buildToolsPrompt() wrapper returns the same prompt
     assert.strictEqual(
       h.buildToolsPrompt(),
@@ -704,6 +709,7 @@ test("getToolsPromptAndFlags flags are all false when gated tools disabled (alwa
   assert.strictEqual(result.hasTerminalTool, false);
   assert.strictEqual(result.hasValidateTool, false);
   assert.strictEqual(result.hasPlannerTool, false);
+  assert.strictEqual(result.hasAppSkillTool, false);
 });
 
 test("buildToolsPrompt omits terminal when bind is exposed without CC_ALLOW_AGENT_TERMINAL (matches getBuiltinTools)", () => {

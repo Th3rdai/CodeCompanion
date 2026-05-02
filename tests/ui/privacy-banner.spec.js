@@ -3,7 +3,17 @@ const browserAppReady = require("../helpers/app-ready.js");
 const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 
 test.describe("Privacy banner", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    await context.route("**/api/models", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          models: [{ name: "test-model" }],
+          ollamaUrl: "http://localhost:11434",
+        }),
+      });
+    });
     await page.addInitScript(browserAppReady);
     await page.goto("/");
     // Clear privacy banner dismissal, ensure onboarding is complete
@@ -15,7 +25,9 @@ test.describe("Privacy banner", () => {
   });
 
   test("UX-04: privacy banner visible on first launch", async ({ page }) => {
-    await expect(page.getByTestId("privacy-banner-dismiss")).toBeVisible();
+    await expect(page.getByTestId("privacy-banner-dismiss")).toBeVisible({
+      timeout: 45_000,
+    });
     await expect(
       page.getByText(/Your code and conversations stay on your machine/i),
     ).toBeVisible();

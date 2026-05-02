@@ -416,3 +416,38 @@ test("validateCommand: allowed commands return no action field", () => {
   assert.equal(r.allowed, true);
   assert.equal(r.action, undefined);
 });
+
+test("getBuiltinSafetyPreamble includes app skills block when includeAppSkills", () => {
+  const p = getBuiltinSafetyPreamble({ includeAppSkills: true });
+  assert.ok(p.includes("APP SKILLS"));
+  assert.ok(p.includes("builtin.review_run"));
+});
+
+test("getBuiltinTools gates app-skill builtins on agentAppSkills", () => {
+  const names = (cfg) => getBuiltinTools(cfg).map((t) => t.name);
+  const cfgOn = {
+    projectFolder: "/tmp",
+    agentAppSkills: {
+      enabled: true,
+      review: true,
+      pentest: true,
+      builderScore: true,
+    },
+  };
+  assert.ok(!names({ projectFolder: "/tmp" }).includes("review_run"));
+  assert.ok(
+    !names({
+      projectFolder: "/tmp",
+      agentAppSkills: {
+        enabled: true,
+        review: false,
+        pentest: false,
+        builderScore: false,
+      },
+    }).includes("review_run"),
+  );
+  assert.ok(names(cfgOn).includes("review_run"));
+  assert.ok(names(cfgOn).includes("pentest_scan"));
+  assert.ok(names(cfgOn).includes("pentest_scan_folder"));
+  assert.ok(names(cfgOn).includes("builder_score"));
+});

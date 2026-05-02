@@ -298,6 +298,40 @@ module.exports = function createRouter(appContext) {
       );
     }
 
+    if (req.body.agentValidate !== undefined) {
+      config.agentValidate = {
+        ...(config.agentValidate || { enabled: true }),
+        ...req.body.agentValidate,
+      };
+      log(
+        "INFO",
+        `Agent validate config updated: enabled=${config.agentValidate.enabled !== false}`,
+      );
+    }
+
+    if (req.body.agentPlanner !== undefined) {
+      config.agentPlanner = {
+        ...(config.agentPlanner || { enabled: true }),
+        ...req.body.agentPlanner,
+      };
+      log(
+        "INFO",
+        `Agent planner config updated: enabled=${config.agentPlanner.enabled !== false}`,
+      );
+    }
+
+    if (req.body.agentAppSkills !== undefined) {
+      const prev = config.agentAppSkills || {};
+      const incoming = req.body.agentAppSkills;
+      if (typeof incoming === "object" && incoming) {
+        config.agentAppSkills = { ...prev, ...incoming };
+        log(
+          "INFO",
+          `Agent app skills updated: ${JSON.stringify(config.agentAppSkills)}`,
+        );
+      }
+    }
+
     if (req.body.experimentMode !== undefined) {
       const prev = config.experimentMode || {};
       const incoming = req.body.experimentMode;

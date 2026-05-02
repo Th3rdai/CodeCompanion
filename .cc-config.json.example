@@ -56,6 +56,18 @@
     "maxOutputKB": 256,
     "confirmBeforeRun": false
   },
+  "agentValidate": {
+    "enabled": true
+  },
+  "agentPlanner": {
+    "enabled": true
+  },
+  "agentAppSkills": {
+    "enabled": false,
+    "review": false,
+    "pentest": false,
+    "builderScore": false
+  },
   "experimentMode": {
     "enabled": true,
     "maxRounds": 8,

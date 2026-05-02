@@ -3,20 +3,20 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 
-describe("review route validate context wiring", () => {
+describe("review validate context wiring (review-service)", () => {
   it("loads validate instructions from project folder", () => {
     const src = fs.readFileSync(
-      path.join(__dirname, "../../routes/review.js"),
+      path.join(__dirname, "../../lib/review-service.js"),
       "utf8",
     );
     assert.ok(
       src.includes("loadValidateReviewContext"),
-      "route should import validate context loader",
+      "review-service should import validate context loader",
     );
     assert.match(
       src,
       /loadValidateReviewContext\(\s*config\.projectFolder,\s*\{/,
-      "route should load validate context with search options",
+      "review-service should load validate context with search options",
     );
     assert.ok(
       src.includes('searchFrom: filename || ""'),
@@ -30,14 +30,14 @@ describe("review route validate context wiring", () => {
 
   it("passes validateContext into reviewCode and reviewFiles", () => {
     const src = fs.readFileSync(
-      path.join(__dirname, "../../routes/review.js"),
+      path.join(__dirname, "../../lib/review-service.js"),
       "utf8",
     );
     const matches =
       src.match(/validateContext:\s*validateReviewContext\?\.context/g) || [];
     assert.ok(
       matches.length >= 2,
-      "route should pass validate context to both single-file and folder review",
+      "review-service should pass validate context to both single-file and folder review",
     );
   });
 });

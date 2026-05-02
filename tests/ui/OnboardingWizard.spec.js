@@ -1,8 +1,19 @@
 const { test, expect } = require("@playwright/test");
-const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 
 test.describe("OnboardingWizard component", () => {
-  test.beforeEach(async ({ page }) => {
+  test.describe.configure({ timeout: 120_000, mode: "serial" });
+
+  test.beforeEach(async ({ page, context }) => {
+    await context.route("**/api/models", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          models: [{ name: "test-model" }],
+          ollamaUrl: "http://localhost:11434",
+        }),
+      });
+    });
     await page.addInitScript(() => {
       sessionStorage.setItem("th3rdai_splash_dismissed", "true");
     });
@@ -10,15 +21,28 @@ test.describe("OnboardingWizard component", () => {
     await page.evaluate(() =>
       localStorage.removeItem("th3rdai_onboarding_complete"),
     );
-    await reloadAndWaitForModels(page);
+    // Do not use reloadAndWaitForModels — wizard overlay can delay #model-select.
+    const url = new URL(page.url());
+    url.searchParams.set("_cc_reload", String(Date.now()));
+    await page.goto(url.toString(), { waitUntil: "load", timeout: 60_000 });
+    await expect(
+      page.getByRole("dialog", { name: "Welcome wizard" }),
+    ).toBeVisible({ timeout: 45_000 });
   });
 
   test("UX-01: displays 5 steps with correct vibe-coder content", async ({
     page,
   }) => {
-    // Step 1: Welcome
-    await expect(page.getByText("Welcome to Code Companion")).toBeVisible();
-    await expect(page.getByText(/AI coding tool/i)).toBeVisible();
+    // Step 1: Welcome (heading — more stable than substring text match under load)
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "Welcome to Code Companion",
+      }),
+    ).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText(/AI coding tool/i)).toBeVisible({
+      timeout: 30_000,
+    });
 
     // Navigate to Step 2: Ollama
     await page.getByRole("button", { name: /Next/i }).click();
@@ -46,7 +70,7 @@ test.describe("OnboardingWizard component", () => {
   }) => {
     // Verify wizard is showing
     const wizard = page.getByRole("dialog", { name: "Welcome wizard" });
-    await expect(wizard).toBeVisible();
+    await expect(wizard).toBeVisible({ timeout: 30_000 });
 
     // Click overlay so the dialog container (tabIndex=0) receives focus — locator.focus() flakes in CI
     await wizard.click({ position: { x: 24, y: 24 } });

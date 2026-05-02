@@ -144,6 +144,7 @@ export default function SecurityPanel({
   models,
   onSetSelectedModel,
   onUpdatePentestDeepDive,
+  setPendingConfirm,
 }) {
   // ── State ───────────────────────────────────────────
   const [phase, setPhase] = useState("input"); // 'input' | 'loading' | 'report' | 'fallback' | 'deep-dive'
@@ -437,6 +438,9 @@ export default function SecurityPanel({
             }
             if (parsed.error) {
               assistantContent += `\n\nError: ${parsed.error}`;
+            }
+            if (parsed.confirmRequired && setPendingConfirm) {
+              setPendingConfirm(parsed.confirmRequired);
             }
           } catch {}
         }

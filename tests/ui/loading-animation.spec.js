@@ -1,11 +1,12 @@
 /**
  * Component tests for LoadingAnimation
- * Tests bouncing animation, rotating messages, accessibility, and filename display
- * Uses a delayed API mock to ensure loading state is visible long enough to test
+ * Uses a delayed /api/review mock so loading state stays visible long enough to assert.
+ * One submit, multiple assertions (the report view replaces the paste form after completion).
  */
 
 import { test, expect } from "@playwright/test";
 import browserAppReady from "../helpers/app-ready.js";
+import { reloadAndWaitForModels } from "../helpers/reload-app-ready.js";
 
 const mockReportCardResponse = {
   type: "report-card",
@@ -23,8 +24,14 @@ const mockReportCardResponse = {
 };
 
 test.describe("LoadingAnimation Component", () => {
-  test.beforeEach(async ({ page, context }) => {
-    // Mock models API so the app thinks Ollama is connected
+  test.describe.configure({ timeout: 90_000 });
+
+  test("Review loading UI — animation, messages, accessibility, filename", async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+
     await context.route("**/api/models", async (route) => {
       await route.fulfill({
         status: 200,
@@ -36,7 +43,6 @@ test.describe("LoadingAnimation Component", () => {
       });
     });
 
-    // Mock review API with a 3s delay so loading state stays visible
     await context.route("**/api/review", async (route) => {
       await new Promise((r) => setTimeout(r, 3000));
       await route.fulfill({
@@ -50,83 +56,49 @@ test.describe("LoadingAnimation Component", () => {
     await page.goto("/");
     await page.evaluate(() => {
       localStorage.setItem("cc-selected-model", "test-model");
+      localStorage.setItem("th3rdai_privacy_banner_dismissed", "true");
     });
-    await page.reload();
-    // Wait for model fetch to complete and button to become enabled
-    await page.waitForResponse("**/api/models");
-    await page.getByTestId("mode-tab-review").click();
-  });
+    await reloadAndWaitForModels(page, { timeout: 75_000 });
 
-  test("displays bouncing dots animation", async ({ page }) => {
-    await page
-      .getByPlaceholder("Paste your code here...")
-      .fill("function test() { return true; }");
-    await page.getByRole("button", { name: /run code review/i }).click();
+    const reviewTab = page.getByTestId("mode-tab-review");
+    await reviewTab.waitFor({ state: "visible", timeout: 75_000 });
+    await reviewTab.scrollIntoViewIfNeeded();
+    await reviewTab.click({ timeout: 30_000, force: true });
 
-    // Check for bouncing dots (3 animated elements)
-    await expect(page.locator(".animate-bounce").first()).toBeVisible();
-    const bouncingDots = await page.locator(".animate-bounce").count();
-    expect(bouncingDots).toBe(3);
-  });
-
-  test("displays rotating encouraging messages", async ({ page }) => {
-    await page
-      .getByPlaceholder("Paste your code here...")
-      .fill("function test() { return true; }");
-    await page.getByRole("button", { name: /run code review/i }).click();
-
-    // Wait for loading state
-    await expect(
-      page.locator('section[aria-label="Review in progress"]'),
-    ).toBeVisible();
-
-    // Check that at least one encouraging message is displayed
-    const messageText = await page
-      .locator('section[aria-label="Review in progress"] p.text-slate-300')
-      .first()
-      .textContent();
-
-    const encouragingPhrases = [
-      "Looking for ways to make your code even better!",
-      "Checking for any gotchas...",
-      "Making sure everything's ship-shape!",
-      "Scanning for those sneaky edge cases...",
-    ];
-
-    const containsEncouragingPhrase = encouragingPhrases.some(
-      (phrase) =>
-        messageText?.includes(phrase) || messageText?.includes("Analyzing"),
-    );
-    expect(containsEncouragingPhrase).toBeTruthy();
-  });
-
-  test("has aria-live region for screen reader accessibility", async ({
-    page,
-  }) => {
-    await page
-      .getByPlaceholder("Paste your code here...")
-      .fill("function test() { return true; }");
-    await page.getByRole("button", { name: /run code review/i }).click();
-
-    // Check for aria-live region
-    const ariaLiveRegion = await page.locator('[aria-live="polite"]').count();
-    expect(ariaLiveRegion).toBeGreaterThan(0);
-  });
-
-  test("displays filename when provided", async ({ page }) => {
     await page.getByPlaceholder(/server\.js/i).fill("test.js");
     await page
       .getByPlaceholder("Paste your code here...")
       .fill("function test() { return true; }");
     await page.getByRole("button", { name: /run code review/i }).click();
 
-    // Check that filename is displayed during loading
-    await expect(
-      page.locator('section[aria-label="Review in progress"]'),
-    ).toBeVisible();
-    const content = await page
-      .locator('section[aria-label="Review in progress"]')
+    const reviewing = page.locator('section[aria-label="Review in progress"]');
+    await expect(reviewing).toBeVisible();
+
+    await expect(page.locator(".animate-bounce").first()).toBeVisible();
+    expect(await page.locator(".animate-bounce").count()).toBe(3);
+
+    const messageText = await reviewing
+      .locator("p.text-slate-300")
+      .first()
       .textContent();
+    const encouragingPhrases = [
+      "Looking for ways to make your code even better!",
+      "Checking for any gotchas...",
+      "Making sure everything's ship-shape!",
+      "Scanning for those sneaky edge cases...",
+    ];
+    expect(
+      encouragingPhrases.some(
+        (phrase) =>
+          messageText?.includes(phrase) || messageText?.includes("Analyzing"),
+      ),
+    ).toBeTruthy();
+
+    expect(await page.locator('[aria-live="polite"]').count()).toBeGreaterThan(
+      0,
+    );
+
+    const content = await reviewing.textContent();
     expect(content).toContain("test.js");
   });
 });

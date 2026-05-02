@@ -1,17 +1,16 @@
 /**
  * Reload the SPA and wait for the model toolbar to be ready.
  *
- * Subscribing to /api/models *before* `page.reload()` can miss the response when
- * the browser restores from BFCache (no network). We force a fresh document load
- * with a cache-busting query param and use Promise.all so the waiter cannot miss
- * the in-flight models request.
+ * BFCache can skip network on `reload()`, so we use a cache-busting query param
+ * on `goto()` for a fresh document. We wait only on `#model-select` — coupling to
+ * `waitForResponse` for `/api/models` was flaky under load (matched wrong response
+ * or raced the document swap).
  *
  * @param {import('@playwright/test').Page} page
  * @param {{ timeout?: number, okOnly?: boolean }} [options]
  */
 async function reloadAndWaitForModels(page, options = {}) {
   const timeout = options.timeout ?? 45_000;
-  const okOnly = options.okOnly ?? false;
 
   let target;
   try {
@@ -24,18 +23,7 @@ async function reloadAndWaitForModels(page, options = {}) {
   target.hash = "";
   target.searchParams.set("_cc_reload", String(Date.now()));
 
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        typeof r.url() === "string" &&
-        r.url().includes("/api/models") &&
-        r.request().method() === "GET" &&
-        (!okOnly || r.ok()),
-      { timeout },
-    ),
-    page.goto(target.toString(), { waitUntil: "load", timeout }),
-  ]);
-
+  await page.goto(target.toString(), { waitUntil: "load", timeout });
   await page.waitForSelector("#model-select", { state: "visible", timeout });
 }
 

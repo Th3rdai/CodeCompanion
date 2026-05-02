@@ -11,13 +11,14 @@ const useHTTPS = baseURL.startsWith("https://");
 module.exports = defineConfig({
   testDir: "./tests",
   testMatch: "**/*.spec.js",
-  // Default OS parallelism (often 8) can starve the single webServer; override with PW_WORKERS=8 locally.
-  workers: process.env.PW_WORKERS ? parseInt(process.env.PW_WORKERS, 10) : 2,
+  // Default OS parallelism can starve the single webServer; use 1 worker for stable first-pass UI runs.
+  // Speed up locally with PW_WORKERS=2 (expect occasional flakes without retries).
+  workers: process.env.PW_WORKERS ? parseInt(process.env.PW_WORKERS, 10) : 1,
   // One Node server + many UI tests; report-card / hydration can flake without a second attempt.
   retries: 2,
   timeout: 45_000,
   expect: {
-    timeout: 10_000,
+    timeout: 15_000,
   },
   use: {
     baseURL,

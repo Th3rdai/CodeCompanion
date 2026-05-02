@@ -2,9 +2,7 @@ const express = require("express");
 const { Readable } = require("stream");
 
 const { getConfig } = require("../lib/config");
-const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
-const { ollamaAuthOpts } = require("../lib/ollama-client");
-const { scoreContent } = require("../lib/builder-score");
+const { runBuilderScorePhase } = require("../lib/score-service");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
@@ -15,57 +13,36 @@ module.exports = function createRouter(appContext) {
   // Rate limiter applied as app.use('/api/score', ...) in server.js
   router.post("/score", async (req, res) => {
     const { model: reqModel, mode, content, metadata } = req.body;
-
-    if (!reqModel || !content || !mode) {
-      return res
-        .status(400)
-        .json({ error: "model, mode, and content are required" });
-    }
-
-    const validModes = ["prompting", "skillz", "agentic", "planner"];
-    if (!validModes.includes(mode)) {
-      return res.status(400).json({
-        error: `Invalid mode. Must be one of: ${validModes.join(", ")}`,
-      });
-    }
-
     const config = getConfig();
-    let model = reqModel;
-    if (model === "auto") {
-      try {
-        const estimatedTokens = Math.ceil(content.length / 3.5);
-        const r = await resolveAutoModel({
-          requestedModel: model,
-          mode,
-          estimatedTokens,
-          config,
-          ollamaUrl: config.ollamaUrl,
-          ollamaOpts: ollamaAuthOpts(config),
-        });
-        model = r.resolved;
-        log("INFO", `Auto-model resolved: mode=${mode} (score) → ${model}`);
-      } catch (err) {
-        const m = mergeAutoModelMap(config.autoModelMap);
-        model = m[mode] || m.chat || "llama3.2";
-      }
-    }
 
-    log(
-      "INFO",
-      `Score request: model=${model} mode=${mode} content=${content.length} chars`,
-    );
-
+    let model;
+    let result;
     try {
-      const ollamaUrl = config.ollamaUrl || "http://localhost:11434";
-      const result = await scoreContent(
-        ollamaUrl,
-        model,
+      const phase = await runBuilderScorePhase({
+        config,
+        log,
+        reqModel,
         mode,
         content,
         metadata,
-        ollamaAuthOpts(config),
+      });
+      model = phase.model;
+      result = phase.result;
+      log(
+        "INFO",
+        `Score request: model=${model} mode=${mode} content=${content.length} chars`,
       );
+    } catch (err) {
+      const status = err.httpStatus || 500;
+      log(status >= 500 ? "ERROR" : "WARN", "Score request failed", {
+        error: err.message,
+      });
+      return res.status(status).json({
+        error: status === 500 ? CLIENT_INTERNAL_ERROR : err.message,
+      });
+    }
 
+    try {
       if (result.type === "score-card") {
         log(
           "INFO",

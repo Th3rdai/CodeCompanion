@@ -30,6 +30,23 @@ export default function DictateButton({
 
     setError(null);
 
+    // macOS Electron: if TCC is still "not-determined", prompt via main before WebRTC.
+    // Do NOT call askForMediaAccess after getUserMedia succeeds — it can return "denied"
+    // while the renderer already has a working stream, which wrongly blocked dictation.
+    if (window.electronAPI?.getMicrophoneAccessStatus) {
+      try {
+        const pre = await window.electronAPI.getMicrophoneAccessStatus();
+        if (
+          pre === "not-determined" &&
+          window.electronAPI.requestMicrophoneAccess
+        ) {
+          await window.electronAPI.requestMicrophoneAccess();
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+
     // Warm up microphone permission before starting speech recognition.
     // This ensures the OS permission prompt appears before SpeechRecognition
     // tries to access the mic (which fails silently on some platforms).
@@ -42,35 +59,38 @@ export default function DictateButton({
         err.name === "NotAllowedError" ||
         err.name === "PermissionDeniedError"
       ) {
-        setError(
-          "Microphone access denied. Check System Settings → Privacy & Security → Microphone.",
-        );
-        console.warn("Microphone permission denied:", err);
+        if (window.electronAPI?.requestMicrophoneAccess) {
+          try {
+            await window.electronAPI.requestMicrophoneAccess();
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+            });
+            stream.getTracks().forEach((t) => t.stop());
+          } catch (err2) {
+            setError(
+              "Microphone access denied. Check System Settings → Privacy & Security → Microphone for Code Companion, then relaunch the app.",
+            );
+            console.warn("Microphone permission denied after retry:", err2);
+            return;
+          }
+        } else {
+          setError(
+            "Microphone access denied. Check System Settings → Privacy & Security → Microphone.",
+          );
+          console.warn("Microphone permission denied:", err);
+          return;
+        }
       } else if (
         err.name === "NotFoundError" ||
         err.name === "DevicesNotFoundError"
       ) {
         setError("No microphone found. Connect an audio input device.");
         console.warn("No microphone hardware:", err);
+        return;
       } else {
         setError("Microphone unavailable.");
         console.warn("getUserMedia error:", err);
-      }
-      return;
-    }
-
-    // In Electron, also try the native permission API if available
-    if (window.electronAPI?.requestMicrophoneAccess) {
-      try {
-        const status = await window.electronAPI.requestMicrophoneAccess();
-        if (status === "denied") {
-          setError(
-            "Microphone access denied. Re-enable in System Settings → Privacy & Security → Microphone, then relaunch.",
-          );
-          return;
-        }
-      } catch {
-        // Non-critical — getUserMedia succeeded, so we can proceed
+        return;
       }
     }
 
@@ -102,7 +122,9 @@ export default function DictateButton({
     recognition.onerror = (event) => {
       console.warn("Speech recognition error:", event.error);
       if (event.error === "not-allowed") {
-        setError("Microphone access denied.");
+        setError(
+          "Speech recognition blocked (not-allowed). If the OS already allows the mic, try relaunching the app or check that no other app has exclusive mic access.",
+        );
       }
       setListening(false);
     };

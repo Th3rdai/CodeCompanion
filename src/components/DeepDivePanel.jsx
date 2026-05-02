@@ -22,6 +22,7 @@ export default function DeepDivePanel({
   connected,
   onBack,
   onMessagesChange,
+  setPendingConfirm,
 }) {
   const [messages, setMessages] = useState(() => {
     if (Array.isArray(initialMessages) && initialMessages.length > 0) {
@@ -88,6 +89,9 @@ export default function DeepDivePanel({
               if (parsed.token) assistant += parsed.token;
               if (parsed.toolImage?.data) images.push(parsed.toolImage.data);
               if (parsed.error) assistant += `\n\nError: ${parsed.error}`;
+              if (parsed.confirmRequired && setPendingConfirm) {
+                setPendingConfirm(parsed.confirmRequired);
+              }
               setMessages((prev) => {
                 const copy = [...prev];
                 if (copy[copy.length - 1]?.role === "assistant") {
@@ -119,7 +123,7 @@ export default function DeepDivePanel({
         setStreaming(false);
       }
     },
-    [selectedModel],
+    [selectedModel, setPendingConfirm],
   );
 
   // Auto-send the initial pair on mount.

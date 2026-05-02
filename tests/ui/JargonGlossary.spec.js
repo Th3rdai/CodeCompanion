@@ -1,14 +1,23 @@
 import { test, expect } from "@playwright/test";
+import { reloadAndWaitForModels } from "../helpers/reload-app-ready.js";
 
 test.describe("JargonGlossary component", () => {
+  // beforeEach runs reloadAndWaitForModels (up to 45s) then opens glossary — default 45s test timeout is too tight under parallel load.
+  test.describe.configure({ timeout: 90_000 });
+
   test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      sessionStorage.setItem("th3rdai_splash_dismissed", "true");
+    });
     await page.goto("/");
     await page.evaluate(() =>
       localStorage.setItem("th3rdai_onboarding_complete", "true"),
     );
-    await page.reload();
-    // Open glossary panel
-    await page.getByRole("button", { name: /glossary/i }).click();
+    await reloadAndWaitForModels(page);
+    // Open glossary panel (requires main shell — splash dismissed above)
+    const glossaryBtn = page.getByRole("button", { name: /glossary/i });
+    await glossaryBtn.waitFor({ state: "visible", timeout: 30_000 });
+    await glossaryBtn.click();
   });
 
   test("UX-03: displays all terms with search and category filtering", async ({
