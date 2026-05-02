@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.33] — 2026-05-02
+
+### Fixed
+
+- **CI workflow no longer red on every release** — `tests/unit/review-files.test.js` had two tests that called `reviewFiles(...)` synchronously without mocking `global.fetch`, so the unawaited promise's fetch to `localhost:11434` (no Ollama on the runner) would reject **after** the test ended, surfacing as `# Error: ... generated asynchronous activity after the test ended` and failing the CI workflow on every release tag we shipped today (v1.6.24–v1.6.32). Both tests now stub `global.fetch` with a `miniReportCard()` Response and `await` the promise. Zero `unhandledRejection` lines in the test output.
+
+### Added
+
+- **Linked-experiment chips on chat history** (`src/components/LinkedExperimentChips.jsx`) — when you load a chat that previously spawned experiments (the `experimentIds` link from v1.6.24), a small chip-row appears above the panel showing each linked experiment's hypothesis + status dot. Click a chip to land in Experiment mode with that specific run restored. Backend hooks (`lib/history.js#experimentIds`, `routes/history.js?include=experiments`) were already in place; this closes the v1.6.24 history-link feature loop with a UI surface.
+- New optional props on `ExperimentPanel`: `restoreExperimentId` and `onRestoreComplete`. When set, the existing restore-from-server effect (v1.6.27) skips the listing endpoint and fetches `GET /api/experiment/:id` directly — saves a round-trip and prevents a race where the latest active experiment differs from the one the user clicked. App.jsx owns the state and clears it via the callback.
+
+### Changed
+
+- **`ReviewPanel.jsx` full-page deep-dive consolidated to use shared `DeepDivePanel`** — drops 107 lines from ReviewPanel (1905 → 1798). The full-page deep-dive view (`phase === "deep-dive"`) now mounts `<DeepDivePanel>` with a finding-specific `systemPrompt` + `initialUserMessage`; DeepDivePanel handles streaming, follow-up input, and back-button. `connected` prop wired through (caught by plan-reviewer — without it, the input would render enabled while Ollama is offline). The **inline chat embedded in the report-card view** is a different UX (small embedded thread, no full-page takeover) and intentionally keeps its own local streaming logic; it shares `deepDiveMessages` state with the page view so transitions between the two preserve conversation context.
+
 ## [1.6.32] — 2026-05-01
 
 ### Fixed

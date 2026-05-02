@@ -31,6 +31,7 @@ export function useChat({
   const [streaming, setStreaming] = useState(false);
   const [history, setHistory] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
+  const [linkedExperimentIds, setLinkedExperimentIds] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
   const [renaming, setRenaming] = useState(null);
   const [stats, setStats] = useState(null);
@@ -84,6 +85,11 @@ export function useChat({
       } else {
         setSavedBuilderData(null);
       }
+      // Surface linked experiments so the UI can offer entry points back
+      // into Experiment mode for runs spawned from this conversation.
+      setLinkedExperimentIds(
+        Array.isArray(conv.experimentIds) ? conv.experimentIds : [],
+      );
     } catch {}
   }
 
@@ -294,6 +300,7 @@ export function useChat({
     setSavedPentest(null);
     setSavedBuilderData(null);
     setActiveMemories(null);
+    setLinkedExperimentIds([]);
   }
 
   // Build message with attached files (text only, images handled separately)
@@ -516,6 +523,8 @@ export function useChat({
                 `> ⚠️ ${parsed.notice.message}\n\n`;
               flushChatAssistantUi();
             }
+            // modelWait / heartbeat: SSE keep-alive during long chatComplete waits;
+            // intentionally ignored here (no assistant text noise).
             if (parsed.toolCallRound !== undefined) {
               // Show tool execution progress in terminal output indicator
               const calls = parsed.toolCalls || [];
@@ -792,5 +801,6 @@ export function useChat({
     pendingAutoSend,
     pendingConfirm,
     setPendingConfirm,
+    linkedExperimentIds,
   };
 }

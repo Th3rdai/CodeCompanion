@@ -36,6 +36,10 @@ export default function ExperimentPanel({
   agentMaxRounds,
   /** When agent terminal "confirm before run" is on, wire SSE `confirmRequired` to App's modal */
   setPendingConfirm,
+  /** Optional: restore a SPECIFIC experiment by id (set when user clicks a linked-experiment chip in App.jsx). */
+  restoreExperimentId,
+  /** Called after restoreExperimentId has been consumed so App.jsx can reset it to null. */
+  onRestoreComplete,
 }) {
   const [defaultCommandAllowlist, setDefaultCommandAllowlist] = useState([]);
   const [status, setStatus] = useState({
@@ -91,36 +95,59 @@ export default function ExperimentPanel({
   // project and restore the user's view (running banner + step stream, or report
   // card). Conversation history is rehydrated via the linked conversationId so
   // the user doesn't lose what they already chatted through.
+  //
+  // Special case: when `restoreExperimentId` is set (user clicked a linked
+  // experiment chip from chat history), skip the listing endpoint entirely and
+  // fetch that specific record. Avoids a round-trip and prevents a race where
+  // the latest active experiment differs from the one the user clicked.
   useEffect(() => {
     const folder = chatFolder || projectFolder;
-    if (!folder) return;
     let cancelled = false;
     (async () => {
       try {
-        const listRes = await apiFetch(
-          `/api/experiment?projectFolder=${encodeURIComponent(folder)}&limit=1`,
-        );
-        if (!listRes.ok || cancelled) return;
-        const { items } = await listRes.json();
-        const latest = items?.[0];
-        if (!latest || cancelled) return;
+        let fullRec;
+        let isActive;
 
-        // Skip if this user has already started a fresh run on this mount.
-        if (experiment || phase !== "input") return;
+        if (restoreExperimentId) {
+          // Skip if user already has a fresh run going on this mount.
+          if (experiment || phase !== "input") {
+            onRestoreComplete?.();
+            return;
+          }
+          const expRes = await apiFetch(
+            `/api/experiment/${encodeURIComponent(restoreExperimentId)}`,
+          );
+          if (!expRes.ok || cancelled) return;
+          fullRec = await expRes.json();
+          if (cancelled || experiment) return;
+          isActive = !TERMINAL_STATUSES.has(fullRec.status);
+        } else {
+          if (!folder) return;
+          const listRes = await apiFetch(
+            `/api/experiment?projectFolder=${encodeURIComponent(folder)}&limit=1`,
+          );
+          if (!listRes.ok || cancelled) return;
+          const { items } = await listRes.json();
+          const latest = items?.[0];
+          if (!latest || cancelled) return;
 
-        // Only auto-restore if it's still active OR very recently completed
-        // (≤ 1h). Older terminal records are accessed via history, not auto-loaded.
-        const ageMs = Date.now() - new Date(latest.updatedAt).getTime();
-        const isActive = !TERMINAL_STATUSES.has(latest.status);
-        if (!isActive && (Number.isNaN(ageMs) || ageMs > 60 * 60 * 1000))
-          return;
+          // Skip if user has already started a fresh run on this mount.
+          if (experiment || phase !== "input") return;
 
-        const expRes = await apiFetch(
-          `/api/experiment/${encodeURIComponent(latest.id)}`,
-        );
-        if (!expRes.ok || cancelled) return;
-        const fullRec = await expRes.json();
-        if (cancelled || experiment) return;
+          // Only auto-restore if it's still active OR very recently completed
+          // (≤ 1h). Older terminal records are accessed via history, not auto-loaded.
+          const ageMs = Date.now() - new Date(latest.updatedAt).getTime();
+          isActive = !TERMINAL_STATUSES.has(latest.status);
+          if (!isActive && (Number.isNaN(ageMs) || ageMs > 60 * 60 * 1000))
+            return;
+
+          const expRes = await apiFetch(
+            `/api/experiment/${encodeURIComponent(latest.id)}`,
+          );
+          if (!expRes.ok || cancelled) return;
+          fullRec = await expRes.json();
+          if (cancelled || experiment) return;
+        }
 
         setExperiment(fullRec);
         setPhase(isActive ? "running" : "report");
@@ -144,13 +171,15 @@ export default function ExperimentPanel({
         }
       } catch {
         /* ignore */
+      } finally {
+        if (restoreExperimentId && !cancelled) onRestoreComplete?.();
       }
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatFolder, projectFolder]);
+  }, [chatFolder, projectFolder, restoreExperimentId]);
 
   // Esc aborts any in-flight step request.
   useEffect(() => {

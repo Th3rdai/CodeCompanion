@@ -13,11 +13,11 @@ import {
   History,
 } from "lucide-react";
 import ReportCard from "./ReportCard";
-import MessageBubble from "./MessageBubble";
 import InputToolbar from "./ui/InputToolbar";
 import MarkdownContent from "./MarkdownContent";
 import LoadingAnimation from "./LoadingAnimation";
 import ChatSessionProgress from "./ui/ChatSessionProgress";
+import DeepDivePanel from "./DeepDivePanel";
 import ImageThumbnail from "./ImageThumbnail";
 import ImageLightbox from "./ImageLightbox";
 import { validateImage, processImage, hashImage } from "../lib/image-processor";
@@ -141,6 +141,7 @@ export default function ReviewPanel({
   models,
   onSetSelectedModel,
   onUpdateReviewDeepDive,
+  setPendingConfirm,
 }) {
   // ── State ───────────────────────────────────────────
   const [phase, setPhase] = useState("input"); // 'input' | 'loading' | 'report' | 'fallback' | 'deep-dive'
@@ -149,6 +150,13 @@ export default function ReviewPanel({
   const [reportData, setReportData] = useState(null);
   const [fallbackContent, setFallbackContent] = useState("");
   const [deepDiveMessages, setDeepDiveMessages] = useState([]);
+  // The full-page deep-dive view (phase === "deep-dive") delegates to the
+  // shared DeepDivePanel; deepDiveSeed carries the finding-specific
+  // {systemPrompt, initialUserMessage} into that mount. The inline chat
+  // embedded in the report-card view keeps its own local state below
+  // (deepDiveInput, deepDiveStreaming, refs) because it's a different UX —
+  // an embedded thread alongside the report, not a full-page conversation.
+  const [deepDiveSeed, setDeepDiveSeed] = useState(null);
   const [deepDiveInput, setDeepDiveInput] = useState("");
   const [deepDiveStreaming, setDeepDiveStreaming] = useState(false);
   /** True while SSE markdown is streaming for conversational (fallback) review. */
@@ -349,36 +357,29 @@ export default function ReviewPanel({
   ]);
 
   // ── Deep dive into a finding ──────────────────────
+  // Seeds DeepDivePanel with a finding-specific system prompt + initial user
+  // question. The panel handles its own SSE streaming, persistence calls back
+  // via onMessagesChange below.
   const handleDeepDive = useCallback(
     (finding, categoryKey) => {
       const context = `I just reviewed some code and found this issue:\n\n**Category:** ${categoryKey}\n**Finding:** ${finding.title} (${finding.severity})\n**Details:** ${finding.explanation}${finding.analogy ? `\n**Analogy:** ${finding.analogy}` : ""}\n\nHere is the original code:\n\`\`\`\n${code.trim()}\n\`\`\``;
 
-      const systemMsg = {
-        role: "system",
-        content: `You are a senior developer helping a Product Manager understand a code review finding in depth. The PM found an issue during a code review and wants to understand it better. Explain clearly, use analogies when helpful, and suggest specific fixes with code examples. Never use jargon without explanation.`,
-      };
+      const systemPrompt = `You are a senior developer helping a Product Manager understand a code review finding in depth. The PM found an issue during a code review and wants to understand it better. Explain clearly, use analogies when helpful, and suggest specific fixes with code examples. Never use jargon without explanation.\n\n${context}`;
 
-      const userMsg = {
-        role: "user",
-        content: `I want to understand this finding better and know how to fix it:\n\n**${finding.title}** (${finding.severity} severity, ${categoryKey} category)\n\n${finding.explanation}\n\nCan you explain what exactly is wrong, show me how to fix it, and tell me what the fix would look like?`,
-      };
+      const initialUserMessage = `I want to understand this finding better and know how to fix it:\n\n**${finding.title}** (${finding.severity} severity, ${categoryKey} category)\n\n${finding.explanation}\n\nCan you explain what exactly is wrong, show me how to fix it, and tell me what the fix would look like?`;
 
-      setDeepDiveMessages([
-        { role: "context", content: context },
-        systemMsg,
-        userMsg,
-      ]);
-      setDeepDiveInput("");
+      setDeepDiveSeed({ systemPrompt, initialUserMessage });
+      // Reset prior messages so DeepDivePanel seeds fresh from the prompt+user.
+      setDeepDiveMessages([]);
       setPhase("deep-dive");
-
-      // Auto-send the initial deep-dive question
-      sendDeepDiveMessage([systemMsg, userMsg], context);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [code, selectedModel],
+    [code],
   );
 
-  // ── Send deep-dive chat message ───────────────────
+  // ── Inline chat-on-report streaming (not the full-page deep-dive view) ──
+  // The full-page deep-dive uses DeepDivePanel. The inline chat embedded in
+  // the report-card view runs through this code path because it's a different
+  // UX (small embedded thread, no back-button, no full-page takeover).
   async function sendDeepDiveMessage(messages, _contextStr) {
     if (!selectedModel) return;
     setDeepDiveStreaming(true);
@@ -441,11 +442,13 @@ export default function ReviewPanel({
             if (parsed.error) {
               assistantContent += `\n\nError: ${parsed.error}`;
             }
+            if (parsed.confirmRequired && setPendingConfirm) {
+              setPendingConfirm(parsed.confirmRequired);
+            }
           } catch {}
         }
       }
 
-      // Ensure final message is set
       setDeepDiveMessages((prev) => {
         const updated = [...prev];
         const lastIdx = updated.length - 1;
@@ -467,7 +470,6 @@ export default function ReviewPanel({
         () => deepDiveEndRef.current?.scrollIntoView({ behavior: "smooth" }),
         100,
       );
-      // Persist deep-dive messages after each response
       setDeepDiveMessages((prev) => {
         onUpdateReviewDeepDive?.(prev);
         return prev;
@@ -475,12 +477,10 @@ export default function ReviewPanel({
     }
   }
 
-  // ── Deep-dive follow-up ───────────────────────────
   async function handleDeepDiveFollowUp() {
     if (!deepDiveInput.trim() || deepDiveStreaming) return;
 
     let base = deepDiveMessages;
-    // If no messages yet, initialize with system context containing the original code
     if (base.length === 0 && code) {
       const sysMsg = {
         role: "system",
@@ -1263,127 +1263,24 @@ export default function ReviewPanel({
   }
 
   // ── Render: Deep Dive Conversation ────────────────
+  // Delegates to the shared DeepDivePanel (also used by ExperimentPanel).
+  // ReviewPanel owns the back-to-report transition and the persistence wiring;
+  // streaming, message state, and follow-up UI live inside DeepDivePanel.
   if (phase === "deep-dive") {
-    const visibleMessages = deepDiveMessages.filter(
-      (m) => m.role === "user" || m.role === "assistant",
-    );
-
     return (
-      <section
-        className="flex-1 flex flex-col min-h-0 overflow-hidden"
-        aria-label="Deep dive conversation"
-      >
-        {/* Header bar */}
-        <div className="glass border-b border-slate-700/30 px-4 py-2 flex items-center gap-3">
-          <button
-            onClick={handleBackToReport}
-            className="text-xs text-slate-400 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-slate-700/40 transition-colors"
-          >
-            ← Back to Report
-          </button>
-          <span className="text-xs text-slate-500">Deep Dive Conversation</span>
-        </div>
-
-        <ChatSessionProgress
-          active={deepDiveStreaming}
-          detail="Review · Deep dive"
-          testId="review-session-progress"
-        />
-
-        {/* Messages */}
-        <div
-          className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
-          role="log"
-          aria-label="Deep dive messages"
-          aria-live="polite"
-        >
-          {visibleMessages.map((msg, i) => (
-            <MessageBubble
-              key={i}
-              role={msg.role}
-              content={msg.content}
-              streaming={
-                deepDiveStreaming &&
-                i === visibleMessages.length - 1 &&
-                msg.role === "assistant"
-              }
-            />
-          ))}
-          {deepDiveStreaming &&
-            visibleMessages.length > 0 &&
-            visibleMessages[visibleMessages.length - 1]?.role !==
-              "assistant" && (
-              <div
-                className="flex items-center gap-2 text-slate-400 text-sm py-2 px-4"
-                role="status"
-                aria-live="polite"
-              >
-                <div className="flex gap-1">
-                  <span
-                    className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  ></span>
-                  <span
-                    className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  ></span>
-                  <span
-                    className="inline-block w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  ></span>
-                </div>
-                <span>Thinking...</span>
-              </div>
-            )}
-          <div ref={deepDiveEndRef} />
-        </div>
-
-        {/* Follow-up input */}
-        <div className="glass-heavy border-t border-slate-700/30 p-4 space-y-2">
-          <InputToolbar
-            textareaRef={deepDiveInputRef}
-            getText={() => deepDiveInput}
-            setText={(val) => setDeepDiveInput((prev) => prev + val)}
-            messages={deepDiveMessages}
-            mode="Review"
-            onToast={onToast}
-            onClear={() => setDeepDiveInput("")}
-            connected={connected}
-            streaming={deepDiveStreaming}
-            hideButtons={["upload"]}
-          />
-          <div className="flex gap-2">
-            <label htmlFor="deep-dive-input" className="sr-only">
-              Ask a follow-up question
-            </label>
-            <textarea
-              id="deep-dive-input"
-              ref={deepDiveInputRef}
-              value={deepDiveInput}
-              onChange={(e) => setDeepDiveInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleDeepDiveFollowUp();
-                }
-              }}
-              placeholder="Ask a follow-up question about this finding..."
-              rows={2}
-              disabled={deepDiveStreaming || !connected}
-              className="flex-1 input-glow text-slate-100 font-mono text-sm rounded-xl px-4 py-3 resize-none placeholder-slate-500 disabled:opacity-50"
-            />
-            <button
-              onClick={handleDeepDiveFollowUp}
-              disabled={
-                !deepDiveInput.trim() || deepDiveStreaming || !connected
-              }
-              className="btn-neon text-white rounded-xl px-4 font-medium transition-colors disabled:bg-slate-700 disabled:text-slate-500 disabled:border-slate-600 disabled:shadow-none disabled:cursor-not-allowed min-w-[60px]"
-            >
-              {deepDiveStreaming ? "..." : "Ask"}
-            </button>
-          </div>
-        </div>
-      </section>
+      <DeepDivePanel
+        title="Deep Dive Conversation"
+        systemPrompt={deepDiveSeed?.systemPrompt}
+        initialUserMessage={deepDiveSeed?.initialUserMessage}
+        initialMessages={deepDiveMessages.length > 0 ? deepDiveMessages : null}
+        selectedModel={selectedModel}
+        connected={connected}
+        onBack={handleBackToReport}
+        onMessagesChange={(msgs) => {
+          setDeepDiveMessages(msgs);
+          onUpdateReviewDeepDive?.(msgs);
+        }}
+      />
     );
   }
 

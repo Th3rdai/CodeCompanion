@@ -1,6 +1,26 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert/strict");
 
+/** Minimal payload that satisfies ReportCardSchema (Ollama /api/chat mock). */
+function miniReportCard() {
+  const cat = (g) => ({ grade: g, summary: "ok", findings: [] });
+  return {
+    overallGrade: "A",
+    topPriority: {
+      category: "bugs",
+      title: "none",
+      explanation: "none",
+    },
+    categories: {
+      bugs: cat("A"),
+      security: cat("A"),
+      readability: cat("A"),
+      completeness: cat("A"),
+    },
+    cleanBillOfHealth: true,
+  };
+}
+
 describe("reviewFiles", () => {
   it("reviewFiles is exported from lib/review", () => {
     const { reviewFiles } = require("../../lib/review");
@@ -8,17 +28,37 @@ describe("reviewFiles", () => {
   });
 
   it("reviewFiles builds combined string with FILE separators", async () => {
-    const { reviewFiles } = require("../../lib/review");
-    const files = [
-      { path: "a.js", content: "x" },
-      { path: "b.js", content: "y" },
-    ];
-    // Call reviewFiles — it should pass a combined string to reviewCode internally.
-    // We inspect behavior by checking the returned result is a Promise (async).
-    // The combined string format is: "// --- FILE: a.js ---\nx\n\n// --- FILE: b.js ---\ny"
-    const result = reviewFiles("http://localhost:11434", "llama3.2", files, {});
-    assert.ok(result instanceof Promise, "reviewFiles must return a Promise");
-    // Stub — full assertion requires live Ollama; skip until Wave 1 integration.
+    const origFetch = global.fetch;
+    try {
+      global.fetch = async (url, init) => {
+        assert.match(String(url), /\/api\/chat$/);
+        const body = JSON.parse(init.body);
+        const userMsg = body.messages.find((m) => m.role === "user");
+        assert.ok(userMsg?.content?.includes("// --- FILE: a.js ---"));
+        assert.ok(userMsg?.content?.includes("// --- FILE: b.js ---"));
+        return new Response(
+          JSON.stringify({
+            message: { content: JSON.stringify(miniReportCard()) },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      };
+      const { reviewFiles } = require("../../lib/review");
+      const files = [
+        { path: "a.js", content: "x" },
+        { path: "b.js", content: "y" },
+      ];
+      const result = await reviewFiles(
+        "http://localhost:11434",
+        "llama3.2",
+        files,
+        {},
+      );
+      assert.equal(result.type, "report-card");
+      assert.equal(result.data.overallGrade, "A");
+    } finally {
+      global.fetch = origFetch;
+    }
   });
 
   it("reviewFiles scales timeout by file count (Math.ceil(count/5) * base)", async () => {
@@ -40,10 +80,32 @@ describe("reviewFiles", () => {
     assert.equal(scaledTimeout, 600000, "Timeout must be capped at 600000ms");
   });
 
-  it("reviewFiles returns a Promise (is async)", () => {
-    const { reviewFiles } = require("../../lib/review");
-    const files = [{ path: "test.js", content: "const x = 1;" }];
-    const result = reviewFiles("http://localhost:11434", "llama3.2", files, {});
-    assert.ok(result instanceof Promise, "reviewFiles must return a Promise");
+  it("reviewFiles returns a Promise and resolves with mocked Ollama", async () => {
+    const origFetch = global.fetch;
+    try {
+      global.fetch = async () =>
+        new Response(
+          JSON.stringify({
+            message: { content: JSON.stringify(miniReportCard()) },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      const { reviewFiles } = require("../../lib/review");
+      const files = [{ path: "test.js", content: "const x = 1;" }];
+      const pending = reviewFiles(
+        "http://localhost:11434",
+        "llama3.2",
+        files,
+        {},
+      );
+      assert.ok(
+        pending instanceof Promise,
+        "reviewFiles must return a Promise",
+      );
+      const result = await pending;
+      assert.equal(result.type, "report-card");
+    } finally {
+      global.fetch = origFetch;
+    }
   });
 });

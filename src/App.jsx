@@ -26,6 +26,7 @@ import ReviewPanel from "./components/ReviewPanel";
 import SecurityPanel from "./components/SecurityPanel";
 import ValidatePanel from "./components/ValidatePanel";
 import ExperimentPanel from "./components/ExperimentPanel";
+import LinkedExperimentChips from "./components/LinkedExperimentChips";
 import PromptingPanel from "./components/builders/PromptingPanel";
 import SkillzPanel from "./components/builders/SkillzPanel";
 import AgenticPanel from "./components/builders/AgenticPanel";
@@ -203,6 +204,19 @@ const MODES = [
 
 const BUILDER_MODES = ["prompting", "skillz", "agentic", "planner"];
 
+/** Modes where POST /api/chat uses agentMaxRounds and the user should see the header control. */
+function showAgentRoundsInHeader(mode) {
+  return (
+    mode === "experiment" ||
+    (mode !== "create" &&
+      mode !== "build" &&
+      mode !== "review" &&
+      mode !== "pentest" &&
+      mode !== "terminal" &&
+      !BUILDER_MODES.includes(mode))
+  );
+}
+
 /** Shown in the main strip; everything else lives under More or the command palette. */
 const PRIMARY_MODE_IDS = [
   "chat",
@@ -306,6 +320,10 @@ export default function App() {
   const [chatFolder, setChatFolder] = useState("");
   const [icmTemplatePath, setIcmTemplatePath] = useState("");
   const [mode, _setMode] = useState("chat");
+  // When the user clicks a linked-experiment chip, this carries the target id
+  // into ExperimentPanel; ExperimentPanel restores that specific run, then
+  // calls onRestoreComplete which clears it back to null.
+  const [restoreExperimentId, setRestoreExperimentId] = useState(null);
 
   // Wrap setMode to persist last active mode in Electron
   const setMode = useCallback(
@@ -450,6 +468,7 @@ export default function App() {
     pendingAutoSend,
     pendingConfirm,
     setPendingConfirm,
+    linkedExperimentIds,
   } = useChat({
     mode,
     setMode,
@@ -1320,7 +1339,7 @@ export default function App() {
                 {autoResolvedLabel ? `→ ${autoResolvedLabel}` : "→ …"}
               </span>
             )}
-            {(mode === "chat" || mode === "experiment") && (
+            {showAgentRoundsInHeader(mode) && (
               <div className="flex items-center gap-1.5">
                 <label
                   htmlFor="rounds-select"
@@ -1503,6 +1522,16 @@ export default function App() {
               modeLabel={currentMode?.label || ""}
             />
 
+            {mode !== "experiment" && (
+              <LinkedExperimentChips
+                ids={linkedExperimentIds}
+                onOpen={(id) => {
+                  setRestoreExperimentId(id);
+                  setMode("experiment");
+                }}
+              />
+            )}
+
             {showModePalette && (
               <div
                 className="fixed inset-0 z-[200] flex items-start justify-center bg-black/55 px-4 pt-[12vh] pb-8"
@@ -1605,6 +1634,7 @@ export default function App() {
                 models={models}
                 onSetSelectedModel={setSelectedModel}
                 onUpdateReviewDeepDive={handleUpdateReviewDeepDive}
+                setPendingConfirm={setPendingConfirm}
               />
             ) : mode === "pentest" ? (
               <SecurityPanel
@@ -1622,6 +1652,7 @@ export default function App() {
                 models={models}
                 onSetSelectedModel={setSelectedModel}
                 onUpdatePentestDeepDive={handleUpdatePentestDeepDive}
+                setPendingConfirm={setPendingConfirm}
               />
             ) : mode === "validate" ? (
               <ValidatePanel
@@ -1638,6 +1669,9 @@ export default function App() {
                 projectFolder={projectFolder}
                 chatFolder={chatFolder}
                 agentMaxRounds={agentMaxRounds}
+                setPendingConfirm={setPendingConfirm}
+                restoreExperimentId={restoreExperimentId}
+                onRestoreComplete={() => setRestoreExperimentId(null)}
               />
             ) : mode === "terminal" ? (
               <TerminalPanel projectFolder={chatFolder || projectFolder} />
