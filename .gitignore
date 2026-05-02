@@ -84,6 +84,9 @@ tests/test/
 tests/test-results/
 tests/test-results-*/
 tests/test-results-*/
+# E2E test artifacts (Playwright screenshots + report)
+e2e-screenshots/
+e2e-test-report.md
 # Certificate private keys and generated certs (do not commit)
 cert/*.key
 cert/*.crt

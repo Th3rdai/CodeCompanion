@@ -4,12 +4,12 @@ This document describes how to run the **Crawl4AI RAG** MCP server from a separa
 
 ## What runs where
 
-| Service            | Role                         | Host bind (default compose)   |
-| ------------------ | ---------------------------- | ----------------------------- |
-| **mcp-crawl4ai-rag** | MCP over **SSE**, Crawl4AI | `http://127.0.0.1:8054`       |
-| **postgres**       | Vector / app DB              | Internal only                 |
-| **postgrest**      | REST API over Postgres       | `http://127.0.0.1:3000`       |
-| **neo4j**          | Optional knowledge graph     | Browser `7475`, Bolt `7688` |
+| Service              | Role                       | Host bind (default compose) |
+| -------------------- | -------------------------- | --------------------------- |
+| **mcp-crawl4ai-rag** | MCP over **SSE**, Crawl4AI | `http://127.0.0.1:8054`     |
+| **postgres**         | Vector / app DB            | Internal only               |
+| **postgrest**        | REST API over Postgres     | `http://127.0.0.1:3000`     |
+| **neo4j**            | Optional knowledge graph   | Browser `7475`, Bolt `7688` |
 
 The MCP app exposes **`GET /health`**, **`GET /sse`**, and the MCP message path used by the SDK (see the upstream repo **`docs/MCP_CONNECTION_GUIDE.md`**).
 

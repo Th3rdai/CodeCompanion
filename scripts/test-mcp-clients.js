@@ -13,7 +13,9 @@
 "use strict";
 
 const path = require("path");
-const { resolveMcpTestConfigRoot } = require("../lib/resolve-mcp-test-config-root");
+const {
+  resolveMcpTestConfigRoot,
+} = require("../lib/resolve-mcp-test-config-root");
 const { initConfig, getConfig } = require("../lib/config");
 const McpClientManager = require("../lib/mcp-client-manager");
 
