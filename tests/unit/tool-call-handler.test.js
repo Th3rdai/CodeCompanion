@@ -498,6 +498,37 @@ test("buildToolsPrompt includes terminal preamble and AGENT TERMINAL when builti
   }
 });
 
+test("hasExternalMcpTools is true when connected MCP tools exist", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    {
+      getAllTools: () => [
+        {
+          serverId: "crawl4ai-rag",
+          serverName: "Crawl",
+          name: "search_web",
+          description: "Search",
+        },
+      ],
+    },
+    {
+      getConfig: () => ({
+        mcpClients: [{ id: "crawl4ai-rag", disabledTools: [] }],
+      }),
+    },
+  );
+  assert.strictEqual(h.hasExternalMcpTools(), true);
+});
+
+test("hasExternalMcpTools is false when no MCP tools are advertised", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    { getAllTools: () => [] },
+    { getConfig: () => ({ mcpClients: [] }) },
+  );
+  assert.strictEqual(h.hasExternalMcpTools(), false);
+});
+
 test("getToolsPromptAndFlags returns prompt + flags from single builtinTools pass", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const prevHost = process.env.HOST;
