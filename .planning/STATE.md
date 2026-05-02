@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-05-01T20:00:00.000Z"
-last_activity: "2026-05-01 — `ChatSessionProgress` shipped app-wide (chat, builders, Review, Security, Experiment, DeepDivePanel, Build simple) + `docs/SESSION-PROGRESS.md`; CHANGELOG [Unreleased]. 388 unit tests / validate:static / vite build green."
+last_updated: "2026-05-02T05:05:00.000Z"
+last_activity: "2026-05-02 — Nine releases shipped (v1.6.24 → v1.6.33): Experiment redesign (form-and-report phase machine, server-enforced scope, trust boundary), AGENTSKILL Phase 0/0.5/1 (chat agent app-skill builtins with pinned envelope contracts; service extraction for review/pentest/score), v1.6.33 cleanup sweep (CI flake fix, LinkedExperimentChips, ReviewPanel deep-dive consolidated to shared DeepDivePanel). 403 unit / 8 integration / 36 UI / 23 E2E green. CI workflow green on v1.6.33 (first time today). Details: journal/2026-05-01.md."
 progress:
   total_phases: 28
   completed_phases: 28
@@ -21,13 +21,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** A vibe coder can paste, upload, or point to their AI-generated code and get a clear, honest assessment of whether it's safe to ship — explained in language they actually understand.
-**Current focus:** All roadmap phases complete through **Phase 28** (including 24.5). Phase 27 remains deferred. Current work is post-phase stabilization: Playwright/browser execution reliability, File Browser responsiveness, and history timestamp correctness.
+
+**Roadmap status:** All phases complete through **Phase 28** (including 24.5). Phase 27 remains deferred.
+
+**Immediate focus (post-roadmap):** Ship **`CHANGELOG` [Unreleased]** as the next **tagged patch release** so packaged installs and auto-update pick up current `master` (see `whats-next.md` → work_remaining). Keep CI green: `npm run validate:static`, `npm run test:unit`, and the integration/e2e gates described in **`docs/TESTING.md`**.
+
+**Backlog — stabilization watchlist:** Themes to revisit when triaging CI flakes or user logs—not scheduled phases: **(1) Playwright** — reliability and env parity for `tests/ui/` and `tests/e2e/` (see **`.claude/commands/e2e-test.md`**). **(2) File Browser** — responsiveness and edge cases beyond recent fixes (e.g. `+AI` / `folder=` vs `chatFolder` in **CHANGELOG** v1.6.19). **(3) History timestamps** — `createdAt` / ordering consistency across saves and devices (**`lib/history.js`** + sidebar list when bugs are reported).
 
 ## Current Position
 
 Roadmap status: all 28 phases complete (Phase 27 deferred). MCP parallel tool-exec remains gated/default-off. Phase 28 (Multi-File Code Review) verified; additional runtime fixes were completed 2026-04-22.
 
-**Current version:** 1.6.25 (see `package.json`; next desktop build should include [Unreleased] UI).
+**Current version:** 1.6.33 (see `package.json`; CI green; auto-updater offers it from GitHub Releases). Nine consecutive releases shipped 2026-05-01/02 covering the Experiment redesign, AGENTSKILL Phase 0/0.5/1, and a three-item cleanup sweep — see `journal/2026-05-01.md` for the full sequence.
 
 Last activity: 2026-05-01 — **Session progress strip** (`src/components/ui/ChatSessionProgress.jsx`) for consistent “Working” feedback across modes; documented in `docs/SESSION-PROGRESS.md`.
 
@@ -53,7 +58,7 @@ Previous (2026-04-24) — Codebase cleanup + security audit:
 - Dependabot: patched `dompurify`, `postcss`, `hono`, `@xmldom/xmldom`; replaced `uuid` with `crypto.randomUUID()`; 0 audit vulnerabilities.
 - Dead code removed; `ollamaAuthOpts()` deduplicated across 11 route files; `getToolsPromptAndFlags()` early-return flags fixed.
 
-Next: Prettier pass on `AGENTS.md`, `CLAUDE.md`, `lib/tool-call-handler.js` to clear P1 validation failure; then cut next patch release via CI tag.
+Next (maintenance): When cutting a release, add a dated **`CHANGELOG`** section for the new version and align **`package.json`**; follow **`docs/RELEASES-AND-UPDATES.md`** / **`BUILD.md`**. Optional: Playwright assertion for **`data-testid="chat-session-progress"`** (see **`whats-next.md`**).
 
 ### Build Dashboard Phase 1 Details (completed 2026-03-14)
 

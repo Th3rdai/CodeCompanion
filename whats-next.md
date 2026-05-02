@@ -4,6 +4,22 @@ Implement MCP per-tool enable/disable controls (MCPFIX) for Code Companion v1.6.
 
 <work_completed>
 
+**Experiment redesign + AGENTSKILL Phase 1 + cleanup sweep — v1.6.24 → v1.6.33 (2026-05-01 → 2026-05-02)**
+
+Nine tagged releases shipped in one day. CI workflow finally went green on **v1.6.33** after 9 consecutive red runs (the cause was a `tests/unit/review-files.test.js` fetch-after-test-end leak). Full per-release breakdown in `journal/2026-05-01.md`. Headline deliverables:
+
+- **Experiment Mode form-and-report UX (v1.6.24)** — hard switch from chat-bubble to phase machine (`input → running → report → deep-dive`). New `ExperimentInputForm` (hypothesis + scope + metric + budgets), `ExperimentReport` (status badge, metric callout, sparkline, scope-adherence, denials, step timeline), `ExperimentStepCard`, fresh `DeepDivePanel`. Server-side: `lib/experiment-schema.js` (Zod), `lib/experiment-step-parser.js` (server-only parser; trust boundary on `note-step`), `enforceExperimentScope` with realpath/symlink defense, `_activeExperimentByProject` in-process registry, `finalizeExperiment` with first-arrival-wins status precedence, `sweepStaleActiveExperiments` startup hook, `GET /api/experiment` paginated list, `POST /experiment/:id/abort`, `lib/history.js#experimentIds` link, `_migrate(record)` shim. Plan: `~/.claude/plans/experiment-mode-redesign.md` (two plan-reviewer passes folded in).
+- **Iterative dogfood fixes (v1.6.25–v1.6.32)** — eight bugs caught on real runs against TradingAgents, each a 5–15 min fix shipped as its own tag. Highlights: progress strip on the running phase; tab-switch recovery (Resume button when remounting into an active run); Mark complete button; bullet-`Done` parser fix; comma-separated scope chips; non-zero exit "undefined error" hallucination fix (`runTerminalCmd` now returns `success:true` for non-zero exits + system-prompt extension); MiniMax bare-tool-call format parser; misleading "model may need to be larger" copy on builder score; restore-from-server effect for tab-switch survival.
+- **Global `ChatSessionProgress` (v1.6.26, parallel Cursor work)** — indeterminate "Working" bar wired across chat / builders / Review / Security / Experiment / Build / DeepDivePanel. `[Unreleased]` CHANGELOG entry covers the wiring sites.
+- **AGENTSKILL Phase 0/0.5/1 (Cursor in parallel + my gap-fill)** — `agentAppSkills` config gates with master + 3 family flags (default off); Settings UI toggles; `chatStructured` abort fix (was dropping `abortSignal`); four agent builtins (`review_run`, `pentest_scan`, `pentest_scan_folder`, `builder_score`) with pinned §5.0.1 success / §5.0.2 error envelopes (`lib/agent-app-skill-envelope.js`); `[SKILL_AUDIT]` audit log prefix in `app.log`. **My gap-fill**: extracted `lib/pentest-service.js` + `lib/score-service.js` so routes and agent skills both call the same service (matches Review's pre-existing `lib/review-service.js` pattern); created user-facing `docs/AGENT-SKILLS.md`. Plan: `AGENTSKILL.md` (three plan-reviewer passes; envelope contracts pinned in §5.0.1/5.0.2).
+- **v1.6.33 cleanup sweep** — three deferred items in one release: review-files CI flake fixed; `LinkedExperimentChips` surfaces linked experiments above the chat panel (closes the v1.6.24 history-link feature loop); `ReviewPanel.jsx` full-page deep-dive delegates to shared `DeepDivePanel` (-107 lines, 1905 → 1798). Plan: `~/.claude/plans/cleanup-three-items.md` (plan-reviewer Major fixes folded: `restoreExperimentId` lifecycle, `connected` prop wiring, listing-endpoint bypass).
+- **`npm run validate:fast` script** — chains lint + typecheck + format + vite + unit + integration + smoke for routine pre-rebuild gate. Documented in CLAUDE.md follow-up.
+- **`.gitignore` / `.prettierignore`** — added `experiments/`, `history/`, `memory/`, `logs/`, `e2e-test-report.md` so dev-mode artifacts don't pollute the repo or fail format-check.
+
+**Verification at the end of the day**: 403 unit tests, 8 integration tests, 36 UI Playwright, 23 E2E Playwright, vite build green, server smoke PASS, **CI workflow green on v1.6.33**.
+
+---
+
 **Session progress UI — complete (2026-05-01)**
 
 - **`ChatSessionProgress`** (`src/components/ui/ChatSessionProgress.jsx` + `src/index.css`): indeterminate bar, glass strip, `aria-*`, `prefers-reduced-motion`.
@@ -120,10 +136,10 @@ Two follow-up commits after the morning's chat-timeout + Terminal-CWD work, trig
 </work_remaining>
 
 <context>
-**Current version:** 1.6.9
-**App install:** `/Applications/Code Companion.app`
-**Unit tests:** 225 pass (0 fail)
-**MCP clients connected:** Archon (17), Google (121), crawl4ai-rag (5), Stitch (12), nano banana (4)
+**Current version:** 1.6.25 (`package.json`; [Unreleased] in `CHANGELOG.md` until the next tagged release)
+**App install:** `/Applications/Code Companion.app` (packaged) or `npm run electron:dev` from repo
+**Unit tests:** 388 pass (0 fail) — `npm run test:unit` (2026-05-01)
+**MCP clients:** Whatever is configured under Settings → MCP Clients (`mcpClients` in `.cc-config.json`); tool counts vary by server and version — do not treat old per-server counts here as canonical.
 
 **Model note:** `qwen3-coder:30b` does not reliably emit `TOOL_CALL` format for complex Google MCP flows — use `bazobehram/qwen3-14b-claude-4.5-opus-high-reasoning` or similar for Google Workspace agentic tasks.
 
