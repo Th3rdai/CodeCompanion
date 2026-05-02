@@ -20,6 +20,17 @@
       "url": "http://127.0.0.1:8051/mcp",
       "autoConnect": true,
       "disabledTools": []
+    },
+    {
+      "id": "crawl4ai-rag",
+      "name": "Crawl4AI RAG",
+      "transport": "sse",
+      "command": "",
+      "args": [],
+      "env": {},
+      "url": "http://127.0.0.1:8054/sse",
+      "autoConnect": false,
+      "disabledTools": []
     }
   ],
   "memory": {

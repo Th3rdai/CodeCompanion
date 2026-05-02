@@ -54,6 +54,7 @@
     "audit:security": "npm audit --audit-level=critical",
     "mcp": "node mcp-server.js",
     "mcp:test": "node scripts/mcp-stdio-smoke.js",
+    "mcp:clients:test": "node scripts/test-mcp-clients.js",
     "mcp:inspect": "npx @modelcontextprotocol/inspector node mcp-server.js",
     "docs:pdf:releases": "node scripts/export-md-to-pdf.cjs docs/RELEASES-AND-UPDATES.md docs/RELEASES-AND-UPDATES.pdf",
     "postinstall": "patch-package"

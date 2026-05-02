@@ -81,6 +81,17 @@ If this still happens in an older build:
 
 **Archon (Docker MCP on :8051):** Example **`mcpClients`** entry and smoke test — **[ARCHON-MCP.md](./ARCHON-MCP.md)**.
 
+**Crawl4AI RAG (Docker MCP on :8054, SSE):** Separate repo / compose; **`mcpClients`** uses **`transport`: `"sse"`** and **`url`** ending in **`/sse`** — **[CRAWL4AI-RAG-MCP.md](./CRAWL4AI-RAG-MCP.md)**.
+
+## Chat: MCP tools from Settings do not run
+
+The model only receives **tools from MCP servers that are connected** in memory (`McpClientManager`). Saving a row in **Settings → MCP Clients** writes config only; the server must **connect** (green status) so `listTools` runs and tools appear in the chat prompt.
+
+1. In Settings, confirm each server shows **Connected** (or enable **Connect automatically after saving** when adding/editing).
+2. After **Edit**, the app reconnects when **Connect automatically** is on; if it is off, click **Connect** manually. If connect fails, the **banner or Add/Edit modal** shows a short error and tells you to open **`logs/app.log`** on the machine running Code Companion.
+3. In **`logs/app.log`**, search for **`MCP connect failed`**. Each **`[ERROR]`** line includes JSON with **`phase`** (`after-add`, `after-update`, or `manual`), **`clientId`**, **`transport`**, and for stdio **`command`** / **`args`** or for remote **`url`**, plus the full **`error`** string — use that to fix the command, URL, env, or upstream MCP server.
+4. Only entries with **`autoConnect`: true** are connected on **app startup** (unless **`CC_SKIP_MCP_AUTOCONNECT=1`**). Others need a manual **Connect** after each restart.
+
 ## Log files
 
 | Scenario                            | Typical path                                         |

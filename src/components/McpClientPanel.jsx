@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
 
+/** Shown after MCP connect failures — matches structured lines in logs/app.log */
+const MCP_APP_LOG_HINT =
+  'For transport, URL, and command details, open logs/app.log on the machine running this app and search for "MCP connect failed" (same line includes client id and stdio command or remote URL).';
+
 function StatusDot({ status }) {
   const colors = {
     connected: "bg-green-400",
@@ -404,11 +408,13 @@ function ServerModal({ mode, client, onSaved, onClose }) {
           });
           return;
         }
-        if (autoConnect) {
-          await apiFetch(
-            `/api/mcp/clients/${encodeURIComponent(client.id)}/connect`,
-            { method: "POST" },
-          );
+        if (data.connectError) {
+          setTestResult({
+            ok: false,
+            error: `Saved, but could not connect: ${data.connectError}\n\n${MCP_APP_LOG_HINT}`,
+          });
+          onSaved();
+          return;
         }
       } else {
         const id = name
@@ -432,11 +438,13 @@ function ServerModal({ mode, client, onSaved, onClose }) {
           setTestResult({ ok: false, error: data.error || "Failed to save" });
           return;
         }
-        if (autoConnect) {
-          await apiFetch(
-            `/api/mcp/clients/${encodeURIComponent(data.id)}/connect`,
-            { method: "POST" },
-          );
+        if (data.connectError) {
+          setTestResult({
+            ok: false,
+            error: `Saved, but could not connect: ${data.connectError}\n\n${MCP_APP_LOG_HINT}`,
+          });
+          onSaved();
+          return;
         }
       }
       onSaved();
@@ -590,9 +598,13 @@ function ServerModal({ mode, client, onSaved, onClose }) {
                 : "bg-red-500/10 border border-red-500/30 text-red-400"
             }`}
           >
-            {testResult.ok
-              ? `Connection successful! Found ${testResult.tools?.length || 0} tools.`
-              : `Error: ${testResult.error}`}
+            {testResult.ok ? (
+              `Connection successful! Found ${testResult.tools?.length || 0} tools.`
+            ) : (
+              <div className="whitespace-pre-wrap break-words">
+                <span className="font-semibold">Error:</span> {testResult.error}
+              </div>
+            )}
           </div>
         )}
 
@@ -626,6 +638,7 @@ export default function McpClientPanel() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [connectBanner, setConnectBanner] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [toolsModalClient, setToolsModalClient] = useState(null);
@@ -662,13 +675,31 @@ export default function McpClientPanel() {
   }
 
   async function handleConnect(id) {
+    setConnectBanner(null);
     try {
-      await apiFetch(`/api/mcp/clients/${encodeURIComponent(id)}/connect`, {
-        method: "POST",
-      });
-      fetchClients();
+      const res = await apiFetch(
+        `/api/mcp/clients/${encodeURIComponent(id)}/connect`,
+        { method: "POST" },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const head =
+          typeof data.error === "string"
+            ? data.error
+            : `Connect failed (HTTP ${res.status}).`;
+        setConnectBanner({
+          type: "error",
+          text: `${head}\n\n${MCP_APP_LOG_HINT}`,
+        });
+        return;
+      }
+      await fetchClients();
     } catch (err) {
-      console.error("Failed to connect:", err);
+      const head = err.message || "Network error while connecting.";
+      setConnectBanner({
+        type: "error",
+        text: `${head}\n\n${MCP_APP_LOG_HINT}`,
+      });
     }
   }
 
@@ -719,13 +750,49 @@ export default function McpClientPanel() {
           </button>
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-200">
-          External MCP Servers
-        </h3>
+      {connectBanner && (
+        <div
+          className={`p-3 rounded-lg border text-xs leading-relaxed flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ${
+            connectBanner.type === "error"
+              ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
+              : "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+          }`}
+          role="status"
+        >
+          <span className="whitespace-pre-wrap break-words">
+            {connectBanner.text}
+          </span>
+          <button
+            type="button"
+            onClick={() => setConnectBanner(null)}
+            className="shrink-0 px-2.5 py-1 rounded-md border border-slate-500/50 hover:bg-slate-500/20 text-xs font-medium"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-200">
+            External MCP Servers
+          </h3>
+          <p className="text-[11px] text-slate-500 mt-0.5 max-w-xl">
+            Chat only lists tools from servers that show{" "}
+            <span className="text-slate-400">Connected</span>. Use{" "}
+            <span className="text-slate-400">
+              Connect automatically after saving
+            </span>{" "}
+            or click <span className="text-slate-400">Connect</span> after
+            changes. If connect fails, use the banner or modal text plus{" "}
+            <span className="font-mono text-slate-400">logs/app.log</span>{" "}
+            (search{" "}
+            <span className="font-mono text-slate-400">MCP connect failed</span>
+            ).
+          </p>
+        </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="btn-neon text-white rounded-lg px-3 py-1.5 text-xs font-medium"
+          className="btn-neon text-white rounded-lg px-3 py-1.5 text-xs font-medium shrink-0"
         >
           + Add Server
         </button>
