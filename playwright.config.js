@@ -34,8 +34,11 @@ module.exports = defineConfig({
   ],
   webServer: {
     // Build so E2E matches current src (server serves dist/).
+    // CC_DATA_DIR points the test server at an isolated tmp dir so Playwright runs
+    // can't pollute the repo's history/, memory/, or .cc-config.json. The dir is
+    // wiped at the start of each session so stubs from prior runs don't accumulate.
     command:
-      "npm run build && FORCE_HTTP=1 CC_SKIP_MCP_AUTOCONNECT=1 PORT=4173 node server.js",
+      "rm -rf /tmp/cc-test-data && mkdir -p /tmp/cc-test-data && npm run build && FORCE_HTTP=1 CC_SKIP_MCP_AUTOCONNECT=1 CC_DATA_DIR=/tmp/cc-test-data PORT=4173 node server.js",
     port: 4173,
     // If true, an old process on :4173 can serve stale dist/ (selectors drift) — opt in: PW_REUSE_SERVER=1
     reuseExistingServer: process.env.PW_REUSE_SERVER === "1",
