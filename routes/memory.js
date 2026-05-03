@@ -8,6 +8,7 @@ const {
   deleteMemory,
   searchMemories,
   getStats: getMemoryStats,
+  resolveEmbeddingModel,
 } = require("../lib/memory");
 const { listModels, embed, ollamaAuthOpts } = require("../lib/ollama-client");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
@@ -26,7 +27,7 @@ function validateMemoryId(req, res) {
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
-  const { log } = appContext;
+  const { log, requireLocalOrApiKey } = appContext;
 
   // ── GET /api/memory/stats ─────────────────────────────
   router.get("/memory/stats", (req, res) => {
@@ -61,7 +62,7 @@ module.exports = function createRouter(appContext) {
         return res.status(400).json({ error: "Query parameter q is required" });
       }
       const config = getConfig();
-      const embModel = config.memory?.embeddingModel || "nomic-embed-text";
+      const embModel = resolveEmbeddingModel(config);
       const queryEmbedding = await embed(
         config.ollamaUrl,
         q.trim(),
@@ -100,7 +101,7 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── POST /api/memory ──────────────────────────────────
-  router.post("/memory", async (req, res) => {
+  router.post("/memory", requireLocalOrApiKey, async (req, res) => {
     try {
       const { type, content, source, confidence } = req.body;
       if (!content || typeof content !== "string" || !content.trim()) {
@@ -117,7 +118,7 @@ module.exports = function createRouter(appContext) {
       let embModel = "";
       try {
         const config = getConfig();
-        embModel = config.memory?.embeddingModel || "nomic-embed-text";
+        embModel = resolveEmbeddingModel(config);
         embeddingVec = await embed(
           config.ollamaUrl,
           content.trim(),
@@ -148,7 +149,7 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── PUT /api/memory/:id ───────────────────────────────
-  router.put("/memory/:id", (req, res) => {
+  router.put("/memory/:id", requireLocalOrApiKey, (req, res) => {
     const id = validateMemoryId(req, res);
     if (!id) return;
 
@@ -166,7 +167,7 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── DELETE /api/memory/:id ────────────────────────────
-  router.delete("/memory/:id", (req, res) => {
+  router.delete("/memory/:id", requireLocalOrApiKey, (req, res) => {
     const id = validateMemoryId(req, res);
     if (!id) return;
 

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.38] — 2026-05-03
+
+### Added
+
+- **Tunable cross-conversation memory recall threshold.** Settings → Memory now includes a **Recall Threshold** slider (`0.30`–`0.90`, default `0.60`) that controls how strict memory-match injection should be.
+
+### Changed
+
+- **`buildMemoryContext()` now reads `memory.recallThreshold` from config** (fallback `0.60`) for global memory retrieval.
+- **Local summary recall is intentionally looser** than global recall by auto-applying `max(0.30, global - 0.25)` so same-conversation summaries remain easy to recover.
+- **Configuration template updated** — `.cc-config.json.example` now includes `memory.recallThreshold`.
+
+## [1.6.37] — 2026-05-03
+
+### Fixed
+
+- **MCP tool-result visibility in chat.** Tool outputs from MCP flows now surface clearly in chat responses instead of appearing as silent or missing execution context.
+- **Dev vs installed app config consistency.** Reduced drift between workspace/dev and packaged app behavior by tightening config sharing assumptions used during MCP testing and troubleshooting.
+
 ## [1.6.36] — 2026-05-03
 
 ### Fixed

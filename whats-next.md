@@ -4,6 +4,20 @@ Implement MCP per-tool enable/disable controls (MCPFIX) for Code Companion v1.6.
 
 <work_completed>
 
+**Release follow-through — v1.6.38 (2026-05-03)**
+
+- **Release commit shipped**: `743e491` (`feat: tunable recall threshold for cross-conversation memory`) with:
+  - `Settings → Memory` **Recall Threshold** slider (`0.30–0.90`, default `0.60`)
+  - `buildMemoryContext()` global threshold sourced from config (`memory.recallThreshold`, fallback `0.60`)
+  - local summary threshold auto-adjust (`global - 0.25`, clamped at `0.30`)
+  - `.cc-config.json.example` updated with `memory.recallThreshold`
+- **Remote status**:
+  - commit pushed to `origin/master`
+  - tag `v1.6.38` already existed and is present on origin (points to prior release commit `da07465`)
+- **Documentation updated**:
+  - `CHANGELOG.md` now includes `1.6.37` and `1.6.38` entries
+  - this handoff note records the release-state and branch/tag outcomes
+
 **Post-v1.6.33 cleanup + smoke (2026-05-02 evening)**
 
 Day-after follow-ups to the v1.6.24 → v1.6.33 ship cycle. Master is **7 commits ahead of v1.6.33** (5 mine, 2 Cursor's); will bundle into **v1.6.34** when cut. Full per-commit table + smoke results in `journal/2026-05-02.md`.
