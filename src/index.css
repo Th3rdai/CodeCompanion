@@ -289,8 +289,7 @@ body {
 }
 .prose img {
   max-width: 100%;
-  min-width: 0;
-  width: auto;
+  min-width: min(1080px, 100%);
   height: auto;
   border-radius: 0.5rem;
   margin: 0.75rem 0;
