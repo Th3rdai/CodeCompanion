@@ -9,6 +9,8 @@ const {
   getStatusSchema,
   listConversationsSchema,
   runTerminalCmdSchema,
+  killProcessSchema,
+  tailProcessOutputSchema,
   browseUrlSchema,
   browserSnapshotSchema,
   browserClickSchema,
@@ -409,9 +411,16 @@ function registerAllTools(server, deps, disabledTools = []) {
 
   register(
     "codecompanion_run_terminal_cmd",
-    "Run a shell command in the configured project folder. Commands must appear in the agent terminal allowlist (Settings → General → Agent Terminal). Agent Terminal must be enabled. Returns stdout/stderr and exit code.",
+    "Run a shell command in the configured project folder. Commands must appear in the agent terminal allowlist (Settings → General → Agent Terminal). Agent Terminal must be enabled. Returns stdout/stderr and exit code. Set background:true for long-running processes (dev servers, watchers) to spawn-and-return with the PID instead of blocking until exit.",
     runTerminalCmdSchema,
-    async ({ command, args = [], cwd, timeoutMs = 30000 }) => {
+    async ({
+      command,
+      args = [],
+      cwd,
+      timeoutMs = 30000,
+      background = false,
+      startupWaitMs = 2000,
+    }) => {
       try {
         const config = getConfig();
         if (!config.agentTerminal?.enabled) {
@@ -434,7 +443,7 @@ function registerAllTools(server, deps, disabledTools = []) {
 
         const result = await executeBuiltinTool(
           "run_terminal_cmd",
-          { command, args, cwd, timeoutMs },
+          { command, args, cwd, timeoutMs, background, startupWaitMs },
           config,
           _log,
           "mcp",
@@ -462,6 +471,95 @@ function registerAllTools(server, deps, disabledTools = []) {
       }
     },
   );
+
+  register(
+    "codecompanion_kill_process",
+    "Stop a background process previously started by run_terminal_cmd with background:true. Sends SIGTERM, escalates to SIGKILL after 3s. Refuses PIDs not tracked by this server.",
+    killProcessSchema,
+    async ({ pid }) => {
+      try {
+        const config = getConfig();
+        if (!config.agentTerminal?.enabled) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: "Agent Terminal is disabled. Enable it in Settings → General → Agent Terminal.",
+              },
+            ],
+          };
+        }
+        const result = await executeBuiltinTool(
+          "kill_process",
+          { pid },
+          config,
+          _log,
+          "mcp",
+          {},
+        );
+        if (result?.result?.content) {
+          return { isError: !result.success, content: result.result.content };
+        }
+        return {
+          isError: true,
+          content: [
+            { type: "text", text: "Unexpected result from kill tool." },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Error: ${err.message}` }],
+        };
+      }
+    },
+  );
+
+  register(
+    "codecompanion_tail_process_output",
+    "Read the last N lines of stdout+stderr from a background process previously started by run_terminal_cmd with background:true. Returns process status (running / exited / killed) and recent output.",
+    tailProcessOutputSchema,
+    async ({ pid, lines = 50 }) => {
+      try {
+        const config = getConfig();
+        if (!config.agentTerminal?.enabled) {
+          return {
+            isError: true,
+            content: [
+              {
+                type: "text",
+                text: "Agent Terminal is disabled. Enable it in Settings → General → Agent Terminal.",
+              },
+            ],
+          };
+        }
+        const result = await executeBuiltinTool(
+          "tail_process_output",
+          { pid, lines },
+          config,
+          _log,
+          "mcp",
+          {},
+        );
+        if (result?.result?.content) {
+          return { isError: !result.success, content: result.result.content };
+        }
+        return {
+          isError: true,
+          content: [
+            { type: "text", text: "Unexpected result from tail tool." },
+          ],
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Error: ${err.message}` }],
+        };
+      }
+    },
+  );
+
   register(
     "codecompanion_browse_url",
     "Open a URL in a headless browser and return the page title, text content, and a screenshot for visual analysis. Use for visiting websites, reading live content, and analyzing web pages.",

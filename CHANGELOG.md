@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.35] — 2026-05-03
+
+### Fixed
+
+- **Agentic chat no longer hangs for 5 minutes when starting dev servers.** `run_terminal_cmd` previously had no way to spawn-and-return for long-running processes (`npm run dev`, `node server.js`, `vite`, watchers): each would block the agent's tool call for the full 300 s timeout before being SIGKILL'd. Manifested as the agent saying "✅ Backend Server Started Successfully!" while the OS had actually killed the process — observed in production logs: agent rounds 16 (`node index.js`) and 17 (`npm run dev`) both burned the full timeout. Root cause was the missing `background` option, not anything specific to the dev-server path.
+
+### Added
+
+- **`run_terminal_cmd({"background": true})`** — spawns long-running processes and returns immediately with the PID and the first ~2 s of output (window configurable via `startupWaitMs`, clamped 250 ms–10 s). Skips foreground timeout entirely. All existing security guards (allowlist, cwd validation, rate limit, confirm-before-run) still apply. Documented in `BUILTIN_SAFETY_PREAMBLE_TERMINAL`.
+- **`builtin.kill_process({"pid": N})`** — stops a background process tracked by this server. SIGTERM → SIGKILL after 3 s, kills the whole process group (catches npm's child shells). **Refuses any PID not in the registry** — the agent literally cannot kill arbitrary system PIDs through this tool.
+- **`builtin.tail_process_output({"pid": N, "lines": 50})`** — returns the last N lines of stdout+stderr (max 1000) plus the live status (`running` / `exited` / `killed`). Per-process 256 KB ring buffer; entries retained 5 min after exit so postmortem inspection works after a crash.
+- **MCP surface parity** — `codecompanion_run_terminal_cmd` accepts `background` + `startupWaitMs`; new `codecompanion_kill_process` and `codecompanion_tail_process_output` tools registered on the MCP HTTP server.
+- **Auto-cleanup**: `process.on('exit'|'SIGTERM'|'SIGINT')` SIGTERMs all tracked background PIDs so dev servers don't leak when the parent app closes. Hooks are additive — server.js graceful shutdown still runs.
+- **devDependency**: `gitnexus@^1.6.3` (already used via `npx gitnexus analyze` per CLAUDE.md; pinning it removes the network round-trip).
+
+### Tests
+
+- `tests/unit/builtin-agent-tools-background.test.js` (new, 10 tests, all passing in ~2.4 s) — covers: returns-quickly with PID, refuses unknown / non-positive-integer PIDs, kill+tail integration, early-exit-before-startup-window path, allowlist still enforced in background mode, `getBuiltinTools` exposes the new tools, safety preamble mentions `background:true`.
+- Full `validate:fast` green: 430/430 unit, 17/17 integration (4 pre-existing skips), smoke server starts.
+
 ## [1.6.34] — 2026-05-02
 
 ### Fixed

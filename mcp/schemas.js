@@ -64,8 +64,48 @@ const runTerminalCmdSchema = {
     .positive()
     .default(30000)
     .describe(
-      "Command timeout in milliseconds. Capped by Settings → Agent Terminal → Command Timeout.",
+      "Command timeout in milliseconds (foreground only). Capped by Settings → Agent Terminal → Command Timeout.",
     ),
+  background: z
+    .boolean()
+    .default(false)
+    .describe(
+      "If true, spawn as a long-running background process (dev server, watcher) and return immediately with the PID and first ~2s of output. Use kill_process and tail_process_output to manage it later. Required for any command that does not exit on its own (npm run dev, node server.js, vite, etc.).",
+    ),
+  startupWaitMs: z
+    .number()
+    .int()
+    .positive()
+    .default(2000)
+    .describe(
+      "When background:true, how many milliseconds to capture initial output before returning (clamped 250–10000). Ignored in foreground mode.",
+    ),
+};
+
+const killProcessSchema = {
+  pid: z
+    .number()
+    .int()
+    .positive()
+    .describe(
+      "PID of a background process previously started by run_terminal_cmd with background:true. Refuses PIDs not tracked by this server.",
+    ),
+};
+
+const tailProcessOutputSchema = {
+  pid: z
+    .number()
+    .int()
+    .positive()
+    .describe(
+      "PID of a background process previously started by run_terminal_cmd with background:true.",
+    ),
+  lines: z
+    .number()
+    .int()
+    .positive()
+    .default(50)
+    .describe("Number of trailing lines to return (max 1000)."),
 };
 
 const browseUrlSchema = {
@@ -135,6 +175,8 @@ module.exports = {
   getStatusSchema,
   listConversationsSchema,
   runTerminalCmdSchema,
+  killProcessSchema,
+  tailProcessOutputSchema,
   browseUrlSchema,
   browserSnapshotSchema,
   browserClickSchema,

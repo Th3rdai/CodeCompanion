@@ -1,6 +1,6 @@
 {
   "name": "code-companion",
-  "version": "1.6.34",
+  "version": "1.6.35",
   "description": "Th3rdAI Code Companion — powered by local Ollama LLMs",
   "license": "SEE LICENSE IN LICENSE",
   "author": {
@@ -125,6 +125,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "gitnexus": "^1.6.3",
     "globals": "^17.4.0",
     "patch-package": "^8.0.1",
     "png-to-ico": "^3.0.1",
