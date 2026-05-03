@@ -615,7 +615,7 @@ export default function FileBrowser({
         {tree && onAttachFile && (
           <button
             onClick={handleShareStructure}
-            className="text-[10px] px-2 py-1 rounded bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors whitespace-nowrap"
+            className="text-[10px] min-h-11 px-3 py-2 rounded bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
             title="Attach folder structure to chat so the AI knows what files exist"
           >
             Share with AI
@@ -623,7 +623,7 @@ export default function FileBrowser({
         )}
         <button
           onClick={() => loadTree()}
-          className="text-slate-400 hover:text-indigo-300 text-sm transition-colors"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sm text-slate-400 transition-colors hover:bg-indigo-500/10 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
           title="Refresh"
           aria-label="Refresh file tree"
         >
@@ -631,7 +631,7 @@ export default function FileBrowser({
         </button>
         <button
           onClick={onClose}
-          className="text-slate-400 hover:text-white text-sm transition-colors"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sm text-slate-400 transition-colors hover:bg-slate-700/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
           title="Close"
           aria-label="Close file browser"
         >

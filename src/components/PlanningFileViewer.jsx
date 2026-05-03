@@ -112,7 +112,8 @@ export default function PlanningFileViewer({
           )}
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-400 transition-colors cursor-pointer hover:bg-slate-700/40 hover:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+            aria-label="Close planning file viewer"
           >
             <X className="w-4 h-4" />
           </button>

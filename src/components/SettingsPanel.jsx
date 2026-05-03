@@ -2879,7 +2879,9 @@ export default function SettingsPanel({
                 </span>
               </label>
               <p className="text-xs text-slate-500 mb-2">
-                Minimum similarity score for a memory to be injected. Higher = only closely-matched memories recalled; lower = more results but risk of irrelevant context.
+                Minimum similarity score for a memory to be injected. If recalls
+                feel too sparse, slide left. If irrelevant memories keep showing
+                up, slide right.
               </p>
               <input
                 type="range"

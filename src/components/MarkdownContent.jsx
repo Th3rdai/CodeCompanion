@@ -401,9 +401,10 @@ export default function MarkdownContent({
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl font-bold bg-black/40 rounded-full w-10 h-10 flex items-center justify-center"
+            className="absolute top-4 right-4 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/40 text-2xl font-bold text-white/70 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
             onClick={() => setLightbox(null)}
             title="Close"
+            aria-label="Close image preview"
           >
             &times;
           </button>

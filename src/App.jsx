@@ -380,6 +380,7 @@ export default function App() {
 
   const [input, setInput] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showDecorative3D, setShowDecorative3D] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("cc-sidebar-collapsed") === "true";
@@ -387,6 +388,43 @@ export default function App() {
       return false;
     }
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQueries = [
+      window.matchMedia("(min-width: 1024px)"),
+      window.matchMedia("(pointer: fine)"),
+      window.matchMedia("(prefers-reduced-motion: no-preference)"),
+    ];
+
+    const updateDecorative3D = () => {
+      const mediaOk = mediaQueries.every((query) => query.matches);
+      setShowDecorative3D(mediaOk && !document.hidden);
+    };
+
+    updateDecorative3D();
+    const onVisibility = () => updateDecorative3D();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    mediaQueries.forEach((query) => {
+      if (typeof query.addEventListener === "function") {
+        query.addEventListener("change", updateDecorative3D);
+      } else if (typeof query.addListener === "function") {
+        query.addListener(updateDecorative3D);
+      }
+    });
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      mediaQueries.forEach((query) => {
+        if (typeof query.removeEventListener === "function") {
+          query.removeEventListener("change", updateDecorative3D);
+        } else if (typeof query.removeListener === "function") {
+          query.removeListener(updateDecorative3D);
+        }
+      });
+    };
+  }, []);
   function toggleSidebarCollapsed() {
     setSidebarCollapsed((prev) => {
       const next = !prev;
@@ -1233,7 +1271,7 @@ export default function App() {
           <div className="flex items-center gap-2 shrink-0 relative z-10 flex-wrap">
             <button
               onClick={() => setShowGlossary(true)}
-              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors text-slate-400 border-slate-600 hover:bg-indigo-500/10"
+              className="flex min-h-11 items-center gap-1 text-xs px-3 py-2 rounded-lg border transition-colors text-slate-400 border-slate-600 hover:bg-indigo-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
               title="Jargon Glossary"
             >
               📖 Glossary
@@ -1244,7 +1282,7 @@ export default function App() {
                 if (!showGitHub) setShowFileBrowser(false);
               }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
-                ${showGitHub ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"}`}
+                ${showGitHub ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"} min-h-11 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70`}
               title="GitHub Repos"
             >
               🐙 GitHub
@@ -1255,7 +1293,7 @@ export default function App() {
                 if (!showFileBrowser) setShowGitHub(false);
               }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
-                ${showFileBrowser ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"}`}
+                ${showFileBrowser ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"} min-h-11 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70`}
               title="File Browser"
             >
               📂 Files
@@ -1266,7 +1304,7 @@ export default function App() {
                 data-testid="header-open-terminal-button"
                 onClick={() => setMode("terminal")}
                 className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
-                  ${mode === "terminal" ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"}`}
+                  ${mode === "terminal" ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"} min-h-11 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70`}
                 title={
                   (chatFolder || projectFolder || "").trim()
                     ? `Open integrated terminal in: ${(chatFolder || projectFolder).length > 72 ? `…${(chatFolder || projectFolder).slice(-71)}` : chatFolder || projectFolder}`
@@ -1284,7 +1322,7 @@ export default function App() {
                 connected
                   ? "text-green-400 border-green-500/30 hover:bg-green-500/10"
                   : "text-red-400 border-red-500/30 hover:bg-red-500/10"
-              }`}
+              } min-h-11 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70`}
             >
               <OrbitingBadge
                 status={
@@ -1309,7 +1347,7 @@ export default function App() {
               <div className="relative">
                 <button
                   onClick={() => setMemoryDropdownOpen(!memoryDropdownOpen)}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors text-purple-300 border-purple-500/30 bg-purple-600/10 hover:bg-purple-500/20"
+                  className="flex min-h-11 items-center gap-1 text-xs px-3 py-2 rounded-lg border transition-colors text-purple-300 border-purple-500/30 bg-purple-600/10 hover:bg-purple-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300/70"
                   title="Memories used in this response"
                 >
                   <Brain className="w-3.5 h-3.5" />
@@ -1359,7 +1397,7 @@ export default function App() {
             <button
               onClick={refreshModels}
               disabled={refreshing}
-              className="text-slate-400 hover:text-indigo-300 text-sm px-2 py-1.5 rounded-lg hover:bg-indigo-500/10 transition-colors disabled:opacity-50"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sm text-slate-400 transition-colors hover:bg-indigo-500/10 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70 disabled:opacity-50"
               title="Refresh models"
             >
               <span className={refreshing ? "inline-block spin" : ""}>
@@ -1443,13 +1481,13 @@ export default function App() {
             </div>
             <button
               onClick={() => setShowSettings(true)}
-              className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-1.5 rounded-lg transition-colors"
+              className="text-xs min-h-11 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-3 py-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70"
             >
               Configure
             </button>
             <button
               onClick={refreshModels}
-              className="text-xs glass text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-600/50 transition-colors"
+              className="text-xs min-h-11 glass text-slate-300 px-3 py-2 rounded-lg hover:bg-slate-600/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
             >
               Retry
             </button>
@@ -1473,7 +1511,7 @@ export default function App() {
           <div className="flex-1 flex flex-col min-w-0">
             {/* Mode tabs: primary strip, More menu, command palette (⌘K / Ctrl+K) */}
             <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap items-center gap-1.5 sm:gap-2 relative">
-              <FloatingGeometry shapeCount={5} />
+              {showDecorative3D && <FloatingGeometry shapeCount={5} />}
               {primaryModes.map((m) => (
                 <button
                   key={m.id}

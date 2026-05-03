@@ -186,7 +186,7 @@ export default function ExperimentInputForm({
               <button
                 type="button"
                 onClick={onDismissError}
-                className="text-amber-300 hover:text-amber-100"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-amber-300 hover:bg-amber-500/10 hover:text-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60"
                 aria-label="Dismiss"
               >
                 <X className="w-3 h-3" />
@@ -227,8 +227,12 @@ export default function ExperimentInputForm({
         </div>
 
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-xs text-slate-400">
+          <label
+            htmlFor="exp-metric-enabled"
+            className="flex items-center gap-2 text-xs text-slate-400"
+          >
             <input
+              id="exp-metric-enabled"
               type="checkbox"
               checked={metricEnabled}
               onChange={(e) => setMetricEnabled(e.target.checked)}
@@ -238,13 +242,21 @@ export default function ExperimentInputForm({
           </label>
           {metricEnabled && (
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_120px_120px] gap-2">
+              <label htmlFor="exp-metric-name" className="sr-only">
+                Metric name
+              </label>
               <input
+                id="exp-metric-name"
                 value={metricName}
                 onChange={(e) => setMetricName(e.target.value)}
                 placeholder="metric name (e.g. test_failures)"
                 className="input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none"
               />
+              <label htmlFor="exp-metric-comparison" className="sr-only">
+                Metric comparison operator
+              </label>
               <select
+                id="exp-metric-comparison"
                 value={metricComparison}
                 onChange={(e) => setMetricComparison(e.target.value)}
                 className="input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none"
@@ -255,14 +267,22 @@ export default function ExperimentInputForm({
                   </option>
                 ))}
               </select>
+              <label htmlFor="exp-metric-target" className="sr-only">
+                Metric target value
+              </label>
               <input
+                id="exp-metric-target"
                 value={metricTarget}
                 onChange={(e) => setMetricTarget(e.target.value)}
                 placeholder="target"
                 inputMode="decimal"
                 className="input-glow text-slate-100 rounded-lg px-3 py-2 text-sm outline-none"
               />
+              <label htmlFor="exp-metric-unit" className="sr-only">
+                Metric unit
+              </label>
               <input
+                id="exp-metric-unit"
                 value={metricUnit}
                 onChange={(e) => setMetricUnit(e.target.value)}
                 placeholder="unit (opt)"
@@ -281,7 +301,12 @@ export default function ExperimentInputForm({
             </span>
           </div>
           <div className="space-y-2">
-            <label className="block text-[11px] text-slate-500">Paths</label>
+            <label
+              htmlFor="exp-scope-path-input"
+              className="block text-[11px] text-slate-500"
+            >
+              Paths
+            </label>
             <div className="flex flex-wrap items-center gap-2">
               {scopePaths.map((p) => (
                 <span
@@ -294,13 +319,14 @@ export default function ExperimentInputForm({
                     type="button"
                     onClick={() => removePath(p)}
                     aria-label={`Remove ${p}`}
-                    className="text-indigo-300 hover:text-indigo-100"
+                    className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-full text-indigo-300 hover:bg-indigo-500/20 hover:text-indigo-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
               <input
+                id="exp-scope-path-input"
                 value={pathInput}
                 onChange={(e) => setPathInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -315,14 +341,19 @@ export default function ExperimentInputForm({
               <button
                 type="button"
                 onClick={addPath}
-                className="rounded-lg px-2 py-1 text-xs border border-slate-600 text-slate-300 hover:bg-slate-800 inline-flex items-center gap-1"
+                className="rounded-lg min-h-11 px-3 py-2 text-xs border border-slate-600 text-slate-300 hover:bg-slate-800 inline-flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
               >
                 <Plus className="w-3 h-3" /> Path
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="block text-[11px] text-slate-500">Commands</label>
+            <label
+              htmlFor="exp-scope-command-input"
+              className="block text-[11px] text-slate-500"
+            >
+              Commands
+            </label>
             <div className="flex flex-wrap items-center gap-2">
               {scopeCommands.map((c) => (
                 <span
@@ -334,13 +365,14 @@ export default function ExperimentInputForm({
                     type="button"
                     onClick={() => removeCommand(c)}
                     aria-label={`Remove ${c}`}
-                    className="text-emerald-300 hover:text-emerald-100"
+                    className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-full text-emerald-300 hover:bg-emerald-500/20 hover:text-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/70"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
               <input
+                id="exp-scope-command-input"
                 value={commandInput}
                 onChange={(e) => setCommandInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -355,7 +387,7 @@ export default function ExperimentInputForm({
               <button
                 type="button"
                 onClick={addCommand}
-                className="rounded-lg px-2 py-1 text-xs border border-slate-600 text-slate-300 hover:bg-slate-800 inline-flex items-center gap-1"
+                className="rounded-lg min-h-11 px-3 py-2 text-xs border border-slate-600 text-slate-300 hover:bg-slate-800 inline-flex items-center gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
               >
                 <Plus className="w-3 h-3" /> Command
               </button>

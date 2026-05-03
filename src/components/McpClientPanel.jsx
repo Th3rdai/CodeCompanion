@@ -744,7 +744,7 @@ export default function McpClientPanel() {
           <button
             type="button"
             onClick={() => fetchClients()}
-            className="shrink-0 px-2.5 py-1 rounded-md border border-red-500/50 hover:bg-red-500/20 text-red-200 text-xs font-medium"
+            className="shrink-0 min-h-11 px-3 py-2 rounded-md border border-red-500/50 hover:bg-red-500/20 text-red-200 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70"
           >
             Retry
           </button>
@@ -765,7 +765,7 @@ export default function McpClientPanel() {
           <button
             type="button"
             onClick={() => setConnectBanner(null)}
-            className="shrink-0 px-2.5 py-1 rounded-md border border-slate-500/50 hover:bg-slate-500/20 text-xs font-medium"
+            className="shrink-0 min-h-11 px-3 py-2 rounded-md border border-slate-500/50 hover:bg-slate-500/20 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
           >
             Dismiss
           </button>
@@ -792,7 +792,7 @@ export default function McpClientPanel() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="btn-neon text-white rounded-lg px-3 py-1.5 text-xs font-medium shrink-0"
+          className="btn-neon text-white rounded-lg min-h-11 px-3 py-2 text-xs font-medium shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
         >
           + Add Server
         </button>
@@ -803,7 +803,7 @@ export default function McpClientPanel() {
           <p className="text-sm mb-3">No external MCP servers configured</p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium"
+            className="btn-neon text-white rounded-lg min-h-11 px-4 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
           >
             Add Your First Server
           </button>
@@ -852,14 +852,14 @@ export default function McpClientPanel() {
                   {client.status === "connected" ? (
                     <button
                       onClick={() => handleDisconnect(client.id)}
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="text-xs min-h-11 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70"
                     >
                       Disconnect
                     </button>
                   ) : (
                     <button
                       onClick={() => handleConnect(client.id)}
-                      className="text-xs px-2.5 py-1.5 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors"
+                      className="text-xs min-h-11 px-3 py-2 rounded-lg text-green-400 hover:bg-green-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-300/70"
                     >
                       Connect
                     </button>
@@ -871,20 +871,20 @@ export default function McpClientPanel() {
                 {client.status === "connected" && client.toolCount > 0 && (
                   <button
                     onClick={() => setToolsModalClient(client)}
-                    className="text-xs px-2.5 py-1 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors"
+                    className="text-xs min-h-11 px-3 py-2 rounded-lg text-slate-400 hover:text-violet-300 hover:bg-violet-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/70"
                   >
                     Tools
                   </button>
                 )}
                 <button
                   onClick={() => setEditingClient(client)}
-                  className="text-xs px-2.5 py-1 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors"
+                  className="text-xs min-h-11 px-3 py-2 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleRemove(client.id)}
-                  className="text-xs px-2.5 py-1 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="text-xs min-h-11 px-3 py-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300/70"
                 >
                   Remove
                 </button>
