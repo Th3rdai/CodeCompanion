@@ -6,6 +6,16 @@
 
 **Milestone mapping:** This file’s “Phase 1 / 2 / 3” correspond to **ROADMAP Phase 25 / 26 / 27** respectively.
 
+### Shipped vs planned (expectations)
+
+| Item                                                                               | Status                                                |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Phase 1 — Validate builtins (`validate_scan_project`, `validate_generate_command`) | **Shipped**                                           |
+| Phase 2 — Planner tool (`score_plan` parity with Planner mode)                     | **Shipped**                                           |
+| Phase 3 — GSD bridge builtins (read-only / bounded)                                | **Planned / optional** — gated, not required for Chat |
+
+Other agent ideas (browser, terminal, MCP, app skills) are documented in **CLAUDE.md** and **docs/AGENT-READINESS.md**, not in this file.
+
 ---
 
 ## Problem statement

@@ -1408,6 +1408,139 @@ export default function SettingsPanel({
               )}
             </div>
 
+            {/* Agent Readiness — Chat agent idea → running software */}
+            <section
+              className="rounded-xl border border-emerald-500/25 bg-slate-900/40 p-4 space-y-3"
+              aria-labelledby="settings-agent-readiness-heading"
+            >
+              <h3
+                id="settings-agent-readiness-heading"
+                className="text-sm font-semibold text-slate-100 tracking-tight"
+              >
+                Agent Readiness
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Check these so <strong className="text-slate-400">Chat</strong>{" "}
+                can create files, run commands, and test apps with you. Full
+                detail in the repo:{" "}
+                <a
+                  href="https://github.com/th3rdai/CodeCompanion/blob/main/docs/AGENT-READINESS.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:underline inline-flex items-center gap-0.5"
+                >
+                  docs/AGENT-READINESS.md{" "}
+                  <ExternalLink className="w-3 h-3 inline" aria-hidden />
+                </a>
+                .
+              </p>
+              <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4 marker:text-emerald-500/80">
+                <li>
+                  <strong className="text-slate-400">Ollama</strong> — running,
+                  URL tested, models pulled.
+                </li>
+                <li>
+                  <strong className="text-slate-400">
+                    Project + File Browser
+                  </strong>{" "}
+                  — project folder is the access boundary; File Browser is the
+                  active root for writes and context (double-click a folder to
+                  open it as root).
+                </li>
+                <li>
+                  <strong className="text-slate-400">Agent terminal</strong> —
+                  on, with an{" "}
+                  <strong className="text-slate-400">allowlist</strong> for
+                  every command you need (
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    npm
+                  </code>
+                  ,{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    python3
+                  </code>
+                  ,{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    git
+                  </code>
+                  , …). No shell chaining — use{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    cwd
+                  </code>{" "}
+                  or a script file.
+                </li>
+                <li>
+                  <strong className="text-slate-400">Optional</strong> — Agent
+                  validate, planner, web browser, app skills (review / pentest /
+                  builder score), MCP clients, Memory.
+                </li>
+                <li>
+                  <strong className="text-slate-400">Secrets</strong> —{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    .env
+                  </code>{" "}
+                  and{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    docs/ENVIRONMENT_VARIABLES.md
+                  </code>
+                  .
+                </li>
+              </ul>
+              <details className="text-xs text-slate-400 group">
+                <summary className="cursor-pointer text-indigo-300 hover:text-indigo-200 list-none flex items-center gap-1">
+                  <span className="group-open:rotate-90 transition-transform inline-block">
+                    ▸
+                  </span>
+                  Full checklist (same as doc)
+                </summary>
+                <ol className="mt-3 space-y-2 pl-1 text-slate-400 list-decimal list-inside leading-relaxed border-t border-slate-700/40 pt-3">
+                  <li>
+                    Ollama running; Test in Settings; models installed; optional
+                    Auto model map.
+                  </li>
+                  <li>
+                    Project folder = permission root; File Browser = active
+                    context for agent writes.
+                  </li>
+                  <li>
+                    Agent terminal on; allowlist every needed command basename;
+                    understand spawn limits (no{" "}
+                    <code className="bg-slate-800 px-1 rounded">&&</code>,{" "}
+                    <code className="bg-slate-800 px-1 rounded">|</code>,
+                    pipes).
+                  </li>
+                  <li>
+                    Optional: Agent validate (scan / validate.md tools), Agent
+                    planner (
+                    <code className="bg-slate-800 px-1 rounded">
+                      score_plan
+                    </code>
+                    ), Agent Web Browser (public URLs only — not localhost),
+                    Agent app skills, MCP clients.
+                  </li>
+                  <li>
+                    Secrets in{" "}
+                    <code className="bg-slate-800 px-1 rounded">.env</code>;
+                    terminal child env uses a whitelist — see doc for
+                    workarounds.
+                  </li>
+                  <li>
+                    Chat / review timeouts sufficient for model and payload
+                    size.
+                  </li>
+                  <li>Optional Memory tab for per-conversation retrieval.</li>
+                  <li>
+                    Use Create / Build wizards for guided scaffolding; Chat +
+                    tools for iterative dev.
+                  </li>
+                  <li>
+                    Agent browser cannot open localhost app URLs — use terminal
+                    tests or your system browser.
+                  </li>
+                </ol>
+              </details>
+            </section>
+
             {/* Create template (Commands + ICM-fw) */}
             <div>
               <label className="block text-sm text-slate-300 mb-2 font-medium">

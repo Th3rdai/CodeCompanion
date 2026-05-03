@@ -130,6 +130,16 @@ app.use((_req, res, next) => {
 const distDir = path.join(__dirname, "dist");
 const publicDir = path.join(__dirname, "public");
 const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
+const spaIndexPath = path.join(staticDir, "index.html");
+if (!fs.existsSync(spaIndexPath)) {
+  log(
+    "ERROR",
+    "SPA index.html missing — browsers will get 404 on /. Run `npm run build` before `node server.js`, or use `npm run dev` (Vite + server). If dist/ exists but is incomplete, remove dist/ so public/ can be used.",
+    { staticDir, spaIndexPath },
+  );
+} else {
+  log("INFO", `Web UI: ${staticDir} (index.html ok)`);
+}
 
 function injectCspNonceIntoHtml(html, nonce) {
   if (!nonce) return html;

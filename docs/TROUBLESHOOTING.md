@@ -94,11 +94,12 @@ The model only receives **tools from MCP servers that are connected** in memory 
 
 ## Log files
 
-| Scenario                            | Typical path                                         |
-| ----------------------------------- | ---------------------------------------------------- |
-| **`node server.js`** from repo root | **`logs/app.log`**, **`logs/debug.log`**             |
-| **`CC_DATA_DIR`** set (Electron)    | **`<CC_DATA_DIR>/logs/app.log`**                     |
-| Electron startup issues             | **`/tmp/code-companion-startup.log`** (when written) |
+| Scenario                            | Typical path                                                    |
+| ----------------------------------- | --------------------------------------------------------------- |
+| **`node server.js`** from repo root | **`logs/app.log`**, **`logs/debug.log`**                        |
+| **`CC_DATA_DIR`** set (Electron)    | **`<CC_DATA_DIR>/logs/app.log`**                                |
+| Packaged app (macOS, default)       | **`~/Library/Application Support/code-companion/logs/app.log`** |
+| Electron startup issues             | **`/tmp/code-companion-startup.log`** (when written)            |
 
 **Tip:** Set **`DEBUG=1`** for more verbose **`debug.log`** output.
 

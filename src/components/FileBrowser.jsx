@@ -31,6 +31,7 @@ function FileTreeNode({
   depth,
   onFileClick,
   onQuickAttach,
+  onEnterFolder,
   converting,
   rootFolder,
 }) {
@@ -86,9 +87,19 @@ function FileTreeNode({
         aria-label={`Folder: ${node.name}`}
       >
         <button
+          type="button"
+          title="Click to expand — double-click to open this folder as the File Browser root"
           className="w-full flex items-center gap-1 py-1.5 px-2 hover:bg-indigo-500/10 rounded cursor-pointer text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-colors"
           style={{ paddingLeft: indent }}
           onClick={toggleOpen}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onEnterFolder && node.path && rootFolder) {
+              const base = rootFolder.replace(/\/+$/, "");
+              onEnterFolder(`${base}/${node.path}`);
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "ArrowRight" && !open) toggleOpen();
             if (e.key === "ArrowLeft" && open) toggleOpen();
@@ -119,6 +130,7 @@ function FileTreeNode({
                 depth={depth + 1}
                 onFileClick={onFileClick}
                 onQuickAttach={onQuickAttach}
+                onEnterFolder={onEnterFolder}
                 converting={converting}
                 rootFolder={rootFolder}
               />
@@ -286,6 +298,11 @@ export default function FileBrowser({
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectFolder]);
+
+  function handleEnterFolder(absPath) {
+    if (!absPath || !onSetFolder) return;
+    onSetFolder(absPath);
+  }
 
   async function loadTree(folder) {
     const target = folder || projectFolder;
@@ -899,6 +916,7 @@ export default function FileBrowser({
                 depth={0}
                 onFileClick={handleFileClick}
                 onQuickAttach={onAttachFile ? handleQuickAttach : null}
+                onEnterFolder={handleEnterFolder}
                 converting={converting}
                 rootFolder={tree.root}
               />

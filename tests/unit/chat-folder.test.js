@@ -58,7 +58,8 @@ test("chatFolder is preserved when set to a valid value", () => {
   const chatFolder = path.join(projectFolder, "sub");
   fs.mkdirSync(chatFolder);
   const cfg = loadConfigFromObject({ projectFolder, chatFolder });
-  assert.equal(cfg.chatFolder, chatFolder);
+  // normalizeProjectFolder stores realpathSync(chatFolder); macOS /var → /private/var
+  assert.equal(cfg.chatFolder, fs.realpathSync(chatFolder));
 });
 
 // ─── 2. validateCwd security boundary ────────────────────────────────────────

@@ -65,6 +65,32 @@ import { useModels } from "./hooks/useModels";
 import { useChat } from "./hooks/useChat";
 import { useImageAttachments } from "./hooks/useImageAttachments";
 
+/** Per Settings project folder: last File Browser root (survives restarts if server fell back to project root). */
+const FILE_BROWSER_ROOTS_KEY = "cc_file_browser_roots";
+
+function readFileBrowserRootsMap() {
+  try {
+    return JSON.parse(localStorage.getItem(FILE_BROWSER_ROOTS_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeFileBrowserRootsMap(map) {
+  try {
+    localStorage.setItem(FILE_BROWSER_ROOTS_KEY, JSON.stringify(map));
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+function isPathUnderProjectRoot(projectRoot, candidate) {
+  const pr = String(projectRoot || "").replace(/\/+$/, "");
+  const c = String(candidate || "").replace(/\/+$/, "");
+  if (!pr || !c) return false;
+  return c === pr || c.startsWith(`${pr}/`);
+}
+
 const MODES = [
   {
     id: "chat",
@@ -682,8 +708,29 @@ export default function App() {
       const res = await apiFetch("/api/config");
       const data = await res.json();
       setOllamaUrl(data.ollamaUrl || "");
-      setProjectFolder(data.projectFolder || "");
-      setChatFolder(data.chatFolder || data.projectFolder || "");
+      const pf = data.projectFolder || "";
+      setProjectFolder(pf);
+      let cf = data.chatFolder || pf || "";
+      if (pf && cf === pf) {
+        const map = readFileBrowserRootsMap();
+        const stored = map[pf];
+        if (stored && stored !== pf && isPathUnderProjectRoot(pf, stored)) {
+          try {
+            const persist = await apiFetch("/api/config", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chatFolder: stored }),
+            });
+            if (persist.ok) {
+              const d2 = await persist.json();
+              cf = d2.chatFolder || stored;
+            }
+          } catch {
+            /* keep server default */
+          }
+        }
+      }
+      setChatFolder(cf || pf || "");
       setIcmTemplatePath(data.icmTemplatePath || "");
       setImageSupportConfig(
         data.imageSupport && typeof data.imageSupport === "object"
@@ -1894,6 +1941,8 @@ export default function App() {
                         connected={connected}
                         selectedModel={selectedModel}
                         onSettingsClick={() => setShowSettings(true)}
+                        onGoCreate={() => setMode("create")}
+                        onGoBuild={() => setMode("build")}
                       />
                     ) : null}
                     {messages.map((msg, i) =>
@@ -2188,20 +2237,55 @@ export default function App() {
                       body: JSON.stringify({ chatFolder: "" }),
                     });
                     const data = await res.json();
+                    if (!res.ok) {
+                      showToast(
+                        data?.error || "Could not reset File Browser folder",
+                      );
+                      return;
+                    }
                     setChatFolder(data.chatFolder || data.projectFolder || "");
+                    const pfKey = data.projectFolder || projectFolder;
+                    if (pfKey) {
+                      const map = readFileBrowserRootsMap();
+                      delete map[pfKey];
+                      writeFileBrowserRootsMap(map);
+                    }
                   } catch {
+                    showToast("Could not reset File Browser folder");
                     setChatFolder(projectFolder);
                   }
                 }}
                 onSetFolder={async (folder) => {
-                  setChatFolder(folder);
+                  const next = String(folder || "").trim();
+                  if (!next) return;
+                  setChatFolder(next);
                   try {
-                    await apiFetch("/api/config", {
+                    const res = await apiFetch("/api/config", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ chatFolder: folder }),
+                      body: JSON.stringify({ chatFolder: next }),
                     });
-                  } catch {}
+                    const data = await res.json();
+                    if (!res.ok) {
+                      showToast(
+                        data?.error || "Could not save File Browser folder",
+                      );
+                      return;
+                    }
+                    if (data.chatFolder !== undefined)
+                      setChatFolder(data.chatFolder);
+                    const pfKey = data.projectFolder || projectFolder;
+                    const resolved = data.chatFolder || next;
+                    if (pfKey && resolved) {
+                      const map = readFileBrowserRootsMap();
+                      map[pfKey] = resolved;
+                      writeFileBrowserRootsMap(map);
+                    }
+                  } catch {
+                    showToast(
+                      "Could not save File Browser folder (network error)",
+                    );
+                  }
                 }}
               />
             </aside>

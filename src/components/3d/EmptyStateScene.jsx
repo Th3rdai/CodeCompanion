@@ -21,6 +21,8 @@ export default function EmptyStateScene({
   connected,
   selectedModel,
   onSettingsClick,
+  onGoCreate,
+  onGoBuild,
 }) {
   const sceneUrl = import.meta.env.VITE_SPLINE_EMPTY_STATE_SCENE || "";
   const hasScene = Boolean(sceneUrl);
@@ -113,6 +115,39 @@ export default function EmptyStateScene({
             >
               Connect to Ollama
             </button>
+          )}
+
+          {mode === "chat" && (onGoCreate || onGoBuild) && (
+            <div
+              className={`mb-5 flex flex-col gap-2 ${hasScene ? "md:items-start items-center" : "items-center"}`}
+            >
+              <p className="text-xs text-slate-500 max-w-sm">
+                New project from scratch? Use{" "}
+                <strong className="text-slate-400">Create</strong> or{" "}
+                <strong className="text-slate-400">Build</strong> for guided
+                scaffolding — then chat here to iterate.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                {onGoCreate && (
+                  <button
+                    type="button"
+                    onClick={onGoCreate}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-indigo-500/40 text-indigo-200 hover:bg-indigo-500/10 transition-colors"
+                  >
+                    Open Create
+                  </button>
+                )}
+                {onGoBuild && (
+                  <button
+                    type="button"
+                    onClick={onGoBuild}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-indigo-500/40 text-indigo-200 hover:bg-indigo-500/10 transition-colors"
+                  >
+                    Open Build
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           {/* "Try:" suggestion cards */}

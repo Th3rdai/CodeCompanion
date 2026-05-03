@@ -4,6 +4,7 @@ const {
   getWhitelistedEnv,
   getBuiltinSafetyPreamble,
   getBuiltinTools,
+  validateBrowseUrl,
   validateCommand,
 } = require("../../lib/builtin-agent-tools.js");
 
@@ -48,6 +49,18 @@ test("getBuiltinSafetyPreamble includes terminal block when includeTerminal is t
   assert.ok(p.includes("Prefer read-only commands first"));
 });
 
+test("getBuiltinSafetyPreamble includes Create/Build workflow and milestone guidance", () => {
+  const p = getBuiltinSafetyPreamble();
+  assert.ok(
+    p.includes("Guided **Create** and **Build** modes"),
+    "expected Create/Build workflow hint",
+  );
+  assert.ok(
+    p.includes("milestone-sized steps"),
+    "expected milestone steering hint",
+  );
+});
+
 test("getBuiltinSafetyPreamble routes project markdown creation to write_file", () => {
   const p = getBuiltinSafetyPreamble();
   assert.ok(
@@ -63,6 +76,25 @@ test("getBuiltinSafetyPreamble routes project markdown creation to write_file", 
   );
   assert.ok(p.includes("builtin.write_file"));
   assert.ok(p.includes("docs/notes.md"));
+});
+
+test("validateBrowseUrl rejects localhost with terminal + browser guidance", () => {
+  const r = validateBrowseUrl("http://localhost:3000/");
+  assert.equal(r.valid, false);
+  assert.ok(
+    r.reason.includes("run_terminal_cmd"),
+    "reason should steer to terminal",
+  );
+  assert.ok(
+    r.reason.includes("desktop browser"),
+    "reason should steer to user browser",
+  );
+});
+
+test("validateBrowseUrl rejects private LAN IP with distinct guidance", () => {
+  const r = validateBrowseUrl("http://192.168.1.1/");
+  assert.equal(r.valid, false);
+  assert.ok(r.reason.includes("Private-network"));
 });
 
 test("getWhitelistedEnv extends packaged app PATH for developer tools", () => {

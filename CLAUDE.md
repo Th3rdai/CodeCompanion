@@ -115,6 +115,7 @@ Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab confi
 - **Ollama connection** — server URL (local or `https://ollama.com`), optional **Ollama Cloud API key** (Bearer auth; stored as `ollamaApiKey` in `.cc-config.json`; env **`OLLAMA_API_KEY`** used when empty), test button
 - **Auto model map** — collapsible section: per-mode default model when the toolbar selects **Auto (best per mode)** (`autoModelMap` in `.cc-config.json`; defaults in **`lib/auto-model.js`**). Server resolves `model: "auto"` on chat, review, security, score, validate, build APIs, etc.; first SSE may include **`resolvedModel`**. See **`docs/ENVIRONMENT_VARIABLES.md`** (config keys) and **`whats-next.md`** (task history)
 - Project Folder with validation
+- **Agent Readiness** — General tab includes a checklist card for Chat agent setup; canonical copy in **`docs/AGENT-READINESS.md`**
 - Create template path (Commands + ICM-fw)
 - Brand Assets (label/path/description rows)
 - **Review Timeout** slider (60s–600s, step 30s, default 300s) — configurable backend timeout for AI code reviews stored as `reviewTimeoutSec` in `.cc-config.json`, passed through to `reviewCode()` in `lib/review.js`
