@@ -7,6 +7,28 @@ const {
   validateProjectFilePath,
   executeBuiltinTool,
 } = require("../../lib/builtin-agent-tools.js");
+
+test("run_terminal_cmd splits multi-token command when args are already present", async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-term-split-"));
+  const noopLog = () => {};
+  const res = await executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "node -e", args: ["console.log(33)"] },
+    {
+      projectFolder: root,
+      agentTerminal: {
+        enabled: true,
+        allowlist: ["node"],
+        blocklist: [],
+        maxTimeoutSec: 15,
+        maxOutputKB: 64,
+      },
+    },
+    noopLog,
+  );
+  assert.strictEqual(res.success, true, res.result?.content?.[0]?.text);
+  assert.match(String(res.result?.content?.[0]?.text || ""), /33/);
+});
 const { canConvertBuiltin } = require("../../lib/builtin-doc-converter.js");
 
 test("canConvertBuiltin is false for legacy .xls (Docling-only)", () => {
