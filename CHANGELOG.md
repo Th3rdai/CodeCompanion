@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.36] — 2026-05-03
+
+### Fixed
+
+- **Agent stops working after a few rounds with `minimax-m2:cloud`** — the model emits tool calls in a CALL-SYNTAX form inside the wrapper (`<minimax:tool_call>\nbuiltin.run_terminal_cmd({"command": "pwd", "args": []})\n</minimax:tool_call>`), with no `<invoke>` tags. The legacy "bare minimax" parser only accepted the header-line-alone form (`server.tool` on its own line, args on subsequent lines), so this format produced **0 parsed calls** and the response was returned as plain text. Production debug.log on 2026-05-03 ~05:38 UTC showed 8 consecutive rounds with `"No TOOL_CALL patterns found, returning as final text"` against this exact pattern. Added a brace/quote-aware walker that handles single AND multiple calls per wrapper, including nested objects and escaped quotes inside string args. Regression: `tests/unit/tool-call-handler.test.js` (3 new tests pinning the exact production samples).
+
+### Added
+
+- **Tool-call reliability layer in `lib/chat-post-handler.js`.** When the user asks for a concrete machine action (verbs like add/change/create/edit/run/write paired with a path or tool target) and the model replies with prose instead of a `TOOL_CALL`, the server now:
+  1. **Corrective retry** (up to 2 rounds): re-prompts with stricter tool-only instructions and concrete examples — emits `notice.kind = "tool_call_retry"` over SSE.
+  2. **Model fallback** (once per turn, only if `model !== "auto"`): re-resolves via `resolveAutoModel({ preferToolCapable: ... })` and switches mid-turn — emits `tool_call_model_fallback` + a fresh `resolvedModel` event so the UI updates.
+  3. **Hard block**: if both fail, emits `tool_call_blocked` and finishes the turn with an actionable message instead of looping forever.
+  - All transitions counted in `TOOL_CALL_RELIABILITY_STATS` (`actionableRequests`, `correctiveRetries`, `fallbackAttempts`, `fallbackSuccesses`, `hardBlocks`) and logged as structured `INFO` events for telemetry.
+- **Recover Agent button** (`src/App.jsx` + `src/hooks/useChat.js`). After a `tool_call_blocked` notice the chat surfaces an amber "Recover Agent" button next to Send. One click resends the last user request with a new `forceToolOnly: true` flag — the server then injects a recovery-mode user turn and emits `tool_call_recovery_mode` so the user can see the stricter contract took effect. Previously attached images are preserved across the retry.
+- **SSE notice markers in the chat UI** — distinct emoji per `notice.kind` (🛠️ retry, 🔁 model fallback, 🚑 recovery mode, ⛔ blocked, ⚠️ generic) so users can see at a glance why the agent's behavior changed mid-turn.
+- **Stronger tool-call contract in the system prompt** (`lib/tool-call-handler.js`): "If the user asked for a concrete machine action and you respond with prose without a valid TOOL_CALL, the request is considered failed and you will be corrected/retried."
+
+### Docs
+
+- New **`ARCHITECTURE.md`** — GitNexus-derived map of the codebase (graph stats, top clusters, five key execution flows, mermaid overview) for new contributors and code-review context.
+- New **`CLOUDAPI.md`** — multi-provider execution checklist (P0–P7) covering router/adapter work for OpenAI, OpenRouter, Anthropic, Google, and HuggingFace, with release thresholds and rollback triggers. P6-03 explicitly tracks "Recover Agent behavior across providers" as a follow-up to this release.
+- `.claude/settings.json` permissions allowlist for the validate/test/build/format/typecheck npm scripts, `npx gitnexus analyze`, `npx playwright test`, `codesign`, `spctl`, `gh release download`, and `mcp__archon__find_tasks` — reduces permission prompts during routine workflows.
+
 ## [1.6.35] — 2026-05-03
 
 ### Fixed

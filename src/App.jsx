@@ -490,6 +490,8 @@ export default function App() {
     handleRenameRequest,
     startNew,
     handleSend,
+    handleRecoverAgent,
+    canRecoverAgent,
     handleStopChat,
     pendingAutoSend,
     pendingConfirm,
@@ -2165,6 +2167,16 @@ export default function App() {
                         trigger={sendBurst}
                         color={theme.primary}
                       />
+                      {!streaming && canRecoverAgent && (
+                        <button
+                          type="button"
+                          onClick={handleRecoverAgent}
+                          className="rounded-xl px-3 py-2 text-xs font-medium bg-amber-500/20 text-amber-200 border border-amber-500/40 hover:bg-amber-500/30 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                          title="Retry last request with stricter tool-call enforcement"
+                        >
+                          Recover Agent
+                        </button>
+                      )}
                       {streaming ? (
                         <button
                           type="button"

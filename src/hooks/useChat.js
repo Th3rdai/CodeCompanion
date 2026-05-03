@@ -36,6 +36,7 @@ export function useChat({
   const [renaming, setRenaming] = useState(null);
   const [stats, setStats] = useState(null);
   const [sendBurst, setSendBurst] = useState(false);
+  const [canRecoverAgent, setCanRecoverAgent] = useState(false);
   /** Pending confirm-before-run prompt: { id, command, args, cwd } or null */
   const [pendingConfirm, setPendingConfirm] = useState(null);
   /** AbortController for POST /api/chat — Stop button */
@@ -350,7 +351,11 @@ export function useChat({
     return content;
   }
 
-  async function handleSend(textOverride) {
+  async function handleSend(textOverride, options = {}) {
+    const forceToolOnly = options?.forceToolOnly === true;
+    const recoveredImages = Array.isArray(options?.recoveredImages)
+      ? options.recoveredImages.filter((img) => typeof img === "string" && img)
+      : null;
     const sendText = typeof textOverride === "string" ? textOverride : input;
     if (
       (!sendText.trim() && attachedFiles.length === 0) ||
@@ -361,10 +366,12 @@ export function useChat({
       return;
 
     // Separate text files and image files
-    const imageFiles = attachedFiles.filter(
-      (f) => f.type === "image" || f.isImage,
-    );
-    const images = imageFiles.map((img) => img.content); // Array of base64 strings (NO prefix)
+    const imageFiles =
+      recoveredImages == null
+        ? attachedFiles.filter((f) => f.type === "image" || f.isImage)
+        : [];
+    const images =
+      recoveredImages ?? imageFiles.map((img) => img.content); // Array of base64 strings (NO prefix)
 
     const content = buildUserContent(sendText.trim(), attachedFiles);
     const userMsg = {
@@ -378,6 +385,7 @@ export function useChat({
     setInput("");
     setAttachedFiles([]);
     setStreaming(true);
+    setCanRecoverAgent(false);
     setStats(null);
     setTerminalOutput(null);
     setAutoResolvedLabel(null);
@@ -404,6 +412,7 @@ export function useChat({
       ...(images.length > 0 && { images }),
       ...(conversationIdForChat && { conversationId: conversationIdForChat }),
       agentMaxRounds,
+      ...(forceToolOnly ? { forceToolOnly: true } : {}),
     };
     const payloadBytes = estimateChatPostBodyBytes(postBody);
     if (payloadBytes > MAX_CHAT_POST_BYTES) {
@@ -524,12 +533,27 @@ export function useChat({
               flushChatAssistantUi();
             }
             if (parsed.notice && parsed.notice.message) {
-              // Inline notice from the server (e.g. round_limit). Show it to the
-              // user above the partial answer the finalizer is about to stream so
-              // they understand why the chat is wrapping up early.
+              // Inline notices from the server (round limits, tool-call retries,
+              // fallback model swaps, blocked action loops). Keep these prominent
+              // so users know why the agent behavior changed mid-turn.
+              const noticeKind = parsed.notice.kind || "general";
+              const marker =
+                noticeKind === "tool_call_model_fallback"
+                  ? "🔁"
+                  : noticeKind === "tool_call_retry"
+                    ? "🛠️"
+                    : noticeKind === "tool_call_recovery_mode"
+                      ? "🚑"
+                    : noticeKind === "tool_call_blocked"
+                      ? "⛔"
+                      : "⚠️";
               assistantContent +=
                 (assistantContent ? "\n\n" : "") +
-                `> ⚠️ ${parsed.notice.message}\n\n`;
+                `> ${marker} ${parsed.notice.message}\n\n`;
+              if (noticeKind === "tool_call_blocked") {
+                setCanRecoverAgent(true);
+                showToast("Agent stopped: no executable tool calls were emitted.");
+              }
               flushChatAssistantUi();
             }
             // modelWait / heartbeat: SSE keep-alive during long chatComplete waits;
@@ -710,6 +734,29 @@ export function useChat({
     setPendingConfirm(null);
   }
 
+  function handleRecoverAgent() {
+    if (streaming) return;
+    const lastUserMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === "user" && !m._toolContext);
+    if (!lastUserMsg?.content) {
+      showToast("No recent user request found to retry.");
+      return;
+    }
+    const recoveredImages = Array.isArray(lastUserMsg.images)
+      ? lastUserMsg.images
+      : [];
+    if (recoveredImages.length > 0) {
+      showToast(
+        `Recovering with ${recoveredImages.length} previously attached image${recoveredImages.length === 1 ? "" : "s"}.`,
+      );
+    }
+    handleSend(lastUserMsg.content, {
+      forceToolOnly: true,
+      recoveredImages,
+    });
+  }
+
   // ── Global Escape key → abort all active requests ──
   useEffect(() => {
     const handler = (e) => {
@@ -805,6 +852,8 @@ export function useChat({
     handleRenameRequest,
     startNew,
     handleSend,
+    handleRecoverAgent,
+    canRecoverAgent,
     handleStopChat,
     handleSaveChat,
     pendingAutoSend,

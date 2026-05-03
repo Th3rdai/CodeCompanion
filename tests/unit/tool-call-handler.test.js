@@ -40,6 +40,62 @@ builtin.run_terminal_cmd
   });
 });
 
+test("parseToolCalls minimax wrapped-call format (server.tool({...}) inside <minimax:tool_call>) parses single call", () => {
+  // Regression for v1.6.36: minimax-m2:cloud emits the bare CALL-SYNTAX form
+  // INSIDE the <minimax:tool_call> wrapper, with no <invoke> tags. Captured
+  // verbatim from production debug.log on 2026-05-03 ~05:38 UTC. The legacy
+  // bare parser only matched header-line-alone form so 0 calls were parsed
+  // and the agent fell back to plain prose for 8 consecutive rounds.
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `Let me test the terminal:
+<minimax:tool_call>
+builtin.run_terminal_cmd({"command": "pwd", "args": []})
+</minimax:tool_call>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].serverId, "builtin");
+  assert.strictEqual(calls[0].toolName, "run_terminal_cmd");
+  assert.deepStrictEqual(calls[0].args, { command: "pwd", args: [] });
+});
+
+test("parseToolCalls minimax wrapped-call format parses MULTIPLE calls in one block", () => {
+  // Same root cause as above; production sample had two cat calls in one wrapper.
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<minimax:tool_call>
+builtin.run_terminal_cmd({"command": "cat", "args": ["CHANGELOG.md"]})
+builtin.run_terminal_cmd({"command": "cat", "args": ["docs/TESTING.md"]})
+</minimax:tool_call>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 2);
+  assert.deepStrictEqual(calls[0].args, {
+    command: "cat",
+    args: ["CHANGELOG.md"],
+  });
+  assert.deepStrictEqual(calls[1].args, {
+    command: "cat",
+    args: ["docs/TESTING.md"],
+  });
+});
+
+test("parseToolCalls minimax wrapped-call handles nested objects + escaped quotes in args", () => {
+  // Brace/quote walker has to track string-literal context so a `)` inside a
+  // JSON string value doesn't terminate the call early.
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<minimax:tool_call>
+builtin.write_file({"path": "x.json", "content": "{\\"hello\\": \\"world (with parens)\\"}"})
+builtin.run_terminal_cmd({"command": "echo", "args": ["a", "b"], "cwd": "/Users/james/Projects/CodeCompanion"})
+</minimax:tool_call>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 2);
+  assert.strictEqual(calls[0].toolName, "write_file");
+  assert.strictEqual(calls[0].args.path, "x.json");
+  assert.match(calls[0].args.content, /world \(with parens\)/);
+  assert.strictEqual(calls[1].args.cwd, "/Users/james/Projects/CodeCompanion");
+});
+
 test("parseToolCalls XML fallback parses reliably on repeated invocations", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler({});
