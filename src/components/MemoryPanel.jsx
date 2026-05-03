@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
-import { Brain, Trash2, Pencil, Search, X, Check } from "lucide-react";
+import { Brain, Trash2, Pencil, Search, X, Check, Globe, MessageSquare } from "lucide-react";
 
 const TYPE_COLORS = {
   fact: {
@@ -25,8 +25,14 @@ const TYPE_COLORS = {
   },
 };
 
+/** Facts, patterns, and projects are globally scoped; summaries are per-conversation. */
+function isGlobalMemory(memory) {
+  return ["fact", "pattern", "project"].includes(memory.type) || !memory.source;
+}
+
 const FILTER_TABS = [
   { id: "all", label: "All" },
+  { id: "global", label: "🌐 Global" },
   { id: "fact", label: "Facts" },
   { id: "project", label: "Projects" },
   { id: "pattern", label: "Patterns" },
@@ -124,7 +130,11 @@ export default function MemoryPanel({ onClose }) {
   }
 
   const filtered =
-    filter === "all" ? memories : memories.filter((m) => m.type === filter);
+    filter === "all"
+      ? memories
+      : filter === "global"
+        ? memories.filter(isGlobalMemory)
+        : memories.filter((m) => m.type === filter);
 
   return (
     <div
@@ -150,7 +160,7 @@ export default function MemoryPanel({ onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white text-xl transition-colors"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
             aria-label="Close memory panel"
           >
             <X className="w-5 h-5" />
@@ -172,7 +182,8 @@ export default function MemoryPanel({ onClose }) {
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                className="absolute right-1.5 top-1/2 inline-flex min-h-9 min-w-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-slate-700/50 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+                aria-label="Clear memory search"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -208,6 +219,16 @@ export default function MemoryPanel({ onClose }) {
           ))}
         </div>
 
+        {/* Scope legend */}
+        <div className="flex items-center gap-3 mb-3 text-[11px] text-slate-500">
+          <span className="inline-flex items-center gap-1 text-indigo-400">
+            <Globe className="w-3 h-3" /> Global — recalled in every conversation
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <MessageSquare className="w-3 h-3" /> This chat — scoped to one conversation
+          </span>
+        </div>
+
         {/* Memory list */}
         <div className="flex-1 overflow-y-auto scrollbar-thin space-y-2">
           {loading ? (
@@ -230,13 +251,28 @@ export default function MemoryPanel({ onClose }) {
                 <div key={memory.id} className="glass rounded-lg p-3 group">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      {/* Type badge + date */}
-                      <div className="flex items-center gap-2 mb-1.5">
+                      {/* Type badge + scope + date */}
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span
                           className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.bg} ${colors.border} ${colors.text} border`}
                         >
                           {memory.type}
                         </span>
+                        {isGlobalMemory(memory) ? (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 border border-indigo-500/25 text-indigo-400"
+                            title="Recalled across all conversations"
+                          >
+                            <Globe className="w-2.5 h-2.5" /> global
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 border border-slate-500/25 text-slate-500"
+                            title="Only recalled in its original conversation"
+                          >
+                            <MessageSquare className="w-2.5 h-2.5" /> this chat
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-600">
                           {relativeDate(memory.createdAt || memory.updatedAt)}
                         </span>
