@@ -89,9 +89,17 @@ export default function MessageBubble({
 }) {
   const isUser = role === "user";
   const hasImages = images && images.length > 0;
-  const renderImages = () =>
-    hasImages && (
-      <div className="grid grid-cols-2 gap-2 mt-3">
+  const renderImages = () => {
+    if (!hasImages) return null;
+    // Single image gets full bubble width with aspect-preserved cap; multi-image
+    // keeps the original 2-column thumbnail grid for paired/grouped uploads.
+    const isSingle = images.length === 1;
+    const gridClass = isSingle ? "grid-cols-1" : "grid-cols-2";
+    const imgClass = isSingle
+      ? "w-full max-h-[600px] object-contain"
+      : "max-h-48 object-cover";
+    return (
+      <div className={`grid gap-2 mt-3 ${gridClass}`}>
         {images.map((imgBase64, idx) => {
           // Reconstruct data URI for display (images may be raw base64 or full data URI).
           const src = imgBase64.startsWith("data:")
@@ -103,7 +111,7 @@ export default function MessageBubble({
               <img
                 src={src}
                 alt={`${isUser ? "Uploaded" : "Generated"} image ${idx + 1}`}
-                className="rounded border border-indigo-500/30 cursor-pointer hover:opacity-80 transition-opacity max-h-48 object-cover"
+                className={`rounded border border-indigo-500/30 cursor-pointer hover:opacity-80 transition-opacity ${imgClass}`}
                 onClick={() =>
                   onImageClick && onImageClick(imgBase64, filename, images, idx)
                 }
@@ -114,6 +122,7 @@ export default function MessageBubble({
         })}
       </div>
     );
+  };
 
   return (
     <div
