@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.34] — 2026-05-02
+
+### Fixed
+
+- **MCP manual-connect failures now surface real transport errors in banner + app.log** — `logMcpConnectFailure()` was declared at module top-level in `lib/mcp-api-routes.js` referencing the closure-only `log` symbol; every error path threw a silent `ReferenceError` that Express converted to HTTP 500 with no message. Moved inside the closure. Banner now shows "fetch failed" / full transport chain; status correctly returns 502 (Bad Gateway). Regression test: `tests/integration/mcp-connect-failure.test.js`.
+- **`LinkedExperimentChips` renders for legacy v1.6.23 chats** — `useChat#loadConversation` previously only checked the v1.6.24 plural `experimentIds` field; existing chats with the singular `experimentId` showed no chips. Now reads both shapes.
+- **Experiment ↔ conversation back-pointer** — new `POST /api/experiment/:id/link-conversation` endpoint + `ExperimentPanel` call after `saveHistory(...)` returns the chat id. Closes the order-of-operations gap where the experiment was created before the chat existed, leaving `conversationId: null` on the experiment record. Idempotent. Regression test: `tests/integration/experiment-api.test.js`.
+
+### Added
+
+- **Agent-app gap remediation across four surfaces** (Cursor + Claude collaboration):
+  - **Chat ↔ Create/Build separation**: `EmptyStateScene` (chat mode) explains Create / Build are guided scaffolding tabs and offers Open Create / Open Build buttons. `BUILTIN_SAFETY_PREAMBLE_CORE` tells the agent those wizards are app modes, not auto-invoked from Chat.
+  - **Browser tool localhost ACTION line**: `validateBrowseUrl` returns explicit guidance ("Use `builtin.run_terminal_cmd` for checks (e.g. curl, npm test)…") for loopback hosts; private LAN IPs get a separate message. Closes the deflection loop where the agent retried `browse_url` 3× and gave up against `localhost:3000`.
+  - **Milestone WORKFLOW guidance**: core preamble asks for spec → outline → implement → run tests pacing.
+  - **Roadmap "Shipped vs planned" table** in `docs/AGENT-APP-CAPABILITIES-ROADMAP.md`; new `docs/AGENT-READINESS.md`.
+- **`lib/agent-interaction-root.js`** — resolves the agent's effective working root (chatFolder when inside projectFolder, else projectFolder). Threaded through agent-app skills, builtins, tool-call-handler, server. `projectFolder` remains the outer permission boundary.
+- **Auto-model TOOL_CALL preference** — when an external MCP server is connected, `auto-model` prefers locals known to emit TOOL_CALL format reliably.
+- **Header button: open Terminal mode in current project/chat folder** (Electron only).
+
+### Changed
+
+- `test:integration` glob broadened to `tests/integration/*.test.js` so `experiment-api`, `parallel-tools`, and the new test files are part of the `validate:fast` gate (was only `api-with-images.test.js`). 17 active integration tests now run, up from 8.
+- Archon MCP auto-connect failure logs downgraded from ERROR → WARN with hint to set `autoConnect: false` if a server is down.
+
+### Tests
+
+- `tests/integration/mcp-connect-failure.test.js` (new, 2 tests) — 502 + real error message, 404 on unknown client.
+- `tests/integration/experiment-api.test.js` (extended, +2 tests) — link-conversation back-fill + 403 when experiment mode disabled.
+- `tests/ui/chat-session-progress.spec.js` (new) — asserts the "Working" strip appears during `/api/chat` SSE and unmounts after `[DONE]`. Stable across multiple runs (~10s).
+- `tests/unit/builtin-agent-tools.test.js` (extended) — WORKFLOW preamble text + `validateBrowseUrl` localhost vs LAN-IP distinct messages. 42/42 pass.
+
 ## [1.6.33] — 2026-05-02
 
 ### Fixed
