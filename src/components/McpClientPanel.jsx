@@ -323,7 +323,16 @@ function ServerModal({ mode, client, onSaved, onClose }) {
         client.transport === "stdio" ? client.command || "" : client.url || "",
       );
       setArgs((client.args || []).join("\n"));
-      setEnvVars("");
+      // Pre-populate the env textarea from existing env so editing one var
+      // doesn't accidentally wipe the others. Previously this was always
+      // initialized to "" and a Save would overwrite the entire env block
+      // with whatever the user typed (commonly clobbering API keys).
+      const env = client.env && typeof client.env === "object" ? client.env : {};
+      setEnvVars(
+        Object.entries(env)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n"),
+      );
       setClearEnv(false);
       setAutoConnect(client.autoConnect !== false);
     }

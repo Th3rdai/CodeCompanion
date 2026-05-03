@@ -16,6 +16,32 @@ const UNVERIFIED_RESOLUTION_FALLBACK =
   "Generated image with the requested aspect ratio; exact pixel dimensions depend on model output unless explicitly measured.";
 const FAKE_TOOL_RESULT_NOTICE =
   "> ⚠️ The model wrote a tool-result block here, but no tool was actually invoked. Ignore the claimed file path or image preview.";
+const FAKE_TOOL_CODE_NOTICE =
+  "⚠️ The model emitted a `TOOL_CODE:` / `tool_code` block here (Gemma-family hallucination format), but no tool was actually invoked. Switch to a tool-call-trained model (e.g. kimi-k2:1t-cloud or minimax-m2:cloud) for image generation.";
+
+/**
+ * Detect and strip Gemma-family hallucinated tool-code lines/blocks. Gemma
+ * models occasionally emit `TOOL_CODE: print("Image generated successfully.")`
+ * or fenced ```tool_code\n...print(...)``` blocks instead of the project's
+ * actual TOOL_CALL syntax — looks plausible but the parser ignores it, so
+ * no real generation happens. Replace with an actionable warning so the
+ * user knows to switch models.
+ */
+function stripFakeToolCodeArtifacts(text) {
+  let out = text;
+  // Fenced ```tool_code ... ``` blocks (Gemma's documented format).
+  out = out.replace(
+    /```tool_code\s*\n[\s\S]*?\n?```/gi,
+    FAKE_TOOL_CODE_NOTICE,
+  );
+  // Bare `TOOL_CODE: ...` lines that claim image-related work; conservative
+  // gate so legitimate prose mentioning the literal keyword survives.
+  out = out.replace(
+    /^[ \t]*TOOL_CODE:[ \t]*[^\n]*?(?:image|generate|generated|\.png)[^\n]*$/gim,
+    FAKE_TOOL_CODE_NOTICE,
+  );
+  return out;
+}
 
 /**
  * Detect and strip blockquoted prose that mimics the system's tool-result
@@ -72,6 +98,7 @@ export function sanitizeUnconfirmedImageClaims(
 
   if (!hasToolImage) {
     sanitized = stripFakeToolResultBlocks(sanitized);
+    sanitized = stripFakeToolCodeArtifacts(sanitized);
     for (const pattern of UNCONFIRMED_IMAGE_CLAIM_PATTERNS) {
       sanitized = sanitized.replace(pattern, " ");
     }

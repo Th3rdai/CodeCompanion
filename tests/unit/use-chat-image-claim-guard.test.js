@@ -106,3 +106,54 @@ test("sanitizeUnconfirmedImageClaims preserves unrelated blockquotes (no false p
   const output = sanitizeUnconfirmedImageClaims(input, false);
   assert.strictEqual(output, input);
 });
+
+test("sanitizeUnconfirmedImageClaims strips bare TOOL_CODE: image-success line (Gemma hallucination)", async () => {
+  const { sanitizeUnconfirmedImageClaims } = await loadUseChatModule();
+  const input = [
+    "Generate an image of a sunset.",
+    'TOOL_CODE: print("Image generated successfully.")',
+    "",
+    "Let me know if you want adjustments.",
+  ].join("\n");
+  const output = sanitizeUnconfirmedImageClaims(input, false);
+  assert.match(output, /Gemma-family hallucination format/);
+  assert.doesNotMatch(output, /TOOL_CODE: print/);
+  // Surrounding prose preserved.
+  assert.match(output, /Generate an image of a sunset/);
+  assert.match(output, /Let me know if you want adjustments/);
+});
+
+test("sanitizeUnconfirmedImageClaims strips fenced ```tool_code``` blocks", async () => {
+  const { sanitizeUnconfirmedImageClaims } = await loadUseChatModule();
+  const input = [
+    "Here's the image:",
+    "",
+    "```tool_code",
+    'print(generate_image(prompt="a cat", aspect_ratio="16:9"))',
+    "```",
+    "",
+    "Done!",
+  ].join("\n");
+  const output = sanitizeUnconfirmedImageClaims(input, false);
+  assert.match(output, /Gemma-family hallucination format/);
+  assert.doesNotMatch(output, /generate_image\(prompt/);
+  assert.match(output, /Here's the image/);
+  assert.match(output, /Done!/);
+});
+
+test("sanitizeUnconfirmedImageClaims preserves TOOL_CODE: when discussing the keyword in plain prose", async () => {
+  const { sanitizeUnconfirmedImageClaims } = await loadUseChatModule();
+  // Conservative gate: bare TOOL_CODE: lines that don't claim image work
+  // are left alone so docs/explanations aren't mangled.
+  const input =
+    "Gemma's training data uses TOOL_CODE: as a Python execution prefix.";
+  const output = sanitizeUnconfirmedImageClaims(input, false);
+  assert.strictEqual(output, input);
+});
+
+test("sanitizeUnconfirmedImageClaims keeps TOOL_CODE block when toolImage is real", async () => {
+  const { sanitizeUnconfirmedImageClaims } = await loadUseChatModule();
+  const input = 'TOOL_CODE: print("Image generated successfully.")';
+  const output = sanitizeUnconfirmedImageClaims(input, true);
+  assert.strictEqual(output, input);
+});
