@@ -37,6 +37,7 @@
     "enabled": false,
     "embeddingModel": "",
     "maxContextTokens": 500,
+    "recallThreshold": 0.6,
     "autoExtract": true,
     "maxMemories": 500
   },

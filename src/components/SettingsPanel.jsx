@@ -160,6 +160,7 @@ export default function SettingsPanel({
   const [memoryEnabled, setMemoryEnabled] = useState(false);
   const [embeddingModel, setEmbeddingModel] = useState("");
   const [maxContextTokens, setMaxContextTokens] = useState(500);
+  const [recallThreshold, setRecallThreshold] = useState(0.6);
   const [autoExtract, setAutoExtract] = useState(true);
   const [memoryStats, setMemoryStats] = useState(null);
   const [embeddingModels, setEmbeddingModels] = useState([]);
@@ -317,6 +318,7 @@ export default function SettingsPanel({
           setMemoryEnabled(!!data.memory.enabled);
           setEmbeddingModel(data.memory.embeddingModel || "");
           setMaxContextTokens(data.memory.maxContextTokens || 500);
+          setRecallThreshold(data.memory.recallThreshold ?? 0.6);
           setAutoExtract(data.memory.autoExtract !== false);
         }
       })
@@ -340,6 +342,7 @@ export default function SettingsPanel({
       enabled: memoryEnabled,
       embeddingModel,
       maxContextTokens,
+      recallThreshold,
       autoExtract,
       ...updates,
     };
@@ -2864,6 +2867,38 @@ export default function SettingsPanel({
               <div className="flex justify-between text-[10px] text-slate-600 mt-1">
                 <span>100</span>
                 <span>2000</span>
+              </div>
+            </div>
+
+            {/* Recall Threshold slider */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Recall Threshold{" "}
+                <span className="text-slate-500 font-normal">
+                  ({recallThreshold.toFixed(2)})
+                </span>
+              </label>
+              <p className="text-xs text-slate-500 mb-2">
+                Minimum similarity score for a memory to be injected. Higher = only closely-matched memories recalled; lower = more results but risk of irrelevant context.
+              </p>
+              <input
+                type="range"
+                min="0.3"
+                max="0.9"
+                step="0.05"
+                value={recallThreshold}
+                onChange={(e) => {
+                  setRecallThreshold(parseFloat(e.target.value));
+                }}
+                onMouseUp={() => saveMemoryConfig({ recallThreshold })}
+                onTouchEnd={() => saveMemoryConfig({ recallThreshold })}
+                className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                aria-label="Recall threshold"
+              />
+              <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                <span>0.30 — broad</span>
+                <span className="text-indigo-400">0.60 — default</span>
+                <span>0.90 — strict</span>
               </div>
             </div>
 
