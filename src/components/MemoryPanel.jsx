@@ -1,42 +1,49 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
-import { Brain, Trash2, Pencil, Search, X, Check, Globe, MessageSquare } from "lucide-react";
+import { Brain, Trash2, Pencil, Search, X, Check, Globe, MessageSquare, User, FolderOpen } from "lucide-react";
 
 const TYPE_COLORS = {
   fact: {
     bg: "bg-blue-500/15",
     border: "border-blue-500/30",
     text: "text-blue-300",
+    label: "agent",
   },
   project: {
     bg: "bg-green-500/15",
     border: "border-green-500/30",
     text: "text-green-300",
+    label: "project",
   },
   pattern: {
     bg: "bg-orange-500/15",
     border: "border-orange-500/30",
     text: "text-orange-300",
+    label: "pattern",
   },
   summary: {
     bg: "bg-purple-500/15",
     border: "border-purple-500/30",
     text: "text-purple-300",
+    label: "summary",
   },
 };
 
-/** Facts, patterns, and projects are globally scoped; summaries are per-conversation. */
-function isGlobalMemory(memory) {
-  return ["fact", "pattern", "project"].includes(memory.type) || !memory.source;
+/** Agent memories (facts) are global — recalled in every conversation, regardless of project. */
+function isAgentMemory(memory) {
+  return memory.type === "fact";
+}
+
+/** Project memories (project/pattern) are scoped to a specific project key. */
+function isProjectMemory(memory) {
+  return ["project", "pattern"].includes(memory.type);
 }
 
 const FILTER_TABS = [
   { id: "all", label: "All" },
-  { id: "global", label: "🌐 Global" },
-  { id: "fact", label: "Facts" },
-  { id: "project", label: "Projects" },
-  { id: "pattern", label: "Patterns" },
-  { id: "summary", label: "Summaries" },
+  { id: "agent", label: "🧠 Agent" },
+  { id: "project-scoped", label: "📁 Project" },
+  { id: "summary", label: "💬 Summaries" },
 ];
 
 function relativeDate(dateStr) {
@@ -132,9 +139,11 @@ export default function MemoryPanel({ onClose }) {
   const filtered =
     filter === "all"
       ? memories
-      : filter === "global"
-        ? memories.filter(isGlobalMemory)
-        : memories.filter((m) => m.type === filter);
+      : filter === "agent"
+        ? memories.filter(isAgentMemory)
+        : filter === "project-scoped"
+          ? memories.filter(isProjectMemory)
+          : memories.filter((m) => m.type === filter);
 
   return (
     <div
@@ -220,12 +229,15 @@ export default function MemoryPanel({ onClose }) {
         </div>
 
         {/* Scope legend */}
-        <div className="flex items-center gap-3 mb-3 text-[11px] text-slate-500">
-          <span className="inline-flex items-center gap-1 text-indigo-400">
-            <Globe className="w-3 h-3" /> Global — recalled in every conversation
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3 text-[11px] text-slate-500">
+          <span className="inline-flex items-center gap-1 text-blue-400">
+            <User className="w-3 h-3" /> Agent — about you, recalled always
+          </span>
+          <span className="inline-flex items-center gap-1 text-green-400">
+            <FolderOpen className="w-3 h-3" /> Project — active project only
           </span>
           <span className="inline-flex items-center gap-1">
-            <MessageSquare className="w-3 h-3" /> This chat — scoped to one conversation
+            <MessageSquare className="w-3 h-3" /> Summary — this chat only
           </span>
         </div>
 
@@ -251,24 +263,41 @@ export default function MemoryPanel({ onClose }) {
                 <div key={memory.id} className="glass rounded-lg p-3 group">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      {/* Type badge + scope + date */}
-                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      {/* Type badge + scope + project key + date */}
+                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                         <span
                           className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.bg} ${colors.border} ${colors.text} border`}
                         >
-                          {memory.type}
+                          {colors.label}
                         </span>
-                        {isGlobalMemory(memory) ? (
+                        {isAgentMemory(memory) && (
                           <span
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 border border-indigo-500/25 text-indigo-400"
-                            title="Recalled across all conversations"
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 border border-blue-500/20 text-blue-400"
+                            title="Recalled in every conversation — about you as a person"
                           >
-                            <Globe className="w-2.5 h-2.5" /> global
+                            <User className="w-2.5 h-2.5" /> always recalled
                           </span>
-                        ) : (
+                        )}
+                        {isProjectMemory(memory) && memory.projectKey && (
                           <span
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 border border-slate-500/25 text-slate-500"
-                            title="Only recalled in its original conversation"
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 border border-green-500/20 text-green-400"
+                            title={`Only recalled when project "${memory.projectKey}" is active`}
+                          >
+                            <FolderOpen className="w-2.5 h-2.5" /> {memory.projectKey}
+                          </span>
+                        )}
+                        {isProjectMemory(memory) && !memory.projectKey && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 border border-slate-500/20 text-slate-400"
+                            title="No project assigned — recalled globally"
+                          >
+                            <Globe className="w-2.5 h-2.5" /> all projects
+                          </span>
+                        )}
+                        {memory.type === "summary" && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-500/10 border border-slate-500/20 text-slate-500"
+                            title="Only recalled within its original conversation"
                           >
                             <MessageSquare className="w-2.5 h-2.5" /> this chat
                           </span>

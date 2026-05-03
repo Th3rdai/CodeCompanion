@@ -10,7 +10,12 @@ const {
 const { getExperiment } = require("../lib/experiment-store");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { chatComplete, ollamaAuthOpts } = require("../lib/ollama-client");
-const { extractAndStore } = require("../lib/memory");
+const {
+  extractAndStore,
+  deleteMemoriesBySource,
+  resolveEmbeddingModel,
+  deriveProjectKey,
+} = require("../lib/memory");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
@@ -71,7 +76,7 @@ module.exports = function createRouter(appContext) {
         config.memory?.autoExtract &&
         req.body.messages?.length >= 4
       ) {
-        const embModel = config.memory.embeddingModel || "nomic-embed-text";
+        const embModel = resolveEmbeddingModel(config);
         (async () => {
           let memModel = req.body.model;
           if (memModel === "auto") {
@@ -96,12 +101,16 @@ module.exports = function createRouter(appContext) {
               memModel = m[req.body.mode || "chat"] || m.chat || "llama3.2";
             }
           }
+          const projectKey = deriveProjectKey(
+            config.chatFolder || config.projectFolder || null,
+          );
           await extractAndStore(
             config.ollamaUrl,
             memModel,
             embModel,
             req.body,
             config,
+            projectKey,
           );
         })().catch((err) =>
           log("WARN", "Memory extraction failed", { error: err.message }),
@@ -175,8 +184,12 @@ module.exports = function createRouter(appContext) {
   router.delete("/history/:id", (req, res) => {
     try {
       deleteConversation(req.params.id);
-      debug("Conversation deleted", { id: req.params.id });
-      res.json({ ok: true });
+      const removedMemories = deleteMemoriesBySource(req.params.id);
+      debug("Conversation deleted", {
+        id: req.params.id,
+        cascadedMemories: removedMemories,
+      });
+      res.json({ ok: true, cascadedMemories: removedMemories });
     } catch (err) {
       let status = 500;
       if (err.message.includes("Invalid conversation id")) status = 400;
@@ -200,17 +213,22 @@ module.exports = function createRouter(appContext) {
     if (ids.length > 200)
       return res.status(400).json({ error: "Maximum 200 deletions per batch" });
     let ok = 0,
-      failed = 0;
+      failed = 0,
+      cascadedMemories = 0;
     for (const id of ids) {
       try {
         deleteConversation(id);
+        cascadedMemories += deleteMemoriesBySource(id);
         ok++;
       } catch {
         failed++;
       }
     }
-    log("INFO", `Batch delete: ${ok} deleted, ${failed} failed`);
-    res.json({ ok, failed });
+    log(
+      "INFO",
+      `Batch delete: ${ok} deleted, ${failed} failed, ${cascadedMemories} memories cascaded`,
+    );
+    res.json({ ok, failed, cascadedMemories });
   });
 
   return router;
