@@ -1,6 +1,17 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "../lib/api-fetch";
-import { Brain, Trash2, Pencil, Search, X, Check, Globe, MessageSquare, User, FolderOpen } from "lucide-react";
+import {
+  Brain,
+  Trash2,
+  Pencil,
+  Search,
+  X,
+  Check,
+  Globe,
+  MessageSquare,
+  User,
+  FolderOpen,
+} from "lucide-react";
 
 const TYPE_COLORS = {
   fact: {
@@ -283,7 +294,8 @@ export default function MemoryPanel({ onClose }) {
                             className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-green-500/10 border border-green-500/20 text-green-400"
                             title={`Only recalled when project "${memory.projectKey}" is active`}
                           >
-                            <FolderOpen className="w-2.5 h-2.5" /> {memory.projectKey}
+                            <FolderOpen className="w-2.5 h-2.5" />{" "}
+                            {memory.projectKey}
                           </span>
                         )}
                         {isProjectMemory(memory) && !memory.projectKey && (

@@ -370,8 +370,7 @@ export function useChat({
       recoveredImages == null
         ? attachedFiles.filter((f) => f.type === "image" || f.isImage)
         : [];
-    const images =
-      recoveredImages ?? imageFiles.map((img) => img.content); // Array of base64 strings (NO prefix)
+    const images = recoveredImages ?? imageFiles.map((img) => img.content); // Array of base64 strings (NO prefix)
 
     const content = buildUserContent(sendText.trim(), attachedFiles);
     const userMsg = {
@@ -544,15 +543,17 @@ export function useChat({
                     ? "🛠️"
                     : noticeKind === "tool_call_recovery_mode"
                       ? "🚑"
-                    : noticeKind === "tool_call_blocked"
-                      ? "⛔"
-                      : "⚠️";
+                      : noticeKind === "tool_call_blocked"
+                        ? "⛔"
+                        : "⚠️";
               assistantContent +=
                 (assistantContent ? "\n\n" : "") +
                 `> ${marker} ${parsed.notice.message}\n\n`;
               if (noticeKind === "tool_call_blocked") {
                 setCanRecoverAgent(true);
-                showToast("Agent stopped: no executable tool calls were emitted.");
+                showToast(
+                  "Agent stopped: no executable tool calls were emitted.",
+                );
               }
               flushChatAssistantUi();
             }
