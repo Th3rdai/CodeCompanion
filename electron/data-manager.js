@@ -36,9 +36,22 @@ function getPortableRoot() {
  * Resolves the data directory for Code Companion.
  * macOS: ~/Library/Application Support/code-companion (npm `name`; matches Electron `userData`)
  * Windows/Linux: Self-contained next to the app (portable)
- * Dev mode: Project root
+ * Dev mode: Project root (or CC_DATA_DIR env var override — useful for sharing
+ *   settings with the installed app without committing config to git).
  */
 function resolveDataDirectory() {
+  // Allow .env to point dev mode at the installed app's data dir so MCP servers,
+  // settings, and history are shared without any git-committed files.
+  // Example .env entry:
+  //   CC_DATA_DIR=/Users/you/Library/Application Support/code-companion
+  if (!app.isPackaged && process.env.CC_DATA_DIR) {
+    const overrideDir = process.env.CC_DATA_DIR;
+    if (!fs.existsSync(overrideDir)) {
+      fs.mkdirSync(overrideDir, { recursive: true });
+    }
+    return overrideDir;
+  }
+
   const portableRoot = getPortableRoot();
 
   // macOS packaged: userData already points to app-specific folder

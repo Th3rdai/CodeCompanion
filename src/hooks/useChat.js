@@ -559,20 +559,28 @@ export function useChat({
             // modelWait / heartbeat: SSE keep-alive during long chatComplete waits;
             // intentionally ignored here (no assistant text noise).
             if (parsed.toolCallRound !== undefined) {
-              // Show tool execution progress in terminal output indicator
+              // Show tool execution progress for ALL tools (builtin + external MCP).
+              // parsed.toolCalls is an array of "serverId.toolName" strings —
+              // previous code incorrectly treated them as objects and filtered by
+              // c.serverId (always undefined on a string), so nothing ever showed.
               const calls = parsed.toolCalls || [];
-              const terminalCalls = calls.filter(
-                (c) => c.serverId === "builtin",
-              );
-              if (terminalCalls.length > 0) {
+              if (calls.length > 0) {
                 setTerminalOutput({
-                  command: terminalCalls
-                    .map((c) => `${c.toolName}(${JSON.stringify(c.args)})`)
-                    .join("; "),
+                  command: calls.join(", "),
                   status: "running",
                   output: "",
                 });
               }
+            }
+            // Show raw MCP/builtin tool results inline so the user can see what
+            // the tool returned, not just the AI's synthesized summary.
+            if (parsed.toolResultText) {
+              const lines = parsed.toolResultText.trim().split("\n");
+              const quoted = lines.map((l) => `> ${l}`).join("\n");
+              assistantContent +=
+                (assistantContent ? "\n\n" : "") +
+                `> 🔧 **Tool result:**\n${quoted}\n\n`;
+              flushChatAssistantUi();
             }
             // Streaming terminal SSE events from run_terminal_cmd
             if (parsed.terminalCmd) {
