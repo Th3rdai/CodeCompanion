@@ -489,6 +489,14 @@ test("buildToolsPrompt includes agent identity override forbidding teacher-defle
     "expected browser-automation deflection phrase listed",
   );
   assert.ok(
+    p.includes("I can only call one tool at a time and then wait"),
+    "expected single-tool-wait deflection phrase listed",
+  );
+  assert.ok(
+    p.includes("say continue and I'll run the next tool"),
+    "expected continue-gate deflection phrase listed",
+  );
+  assert.ok(
     p.includes("Those statements are FALSE"),
     "expected FALSE assertion",
   );

@@ -6,6 +6,7 @@ import { use3DEffects } from "../contexts/Effects3DContext";
 
 export default function Sidebar({
   history,
+  folders,
   activeId,
   onSelect,
   onNew,
@@ -16,6 +17,12 @@ export default function Sidebar({
   onBulkDelete,
   onBulkExport,
   onBulkArchive,
+  onMoveConversation,
+  onBulkMove,
+  onCreateFolder,
+  onRenameFolder,
+  onToggleFolderCollapsed,
+  onDeleteFolder,
   open,
   onClose,
   collapsed,
@@ -30,6 +37,9 @@ export default function Sidebar({
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [multiSelect, setMultiSelect] = useState(false);
+  const [bulkMoveFolderId, setBulkMoveFolderId] = useState("inbox");
+  const [showCreateFolderEditor, setShowCreateFolderEditor] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
   const { theme } = use3DEffects();
   const [healthIssues, setHealthIssues] = useState(0);
   const [healthDetails, setHealthDetails] = useState([]);
@@ -110,6 +120,30 @@ export default function Sidebar({
     exitMultiSelect();
   }
 
+  const orderedFolders = useMemo(() => {
+    const list = Array.isArray(folders) ? [...folders] : [];
+    const hasInbox = list.some((f) => f.id === "inbox");
+    if (!hasInbox) {
+      list.unshift({
+        id: "inbox",
+        name: "Inbox",
+        position: 0,
+        collapsed: false,
+        system: true,
+      });
+    }
+    list.sort((a, b) => {
+      const ap = Number.isFinite(a.position) ? a.position : 0;
+      const bp = Number.isFinite(b.position) ? b.position : 0;
+      return ap - bp || (a.name || "").localeCompare(b.name || "");
+    });
+    return list;
+  }, [folders]);
+
+  const folderById = useMemo(() => {
+    return new Map(orderedFolders.map((f) => [f.id, f]));
+  }, [orderedFolders]);
+
   const filtered = useMemo(() => {
     let list = history.filter((h) => (showArchived ? h.archived : !h.archived));
     if (search.trim()) {
@@ -118,14 +152,77 @@ export default function Sidebar({
         (h) =>
           (h.title || "").toLowerCase().includes(q) ||
           (h.mode || "").toLowerCase().includes(q) ||
-          (h.model || "").toLowerCase().includes(q),
+          (h.model || "").toLowerCase().includes(q) ||
+          ((folderById.get(h.folderId || "inbox")?.name || "Inbox")
+            .toLowerCase()
+            .includes(q)),
       );
     }
     return list;
-  }, [history, search, showArchived]);
+  }, [history, search, showArchived, folderById]);
+
+  const groupedConversations = useMemo(() => {
+    const buckets = new Map();
+    for (const f of orderedFolders) buckets.set(f.id, []);
+    for (const conv of filtered) {
+      const folderId =
+        typeof conv.folderId === "string" && conv.folderId.trim()
+          ? conv.folderId.trim()
+          : "inbox";
+      if (!buckets.has(folderId)) {
+        buckets.set(folderId, []);
+      }
+      buckets.get(folderId).push(conv);
+    }
+    const groups = orderedFolders
+      .map((folder) => ({ folder, items: buckets.get(folder.id) || [] }))
+      .filter((g) => g.items.length > 0 || !search.trim());
+    for (const [folderId, items] of buckets.entries()) {
+      if (orderedFolders.some((f) => f.id === folderId)) continue;
+      groups.push({
+        folder: {
+          id: folderId,
+          name: folderId,
+          collapsed: false,
+          system: false,
+        },
+        items,
+      });
+    }
+    return groups;
+  }, [orderedFolders, filtered, search]);
+
+  function openCreateFolderEditor() {
+    setNewFolderName("");
+    setShowCreateFolderEditor(true);
+  }
+
+  function submitCreateFolder() {
+    const name = newFolderName.trim();
+    if (!name) return;
+    onCreateFolder?.(name);
+    setShowCreateFolderEditor(false);
+    setNewFolderName("");
+  }
+
+  function promptRenameFolder(folder) {
+    if (!folder || folder.system) return;
+    const name = window.prompt("Rename folder", folder.name || "");
+    if (!name || name === folder.name) return;
+    onRenameFolder?.(folder.id, name);
+  }
 
   function handleContextMenu(e, h) {
     e.preventDefault();
+    const conversationFolderId = h.folderId || "inbox";
+    const moveItems = orderedFolders
+      .filter((f) => f.id !== conversationFolderId)
+      .slice(0, 12)
+      .map((f) => ({
+        icon: "📁",
+        label: `Move to ${f.name}`,
+        action: () => onMoveConversation?.(h.id, f.id),
+      }));
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -153,6 +250,7 @@ export default function Sidebar({
               label: "Archive",
               action: () => onArchive(h.id, true),
             },
+        ...(moveItems.length > 0 ? [{ divider: true }, ...moveItems] : []),
         { divider: true },
         {
           icon: "🗑️",
@@ -195,6 +293,17 @@ export default function Sidebar({
             <span>+</span>
             {!isCollapsed && <span>New Conversation</span>}
           </button>
+          {isCollapsed && (
+            <button
+              type="button"
+              onClick={openCreateFolderEditor}
+              className="w-10 h-8 mx-auto rounded-lg border border-slate-600/80 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+              title="Create folder"
+              aria-label="Create folder"
+            >
+              📁
+            </button>
+          )}
           {!isCollapsed && healthIssues > 0 && (
             <div className="space-y-1">
               <button
@@ -276,6 +385,14 @@ export default function Sidebar({
             </span>
             <button
               type="button"
+              onClick={openCreateFolderEditor}
+              className="cursor-pointer text-xs px-2 py-1 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+              title="Create folder"
+            >
+              + Folder
+            </button>
+            <button
+              type="button"
               onClick={() =>
                 multiSelectMode ? exitMultiSelect() : setMultiSelect(true)
               }
@@ -288,6 +405,45 @@ export default function Sidebar({
             >
               {multiSelectMode ? "✕ Cancel" : "☐ Select"}
             </button>
+          </div>
+        )}
+        {showCreateFolderEditor && (
+          <div
+            className={`${isCollapsed ? "absolute left-full top-2 ml-2 w-52" : "mx-3 mb-2"} z-20 glass rounded-lg border border-slate-600/70 p-2 space-y-2`}
+          >
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitCreateFolder();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setShowCreateFolderEditor(false);
+                }
+              }}
+              placeholder="Folder name"
+              className="w-full input-glow text-slate-200 text-xs rounded-md px-2 py-1.5 placeholder-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+              autoFocus
+            />
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={submitCreateFolder}
+                className="text-xs px-2 py-1 rounded-md bg-indigo-600/30 text-indigo-200 hover:bg-indigo-600/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+              >
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateFolderEditor(false)}
+                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
 
@@ -309,6 +465,26 @@ export default function Sidebar({
             <div className="flex-1" />
             {selectedIds.size > 0 && (
               <>
+                <select
+                  value={bulkMoveFolderId}
+                  onChange={(e) => setBulkMoveFolderId(e.target.value)}
+                  className="text-xs bg-slate-800 border border-slate-600 rounded-md px-2 py-1 text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                  aria-label="Move selected conversations to folder"
+                >
+                  {orderedFolders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleBulkAction(onBulkMove, bulkMoveFolderId)}
+                  className="cursor-pointer text-xs px-2 py-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/50"
+                  title="Move selected"
+                >
+                  📁 Move
+                </button>
                 <button
                   type="button"
                   onClick={() => handleBulkAction(onBulkExport, "md")}
@@ -365,7 +541,66 @@ export default function Sidebar({
               No chats
             </p>
           )}
-          {filtered.map((h) => {
+          {(isCollapsed ? [{ folder: null, items: filtered }] : groupedConversations).map(
+            (group) => {
+              const folder = group.folder;
+              const items = group.items;
+              const folderCollapsed = !!folder?.collapsed;
+              return (
+                <div key={folder ? folder.id : "flat-list"} className="mb-1">
+                  {!isCollapsed && folder && (
+                    <div className="flex items-center gap-1 px-2 py-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onToggleFolderCollapsed?.(folder.id, !folderCollapsed)
+                        }
+                        className="text-slate-400 hover:text-slate-200 text-xs px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                        aria-label={
+                          folderCollapsed
+                            ? `Expand ${folder.name}`
+                            : `Collapse ${folder.name}`
+                        }
+                      >
+                        {folderCollapsed ? "▸" : "▾"}
+                      </button>
+                      <span className="text-xs text-slate-400 truncate">
+                        {folder.name}
+                      </span>
+                      <span className="text-[10px] text-slate-600">
+                        {items.length}
+                      </span>
+                      {!folder.system && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => promptRenameFolder(folder)}
+                            className="ml-auto text-[10px] text-slate-500 hover:text-slate-300 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                            title="Rename folder"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Delete folder "${folder.name}"? Conversations will move to Inbox.`,
+                                )
+                              ) {
+                                onDeleteFolder?.(folder.id);
+                              }
+                            }}
+                            className="text-[10px] text-slate-500 hover:text-red-300 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
+                            title="Delete folder"
+                          >
+                            🗑
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {folderCollapsed && !isCollapsed ? null : items.map((h) => {
             const modeIcon = modes?.find((m) => m.id === h.mode)?.icon || "💬";
             const isSelected = selectedIds.has(h.id);
             const rowLabel = `${h.title || "Untitled"}${h.mode ? `, ${h.mode}` : ""}`;
@@ -479,6 +714,10 @@ export default function Sidebar({
               </div>
             );
           })}
+                </div>
+              );
+            },
+          )}
         </div>
       </nav>
       {contextMenu && (

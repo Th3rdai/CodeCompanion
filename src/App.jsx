@@ -510,6 +510,7 @@ export default function App() {
     activeConvId,
     setActiveConvId,
     history,
+    folders,
     sendBurst,
     renaming,
     setRenaming,
@@ -517,6 +518,7 @@ export default function App() {
     setShowArchived,
     stats,
     fetchHistory,
+    fetchFolders,
     loadConversation,
     deleteConversation,
     renameConversation,
@@ -525,6 +527,12 @@ export default function App() {
     bulkDeleteConversations,
     bulkExportConversations,
     bulkArchiveConversations,
+    moveConversationToFolder,
+    bulkMoveConversations,
+    createHistoryFolder,
+    renameHistoryFolder,
+    setFolderCollapsed,
+    deleteHistoryFolder,
     handleRenameRequest,
     startNew,
     handleSend,
@@ -704,6 +712,7 @@ export default function App() {
     fetchConfig();
     refreshModels();
     fetchHistory();
+    fetchFolders();
     fetchBuildProjects();
     apiFetch("/api/config")
       .then((r) => r.json())
@@ -824,6 +833,7 @@ export default function App() {
   }
 
   async function handleSaveReview(reviewData) {
+    const existing = history.find((h) => h.id === activeConvId);
     const title = reviewData.filename
       ? `Review: ${reviewData.filename}`
       : `Code Review (${new Date().toLocaleString()})`;
@@ -835,6 +845,7 @@ export default function App() {
       messages: [],
       reviewData,
       createdAt: new Date().toISOString(),
+      ...(existing?.folderId ? { folderId: existing.folderId } : {}),
     };
     try {
       const res = await apiFetch("/api/history", {
@@ -851,6 +862,7 @@ export default function App() {
 
   const handleSaveBuilder = useCallback(
     (data) => {
+      const existing = history.find((h) => h.id === activeConvId);
       const convData = {
         id: activeConvId || undefined,
         title: `${data.modeId === "prompting" ? "Prompt" : data.modeId === "skillz" ? "Skill" : "Agent"}: ${data.formData?.skillName || data.formData?.agentName || data.formData?.purpose || "Untitled"} (${new Date().toLocaleString()})`,
@@ -859,6 +871,7 @@ export default function App() {
         messages: [],
         builderData: data,
         overallGrade: data.scoreData?.overallGrade,
+        ...(existing?.folderId ? { folderId: existing.folderId } : {}),
       };
       apiFetch("/api/history", {
         method: "POST",
@@ -872,7 +885,7 @@ export default function App() {
         });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeConvId, selectedModel],
+    [activeConvId, history, selectedModel],
   );
 
   async function handleUpdateReviewDeepDive(deepDiveMessages) {
@@ -892,6 +905,7 @@ export default function App() {
   }
 
   async function handleSavePentest(pentestData) {
+    const existing = history.find((h) => h.id === activeConvId);
     const title = pentestData.filename
       ? `Security: ${pentestData.filename}`
       : `Security Scan (${new Date().toLocaleString()})`;
@@ -903,6 +917,7 @@ export default function App() {
       messages: [],
       pentestData,
       createdAt: new Date().toISOString(),
+      ...(existing?.folderId ? { folderId: existing.folderId } : {}),
     };
     try {
       const res = await apiFetch("/api/history", {
@@ -1199,6 +1214,7 @@ export default function App() {
 
       <Sidebar
         history={history}
+        folders={folders}
         activeId={activeConvId}
         onSelect={loadConversation}
         onNew={startNew}
@@ -1209,6 +1225,12 @@ export default function App() {
         onBulkDelete={bulkDeleteConversations}
         onBulkExport={bulkExportConversations}
         onBulkArchive={bulkArchiveConversations}
+        onMoveConversation={moveConversationToFolder}
+        onBulkMove={bulkMoveConversations}
+        onCreateFolder={createHistoryFolder}
+        onRenameFolder={renameHistoryFolder}
+        onToggleFolderCollapsed={setFolderCollapsed}
+        onDeleteFolder={deleteHistoryFolder}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}

@@ -30,6 +30,7 @@ export function useChat({
   const [messages, setMessages] = useState([]);
   const [streaming, setStreaming] = useState(false);
   const [history, setHistory] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [activeConvId, setActiveConvId] = useState(null);
   const [linkedExperimentIds, setLinkedExperimentIds] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
@@ -50,6 +51,14 @@ export function useChat({
     try {
       const res = await apiFetch("/api/history");
       setHistory(await res.json());
+    } catch {}
+  }
+
+  async function fetchFolders() {
+    try {
+      const res = await apiFetch("/api/history/folders");
+      const data = await res.json();
+      setFolders(Array.isArray(data) ? data : []);
     } catch {}
   }
 
@@ -129,6 +138,12 @@ export function useChat({
       if (existing) {
         conv.createdAt = normalizeCreatedAt(existing.createdAt);
         if (existing.archived) conv.archived = existing.archived;
+        if (existing.folderId && conv.folderId === undefined) {
+          conv.folderId = existing.folderId;
+        }
+        if (existing.summary && conv.summary === undefined) {
+          conv.summary = existing.summary;
+        }
       }
     }
     conv.createdAt =
@@ -264,6 +279,115 @@ export function useChat({
       }
     } catch (e) {
       showToast(`Delete failed: ${e.message}`);
+    }
+  }
+
+  async function moveConversationToFolder(id, folderId) {
+    if (!id) return;
+    const targetFolderId = folderId || "inbox";
+    try {
+      const res = await apiFetch(`/api/history/${encodeURIComponent(id)}/folder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId: targetFolderId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Move failed");
+      }
+      fetchHistory();
+      showToast("Conversation moved");
+    } catch (e) {
+      showToast(`Move failed: ${e.message}`);
+    }
+  }
+
+  async function bulkMoveConversations(ids, folderId) {
+    const validIds = ids.filter(Boolean);
+    if (validIds.length === 0) return;
+    const targetFolderId = folderId || "inbox";
+    try {
+      const res = await apiFetch("/api/history/batch-move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: validIds, folderId: targetFolderId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Batch move failed");
+      fetchHistory();
+      showToast(
+        `Moved ${data.ok || 0} conversation${(data.ok || 0) === 1 ? "" : "s"}${data.failed ? `, failed ${data.failed}` : ""}`,
+      );
+    } catch (e) {
+      showToast(`Batch move failed: ${e.message}`);
+    }
+  }
+
+  async function createHistoryFolder(name) {
+    const folderName = typeof name === "string" ? name.trim() : "";
+    if (!folderName) return;
+    try {
+      const res = await apiFetch("/api/history/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: folderName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Create folder failed");
+      fetchFolders();
+      showToast("Folder created");
+    } catch (e) {
+      showToast(`Create folder failed: ${e.message}`);
+    }
+  }
+
+  async function renameHistoryFolder(id, name) {
+    const folderName = typeof name === "string" ? name.trim() : "";
+    if (!id || !folderName) return;
+    try {
+      const res = await apiFetch(`/api/history/folders/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: folderName }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Rename folder failed");
+      fetchFolders();
+      showToast("Folder renamed");
+    } catch (e) {
+      showToast(`Rename folder failed: ${e.message}`);
+    }
+  }
+
+  async function setFolderCollapsed(id, collapsed) {
+    if (!id) return;
+    try {
+      await apiFetch(`/api/history/folders/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collapsed: !!collapsed }),
+      });
+      setFolders((prev) =>
+        prev.map((f) => (f.id === id ? { ...f, collapsed: !!collapsed } : f)),
+      );
+    } catch {}
+  }
+
+  async function deleteHistoryFolder(id) {
+    if (!id || id === "inbox") return;
+    try {
+      const res = await apiFetch(`/api/history/folders/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Delete folder failed");
+      fetchFolders();
+      fetchHistory();
+      showToast(
+        `Folder deleted, moved ${data.movedCount || 0} conversation${(data.movedCount || 0) === 1 ? "" : "s"} to Inbox`,
+      );
+    } catch (e) {
+      showToast(`Delete folder failed: ${e.message}`);
     }
   }
 
@@ -849,6 +973,7 @@ export function useChat({
     stats,
     setStats,
     fetchHistory,
+    fetchFolders,
     loadConversation,
     saveConversation,
     deleteConversation,
@@ -858,6 +983,12 @@ export function useChat({
     bulkDeleteConversations,
     bulkExportConversations,
     bulkArchiveConversations,
+    moveConversationToFolder,
+    bulkMoveConversations,
+    createHistoryFolder,
+    renameHistoryFolder,
+    setFolderCollapsed,
+    deleteHistoryFolder,
     handleRenameRequest,
     startNew,
     handleSend,
@@ -869,5 +1000,6 @@ export function useChat({
     pendingConfirm,
     setPendingConfirm,
     linkedExperimentIds,
+    folders,
   };
 }

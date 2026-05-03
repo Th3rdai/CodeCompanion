@@ -16,11 +16,29 @@ const {
   resolveEmbeddingModel,
   deriveProjectKey,
 } = require("../lib/memory");
+const {
+  SYSTEM_FOLDER_ID,
+  listFolders,
+  getFolder,
+  createFolder,
+  updateFolder,
+  deleteFolder,
+} = require("../lib/history-folders");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
   const { log, debug } = appContext;
+  const MAX_BATCH_MOVE = 200;
+  const MAX_FOLDER_REHOME = 1000;
+
+  function moveConversationToFolder(conversationId, folderId) {
+    const targetFolder = getFolder(folderId);
+    if (!targetFolder) throw new Error("Folder not found");
+    const conv = getConversation(conversationId);
+    conv.folderId = targetFolder.id;
+    saveConversation(conv);
+  }
 
   // ── GET /api/history ─────────────────────────────────
   router.get("/history", (req, res) => {
@@ -30,6 +48,107 @@ module.exports = function createRouter(appContext) {
     } catch (err) {
       log("ERROR", "Failed to load history", { error: err.message });
       res.json([]);
+    }
+  });
+
+  // ── GET /api/history/folders ──────────────────────────
+  router.get("/history/folders", (req, res) => {
+    try {
+      res.json(listFolders());
+    } catch (err) {
+      log("ERROR", "Failed to load history folders", { error: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
+    }
+  });
+
+  // ── POST /api/history/folders ─────────────────────────
+  router.post("/history/folders", (req, res) => {
+    try {
+      const folder = createFolder({
+        id: req.body?.id,
+        name: req.body?.name,
+        color: req.body?.color,
+      });
+      debug("History folder created", { id: folder.id });
+      res.status(201).json(folder);
+    } catch (err) {
+      const status =
+        err.message.includes("already exists") ||
+        err.message.includes("required") ||
+        err.message.includes("must be")
+          ? 400
+          : 500;
+      res
+        .status(status)
+        .json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
+    }
+  });
+
+  // ── PATCH /api/history/folders/:id ────────────────────
+  router.patch("/history/folders/:id", (req, res) => {
+    try {
+      const folder = updateFolder(req.params.id, {
+        name: req.body?.name,
+        color: req.body?.color,
+        position: req.body?.position,
+        collapsed: req.body?.collapsed,
+      });
+      res.json(folder);
+    } catch (err) {
+      let status = 500;
+      if (
+        err.message.includes("not found") ||
+        err.message.includes("already exists") ||
+        err.message.includes("required") ||
+        err.message.includes("must be") ||
+        err.message.includes("cannot be changed")
+      ) {
+        status = 400;
+      }
+      res
+        .status(status)
+        .json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
+    }
+  });
+
+  // ── DELETE /api/history/folders/:id ───────────────────
+  router.delete("/history/folders/:id", (req, res) => {
+    try {
+      const folderId = req.params.id;
+      const members = listConversations().filter(
+        (c) => c.folderId === folderId,
+      );
+      if (members.length > MAX_FOLDER_REHOME) {
+        return res.status(400).json({
+          error: `Folder has too many conversations to delete safely (>${MAX_FOLDER_REHOME})`,
+        });
+      }
+      for (const conv of members) {
+        moveConversationToFolder(conv.id, SYSTEM_FOLDER_ID);
+      }
+      const deleted = deleteFolder(folderId);
+      debug("History folder deleted", {
+        id: folderId,
+        movedToInbox: members.length,
+      });
+      res.json({
+        ok: true,
+        deleted,
+        movedToFolderId: SYSTEM_FOLDER_ID,
+        movedCount: members.length,
+      });
+    } catch (err) {
+      let status = 500;
+      if (
+        err.message.includes("cannot be deleted") ||
+        err.message.includes("not found") ||
+        err.message.includes("required")
+      ) {
+        status = 400;
+      }
+      res
+        .status(status)
+        .json({ error: status === 400 ? err.message : CLIENT_INTERNAL_ERROR });
     }
   });
 
@@ -59,6 +178,36 @@ module.exports = function createRouter(appContext) {
       res
         .status(status)
         .json({ error: status === 404 ? "Not found" : err.message });
+    }
+  });
+
+  // ── PATCH /api/history/:id/folder ─────────────────────
+  router.patch("/history/:id/folder", (req, res) => {
+    try {
+      const folderId =
+        typeof req.body?.folderId === "string" && req.body.folderId.trim()
+          ? req.body.folderId.trim()
+          : SYSTEM_FOLDER_ID;
+      moveConversationToFolder(req.params.id, folderId);
+      res.json({ ok: true, id: req.params.id, folderId });
+    } catch (err) {
+      let status = 500;
+      if (
+        err.message.includes("Invalid conversation id") ||
+        err.message.includes("Folder not found")
+      ) {
+        status = 400;
+      } else if (err.message === "Conversation not found") {
+        status = 404;
+      }
+      res.status(status).json({
+        error:
+          status === 404
+            ? "Not found"
+            : status === 400
+              ? err.message
+              : CLIENT_INTERNAL_ERROR,
+      });
     }
   });
 
@@ -184,6 +333,11 @@ module.exports = function createRouter(appContext) {
   router.delete("/history/:id", (req, res) => {
     try {
       deleteConversation(req.params.id);
+      // deleteMemoriesBySource only removes memories whose source === conversationId.
+      // After the agent/project scoping migration, agent facts (source: null) and
+      // project patterns (source: null) intentionally survive conversation deletes —
+      // they represent durable knowledge about the user and codebase, not ephemeral
+      // chat state. Only summaries (source = conversationId) are cascaded here.
       const removedMemories = deleteMemoriesBySource(req.params.id);
       debug("Conversation deleted", {
         id: req.params.id,
@@ -229,6 +383,43 @@ module.exports = function createRouter(appContext) {
       `Batch delete: ${ok} deleted, ${failed} failed, ${cascadedMemories} memories cascaded`,
     );
     res.json({ ok, failed, cascadedMemories });
+  });
+
+  // ── POST /api/history/batch-move ──────────────────────
+  router.post("/history/batch-move", (req, res) => {
+    const { ids } = req.body;
+    const folderId =
+      typeof req.body?.folderId === "string" && req.body.folderId.trim()
+        ? req.body.folderId.trim()
+        : SYSTEM_FOLDER_ID;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "ids must be a non-empty array" });
+    }
+    if (ids.length > MAX_BATCH_MOVE) {
+      return res
+        .status(400)
+        .json({ error: `Maximum ${MAX_BATCH_MOVE} moves per batch` });
+    }
+    if (!getFolder(folderId)) {
+      return res.status(400).json({ error: "Folder not found" });
+    }
+
+    let ok = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        moveConversationToFolder(id, folderId);
+        ok++;
+      } catch {
+        failed++;
+      }
+    }
+    log(
+      "INFO",
+      `Batch move: ${ok} moved, ${failed} failed, folder=${folderId}`,
+    );
+    res.json({ ok, failed, folderId });
   });
 
   return router;

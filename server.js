@@ -13,6 +13,7 @@ const os = require("os");
 const { createLogger } = require("./lib/logger");
 const { initConfig, getConfig, updateConfig } = require("./lib/config");
 const { initHistory, listConversations } = require("./lib/history");
+const { initHistoryFolders } = require("./lib/history-folders");
 const {
   initExperimentStore,
   sweepStaleActiveExperiments,
@@ -58,6 +59,7 @@ const useHttps =
 const dataRoot = process.env.CC_DATA_DIR || __dirname;
 initConfig(dataRoot);
 initHistory(dataRoot);
+initHistoryFolders(dataRoot);
 initExperimentStore(dataRoot);
 initMemory(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
