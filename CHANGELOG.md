@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mermaid PNG export reliability in Electron/web shells.** Added multi-path SVG rasterization fallback (`createImageBitmap` → data URI image → blob URL image), plus a foreignObject-strip retry path when canvas draw fails with HTML-label diagrams. Export now reports explicit success/error status and uses save-picker/download fallback instead of appearing to no-op.
+- **Mermaid toolbar expand icon behavior.** The previous icon near zoom controls only reset zoom, which looked broken for users expecting a preview/expand action. It now opens a fullscreen diagram preview modal with close button, backdrop click, and Escape key support.
+
+### Added
+
+- **Per-diagram light/dark theme toggle** in Mermaid toolbar (persisted in localStorage). Light theme is now default for readability on bright displays.
+- **Theme-aware PNG background export** so exported diagrams match the selected diagram theme.
+
 ## [1.6.40] — 2026-05-05
 
 ### Fixed
