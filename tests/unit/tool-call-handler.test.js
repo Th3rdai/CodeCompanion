@@ -468,6 +468,29 @@ test("buildToolsPrompt includes anti-hallucination block and sourcePath hint for
   );
 });
 
+test("buildToolsPrompt defaults to in-chat answers and no file creation unless asked", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    { getAllTools: () => [] },
+    { getConfig: () => ({}) },
+  );
+  const p = h.buildToolsPrompt();
+  assert.ok(
+    p.includes("DEFAULT RESPONSE MODE"),
+    "expected default response mode guidance",
+  );
+  assert.ok(
+    p.includes("Do NOT create/save files by default."),
+    "expected explicit no-file-by-default instruction",
+  );
+  assert.ok(
+    p.includes(
+      "Only use file-writing tools when the user explicitly asks for a file artifact",
+    ),
+    "expected explicit file-artifact gate",
+  );
+});
+
 test("buildToolsPrompt includes agent identity override forbidding teacher-deflection phrases", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler(
