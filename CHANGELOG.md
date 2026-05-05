@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Mermaid PNG export reliability in Electron/web shells.** Added multi-path SVG rasterization fallback (`createImageBitmap` → data URI image → blob URL image), plus a foreignObject-strip retry path when canvas draw fails with HTML-label diagrams. Export now reports explicit success/error status and uses save-picker/download fallback instead of appearing to no-op.
 - **Mermaid toolbar expand icon behavior.** The previous icon near zoom controls only reset zoom, which looked broken for users expecting a preview/expand action. It now opens a fullscreen diagram preview modal with close button, backdrop click, and Escape key support.
+- **Dependabot alert GHSA-v2v4-37r5-5v8g (ip-address XSS).** Added an npm override to force transitive `ip-address` to `10.1.1` and refreshed lockfile/install resolution (`npm ls ip-address` now shows `10.1.1` for all paths).
 
 ### Added
 
