@@ -87,7 +87,14 @@ jobs:
             platform: mac-x64
             script: electron:build:mac:x64
             npm_config_arch: x64
-          - os: windows-latest
+          # Pinned to windows-2022 (not windows-latest). As of 2026-05,
+          # `windows-latest` redirects to `windows-2025-vs2026`, which ships
+          # Visual Studio 2026 — and the bundled node-gyp can't locate VS2026,
+          # breaking the node-pty native rebuild ("Could not find any Visual
+          # Studio installation to use"). Stay on windows-2022 (VS 2022) until
+          # node-gyp adds VS2026 support. v1.6.40 Windows build hit this; the
+          # release shipped Mac + Linux only.
+          - os: windows-2022
             platform: win
             script: electron:build:win
           - os: ubuntu-latest
