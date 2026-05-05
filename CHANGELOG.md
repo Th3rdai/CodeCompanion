@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.40] — 2026-05-05
+
+### Fixed
+
+- **PDF review pipeline — `/files/read-raw` 404 root cause.** Browsing a folder other than `projectFolder` (e.g. `~/Documents`) caused every convertible-document click to 404 because `/api/files/read-raw` only resolved against `config.projectFolder`. The route now mirrors `/files/read` and accepts `?folder=` validated against `[projectFolder, chatFolder, repo root]`, with the existing path-traversal check preserved. Was: PDF preview surfaced a generic "Ensure docling-serve is running" error stub, which the user could attach to chat as the file body, and `gemma4:latest` then fabricated a 53.9 KB file via `generate_office_file`.
+- **FileBrowser preview-attach gate.** Read failures and conversion failures now produce distinct, accurate error messages (read failure no longer blames Docling), and the **+ Attach to Chat** button is disabled when the preview is in an error state with the label `Cannot attach (preview failed)` — closing the path that fed an error stub into chat as a file body.
+- **Chat-mode file-write default-deny.** In chat mode, `builtin.write_file` and `builtin.generate_office_file` are now blocked unless the user explicitly asks for a file artefact (`save as a markdown file`, `export to PDF`, `generate a docx report`, etc.). Other modes (Build / Create / Validate) are unaffected — they produce files via dedicated UI flows. Previously, models could quietly drop unrequested summaries to disk.
+- **Intent regexes ignore attached file content.** Helpers like `userLikelyRequestedActionableToolWork`, `userExplicitlyDisallowsFileWrites`, `userExplicitlyRequestsFileWrites`, and `userRequestedBrowserContentAnswer` now strip the `\n---\nATTACHED FILES:` block before pattern-matching. Prevents PDF body words (`run`, `check`, `file`, `tool`) from spuriously flipping the `actionable` flag and forcing a tool-call corrective retry on benign prompts like `please review and summarize this pdf`.
+- **Meta-response cascade detection.** When the model explains the file-write policy instead of answering ("This is a safety feature, not a failure…"), `looksLikeFileWritePolicyMetaResponse` now triggers a corrective retry that instructs the model to continue answering in chat directly. Up to 2 retries before falling through.
+- **Duplicate-tool-loop guardrail.** Identical `tool+args` signatures emitted in consecutive rounds (a known Gemma/llava failure mode that produced repeated `generate_office_file` calls with fabricated content) are now broken on the second occurrence; final text is synthesized from accumulated tool results instead.
+- **Accept prose after tool execution.** When a tool has already executed in the turn and the model returns prose with no further `TOOL_CALL`, the chat handler now accepts the prose as the final answer instead of retrying. Prevents retry spirals after successful actions.
+
+### Added
+
+- **System-prompt `DEFAULT RESPONSE MODE` policy** in `lib/tool-call-handler.js`: explanation/summary/review/analysis tasks default to in-chat answers; file-writing tools are reserved for explicit user requests or genuine project-edit tasks.
+- **`docs/runbooks/PDF-REVIEW-RECOVERY.md`** — full remediation runbook covering Dry Run, macOS 26.3 LaunchServices state hygiene, install/rollback chain, dual-path acceptance test, and cowork-side pipx Docling fix.
+- **64 new unit tests** across `tests/unit/files-read-raw.test.js`, `tests/unit/chat-post-handler-guardrails.test.js`, and additions to `tests/unit/tool-call-handler.test.js` — covering folder-param validation, attachment-strip behaviour, intent-regex false-positive guards, signature stability, prompt-policy text, and meta-response detection.
+
+### Validation
+
+- 506 unit tests pass (was 446 → +60 net), lint clean, prettier clean
+- Live route check: `/files/read-raw` returns the actual PDF (200, 2.5 MB) for the original 404 scenario
+- Live chat trace from the patched bundle: `Blocked file-writing tool — chat mode default-deny` fires when the model attempts an unrequested `write_file`; meta-response cascade detection fires when the model explains the policy instead of answering
+
 ## [1.6.38] — 2026-05-03
 
 ### Added
