@@ -345,7 +345,15 @@ export default function FileBrowser({
         const rawRes = await apiFetch(
           `/api/files/read-raw?path=${encodeURIComponent(node.path)}${folderParam}`,
         );
-        if (!rawRes.ok) throw new Error("Failed to read file");
+        if (!rawRes.ok) {
+          const errBody = await rawRes
+            .json()
+            .catch(() => ({ error: `HTTP ${rawRes.status}` }));
+          const reason = errBody?.error || `HTTP ${rawRes.status}`;
+          const err = new Error(reason);
+          err.stage = "read";
+          throw err;
+        }
         const blob = await rawRes.blob();
         const file = new File([blob], node.name);
         const result = await convertDocument(file);
@@ -360,11 +368,15 @@ export default function FileBrowser({
         });
       } catch (err) {
         console.error("Document conversion failed:", err);
+        const isReadFailure = err?.stage === "read";
+        const body = isReadFailure
+          ? `Could not read ${node.name}: ${err.message}\n\nThis file may be outside the active folder. Check the file browser's project/chat folder in Settings.`
+          : `Could not convert ${node.name}: ${err.message}\n\nEnsure docling-serve is running. See Settings → General.`;
         setPreview({
           path: node.path,
           name: node.name,
-          content: `Error converting ${node.name}: ${err.message}\n\nEnsure docling-serve is running. See Settings → General.`,
-          lines: 3,
+          content: body,
+          lines: body.split("\n").length,
           size: 0,
           error: true,
         });
@@ -399,7 +411,7 @@ export default function FileBrowser({
   }
 
   function handleAttach() {
-    if (preview) {
+    if (preview && !preview.error) {
       onAttachFile({
         name: preview.name,
         path: preview.path,
@@ -963,9 +975,12 @@ export default function FileBrowser({
           <div className="p-2 border-t border-slate-700/30">
             <button
               onClick={handleAttach}
-              className="w-full btn-neon text-white text-sm rounded-lg py-2.5 font-medium"
+              disabled={!!preview.error}
+              className="w-full btn-neon text-white text-sm rounded-lg py-2.5 font-medium disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {attachLabel || "+ Attach to Chat"}
+              {preview.error
+                ? "Cannot attach (preview failed)"
+                : attachLabel || "+ Attach to Chat"}
             </button>
           </div>
         </div>

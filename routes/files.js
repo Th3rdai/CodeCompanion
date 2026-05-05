@@ -168,11 +168,28 @@ module.exports = function createRouter(appContext) {
   // ── GET /api/files/read-raw ───────────────────────────
   router.get("/files/read-raw", (req, res) => {
     const config = getConfig();
-    const folder = config.projectFolder;
     const relativePath = req.query.path;
+    let folder = req.query.folder
+      ? path.resolve(req.query.folder)
+      : config.chatFolder || config.projectFolder;
 
     if (!folder || !relativePath) {
       return res.status(400).json({ error: "Missing folder or path" });
+    }
+
+    if (req.query.folder) {
+      const allowedRoots = [
+        config.projectFolder,
+        config.chatFolder,
+        path.join(__dirname, ".."),
+      ].filter(Boolean);
+      const absFolder = path.resolve(folder);
+      const allowed = allowedRoots.some(
+        (root) =>
+          absFolder === path.resolve(root) ||
+          absFolder.startsWith(path.resolve(root) + path.sep),
+      );
+      if (!allowed) return res.status(403).json({ error: "Access denied" });
     }
 
     const absPath = path.resolve(folder, relativePath);
