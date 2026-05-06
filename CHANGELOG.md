@@ -9,16 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.41] — 2026-05-05
+
+### Added
+
+- **Per-diagram light/dark theme toggle** in Mermaid toolbar (persisted in localStorage). Light theme is now default for readability on bright displays.
+- **Theme-aware PNG background export** so exported diagrams match the selected diagram theme.
+- **Model dropdown sorted by context size, largest first.** `listModels()` now calls `/api/show` for each model returned by `/api/tags` (in parallel) and attaches a `contextLength` field from `model_info["{family}.context_length"]`. Cloud models that don't expose `model_info` fall back to a name-pattern heuristic (`CLOUD_MODEL_CONTEXT_HINTS`): claude / gemini / gpt-4* / minimax / kimi / qwen-max / qwen3-32k all get reasonable defaults; generic `:cloud` suffix defaults to 128K. Result is cached for the existing 45 s TTL — no extra HTTP traffic per chat. Dropdown rendering required no UI change.
+
 ### Fixed
 
 - **Mermaid PNG export reliability in Electron/web shells.** Added multi-path SVG rasterization fallback (`createImageBitmap` → data URI image → blob URL image), plus a foreignObject-strip retry path when canvas draw fails with HTML-label diagrams. Export now reports explicit success/error status and uses save-picker/download fallback instead of appearing to no-op.
 - **Mermaid toolbar expand icon behavior.** The previous icon near zoom controls only reset zoom, which looked broken for users expecting a preview/expand action. It now opens a fullscreen diagram preview modal with close button, backdrop click, and Escape key support.
 - **Dependabot alert GHSA-v2v4-37r5-5v8g (ip-address XSS).** Added an npm override to force transitive `ip-address` to `10.1.1` and refreshed lockfile/install resolution (`npm ls ip-address` now shows `10.1.1` for all paths).
 
-### Added
+### CI / Build
 
-- **Per-diagram light/dark theme toggle** in Mermaid toolbar (persisted in localStorage). Light theme is now default for readability on bright displays.
-- **Theme-aware PNG background export** so exported diagrams match the selected diagram theme.
+- **Pinned Windows runner to `windows-2022`** (Visual Studio 2022). GitHub's `windows-latest` redirects to `windows-2025-vs2026` (Visual Studio 2026), and the bundled node-gyp can't locate VS2026 — every CI run failed with `Could not find any Visual Studio installation to use` during the `node-pty` rebuild. v1.6.40 silently shipped Mac + Linux only because of this; v1.6.41 ships all four platforms again.
+
+### Validation
+
+- 527 unit tests pass (+21 from v1.6.40 baseline), lint clean (1 warning, 0 errors), prettier clean.
 
 ## [1.6.40] — 2026-05-05
 
