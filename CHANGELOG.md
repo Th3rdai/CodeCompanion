@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Dependabot — Hono (moderate).** Bumped npm `overrides.hono` from `>=4.12.14` to `>=4.12.18` so transitive `hono` via `@modelcontextprotocol/sdk` resolves past GHSA-9vqf-7f2p-gf9v (bodyLimit bypass) and GHSA-69xw-7hcm-h432 (JSX tag validation). Lockfile refreshed to `hono@4.12.18`.
+
 ### Changed
 
 - **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.
