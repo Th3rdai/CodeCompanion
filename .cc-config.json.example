@@ -1,6 +1,8 @@
 {
+  "$docs": "See docs/CC-CONFIG.md for field reference, docs/ENVIRONMENT_VARIABLES.md for env precedence, docs/MCP-SANDBOX-PATTERNS.md for external MCP server patterns (sandboxed execution + indexed search). Do NOT bundle third-party MCP servers in installers.",
   "ollamaUrl": "http://localhost:11434",
   "ollamaApiKey": "",
+  "dictateGroqApiKey": "",
   "icmTemplatePath": "",
   "reviewTimeoutSec": 300,
   "chatTimeoutSec": 600,
@@ -87,6 +89,7 @@
     "commandProfile": "safe",
     "confirmBeforeApply": false
   },
+  "chatRequireExplicitFileWrites": false,
   "mcpServer": {
     "httpEnabled": true
   }

@@ -29,6 +29,9 @@ const {
 const { buildFileTree, readProjectFile } = require("./lib/file-browser");
 const McpClientManager = require("./lib/mcp-client-manager");
 const ToolCallHandler = require("./lib/tool-call-handler");
+const {
+  agentTerminalAllowlistPermitsAll,
+} = require("./lib/builtin-agent-tools");
 const { createMcpApiRoutes } = require("./lib/mcp-api-routes");
 const {
   checkConnection: checkDocling,
@@ -73,6 +76,23 @@ try {
   log("WARN", "Experiment sweep failed", { error: err.message });
 }
 
+// CTXFIX Phase 3 — one-shot startup sweep of externalized tool-result
+// artifacts older than 7 days. No-op when projectFolder is unset.
+try {
+  const {
+    gcOlderThan: gcToolResultsOlderThan,
+  } = require("./lib/tool-result-artifacts");
+  const folder = String(getConfig().projectFolder || "").trim();
+  if (folder) {
+    const removed = gcToolResultsOlderThan(folder);
+    if (removed > 0) {
+      log("INFO", "Tool-result artifacts swept on startup", { removed });
+    }
+  }
+} catch (err) {
+  log("WARN", "Tool-result artifact sweep failed", { error: err.message });
+}
+
 const {
   createRequireLocalOrApiKey,
   createCorsOptions,
@@ -113,7 +133,8 @@ function jsonBodyLimit(req) {
     p.startsWith("/api/experiment/") ||
     p === "/api/review" ||
     p === "/api/convert-document" ||
-    p.startsWith("/api/pentest")
+    p.startsWith("/api/pentest") ||
+    p === "/api/dictate-transcribe"
   )
     return "50mb";
   return "5mb";
@@ -276,6 +297,7 @@ const createMemoryRouter = require("./routes/memory");
 const createFilesRouter = require("./routes/files");
 const createScoreRouter = require("./routes/score");
 const createValidateRouter = require("./routes/validate");
+const createDictateTranscribeRouter = require("./routes/dictate-transcribe");
 
 const appContext = {
   config,
@@ -304,6 +326,7 @@ app.use("/api", createChatRouter(appContext));
 app.use("/api", createExperimentRouter(appContext));
 app.use("/api", createReviewRouter(appContext));
 app.use("/api", createPentestRouter(appContext));
+app.use("/api", createDictateTranscribeRouter(appContext));
 
 // ── GET /api/models ──────────────────────────────────
 
@@ -343,16 +366,131 @@ app.get("/api/models", async (req, res) => {
 const {
   listDemotedModels,
   clearDemotions,
+  getContextLengthForModel,
+  resolveAutoModel,
+  isCloudModelName,
 } = require("./lib/auto-model");
+const { effectiveOllamaApiKey } = require("./lib/ollama-client");
 
 app.get("/api/auto-model/demotions", requireLocalOrApiKey, (req, res) => {
   res.json({ demoted: listDemotedModels() });
 });
 
-app.post("/api/auto-model/demotions/clear", requireLocalOrApiKey, (req, res) => {
-  clearDemotions();
-  log("INFO", "Auto-model demotions cleared");
-  res.json({ ok: true });
+app.post(
+  "/api/auto-model/demotions/clear",
+  requireLocalOrApiKey,
+  (req, res) => {
+    clearDemotions();
+    log("INFO", "Auto-model demotions cleared");
+    res.json({ ok: true });
+  },
+);
+
+// ── GET /api/model-context ───────────────────────────
+// Phase 1a: backend half of preflight banner. Frontend (Phase 1b) calls this
+// when `selectedModel` or `ollamaUrl` changes (per-name path) and on every
+// pendingInput / messages keystroke (auto path with hysteresis bucket).
+//
+// `?name=<modelName>`  → { contextLength, source: "show" | "cloud-hint" | "unknown" }
+// `?auto=1&estimatedTokens=<N>` → { contextLength, source, resolvedModel }
+//
+// `contextLength` is `null` when unknown so the frontend can render
+// "Context length unknown" without a 0/falsy ambiguity. The internal
+// helper returns a number (`0` = unknown) and only the route handler
+// converts at the JSON boundary.
+const MODEL_CTX_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const MODEL_CTX_HYSTERESIS = 256; // tokens — keystroke flicker absorber
+const _modelContextCache = new Map(); // key: `${ollamaUrl}|${name|auto:bucket}` → {at, value}
+
+function _modelContextLabelSource(name, contextLength) {
+  if (contextLength <= 0) return "unknown";
+  return isCloudModelName(name) ? "cloud-hint" : "show";
+}
+
+async function _resolveModelContextForName(name, config) {
+  const ollamaUrl = config.ollamaUrl;
+  const apiKey = effectiveOllamaApiKey(config);
+  const key = `${ollamaUrl}|${name}`;
+  const cached = _modelContextCache.get(key);
+  const now = Date.now();
+  if (cached && now - cached.at < MODEL_CTX_TTL_MS) {
+    return cached.value;
+  }
+  const ctx = await getContextLengthForModel(name, ollamaUrl, apiKey);
+  const value = {
+    contextLength: ctx > 0 ? ctx : null,
+    source: _modelContextLabelSource(name, ctx),
+  };
+  _modelContextCache.set(key, { at: now, value });
+  return value;
+}
+
+app.get("/api/model-context", requireLocalOrApiKey, async (req, res) => {
+  const config = getConfig();
+  const ollamaUrl = config.ollamaUrl;
+  try {
+    const isAuto = String(req.query.auto || "") === "1";
+    if (isAuto) {
+      const estimatedTokensRaw = parseInt(req.query.estimatedTokens, 10);
+      const estimatedTokens =
+        Number.isFinite(estimatedTokensRaw) && estimatedTokensRaw > 0
+          ? estimatedTokensRaw
+          : 0;
+      // Hysteresis bucket — round DOWN to the nearest 256 tokens so a fast
+      // typist's keystroke flicker stays in the same cache slot. 256 was
+      // chosen so the banner shows new info on roughly every paragraph.
+      const bucket =
+        Math.floor(estimatedTokens / MODEL_CTX_HYSTERESIS) *
+        MODEL_CTX_HYSTERESIS;
+      const mode = String(req.query.mode || "chat");
+      const cacheKey = `${ollamaUrl}|auto:${mode}:${bucket}`;
+      const cached = _modelContextCache.get(cacheKey);
+      const now = Date.now();
+      if (cached && now - cached.at < MODEL_CTX_TTL_MS) {
+        return res.json(cached.value);
+      }
+
+      const autoResult = await resolveAutoModel({
+        requestedModel: "auto",
+        mode,
+        estimatedTokens,
+        config,
+        ollamaUrl,
+        ollamaOpts: { apiKey: effectiveOllamaApiKey(config) },
+      });
+      const resolved =
+        autoResult && autoResult.resolved ? autoResult.resolved : "";
+      if (!resolved) {
+        const value = {
+          contextLength: null,
+          source: "unknown",
+          resolvedModel: "",
+        };
+        _modelContextCache.set(cacheKey, { at: now, value });
+        return res.json(value);
+      }
+      const inner = await _resolveModelContextForName(resolved, config);
+      const value = { ...inner, resolvedModel: resolved };
+      _modelContextCache.set(cacheKey, { at: now, value });
+      return res.json(value);
+    }
+
+    const name = String(req.query.name || "").trim();
+    if (!name) {
+      return res
+        .status(400)
+        .json({ error: "Missing 'name' or 'auto=1' query parameter." });
+    }
+    const value = await _resolveModelContextForName(name, config);
+    return res.json(value);
+  } catch (err) {
+    log("ERROR", "model-context lookup failed", {
+      message: err.message,
+    });
+    return res
+      .status(500)
+      .json({ error: "model-context lookup failed", detail: err.message });
+  }
 });
 
 // ── Docling health check ─────────────────────────────
@@ -407,10 +545,14 @@ app.get("/api/agent-terminal/test", requireLocalOrApiKey, (req, res) => {
       error: "No project folder configured. Set one in Settings → General.",
     });
   }
-  if (!terminal.allowlist || terminal.allowlist.length === 0) {
+  if (
+    !agentTerminalAllowlistPermitsAll(terminal) &&
+    (!terminal.allowlist || terminal.allowlist.length === 0)
+  ) {
     return res.json({
       ok: false,
-      error: "Allowlist is empty — add commands in Settings → Agent Terminal.",
+      error:
+        "Allowlist is empty — add commands in Settings → Agent Terminal, or use * to allow all (blocklist still applies).",
     });
   }
 

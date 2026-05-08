@@ -11,7 +11,7 @@ const {
 
 test("parseOllamaErrMsg extracts status and JSON error detail after em-dash", () => {
   const err =
-    'Ollama error: 500 — model runner has unexpectedly stopped, CUDA error';
+    "Ollama error: 500 — model runner has unexpectedly stopped, CUDA error";
   assert.deepStrictEqual(parseOllamaErrMsg(err), {
     status: 500,
     detail: "model runner has unexpectedly stopped, CUDA error",
@@ -84,8 +84,7 @@ test("parseOllamaErrMsg extracts code and errType from JSON object error tail", 
 });
 
 test("parseOllamaErrMsg malformed nested braces omit code (legacy path)", () => {
-  const err =
-    "Ollama error: 500 — prefix text {broken {not valid json at all";
+  const err = "Ollama error: 500 — prefix text {broken {not valid json at all";
   assert.deepStrictEqual(parseOllamaErrMsg(err), {
     status: 500,
     detail: "prefix text {broken {not valid json at all",
@@ -160,8 +159,7 @@ test("formatUserOllamaChatError logs matched rule: gpu-oom", () => {
 test("formatUserOllamaChatError logs matched rule: cloud-opaque-500", () => {
   const { matched } = formatWithMatched({
     status: 500,
-    detail:
-      "Internal Server Error (ref: 086957a4-4e9b-490b-9cec-cc2a8da6014d)",
+    detail: "Internal Server Error (ref: 086957a4-4e9b-490b-9cec-cc2a8da6014d)",
     totalChars: 42_000,
   });
   assert.equal(matched, "cloud-opaque-500");

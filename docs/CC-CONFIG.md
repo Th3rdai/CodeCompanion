@@ -40,6 +40,15 @@ curl -sk -X POST https://localhost:8900/api/config \
 
 > **Note:** The stdio MCP server loads config at startup and does not react to live HTTP updates. Restart the stdio process after changing `agentBrowser`.
 
+## Context budget (`enablePreflightBanner`)
+
+Phase 1 of the CTXFIX rollout adds **`enablePreflightBanner`** (default **`false`** in v1.7.0). When enabled, the UI calls **`GET /api/model-context`** to render a banner showing how close the pending message is to the active model's context window:
+
+- `?name=<modelName>` → `{ contextLength, source: "show" | "cloud-hint" | "unknown" }`.
+- `?auto=1&estimatedTokens=<N>&mode=<mode>` → `{ contextLength, source, resolvedModel }`. Server resolves `auto` via `lib/auto-model.js#resolveAutoModel`, then returns the same shape as the `name` path.
+
+The shared estimator is **`src/lib/context-budget.js`** (`estimateTokens`, `estimateMessageTokens`) — both the client and server use this so the banner number always matches the server's `num_ctx` auto-bump in **`lib/chat-post-handler.js`** and the review path in **`lib/review.js`**. The route is gated by **`requireLocalOrApiKey`** and caches per-model lookups for 5 minutes; the auto path adds a 256-token hysteresis bucket so keystroke flicker doesn't blow the cache.
+
 ## Safer patterns
 
 - Put long-lived secrets in **`.env`** (also gitignored) where Code Companion supports overrides — see **[ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md)** (`OLLAMA_API_KEY`, `GITHUB_TOKEN`, `MCP_{id}__…`, etc.).
@@ -61,3 +70,4 @@ See **[TROUBLESHOOTING.md — MCP clients missing](./TROUBLESHOOTING.md#mcp-clie
 - **`.cc-config.json.example`** (repo root) — committed template; copy locally, do not commit **`.cc-config.json`**.
 - **[ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md)** — env vs config precedence, sensitive routes.
 - **[ARCHON-MCP.md](./ARCHON-MCP.md)** — example `mcpClients` entry (no secrets for default Archon HTTP).
+- **[MCP-SANDBOX-PATTERNS.md](./MCP-SANDBOX-PATTERNS.md)** — patterns for using external MCP servers (sandboxed code execution, indexed search) to keep large/sensitive workloads out of the chat context.

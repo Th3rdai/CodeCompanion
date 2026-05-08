@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependabot — Hono (moderate).** Bumped npm `overrides.hono` from `>=4.12.14` to `>=4.12.18` so transitive `hono` via `@modelcontextprotocol/sdk` resolves past GHSA-9vqf-7f2p-gf9v (bodyLimit bypass) and GHSA-69xw-7hcm-h432 (JSX tag validation). Lockfile refreshed to `hono@4.12.18`.
 
+### Added
+
+- **CTXFIX Phase 1a — context-budget backend (flag-gated).** New `enablePreflightBanner` config flag (default **`false`** in v1.7.0). Backend half of the v1.7.x preflight banner that warns when a chat request is approaching the model's context window. Adds:
+  - `src/lib/context-budget.js` — single source of truth for the chars-to-tokens estimate (`estimateTokens`, `estimateMessageTokens`); shared by client + server so the banner number and `num_ctx` auto-bump never drift.
+  - `getContextLengthForModel(name, ollamaUrl, apiKey)` in `lib/auto-model.js` — cloud names go through `guessCloudContext`, local names through `/api/show`'s `model_info["{family}.context_length"]`. Always returns a number (`>0` real, `0` unknown).
+  - `GET /api/model-context` in `server.js` — gated by `requireLocalOrApiKey`, with 5 min TTL cache and a 256-token hysteresis bucket on the `auto` path so keystroke flicker doesn't blow the cache. Two query shapes: `?name=<modelName>` and `?auto=1&estimatedTokens=<N>&mode=<mode>`.
+  - Refactored `lib/chat-post-handler.js` and `lib/review.js` to use `estimateMessageTokens` (numerically identical to the old inline `Math.ceil(totalChars / 3.5)`); `chat-post-handler` switches to `let` so Phase 2 history compaction can recompute.
+- **CTXFIX Phase 3 — cumulative tool-output cap with project-folder externalization (flag-gated).** New `cumulativeToolOutputMaxChars: 100_000` and `externalizeToolOutput: false` config flags (default off in v1.7.0). When enabled with a project folder set, tool stdout that would breach the cap is written to `<projectFolder>/.codecompanion/tool-results/<safeId>-<reqSuffix>-<roundIdx>.txt` and replaced inline with a placeholder pointing the LLM at `codecompanion_read_file`. Without a project folder (or with the flag off), tool output is tail-truncated to 5,000 chars + a "set Settings → Project folder" hint instead of being silently dumped into history. Adds:
+  - `lib/tool-result-artifacts.js` — single source of truth for `sanitizeConvIdForFilename`, `generateReqSuffix`, `maybeExternalizeToolOutput`, `gcOlderThan`, and `deleteForConversation`. Helper reads `cumulativeRef.value`; the chat handler is the sole writer (one `+=` per round).
+  - First write also drops `.codecompanion/.gitignore` with a narrow `tool-results/` rule so the directory itself stays trackable.
+  - Externalization wired into `lib/chat-post-handler.js` **before** the `toolResultMsg` wrapper so the wrapper text ("Tool results:\n…", "Present these results…", browser variant) is preserved around either real stdout or the placeholder.
+  - GC at 3 trigger points: end-of-request `setImmediate` (best-effort), conversation-delete sweep in `lib/history.js`, and a one-shot startup sweep in `server.js` that removes artifacts older than 7 days.
+- **CTXFIX Phase 5 — `docs/MCP-SANDBOX-PATTERNS.md`.** Patterns for using external MCP servers to keep large/sensitive workloads out of the chat context: Pattern A (sandboxed code execution → returns `artifactPath` + `summary`, not raw stdout), Pattern B (indexed search over project files → returns scored snippets, not whole files), license-vetting checklist, and explicit do-NOT list (no third-party MCP servers in installers; no auto-writing tokens; no proxying upstream tools through built-in HTTP). Cross-linked from `docs/CC-CONFIG.md` and `.cc-config.json.example` (`$docs` sentinel).
+
 ### Changed
 
 - **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.

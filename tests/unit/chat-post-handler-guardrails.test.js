@@ -497,8 +497,7 @@ test("shell-promote: backtick command becomes TOOL_CALL", () => {
 });
 
 test("shell-promote: bare ls line after 'Let me' becomes TOOL_CALL", () => {
-  const prose =
-    "Let me check the current state of the project.\n\nls -la\n";
+  const prose = "Let me check the current state of the project.\n\nls -la\n";
   const out = tryPromoteNarratedShellToToolCall(prose);
   assert.ok(out && out.startsWith("TOOL_CALL:"));
 });
