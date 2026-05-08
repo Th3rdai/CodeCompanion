@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Dependabot — `fast-uri` (high, GHSA-q3j6-qgpj-74h6 / CVE-2026-6321).** Path traversal via percent-encoded dot segments — `fast-uri` ≤ 3.1.0 decodes `%2F` and `%2E` before dot-segment removal in `normalize()` / `equal()`, letting URLs like `/public/%2e%2e/admin` collapse to `/admin`. Pulled in transitively as `@modelcontextprotocol/sdk → ajv → fast-uri@3.1.0`. Added npm `overrides.fast-uri = ">=3.1.1"` to force the patched version. Lockfile now resolves to `fast-uri@3.1.2`. `npm audit` reports 0 vulnerabilities; smoke test + MCP stdio (19 tools) green post-bump.
 - **Dependabot — Hono (moderate).** Bumped npm `overrides.hono` from `>=4.12.14` to `>=4.12.18` so transitive `hono` via `@modelcontextprotocol/sdk` resolves past GHSA-9vqf-7f2p-gf9v (bodyLimit bypass) and GHSA-69xw-7hcm-h432 (JSX tag validation). Lockfile refreshed to `hono@4.12.18`.
 
 ### Added
