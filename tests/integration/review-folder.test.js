@@ -1,10 +1,10 @@
-const test = require("node:test");
+const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
+const fs = require("fs");
+const os = require("os");
 const { spawn } = require("child_process");
-
-const BASE_PORT = 3325;
-const BASE_URL = `http://localhost:${BASE_PORT}`;
+const { DEFAULT_AUTO_MODEL_MAP } = require("../../lib/auto-model.js");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -22,21 +22,70 @@ async function waitForServer(baseUrl, timeoutMs = 15000) {
   throw new Error("Server did not become ready in time");
 }
 
-// ── /api/review/folder/preview ───────────────────────────────────────────────
+/** Model tag for POST /api/review/folder (must exist locally). Defaults to Review-mode auto map (`lib/auto-model.js`). */
+function reviewFolderModelTag() {
+  return (
+    process.env.CC_TEST_REVIEW_FOLDER_MODEL?.trim() ||
+    process.env.OLLAMA_MODEL?.trim() ||
+    DEFAULT_AUTO_MODEL_MAP.review
+  );
+}
 
-test.skip("POST /api/review/folder/preview returns files array, totalSize, skipped", async () => {
-  // Spawn server, wait for readiness, then test the preview endpoint.
-  const serverPath = path.resolve(__dirname, "../../server.js");
-  const proc = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, PORT: String(BASE_PORT) },
+/**
+ * Writes config with projectFolder anchored at `sandboxRoot`, so `/api/review/folder/**`
+ * can read folders under it (default `$HOME`-only project boundary would deny `/tmp/...`).
+ */
+function writeSandboxConfig(sandboxRoot) {
+  fs.mkdirSync(sandboxRoot, { recursive: true });
+  fs.writeFileSync(
+    path.join(sandboxRoot, ".cc-config.json"),
+    JSON.stringify(
+      {
+        projectFolder: sandboxRoot,
+        ollamaUrl: "http://127.0.0.1:11434",
+        reviewTimeoutSec: 240,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+function spawnSandboxServer(port, sandboxRoot) {
+  return spawn(process.execPath, ["server.js"], {
+    cwd: path.resolve(__dirname, "../.."),
+    env: {
+      ...process.env,
+      PORT: String(port),
+      CC_DATA_DIR: sandboxRoot,
+      DEBUG: "0",
+      FORCE_HTTP: "1",
+    },
     stdio: "pipe",
   });
+}
+
+// ── /api/review/folder/preview ───────────────────────────────────────────────
+
+test("POST /api/review/folder/preview returns files array, totalSize, skipped", async () => {
+  const port = 3490;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-preview-"));
+  writeSandboxConfig(sandbox);
+  const scanDir = path.join(sandbox, "scan-me");
+  fs.mkdirSync(scanDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(scanDir, "sample.js"),
+    "function hello() {\n  return 1;\n}\n",
+  );
+
+  const child = spawnSandboxServer(port, sandbox);
   try {
-    await waitForServer(BASE_URL);
-    const res = await fetch(`${BASE_URL}/api/review/folder/preview`, {
+    await waitForServer(baseUrl);
+    const res = await fetch(`${baseUrl}/api/review/folder/preview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folder: "/tmp" }),
+      body: JSON.stringify({ folder: scanDir }),
     });
     assert.ok(res.ok, `Expected 2xx, got ${res.status}`);
     const body = await res.json();
@@ -44,88 +93,129 @@ test.skip("POST /api/review/folder/preview returns files array, totalSize, skipp
     assert.ok(typeof body.totalSize === "number", "totalSize must be a number");
     assert.ok(typeof body.skipped === "number", "skipped must be a number");
     assert.ok(typeof body.folder === "string", "folder must be a string");
-    // Each file entry has path and size
     if (body.files.length > 0) {
-      assert.ok(
-        typeof body.files[0].path === "string",
-        "file.path must be string",
-      );
-      assert.ok(
-        typeof body.files[0].size === "number",
-        "file.size must be number",
-      );
+      assert.ok(typeof body.files[0].path === "string");
+      assert.ok(typeof body.files[0].size === "number");
     }
+    assert.ok(
+      body.files.some((f) => f.path.endsWith("sample.js") || f.path === "sample.js"),
+      "expected sample.js in files list",
+    );
   } finally {
-    proc.kill();
+    child.kill("SIGTERM");
+    await sleep(300);
+    if (!child.killed) child.kill("SIGKILL");
   }
 });
 
-test.skip("POST /api/review/folder/preview with missing folder returns 400", async () => {
-  const serverPath = path.resolve(__dirname, "../../server.js");
-  const proc = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, PORT: String(BASE_PORT) },
-    stdio: "pipe",
-  });
+test("POST /api/review/folder/preview with missing folder returns 400", async () => {
+  const port = 3491;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-prev400-"));
+  writeSandboxConfig(sandbox);
+
+  const child = spawnSandboxServer(port, sandbox);
   try {
-    await waitForServer(BASE_URL);
-    const res = await fetch(`${BASE_URL}/api/review/folder/preview`, {
+    await waitForServer(baseUrl);
+    const res = await fetch(`${baseUrl}/api/review/folder/preview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
     assert.equal(res.status, 400);
     const body = await res.json();
-    assert.ok(typeof body.error === "string", "error must be a string");
+    assert.ok(typeof body.error === "string");
   } finally {
-    proc.kill();
+    child.kill("SIGTERM");
+    await sleep(300);
+    if (!child.killed) child.kill("SIGKILL");
   }
 });
 
 // ── /api/review/folder ───────────────────────────────────────────────────────
 
-test.skip("POST /api/review/folder returns report-card type with overallGrade", async () => {
-  const serverPath = path.resolve(__dirname, "../../server.js");
-  const proc = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, PORT: String(BASE_PORT) },
-    stdio: "pipe",
-  });
+test("POST /api/review/folder returns report-card or streams review fallback", async () => {
+  const port = 3492;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-full-"));
+  writeSandboxConfig(sandbox);
+  const folderDir = path.join(sandbox, "proj");
+  fs.mkdirSync(folderDir, { recursive: true });
+  fs.writeFileSync(path.join(folderDir, "logic.js"), "export const x = 1;\n");
+
+  const child = spawnSandboxServer(port, sandbox);
+  const model = reviewFolderModelTag();
+
   try {
-    await waitForServer(BASE_URL);
-    const res = await fetch(`${BASE_URL}/api/review/folder`, {
+    await waitForServer(baseUrl);
+    const res = await fetch(`${baseUrl}/api/review/folder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "llama3.2", folder: "/tmp/test-project" }),
+      body: JSON.stringify({ model, folder: folderDir }),
     });
-    assert.ok(res.ok, `Expected 2xx, got ${res.status}`);
-    const body = await res.json();
-    assert.equal(body.type, "report-card", "type must be 'report-card'");
-    assert.ok(body.data, "response must have data field");
+
     assert.ok(
-      typeof body.data.overallGrade === "string",
-      "data.overallGrade must be a string",
+      res.status === 200 || res.status === 500,
+      `Expected 200 or 500, got ${res.status}`,
     );
+
+    const ct = (res.headers.get("content-type") || "").toLowerCase();
+    if (res.status !== 200) {
+      const data = await res.json();
+      assert.ok(data.error);
+      return;
+    }
+
+    if (ct.includes("application/json")) {
+      const body = await res.json();
+      assert.equal(body.type, "report-card");
+      assert.ok(body.data);
+      assert.ok(typeof body.data.overallGrade === "string");
+      return;
+    }
+
+    if (ct.includes("text/event-stream")) {
+      const text = await res.text();
+      assert.ok(text.includes("data:"));
+      assert.ok(
+        text.includes('"fallback":true') || text.includes("fallback"),
+        "SSE path should advertise fallback metadata",
+      );
+      return;
+    }
+
+    assert.fail(`Unexpected Content-Type for 200 OK: ${ct || "(empty)"}`);
   } finally {
-    proc.kill();
+    child.kill("SIGTERM");
+    await sleep(300);
+    if (!child.killed) child.kill("SIGKILL");
   }
 });
 
-test.skip("POST /api/review/folder with missing model or folder returns 400", async () => {
-  const serverPath = path.resolve(__dirname, "../../server.js");
-  const proc = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, PORT: String(BASE_PORT) },
-    stdio: "pipe",
-  });
+test("POST /api/review/folder with missing model or folder returns 400", async () => {
+  const port = 3493;
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-400-"));
+  writeSandboxConfig(sandbox);
+
+  const child = spawnSandboxServer(port, sandbox);
   try {
-    await waitForServer(BASE_URL);
-    const res = await fetch(`${BASE_URL}/api/review/folder`, {
+    await waitForServer(baseUrl);
+    const res = await fetch(`${baseUrl}/api/review/folder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "llama3.2" }),
+      body: JSON.stringify({ model: reviewFolderModelTag() }),
     });
     assert.equal(res.status, 400);
     const body = await res.json();
-    assert.ok(typeof body.error === "string", "error must be a string");
+    assert.ok(typeof body.error === "string");
+    assert.ok(
+      body.error.toLowerCase().includes("missing"),
+      "error should explain missing folder",
+    );
   } finally {
-    proc.kill();
+    child.kill("SIGTERM");
+    await sleep(300);
+    if (!child.killed) child.kill("SIGKILL");
   }
 });

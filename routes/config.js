@@ -287,6 +287,17 @@ module.exports = function createRouter(appContext) {
       );
     }
 
+    if (req.body.autoContinue !== undefined) {
+      config.autoContinue = {
+        ...(config.autoContinue || { enabled: false, maxSteps: 5 }),
+        ...req.body.autoContinue,
+      };
+      log(
+        "INFO",
+        `Auto-continue config updated: enabled=${config.autoContinue.enabled} maxSteps=${config.autoContinue.maxSteps}`,
+      );
+    }
+
     if (req.body.agentBrowser !== undefined) {
       config.agentBrowser = {
         ...(config.agentBrowser || {}),

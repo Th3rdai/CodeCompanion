@@ -36,17 +36,17 @@ created: 2026-04-09
 
 ## Per-Task Verification Map
 
-| Task ID  | Plan | Wave | Requirement                             | Test Type   | Automated Command                                          | File Exists | Status     |
-| -------- | ---- | ---- | --------------------------------------- | ----------- | ---------------------------------------------------------- | ----------- | ---------- |
-| 28-01-01 | 01   | 1    | reviewFiles() function                  | unit        | `node --test tests/unit/review-files.test.js`              | ✅          | ✅ green   |
-| 28-01-02 | 01   | 1    | /api/review/folder/preview endpoint     | integration | `node --test tests/integration/review-folder.test.js`      | ✅          | ⏭️ opt-in  |
-| 28-01-03 | 01   | 1    | /api/review/folder endpoint             | integration | `node --test tests/integration/review-folder.test.js`      | ✅          | ⏭️ opt-in  |
-| 28-01-04 | 01   | 1    | Path-traversal guard (isWithinBasePath) | unit        | `node --test tests/unit/review-folder-pathcheck.test.js`   | ✅          | ✅ green   |
-| 28-01-05 | 01   | 1    | review-multi system prompt              | unit        | `node --test tests/unit/review-folder-pathcheck.test.js`   | ✅          | ✅ green   |
-| 28-02-01 | 02   | 2    | Scan Folder tab renders                 | manual      | —                                                          | —           | ✅ verified (28-VERIFICATION.md) |
-| 28-02-02 | 02   | 2    | Drag-drop file/folder                   | manual      | —                                                          | —           | ✅ verified (28-VERIFICATION.md) |
-| 28-02-03 | 02   | 2    | Preview step shows file list            | manual      | —                                                          | —           | ✅ verified (28-VERIFICATION.md) |
-| 28-02-04 | 02   | 2    | Unified report card renders             | manual      | —                                                          | —           | ✅ verified (28-VERIFICATION.md) |
+| Task ID  | Plan | Wave | Requirement                             | Test Type   | Automated Command                                        | File Exists | Status                           |
+| -------- | ---- | ---- | --------------------------------------- | ----------- | -------------------------------------------------------- | ----------- | -------------------------------- |
+| 28-01-01 | 01   | 1    | reviewFiles() function                  | unit        | `node --test tests/unit/review-files.test.js`            | ✅          | ✅ green                         |
+| 28-01-02 | 01   | 1    | /api/review/folder/preview endpoint     | integration | `node --test tests/integration/review-folder.test.js`    | ✅          | ⏭️ opt-in                        |
+| 28-01-03 | 01   | 1    | /api/review/folder endpoint             | integration | `node --test tests/integration/review-folder.test.js`    | ✅          | ⏭️ opt-in                        |
+| 28-01-04 | 01   | 1    | Path-traversal guard (isWithinBasePath) | unit        | `node --test tests/unit/review-folder-pathcheck.test.js` | ✅          | ✅ green                         |
+| 28-01-05 | 01   | 1    | review-multi system prompt              | unit        | `node --test tests/unit/review-folder-pathcheck.test.js` | ✅          | ✅ green                         |
+| 28-02-01 | 02   | 2    | Scan Folder tab renders                 | manual      | —                                                        | —           | ✅ verified (28-VERIFICATION.md) |
+| 28-02-02 | 02   | 2    | Drag-drop file/folder                   | manual      | —                                                        | —           | ✅ verified (28-VERIFICATION.md) |
+| 28-02-03 | 02   | 2    | Preview step shows file list            | manual      | —                                                        | —           | ✅ verified (28-VERIFICATION.md) |
+| 28-02-04 | 02   | 2    | Unified report card renders             | manual      | —                                                        | —           | ✅ verified (28-VERIFICATION.md) |
 
 _Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky · ⏭️ opt-in_
 

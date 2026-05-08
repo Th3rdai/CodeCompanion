@@ -6,6 +6,7 @@
 **Estimated total time:** 25–45 min
 
 **Cross-links:**
+
 - **This plan owns:** Archon `6a6f9c54-...` (Cowork: re-verify codeCompanion MCP path + Docling pipx env)
 - **Blocks:** Archon `7becebc7-...` (Commit local PDF-review fix)
 - **Depends on (separate):** Archon `d2eb1afc-...` (Investigate big-PDF Ollama timeout), `2d41aa28-...` (Clean ~/.claude.json — folded into Step 4 here)
@@ -34,38 +35,38 @@ If all three succeed AND the version output is `1.6.39`, jump to **Step 2** (acc
 
 ## Glossary
 
-| Term | What it is | Where it runs |
-|---|---|---|
-| **`docling-serve` REST** | Document-conversion HTTP service on `127.0.0.1:5002`. Used by Code Companion's `/api/convert-document`. uv- or pipx-managed; the live binary is at `~/.local/bin/docling-serve` regardless of installer. | Local Mac |
-| **Docling MCP** | MCP server `docling-mcp-server` exposing 19 Docling tools to Claude chat. Pipx-managed in cowork VM. | Cowork VM (per current evidence) |
-| **PDF Tools MCP** | Third-party MCP server `pdf-filler` v0.4.0 (analyse / extract / fill / compare PDFs). Claude Desktop extension. | Cowork (per current evidence; local last seen idle 2026-03-23) |
-| **codeCompanion MCP** | MCP server in this repo (`mcp-server.js`) exposing chat / explain / find_bugs / refactor tools. | Local Mac at `/Users/james/Projects/CodeCompanion/mcp-server.js` |
-| **Cowork session** | Cloud Claude session at `/sessions/relaxed-nifty-gauss/mnt/AIApp-CodeCompanion`. Different env, different MCP config, typically Linux. | Anthropic-hosted VM |
-| **LaunchServices state corruption** | macOS LaunchServices DB caches per-bundle-ID launch metadata. After 3+ failed installs (bundle deleted, replaced ad-hoc-signed, replaced again), dyld silently kills the process at `_dyld_start` until LaunchServices is rebuilt (reboot or `lsregister -kill -r -domain user`). Verified today via `sample` showing 39+ second hangs in `_dyld_start` on a properly-signed bundle. | macOS 26.3+ |
+| Term                                | What it is                                                                                                                                                                                                                                                                                                                                                                           | Where it runs                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| **`docling-serve` REST**            | Document-conversion HTTP service on `127.0.0.1:5002`. Used by Code Companion's `/api/convert-document`. uv- or pipx-managed; the live binary is at `~/.local/bin/docling-serve` regardless of installer.                                                                                                                                                                             | Local Mac                                                        |
+| **Docling MCP**                     | MCP server `docling-mcp-server` exposing 19 Docling tools to Claude chat. Pipx-managed in cowork VM.                                                                                                                                                                                                                                                                                 | Cowork VM (per current evidence)                                 |
+| **PDF Tools MCP**                   | Third-party MCP server `pdf-filler` v0.4.0 (analyse / extract / fill / compare PDFs). Claude Desktop extension.                                                                                                                                                                                                                                                                      | Cowork (per current evidence; local last seen idle 2026-03-23)   |
+| **codeCompanion MCP**               | MCP server in this repo (`mcp-server.js`) exposing chat / explain / find_bugs / refactor tools.                                                                                                                                                                                                                                                                                      | Local Mac at `/Users/james/Projects/CodeCompanion/mcp-server.js` |
+| **Cowork session**                  | Cloud Claude session at `/sessions/relaxed-nifty-gauss/mnt/AIApp-CodeCompanion`. Different env, different MCP config, typically Linux.                                                                                                                                                                                                                                               | Anthropic-hosted VM                                              |
+| **LaunchServices state corruption** | macOS LaunchServices DB caches per-bundle-ID launch metadata. After 3+ failed installs (bundle deleted, replaced ad-hoc-signed, replaced again), dyld silently kills the process at `_dyld_start` until LaunchServices is rebuilt (reboot or `lsregister -kill -r -domain user`). Verified today via `sample` showing 39+ second hangs in `_dyld_start` on a properly-signed bundle. | macOS 26.3+                                                      |
 
 ---
 
 ## Environment Matrix
 
-| Issue | Local Mac status (verified 2026-05-05) | Cowork VM status |
-|---|---|---|
-| **PDF Tools MCP crashes** | ❓ Not reproducible — local log ends 2026-03-23 with clean shutdown | Reported by user; needs reproduction in cowork |
-| **Docling MCP fails (pipx + python3.14)** | ❌ Not reproducible — local Docling MCP started successfully 2026-05-03; no pipx-managed `docling-mcp` here (`~/.local/pipx/venvs/` has only `pip-audit`) | ✅ Reproduces — pipx venv conflict with Python 3.14 inside cowork VM |
-| **codeCompanion MCP module not found** | ❌ Not reproducible — `/Users/james/Projects/CodeCompanion/mcp-server.js` exists; local log shows successful start 2026-05-03 18:21:19 | ✅ Reproduces — cowork config references mount path `/Users/james/AI_Dev/AIApp-CodeCompanion/mcp-server.js` |
-| **Code Companion auto-update failed** | ✅ Resolved — Squirrel.Mac requirement-string mismatch; manual install of v1.6.39 already happened | N/A |
-| **macOS 26.3 LaunchServices state corruption** | ⚠ Active risk after today's failed installs | N/A |
+| Issue                                          | Local Mac status (verified 2026-05-05)                                                                                                                    | Cowork VM status                                                                                            |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **PDF Tools MCP crashes**                      | ❓ Not reproducible — local log ends 2026-03-23 with clean shutdown                                                                                       | Reported by user; needs reproduction in cowork                                                              |
+| **Docling MCP fails (pipx + python3.14)**      | ❌ Not reproducible — local Docling MCP started successfully 2026-05-03; no pipx-managed `docling-mcp` here (`~/.local/pipx/venvs/` has only `pip-audit`) | ✅ Reproduces — pipx venv conflict with Python 3.14 inside cowork VM                                        |
+| **codeCompanion MCP module not found**         | ❌ Not reproducible — `/Users/james/Projects/CodeCompanion/mcp-server.js` exists; local log shows successful start 2026-05-03 18:21:19                    | ✅ Reproduces — cowork config references mount path `/Users/james/AI_Dev/AIApp-CodeCompanion/mcp-server.js` |
+| **Code Companion auto-update failed**          | ✅ Resolved — Squirrel.Mac requirement-string mismatch; manual install of v1.6.39 already happened                                                        | N/A                                                                                                         |
+| **macOS 26.3 LaunchServices state corruption** | ⚠ Active risk after today's failed installs                                                                                                               | N/A                                                                                                         |
 
 ---
 
 ## Failure Modes (symptom → cause → diagnostic → evidence anchor)
 
-| Symptom | Cause | First diagnostic | Evidence anchor |
-|---|---|---|---|
-| PDF preview shows "Ensure docling-serve is running" | `/files/read-raw` returned 404 (chatFolder ≠ projectFolder) | `grep "GET /files/read-raw" ~/Library/Application\ Support/code-companion/logs/app.log` | app.log **19:30:58 GET /files/read-raw 200** (post-fix) vs pre-fix **404** |
-| Chat fabricates a 50KB+ "extracted_text.txt" via `generate_office_file` | Pre-fix bundle; FileBrowser attached an error stub as file body | `grep "generate_office_file" app.log` | app.log **19:08:55 [OFFICE] Saved /Users/james/Desktop/extracted_text.txt (53.9KB)** is the smoking gun |
-| Chat dies after exactly 5 minutes with `fetch failed` | Ollama prompt-prefill timeout on big-context (>50K tokens) gemma4 | `grep "POST /chat 200 30" app.log` | app.log **19:36:30 POST /chat 200 300842ms** |
-| Code Companion launches but no GUI window appears, server alive | macOS 26.3 LaunchServices corruption | `sample <pid> 1` (look for `_dyld_start` hang) | Today's session: 39s hang in `_dyld_start` on clean Developer-ID-signed v1.6.39 |
-| `MODULE_NOT_FOUND` for codeCompanion MCP at `/Users/james/AI_Dev/...` | Cowork config references mount path; local config is correct | Check cowork's MCP config, not local | Local `~/Library/Application Support/Claude/claude_desktop_config.json` already correct |
+| Symptom                                                                 | Cause                                                             | First diagnostic                                                                        | Evidence anchor                                                                                         |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| PDF preview shows "Ensure docling-serve is running"                     | `/files/read-raw` returned 404 (chatFolder ≠ projectFolder)       | `grep "GET /files/read-raw" ~/Library/Application\ Support/code-companion/logs/app.log` | app.log **19:30:58 GET /files/read-raw 200** (post-fix) vs pre-fix **404**                              |
+| Chat fabricates a 50KB+ "extracted_text.txt" via `generate_office_file` | Pre-fix bundle; FileBrowser attached an error stub as file body   | `grep "generate_office_file" app.log`                                                   | app.log **19:08:55 [OFFICE] Saved /Users/james/Desktop/extracted_text.txt (53.9KB)** is the smoking gun |
+| Chat dies after exactly 5 minutes with `fetch failed`                   | Ollama prompt-prefill timeout on big-context (>50K tokens) gemma4 | `grep "POST /chat 200 30" app.log`                                                      | app.log **19:36:30 POST /chat 200 300842ms**                                                            |
+| Code Companion launches but no GUI window appears, server alive         | macOS 26.3 LaunchServices corruption                              | `sample <pid> 1` (look for `_dyld_start` hang)                                          | Today's session: 39s hang in `_dyld_start` on clean Developer-ID-signed v1.6.39                         |
+| `MODULE_NOT_FOUND` for codeCompanion MCP at `/Users/james/AI_Dev/...`   | Cowork config references mount path; local config is correct      | Check cowork's MCP config, not local                                                    | Local `~/Library/Application Support/Claude/claude_desktop_config.json` already correct                 |
 
 ---
 
@@ -84,6 +85,7 @@ pkill -9 -f "/Applications/Code Companion.app" 2>/dev/null
 ```
 
 **Reboot via macOS UI** (preserves state and respects user preferences):
+
 - Apple menu → **Restart…**
 - Confirm "Reopen windows when logging back in" is **unchecked**
 - Click **Restart**
@@ -100,10 +102,10 @@ After reboot: do **not** launch the existing `/Applications/Code Companion.app` 
 
 Two DMGs are already on disk; pick one:
 
-| DMG | Path | Signed | Notarized | Has fix? |
-|---|---|---|---|---|
-| Local rebuild | `/Users/james/Projects/CodeCompanion/release/code-companion-1.6.39-arm64.dmg` | ✅ Developer ID (9LRPX62LGN) | ❌ | ✅ Read-raw + chat-post-handler guardrails |
-| Official release | `~/Downloads/code-companion-1.6.39-arm64.dmg` | ✅ Developer ID | ✅ | ❌ |
+| DMG              | Path                                                                          | Signed                       | Notarized | Has fix?                                   |
+| ---------------- | ----------------------------------------------------------------------------- | ---------------------------- | --------- | ------------------------------------------ |
+| Local rebuild    | `/Users/james/Projects/CodeCompanion/release/code-companion-1.6.39-arm64.dmg` | ✅ Developer ID (9LRPX62LGN) | ❌        | ✅ Read-raw + chat-post-handler guardrails |
+| Official release | `~/Downloads/code-companion-1.6.39-arm64.dmg`                                 | ✅ Developer ID              | ✅        | ❌                                         |
 
 ### Pre-install verify
 
@@ -170,6 +172,7 @@ cp ~/Library/Application\ Support/code-companion/logs/app.log /tmp/before-test.l
 7. **Use `minimax-m2:cloud`** (your `selectedModel`). Do NOT use `gemma4:latest` for this test (5-minute Ollama timeout on 108K-token prompts; separate Archon `d2eb1afc-...`). If forced to use a local model, pick `qwen3:8b` for fast prefill.
 
 **Pass criteria:**
+
 - Response is a real summary referencing AKAM/Akamai content.
 - `diff /tmp/before-test.log ~/Library/Application\ Support/code-companion/logs/app.log` shows new lines including:
   - **Exactly one** `Converting document: TradingAgents Analysis Report - AKAM.pdf` (multiple = UI-sluggishness regression)
@@ -187,6 +190,7 @@ cp ~/Library/Application\ Support/code-companion/logs/app.log /tmp/before-test.l
    (Why this specific wording: the regex is `\b(do not|don't|dont|no|without)\b[^.!?]{0,80}\b(file|files|docx|pdf|xlsx|pptx|csv|odt|ods|odp|to disk|on disk|to file)\b`. The prompt contains both `don't` near `files` AND `no` near `docx/pdf`, satisfying the contract twice.)
 
 **Pass criteria:**
+
 - Response is a real summary in chat.
 - New `app.log` entries contain a `Blocked file-writing tool due to explicit user constraint` warning, OR contain zero `[WRITE_FILE]` / `[OFFICE]` lines for this turn.
 
@@ -269,15 +273,15 @@ Verify: open `~/.claude.json`, confirm 31 project entries remain (was 32) and th
 
 ## Remediation Order
 
-| Order | Action | Where | Time | Required if |
-|---|---|---|---|---|
-| Dry Run | Three curl + defaults check | Local | 30 s | Always — may skip rest |
-| 0 | Reboot the Mac via Apple menu | Local | 5 min | Doing /Applications mutation |
-| 1 | Drag-install local-rebuild DMG (or official if rollback) | Local | 2 min | Want to test PDF-review fix |
-| 1.5 | LaunchServices rebuild → second reboot → official DMG | Local | ≤10 min | Step 1 fails to launch |
-| 2 | Acceptance test (paths A + B) | Local | 8 min | Step 1 succeeded |
-| 3 | Cowork: pipx Docling + PDF Tools trace + MCP path | Cowork | 10–20 min | Cowork session in use |
-| 4 | Remove stale `~/.claude.json` project entry | Local | 1 min | Hygiene |
+| Order   | Action                                                   | Where  | Time      | Required if                  |
+| ------- | -------------------------------------------------------- | ------ | --------- | ---------------------------- |
+| Dry Run | Three curl + defaults check                              | Local  | 30 s      | Always — may skip rest       |
+| 0       | Reboot the Mac via Apple menu                            | Local  | 5 min     | Doing /Applications mutation |
+| 1       | Drag-install local-rebuild DMG (or official if rollback) | Local  | 2 min     | Want to test PDF-review fix  |
+| 1.5     | LaunchServices rebuild → second reboot → official DMG    | Local  | ≤10 min   | Step 1 fails to launch       |
+| 2       | Acceptance test (paths A + B)                            | Local  | 8 min     | Step 1 succeeded             |
+| 3       | Cowork: pipx Docling + PDF Tools trace + MCP path        | Cowork | 10–20 min | Cowork session in use        |
+| 4       | Remove stale `~/.claude.json` project entry              | Local  | 1 min     | Hygiene                      |
 
 **Total:** 25–45 min including rollback worst case.
 

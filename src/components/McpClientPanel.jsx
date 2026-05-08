@@ -327,7 +327,8 @@ function ServerModal({ mode, client, onSaved, onClose }) {
       // doesn't accidentally wipe the others. Previously this was always
       // initialized to "" and a Save would overwrite the entire env block
       // with whatever the user typed (commonly clobbering API keys).
-      const env = client.env && typeof client.env === "object" ? client.env : {};
+      const env =
+        client.env && typeof client.env === "object" ? client.env : {};
       setEnvVars(
         Object.entries(env)
           .map(([k, v]) => `${k}=${v}`)

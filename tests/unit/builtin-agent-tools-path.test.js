@@ -29,6 +29,32 @@ test("run_terminal_cmd splits multi-token command when args are already present"
   assert.strictEqual(res.success, true, res.result?.content?.[0]?.text);
   assert.match(String(res.result?.content?.[0]?.text || ""), /33/);
 });
+
+test("run_terminal_cmd runs chained line via bash when allowShellChaining and bash allowlisted", async () => {
+  if (process.platform === "win32") return;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-term-chain-"));
+  const noopLog = () => {};
+  const res = await executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "echo", args: ["a", "&&", "echo", "b"] },
+    {
+      projectFolder: root,
+      chatFolder: root,
+      agentTerminal: {
+        enabled: true,
+        allowShellChaining: true,
+        allowlist: ["bash", "echo"],
+        blocklist: [],
+        maxTimeoutSec: 15,
+        maxOutputKB: 64,
+      },
+    },
+    noopLog,
+  );
+  assert.strictEqual(res.success, true, res.result?.content?.[0]?.text);
+  const text = String(res.result?.content?.[0]?.text || "");
+  assert.ok(text.includes("a") && text.includes("b"));
+});
 const { canConvertBuiltin } = require("../../lib/builtin-doc-converter.js");
 
 test("canConvertBuiltin is false for legacy .xls (Docling-only)", () => {

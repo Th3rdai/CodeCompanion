@@ -45,7 +45,10 @@ test("history folders: create/update/delete lifecycle for user folder", () => {
 
   const deleted = deleteFolder(created.id);
   assert.equal(deleted.id, "client-work");
-  assert.equal(listFolders().some((f) => f.id === created.id), false);
+  assert.equal(
+    listFolders().some((f) => f.id === created.id),
+    false,
+  );
 });
 
 test("history folders: rejects duplicate names and deleting system folder", () => {
@@ -56,4 +59,3 @@ test("history folders: rejects duplicate names and deleting system folder", () =
   assert.throws(() => createFolder({ name: "ops" }), /already exists/i);
   assert.throws(() => deleteFolder(SYSTEM_FOLDER_ID), /cannot be deleted/i);
 });
-

@@ -53,7 +53,6 @@ test("Mermaid PNG export downloads a file", async ({ page, context }) => {
   await page.addInitScript(browserAppReady);
   await page.addInitScript(() => {
     // Keep the test deterministic: force download path instead of save picker UI.
-    // eslint-disable-next-line no-undef
     window.showSaveFilePicker = undefined;
   });
   await page.goto("/");
@@ -62,7 +61,9 @@ test("Mermaid PNG export downloads a file", async ({ page, context }) => {
   await page.locator("#chat-input").fill("generate a mermaid diagram");
   await page.getByRole("button", { name: /^send$/i }).click();
 
-  const pngButton = page.locator('.mermaid-container button[title="PNG"]').first();
+  const pngButton = page
+    .locator('.mermaid-container button[title="PNG"]')
+    .first();
   await expect(pngButton).toBeVisible({ timeout: 10000 });
 
   const [download] = await Promise.all([

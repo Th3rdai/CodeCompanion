@@ -40,7 +40,14 @@ function parseStyleDimensions(styleText) {
   };
 }
 
-function pickRatio({ viewBoxWidth, viewBoxHeight, attrWidth, attrHeight, styleWidth, styleHeight }) {
+function pickRatio({
+  viewBoxWidth,
+  viewBoxHeight,
+  attrWidth,
+  attrHeight,
+  styleWidth,
+  styleHeight,
+}) {
   if (viewBoxWidth && viewBoxHeight) return viewBoxWidth / viewBoxHeight;
   if (attrWidth && attrHeight) return attrWidth / attrHeight;
   if (styleWidth && styleHeight) return styleWidth / styleHeight;
@@ -57,7 +64,8 @@ export function resolveSvgExportDimensions({
 } = {}) {
   const attrWidth = parsePixelDimension(widthAttr);
   const attrHeight = parsePixelDimension(heightAttr);
-  const { width: viewBoxWidth, height: viewBoxHeight } = parseViewBoxDimensions(viewBoxAttr);
+  const { width: viewBoxWidth, height: viewBoxHeight } =
+    parseViewBoxDimensions(viewBoxAttr);
   const styleDims = parseStyleDimensions(styleAttr);
   const styleWidth = styleDims.maxWidth || styleDims.width;
   const styleHeight = styleDims.maxHeight || styleDims.height;
@@ -89,8 +97,7 @@ export function resolveSvgExportDimensions({
     height = ratio ? width / ratio : defaultHeight;
   }
 
-  const finalWidth =
-    Number.isFinite(width) && width > 0 ? width : defaultWidth;
+  const finalWidth = Number.isFinite(width) && width > 0 ? width : defaultWidth;
   const finalHeight =
     Number.isFinite(height) && height > 0 ? height : defaultHeight;
 

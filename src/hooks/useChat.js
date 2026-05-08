@@ -286,11 +286,14 @@ export function useChat({
     if (!id) return;
     const targetFolderId = folderId || "inbox";
     try {
-      const res = await apiFetch(`/api/history/${encodeURIComponent(id)}/folder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folderId: targetFolderId }),
-      });
+      const res = await apiFetch(
+        `/api/history/${encodeURIComponent(id)}/folder`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderId: targetFolderId }),
+        },
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Move failed");
@@ -345,11 +348,14 @@ export function useChat({
     const folderName = typeof name === "string" ? name.trim() : "";
     if (!id || !folderName) return;
     try {
-      const res = await apiFetch(`/api/history/folders/${encodeURIComponent(id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: folderName }),
-      });
+      const res = await apiFetch(
+        `/api/history/folders/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: folderName }),
+        },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Rename folder failed");
       fetchFolders();
@@ -376,9 +382,12 @@ export function useChat({
   async function deleteHistoryFolder(id) {
     if (!id || id === "inbox") return;
     try {
-      const res = await apiFetch(`/api/history/folders/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
+      const res = await apiFetch(
+        `/api/history/folders/${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+        },
+      );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Delete folder failed");
       fetchFolders();
@@ -443,15 +452,25 @@ export function useChat({
     const textFiles = files.filter((f) => f.type !== "image" && !f.isImage);
     if (textFiles.length === 0) return text;
 
-    // Safety cap per-file to prevent browser/network issues with extremely large payloads.
-    // Actual context window management is handled server-side via num_ctx auto-adjustment.
-    const MAX_FILE_CHARS = 500000;
-    const MAX_TOTAL_CHARS = 800000;
+    // Safety caps:
+    // - Keep each attached file bounded.
+    // - Keep total attached text bounded so huge PDF conversions do not swamp model context.
+    // Server still auto-adjusts num_ctx, but this client cap prevents runaway payloads.
+    const MAX_FILE_CHARS = 120000;
+    const MAX_TOTAL_CHARS = 180000;
     let totalChars = 0;
+    const seenSignatures = new Set();
 
     let content = text.trim() ? text + "\n\n" : "";
     content += "---\nATTACHED FILES:\n";
     textFiles.forEach((f) => {
+      const raw = f.content || "";
+      const signature =
+        `${f.path || ""}|${f.convertedFrom || ""}|${f.name || ""}|` +
+        `${raw.length}|${raw.slice(0, 256)}|${raw.slice(-256)}`;
+      if (seenSignatures.has(signature)) return;
+      seenSignatures.add(signature);
+
       let fileContent = f.content || "";
       let truncated = false;
       if (fileContent.length > MAX_FILE_CHARS) {

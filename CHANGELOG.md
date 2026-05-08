@@ -9,13 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.
+
 ## [1.6.41] — 2026-05-05
 
 ### Added
 
 - **Per-diagram light/dark theme toggle** in Mermaid toolbar (persisted in localStorage). Light theme is now default for readability on bright displays.
 - **Theme-aware PNG background export** so exported diagrams match the selected diagram theme.
-- **Model dropdown sorted by context size, largest first.** `listModels()` now calls `/api/show` for each model returned by `/api/tags` (in parallel) and attaches a `contextLength` field from `model_info["{family}.context_length"]`. Cloud models that don't expose `model_info` fall back to a name-pattern heuristic (`CLOUD_MODEL_CONTEXT_HINTS`): claude / gemini / gpt-4* / minimax / kimi / qwen-max / qwen3-32k all get reasonable defaults; generic `:cloud` suffix defaults to 128K. Result is cached for the existing 45 s TTL — no extra HTTP traffic per chat. Dropdown rendering required no UI change.
+- **Model dropdown sorted by context size, largest first.** `listModels()` now calls `/api/show` for each model returned by `/api/tags` (in parallel) and attaches a `contextLength` field from `model_info["{family}.context_length"]`. Cloud models that don't expose `model_info` fall back to a name-pattern heuristic (`CLOUD_MODEL_CONTEXT_HINTS`): claude / gemini / gpt-4\* / minimax / kimi / qwen-max / qwen3-32k all get reasonable defaults; generic `:cloud` suffix defaults to 128K. Result is cached for the existing 45 s TTL — no extra HTTP traffic per chat. Dropdown rendering required no UI change.
 
 ### Fixed
 

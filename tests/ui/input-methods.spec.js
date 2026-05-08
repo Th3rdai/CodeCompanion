@@ -1,12 +1,18 @@
 import { test, expect } from "@playwright/test";
 import browserAppReady from "../helpers/app-ready.js";
+import { reloadAndWaitForModels } from "../helpers/reload-app-ready.js";
 
 test.describe("ReviewPanel Input Methods", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(browserAppReady);
     await page.goto("/");
-    await page.reload();
-    // Navigate to Review mode
+    await reloadAndWaitForModels(page);
+    await expect(page.getByTestId("mode-tab-chat")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId("mode-tab-review")).toBeVisible({
+      timeout: 60_000,
+    });
     await page.getByTestId("mode-tab-review").click();
   });
 

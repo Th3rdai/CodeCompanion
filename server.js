@@ -339,6 +339,22 @@ app.get("/api/models", async (req, res) => {
   }
 });
 
+// ── Auto-model demotions (session-level, used by tool-call fallback) ─
+const {
+  listDemotedModels,
+  clearDemotions,
+} = require("./lib/auto-model");
+
+app.get("/api/auto-model/demotions", requireLocalOrApiKey, (req, res) => {
+  res.json({ demoted: listDemotedModels() });
+});
+
+app.post("/api/auto-model/demotions/clear", requireLocalOrApiKey, (req, res) => {
+  clearDemotions();
+  log("INFO", "Auto-model demotions cleared");
+  res.json({ ok: true });
+});
+
 // ── Docling health check ─────────────────────────────
 app.get("/api/docling/health", async (req, res) => {
   const config = getConfig();

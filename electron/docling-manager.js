@@ -7,6 +7,30 @@ const LOG_PREFIX = "[Docling]";
 
 let doclingProcess = null;
 let managedPort = null;
+// Set when the launcher process exits but a worker (uvicorn child) takes over the
+// listening socket. Lets stopDocling() shut the worker down even though Node has
+// lost its child handle.
+let adoptedWorkerPid = null;
+
+/**
+ * Find the PID listening on a TCP port (POSIX only — Windows fallback is `null`).
+ * Used to adopt a uvicorn worker after its launcher process exits.
+ */
+function findListeningPid(port) {
+  if (process.platform === "win32") return null;
+  try {
+    const out = execSync(`lsof -ti tcp:${port} -sTCP:LISTEN`, {
+      encoding: "utf8",
+      timeout: 2000,
+      stdio: ["pipe", "pipe", "ignore"],
+    }).trim();
+    if (!out) return null;
+    const pid = parseInt(out.split("\n")[0], 10);
+    return Number.isFinite(pid) && pid > 0 ? pid : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Find the docling-serve binary on the system.
@@ -216,7 +240,28 @@ async function startDocling(dataDir, log = console.log) {
       resolveOnce({ managed: false, url: config.url, reason: "spawn-error" });
     });
 
-    proc.on("exit", (code, signal) => {
+    proc.on("exit", async (code, signal) => {
+      // docling-serve is a Python launcher that delegates to uvicorn. Under
+      // some setups (uv tool install on Python 3.14) the launcher exits with
+      // code=1 once a worker takes over the listening socket. Verify the
+      // service is still healthy before declaring an unexpected death.
+      const stillHealthy = await isDoclingHealthy(config.url);
+      if (stillHealthy) {
+        const workerPid = findListeningPid(port);
+        if (workerPid) {
+          adoptedWorkerPid = workerPid;
+          log(
+            `${LOG_PREFIX} Launcher exited (code=${code}); worker on port ${port} still healthy (PID ${workerPid} adopted for shutdown)`,
+          );
+        } else {
+          log(
+            `${LOG_PREFIX} Launcher exited (code=${code}); worker on port ${port} still healthy (PID unknown — shutdown will not signal it)`,
+          );
+        }
+        // Drop the dead handle but keep managedPort so callers see the service as managed.
+        doclingProcess = null;
+        return;
+      }
       if (signal !== "SIGTERM" && signal !== "SIGINT") {
         log(
           `${LOG_PREFIX} Process exited unexpectedly (code=${code}, signal=${signal})`,
@@ -224,6 +269,7 @@ async function startDocling(dataDir, log = console.log) {
       }
       doclingProcess = null;
       managedPort = null;
+      adoptedWorkerPid = null;
       resolveOnce({ managed: false, url: config.url, reason: "process-died" });
     });
 
@@ -257,20 +303,42 @@ async function startDocling(dataDir, log = console.log) {
  * @param {function} log - Logging function
  */
 function stopDocling(log = console.log) {
-  if (!doclingProcess || doclingProcess.killed) return;
+  if (doclingProcess && !doclingProcess.killed) {
+    log(`${LOG_PREFIX} Shutting down managed process...`);
+    doclingProcess.kill("SIGTERM");
+    const forceTimer = setTimeout(() => {
+      if (doclingProcess && !doclingProcess.killed) {
+        log(`${LOG_PREFIX} Force killing process...`);
+        doclingProcess.kill("SIGKILL");
+      }
+    }, 5000);
+    doclingProcess.once("exit", () => clearTimeout(forceTimer));
+    return;
+  }
 
-  log(`${LOG_PREFIX} Shutting down managed process...`);
-  doclingProcess.kill("SIGTERM");
-
-  // Force kill after 5 seconds
-  const forceTimer = setTimeout(() => {
-    if (doclingProcess && !doclingProcess.killed) {
-      log(`${LOG_PREFIX} Force killing process...`);
-      doclingProcess.kill("SIGKILL");
+  // Launcher already exited but a worker took over (uvicorn handoff pattern).
+  if (adoptedWorkerPid) {
+    const pid = adoptedWorkerPid;
+    log(`${LOG_PREFIX} Shutting down adopted worker PID ${pid}...`);
+    try {
+      process.kill(pid, "SIGTERM");
+    } catch (err) {
+      if (err.code !== "ESRCH") {
+        log(`${LOG_PREFIX} Failed to SIGTERM worker ${pid}: ${err.message}`);
+      }
     }
-  }, 5000);
-
-  doclingProcess.once("exit", () => clearTimeout(forceTimer));
+    setTimeout(() => {
+      try {
+        process.kill(pid, 0); // probe — throws if already dead
+        log(`${LOG_PREFIX} Force killing worker PID ${pid}...`);
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // already gone
+      }
+    }, 5000);
+    adoptedWorkerPid = null;
+    managedPort = null;
+  }
 }
 
 /**
@@ -278,9 +346,12 @@ function stopDocling(log = console.log) {
  * @returns {{ managed: boolean, running: boolean, port: number|null }}
  */
 function getDoclingStatus() {
+  const live =
+    (doclingProcess != null && !doclingProcess.killed) ||
+    adoptedWorkerPid != null;
   return {
-    managed: doclingProcess != null && !doclingProcess.killed,
-    running: doclingProcess != null && !doclingProcess.killed,
+    managed: live,
+    running: live,
     port: managedPort,
   };
 }

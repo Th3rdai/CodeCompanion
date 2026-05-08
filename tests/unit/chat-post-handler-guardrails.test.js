@@ -26,7 +26,10 @@ const {
   computeToolCallSignature,
   looksLikeFileWritePolicyMetaResponse,
   stripAttachedFileBlock,
+  capAttachedFileBlock,
   userLikelyRequestedActionableToolWork,
+  tryPromoteNarratedShellToToolCall,
+  shellLineFailsAutoPromotionSafety,
 } = require("../../lib/chat-post-handler");
 
 // ─── userExplicitlyDisallowsFileWrites — positives ─────────────────────────
@@ -360,6 +363,31 @@ test("strip-attachments: empty / non-string defensive cases", () => {
   assert.equal(stripAttachedFileBlock(null), "");
 });
 
+// ─── capAttachedFileBlock ─────────────────────────────────────────────────────
+
+test("cap-attachments: pass-through when no attachment marker exists", () => {
+  const plain = "please summarize this report";
+  assert.equal(capAttachedFileBlock(plain, 20), plain);
+});
+
+test("cap-attachments: pass-through when attached block is under limit", () => {
+  const msg =
+    "summarize\n\n---\nATTACHED FILES:\n\n### a.pdf\n```\nshort\n```\n";
+  assert.equal(capAttachedFileBlock(msg, 1000), msg);
+});
+
+test("cap-attachments: truncates oversized attached block but preserves user prompt", () => {
+  const msg =
+    "summarize this pdf\n\n---\nATTACHED FILES:\n\n### a.pdf\n```\n" +
+    "x".repeat(500) +
+    "\n```\n";
+  const out = capAttachedFileBlock(msg, 120);
+  assert.ok(out.startsWith("summarize this pdf"));
+  assert.ok(out.includes("ATTACHED FILES:"));
+  assert.ok(out.includes("truncated server-side"));
+  assert.ok(out.length < msg.length);
+});
+
 // ─── REGRESSION: actionable-intent must not fire on attached PDF content ────
 // 2026-05-05 second-order incident: user sent "please review and summarize
 // this pdf" with attached PDF content. The PDF text contained "run", "check",
@@ -441,4 +469,53 @@ test("file-write-meta: ignores direct task answer text", () => {
   const text =
     "Here is the requested summary in chat: revenue slowed while margins improved quarter-over-quarter.";
   assert.equal(looksLikeFileWritePolicyMetaResponse(text), false);
+});
+
+// ─── tryPromoteNarratedShellToToolCall (narrated shell → TOOL_CALL) ──────────
+
+test("shell-promote: fenced bash ls becomes leading TOOL_CALL", () => {
+  const prose = "Let me list files:\n\n```bash\nls -la\n```\n";
+  const out = tryPromoteNarratedShellToToolCall(prose);
+  assert.ok(out.startsWith("TOOL_CALL: builtin.run_terminal_cmd("));
+  assert.ok(
+    out.includes('"command":"ls"') && out.includes('"-la"'),
+    out.slice(0, 200),
+  );
+  assert.ok(out.includes("Let me list files"));
+});
+
+test("shell-promote: $ line becomes TOOL_CALL", () => {
+  const prose = "Running inspect.\n\n$ ls -la\n";
+  const out = tryPromoteNarratedShellToToolCall(prose);
+  assert.match(out, /^TOOL_CALL: builtin\.run_terminal_cmd\(\{/);
+});
+
+test("shell-promote: backtick command becomes TOOL_CALL", () => {
+  const prose = "Next I run `ls -la` to inspect.\n";
+  const out = tryPromoteNarratedShellToToolCall(prose);
+  assert.ok(out.includes('"command":"ls"'));
+});
+
+test("shell-promote: bare ls line after 'Let me' becomes TOOL_CALL", () => {
+  const prose =
+    "Let me check the current state of the project.\n\nls -la\n";
+  const out = tryPromoteNarratedShellToToolCall(prose);
+  assert.ok(out && out.startsWith("TOOL_CALL:"));
+});
+
+test("shell-promote: does nothing when TOOL_CALL already present", () => {
+  const prose =
+    'TOOL_CALL: builtin.run_terminal_cmd({"command":"pwd","args":[]})\nok';
+  assert.equal(tryPromoteNarratedShellToToolCall(prose), null);
+});
+
+test("shell-promote: refuses rm -rf", () => {
+  const prose = "```bash\nrm -rf /\n```\n";
+  assert.equal(tryPromoteNarratedShellToToolCall(prose), null);
+  assert.equal(shellLineFailsAutoPromotionSafety("rm -rf /"), true);
+});
+
+test("shell-promote: refuses pipes and command chaining", () => {
+  assert.equal(shellLineFailsAutoPromotionSafety("ls | wc"), true);
+  assert.equal(shellLineFailsAutoPromotionSafety("ls && pwd"), true);
 });

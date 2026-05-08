@@ -84,6 +84,10 @@ export default function SettingsPanel({
   const [numCtx, setNumCtx] = useState(0);
   const [autoAdjustContext, setAutoAdjustContext] = useState(true);
 
+  // Auto-continue (chat mode) state
+  const [autoContinueEnabled, setAutoContinueEnabled] = useState(false);
+  const [autoContinueMaxSteps, setAutoContinueMaxSteps] = useState(5);
+
   // Brand assets state
   const [brandAssets, setBrandAssets] = useState([]);
   const [brandLoaded, setBrandLoaded] = useState(false);
@@ -116,6 +120,8 @@ export default function SettingsPanel({
   const [terminalTimeout, setTerminalTimeout] = useState(60);
   const [terminalConfirmBeforeRun, setTerminalConfirmBeforeRun] =
     useState(false);
+  const [terminalAllowShellChaining, setTerminalAllowShellChaining] =
+    useState(true);
 
   // Agent tool toggles
   const [validateEnabled, setValidateEnabled] = useState(true);
@@ -188,6 +194,10 @@ export default function SettingsPanel({
           if (data.numCtx != null) setNumCtx(data.numCtx);
           if (data.autoAdjustContext != null)
             setAutoAdjustContext(data.autoAdjustContext);
+          if (data.autoContinue) {
+            setAutoContinueEnabled(data.autoContinue.enabled ?? false);
+            setAutoContinueMaxSteps(data.autoContinue.maxSteps ?? 5);
+          }
           if (data.preferredPort != null) setPreferredPort(data.preferredPort);
           if (data.imageSupport) {
             setImageSupport({
@@ -213,6 +223,9 @@ export default function SettingsPanel({
             setTerminalTimeout(data.agentTerminal.maxTimeoutSec ?? 60);
             setTerminalConfirmBeforeRun(
               data.agentTerminal.confirmBeforeRun ?? false,
+            );
+            setTerminalAllowShellChaining(
+              data.agentTerminal.allowShellChaining !== false,
             );
           }
           if (data.agentValidate != null)
@@ -1097,6 +1110,35 @@ export default function SettingsPanel({
                     to deny all commands.
                   </p>
 
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm text-slate-300 font-medium">
+                        Allow shell chaining
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Run one shell line via bash (macOS/Linux) or cmd
+                        (Windows) when the command uses{" "}
+                        <span className="font-mono">&&</span>, pipes, redirects,
+                        etc. Add{" "}
+                        <span className="font-mono">bash</span> or{" "}
+                        <span className="font-mono">sh</span> to the allowlist
+                        (or <span className="font-mono">cmd</span> on Windows).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTerminalAllowShellChaining((v) => !v)
+                      }
+                      className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ml-2 ${terminalAllowShellChaining ? "bg-indigo-500" : "bg-slate-600"}`}
+                      aria-label="Toggle shell chaining for agent terminal"
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${terminalAllowShellChaining ? "translate-x-4" : ""}`}
+                      />
+                    </button>
+                  </div>
+
                   <label className="block text-sm text-slate-300 mb-2 font-medium">
                     Command Timeout: {terminalTimeout}s
                   </label>
@@ -1666,6 +1708,101 @@ export default function SettingsPanel({
                 How long to wait for AI code reviews before timing out. Larger
                 models need more time.
               </p>
+            </div>
+
+            {/* Chat Auto-Continue */}
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoContinueEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setAutoContinueEnabled(enabled);
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        autoContinue: {
+                          enabled,
+                          maxSteps: autoContinueMaxSteps,
+                        },
+                      }),
+                    }).catch(() => {});
+                  }}
+                  className="mt-0.5 w-4 h-4 accent-indigo-500 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <div className="text-sm text-slate-300 font-medium">
+                    Auto-Continue (Chat-protocol modes)
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    In Chat / Explain / Clean Up / Safety Check / Idea →
+                    Code Spec / Code → Plain English, when the model returns
+                    prose after running tools but doesn't signal completion,
+                    the server re-prompts with "continue" so multi-step work
+                    doesn't stall at turn boundaries. Stops when the model
+                    writes{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      TASK_COMPLETE
+                    </code>
+                    , asks a direct question, or hits the max-step cap. Build /
+                    Create / Agentic modes have their own loops and are
+                    unaffected.
+                  </p>
+                </div>
+              </label>
+              {autoContinueEnabled && (
+                <div className="ml-7 mt-2.5">
+                  <label className="block text-xs text-slate-400 mb-1.5">
+                    Max auto-continue steps per turn{" "}
+                    <span className="text-slate-500">
+                      ({autoContinueMaxSteps})
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="25"
+                    step="1"
+                    value={autoContinueMaxSteps}
+                    onChange={(e) =>
+                      setAutoContinueMaxSteps(parseInt(e.target.value, 10))
+                    }
+                    onMouseUp={() => {
+                      apiFetch("/api/config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          autoContinue: {
+                            enabled: autoContinueEnabled,
+                            maxSteps: autoContinueMaxSteps,
+                          },
+                        }),
+                      }).catch(() => {});
+                    }}
+                    onTouchEnd={() => {
+                      apiFetch("/api/config", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          autoContinue: {
+                            enabled: autoContinueEnabled,
+                            maxSteps: autoContinueMaxSteps,
+                          },
+                        }),
+                      }).catch(() => {});
+                    }}
+                    className="w-full h-2 rounded-full bg-slate-700 outline-none cursor-pointer accent-indigo-500"
+                    aria-label="Auto-continue max steps"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-600 mt-1">
+                    <span>1</span>
+                    <span>10</span>
+                    <span>25</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Chat Timeout */}
@@ -3031,6 +3168,7 @@ export default function SettingsPanel({
                         .filter(Boolean),
                       maxTimeoutSec: terminalTimeout,
                       confirmBeforeRun: terminalConfirmBeforeRun,
+                      allowShellChaining: terminalAllowShellChaining,
                     },
                   }),
                 });

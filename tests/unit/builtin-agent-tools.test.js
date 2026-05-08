@@ -273,6 +273,7 @@ test("getBuiltinSafetyPreamble includeValidate false suppresses validate block",
 const baseTerminalConfig = {
   agentTerminal: {
     enabled: true,
+    allowShellChaining: false,
     allowlist: ["python3", "ls", "cat", "echo"],
     blocklist: ["sudo", "su", "rm -rf", "dd"],
   },
@@ -363,17 +364,45 @@ test("validateCommand: blocklist 'dd' does not match 'add' or 'mkdir'", () => {
 
 test("validateCommand: terminal tool safety preamble guides away from shell features", () => {
   const p = getBuiltinSafetyPreamble({ includeTerminal: true });
-  assert.match(p, /SINGLE BINARY/);
-  assert.match(p, /pass cwd as an argument/i);
+  assert.match(p, /shell chaining/i);
+  assert.match(p, /bash/i);
+  assert.match(p, /\`cwd\`/);
   assert.match(p, /Do NOT loop on denied commands/);
   assert.match(p, /20-command-per-minute rate limit/);
   assert.match(p, /NEVER report "undefined error"/);
 });
 
-// ── METACHAR_PATTERN: && / || are now denied for consistency with ; / | ───
-// Previously `cd path && cmd` slipped through the metacharacter check while
-// `cmd1; cmd2` and `cmd | grep` were rejected — the inconsistency confused the
-// model and produced partial executions.
+// ── METACHAR_PATTERN + optional shell chaining (bash/cmd allowlist) ───
+
+test("validateCommand: && runs via shell when chaining on and bash allowlisted", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowShellChaining: true,
+      allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "bash", "cd"],
+    },
+  };
+  const r = validateCommand("cd", ["/tmp", "&&", "echo", "ok"], cfg);
+  assert.equal(r.allowed, true);
+  assert.equal(r.invokeShell, true);
+  assert.match(r.joinedLine, /&&/);
+});
+
+test("validateCommand: chaining requires bash on Unix when metachars present", () => {
+  const cfg = {
+    agentTerminal: {
+      enabled: true,
+      allowShellChaining: true,
+      allowlist: ["echo"],
+      blocklist: [],
+    },
+    projectFolder: "/tmp",
+  };
+  const r = validateCommand("echo", ["a", "&&", "echo", "b"], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /bash|sh/i);
+});
 
 test("validateCommand: && conditional chaining is denied", () => {
   const r = validateCommand(
@@ -415,7 +444,7 @@ test("validateCommand: allowlist deny includes ACTION instructing the model how 
   assert.match(r.action, /Do NOT retry/);
 });
 
-test("validateCommand: metacharacter deny ACTION explains there is no shell", () => {
+test("validateCommand: metacharacter deny ACTION steers to chaining or cwd", () => {
   const r = validateCommand(
     "echo",
     ["a", "|", "grep", "b"],
@@ -424,8 +453,7 @@ test("validateCommand: metacharacter deny ACTION explains there is no shell", ()
   assert.equal(r.allowed, false);
   assert.ok(r.action);
   assert.match(r.action, /^ACTION:/);
-  assert.match(r.action, /no shell/i);
-  assert.match(r.action, /spawn/);
+  assert.match(r.action, /Allow shell chaining|bash|argv/i);
 });
 
 test("validateCommand: blocklist deny ACTION explains it's a security policy", () => {

@@ -67,11 +67,14 @@ test("history folders API: CRUD, move, re-home, and route-order safety", async (
     assert.ok(Array.isArray(initialFolders));
     assert.ok(initialFolders.some((f) => f.id === "inbox"));
 
-    const createFolderRes = await fetchWithRetry(`${baseUrl}/api/history/folders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Project A" }),
-    });
+    const createFolderRes = await fetchWithRetry(
+      `${baseUrl}/api/history/folders`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Project A" }),
+      },
+    );
     assert.equal(createFolderRes.status, 201);
     const createdFolder = await createFolderRes.json();
     assert.equal(createdFolder.id, "project-a");
@@ -91,11 +94,14 @@ test("history folders API: CRUD, move, re-home, and route-order safety", async (
     const { id } = await saveRes.json();
     assert.ok(id);
 
-    const moveRes = await fetchWithRetry(`${baseUrl}/api/history/${id}/folder`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folderId: createdFolder.id }),
-    });
+    const moveRes = await fetchWithRetry(
+      `${baseUrl}/api/history/${id}/folder`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderId: createdFolder.id }),
+      },
+    );
     assert.equal(moveRes.status, 200);
 
     const historyAfterMove = await fetchWithRetry(`${baseUrl}/api/history`);
@@ -105,11 +111,14 @@ test("history folders API: CRUD, move, re-home, and route-order safety", async (
     assert.equal(moved.folderId, createdFolder.id);
 
     // Batch move back to inbox.
-    const batchMoveRes = await fetchWithRetry(`${baseUrl}/api/history/batch-move`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [id], folderId: "inbox" }),
-    });
+    const batchMoveRes = await fetchWithRetry(
+      `${baseUrl}/api/history/batch-move`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id], folderId: "inbox" }),
+      },
+    );
     assert.equal(batchMoveRes.status, 200);
     const batchBody = await batchMoveRes.json();
     assert.equal(batchBody.ok, 1);
@@ -131,4 +140,3 @@ test("history folders API: CRUD, move, re-home, and route-order safety", async (
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
-

@@ -3,14 +3,17 @@
 ## Verdict: READY
 
 ## Summary
+
 The codebase is well-positioned for chat folders/groups because conversations are already persisted as JSON objects and routed through centralized history APIs and sidebar rendering. The safest rollout is additive: introduce folder metadata and folder APIs first, then wire UI grouping and move actions, while preserving backward compatibility for existing conversations with no folder assigned.
 
 ## Issues Found
 
 ### Critical
+
 - None.
 
 ### Major
+
 - **No folder schema currently exists on conversation records.**
   - **Impact:** No stable way to group, move, or persist folder assignment across app restarts.
   - **Suggested Fix:** Add `folderId` to conversation records in `lib/history.js` save/list/load paths with automatic fallback to `inbox`.
@@ -22,6 +25,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
   - **Suggested Fix:** Refactor `src/components/Sidebar.jsx` rendering to grouped sections keyed by `folderId`, with per-folder collapse state.
 
 ### Minor
+
 - **Bulk actions do not include "move to folder."**
   - **Impact:** Organizing a large backlog is slow.
   - **Suggested Fix:** Add bulk move operation in `src/hooks/useChat.js` and hook it into sidebar multi-select actions.
@@ -30,6 +34,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
   - **Suggested Fix:** Add lightweight counts to existing dashboard summary (active chats by folder, uncategorized count).
 
 ## Improvements Suggested
+
 - Keep `folderId` optional in stored JSON and auto-normalize to `inbox` when missing to avoid risky one-shot migration scripts.
 - Introduce immutable system folder `inbox` that cannot be deleted; deleting user folders should re-home conversations to `inbox`.
 - Add API-level validation for folder identifiers (`^[a-z0-9-]{2,64}$`) and safe name length limits.
@@ -38,6 +43,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 - Keep archive semantics independent of folders (`archived` remains orthogonal), so archived chats can still retain their folder assignment.
 
 ## Verification Checklist
+
 - [x] All referenced files/APIs exist and match current architecture.
 - [x] Dependencies are acyclic and satisfiable.
 - [x] Error handling coverage identified for all new CRUD/move operations.
@@ -50,6 +56,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 ## Implementation Plan (Execution Order)
 
 ### Phase 0 — Contract and Data Model (Backend foundations)
+
 - [ ] Define `Conversation.folderId` contract (`string`, default `inbox`).
 - [ ] Define `Folder` contract:
   - [ ] `id` (slug)
@@ -62,6 +69,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 - [ ] Seed system folder `inbox` on init.
 
 ### Phase 1 — History API Extensions
+
 - [ ] Add endpoints in `routes/history.js`:
   - [ ] `GET /api/history/folders`
   - [ ] `POST /api/history/folders`
@@ -73,6 +81,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 - [ ] Ensure delete/move operations preserve conversation integrity and timestamps.
 
 ### Phase 2 — History Persistence Wiring
+
 - [ ] Update `lib/history.js`:
   - [ ] `saveConversation()` sets default `folderId: "inbox"` when absent.
   - [ ] `listConversations()` returns `folderId`.
@@ -80,6 +89,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 - [ ] Keep backwards compatibility for existing files without rewrites unless touched.
 
 ### Phase 3 — Frontend State + Hooks
+
 - [ ] Extend `src/hooks/useChat.js`:
   - [ ] folder state (`folders`)
   - [ ] fetch/load folder APIs
@@ -89,6 +99,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 - [ ] Ensure existing archive/delete/export flows still work with folders.
 
 ### Phase 4 — Sidebar UX
+
 - [ ] Refactor `src/components/Sidebar.jsx` from flat list to grouped render:
   - [ ] Folder headers with count
   - [ ] Collapse/expand toggle
@@ -102,6 +113,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
   - [ ] Delete folder (with warning + re-home behavior)
 
 ### Phase 5 — QA, Regression, and Rollout
+
 - [ ] Unit tests:
   - [ ] folder store module
   - [ ] history normalization defaults
@@ -118,6 +130,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 ---
 
 ## Acceptance Criteria
+
 - [ ] User can create, rename, and delete folders.
 - [ ] User can move one or many chats between folders.
 - [ ] Existing chats without `folderId` appear in `inbox` automatically.
@@ -128,6 +141,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 ---
 
 ## Risks and Mitigations
+
 - **Risk:** Silent schema drift across old conversation files.
   - **Mitigation:** Normalize on read and default on save; no destructive migration required.
 - **Risk:** Folder deletion can orphan conversations.
@@ -138,6 +152,7 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 ---
 
 ## Notes for Execution Tracking
+
 - Use this file as the source of truth during implementation.
 - Mark checkboxes as work lands.
 - Keep phase boundaries intact: do not start Phase 4 UI work before Phase 1/2 API + persistence are merged.
@@ -149,11 +164,13 @@ The codebase is well-positioned for chat folders/groups because conversations ar
 ## Verdict: NEEDS REVISION
 
 ## Summary
+
 The plan is structurally sound, but two execution-critical gaps were identified after validating against current route wiring and `useChat` autosave behavior. These must be addressed before implementation, otherwise folder assignment can break at runtime or silently regress during streaming saves.
 
 ## Issues Found
 
 ### Critical
+
 - **Route shadowing risk for folder endpoints in `routes/history.js`.**
   - **Description:** The existing `GET /history/:id` route is declared early. If `GET /history/folders` is added below it, `"folders"` can be captured as `:id`.
   - **Impact:** Folder list endpoint returns wrong handler behavior (404/invalid conversation), making folder UI fail.
@@ -165,6 +182,7 @@ The plan is structurally sound, but two execution-critical gaps were identified 
   - **Suggested Fix:** Before save, merge/retain existing conversation metadata (`folderId` minimum) or include `folderId` in all save paths.
 
 ### Major
+
 - **Folder move logic should not rely on full-conversation POST rewrites.**
   - **Impact:** Concurrent autosave + move can race and clobber fields.
   - **Suggested Fix:** Use dedicated partial endpoints (`PATCH /history/:id/folder`, batch move endpoint) and keep folder updates server-authoritative.
@@ -174,17 +192,20 @@ The plan is structurally sound, but two execution-critical gaps were identified 
   - **Suggested Fix:** Define default folder behavior for all mode-specific save paths and ensure folder is preserved on updates.
 
 ### Minor
+
 - **Folder API naming should avoid overlap with existing batch operations.**
   - **Impact:** Inconsistent endpoint layout can confuse maintenance.
   - **Suggested Fix:** Keep a consistent namespace (`/history/folders/*`, `/history/move`, `/history/batch-move`) and document route order constraints.
 
 ## Improvements Suggested
+
 - Add a hard requirement in Phase 1: **"Static `/history/folders*` routes must be declared before `/history/:id`."**
 - Add a hard requirement in Phase 3: **"`saveConversation()` must preserve `folderId` from existing records."**
 - Add integration test case: move a chat to non-default folder, send additional message (autosave path), verify `folderId` remains unchanged.
 - Add migration test case: existing conversation without `folderId` is listed as `inbox` and remains stable after first save.
 
 ## Verification Checklist (Round 2)
+
 - [x] Route registration order reviewed against existing `routes/history.js`.
 - [x] Autosave and update paths reviewed in `src/hooks/useChat.js` and `src/App.jsx`.
 - [x] Race/regression risk between move and streaming save identified.
@@ -197,14 +218,17 @@ The plan is structurally sound, but two execution-critical gaps were identified 
 ## Verdict: NEEDS REVISION
 
 ## Summary
+
 Folder/group APIs are additive but increase write-capable surface area under `/api/history`. The current plan needs explicit security and compatibility constraints so new endpoints align with existing local/API-key trust boundaries and do not break MCP/tooling consumers expecting stable history payloads.
 
 ## Issues Found
 
 ### Critical
+
 - None.
 
 ### Major
+
 - **Security policy for new mutating endpoints is not explicitly defined.**
   - **Description:** Existing `/api/history` routes are currently open within the app's established local-first model, but new folder CRUD and move endpoints add more state mutation paths.
   - **Impact:** In LAN-exposed deployments, unclear policy can widen abuse surface and complicate pentest posture.
@@ -216,16 +240,19 @@ Folder/group APIs are additive but increase write-capable surface area under `/a
   - **Suggested Fix:** Treat `folderId` as additive and backward-compatible; do not remove/rename current fields. Add a compatibility check for MCP list-conversations output.
 
 ### Minor
+
 - **No explicit endpoint naming/versioning guidance for future extensions.**
   - **Impact:** Later growth (ordering, drag-drop, shared groups) may force breaking route churn.
   - **Suggested Fix:** Reserve a clean namespace now (`/api/history/folders/*`, `/api/history/move`, `/api/history/batch-move`) and document it in `.planning/CHATORG.md`.
 
 ## Improvements Suggested
+
 - Add a "Security and Exposure" subsection to Phase 1 with required decisions before coding.
 - Add a "Payload Compatibility" subsection to acceptance criteria (all existing consumers still parse history list responses).
 - Add integration tests for denied/unauthorized cases if endpoint gating is enabled.
 
 ## Verification Checklist (Round 3)
+
 - [x] Route exposure model checked against current server security helpers.
 - [x] Existing history endpoint and MCP references inspected for compatibility impact.
 - [x] Security/documentation deltas identified with concrete implementation rules.
@@ -237,14 +264,17 @@ Folder/group APIs are additive but increase write-capable surface area under `/a
 ## Verdict: NEEDS REVISION
 
 ## Summary
+
 The plan needs additional safeguards for scaling and integrity. Current history listing is synchronous file scanning, and folder delete/re-home operations may touch many files. Without explicit operational constraints, UI grouping features could become sluggish on large histories.
 
 ## Issues Found
 
 ### Critical
+
 - None.
 
 ### Major
+
 - **Potential high-cost folder delete/re-home operation is not bounded.**
   - **Description:** Deleting a folder requires updating every conversation assigned to it.
   - **Impact:** Large history sets may block event loop and degrade UX/API responsiveness.
@@ -256,16 +286,19 @@ The plan needs additional safeguards for scaling and integrity. Current history 
   - **Suggested Fix:** Add memoized grouped selectors in sidebar and avoid repeated re-grouping on unrelated state changes. Consider server-side lightweight folder counts later if needed.
 
 ### Minor
+
 - **No explicit folder position conflict policy.**
   - **Impact:** Order can become unstable if duplicate `position` values occur.
   - **Suggested Fix:** Normalize positions on create/update and define deterministic secondary sort (`createdAt` or `name`).
 
 ## Improvements Suggested
+
 - Add performance budget notes to Phase 5 (e.g., sidebar remains responsive with N conversations).
 - Add failure-mode behavior for re-home operations (partial-failure response shape and retry guidance).
 - Add explicit "atomic writes only" rule for folder metadata and conversation rewrites.
 
 ## Verification Checklist (Round 4)
+
 - [x] Current history I/O behavior reviewed for scaling implications.
 - [x] Folder delete/re-home write-path risks analyzed.
 - [x] Concrete performance/data-integrity mitigations added.
@@ -277,14 +310,17 @@ The plan needs additional safeguards for scaling and integrity. Current history 
 ## Verdict: NEEDS REVISION
 
 ## Summary
+
 The plan is close, but UX behavior matrix and regression coverage are still under-specified. Folder organization intersects with archive mode, multi-select operations, and mode-specific save flows. These interactions need explicit expected behavior before implementation starts.
 
 ## Issues Found
 
 ### Critical
+
 - None.
 
 ### Major
+
 - **Archive-vs-folder behavior matrix is not fully specified.**
   - **Description:** Sidebar currently toggles active/archived views; grouped folders introduce additional state combinations.
   - **Impact:** Ambiguous behavior can produce inconsistent filtering and hard-to-debug UI bugs.
@@ -296,11 +332,13 @@ The plan is close, but UX behavior matrix and regression coverage are still unde
   - **Suggested Fix:** Add acceptance tests for each save path to ensure `folderId` persists after create/update/autosave.
 
 ### Minor
+
 - **Context menu UX for move-to-folder in collapsed sidebar not defined.**
   - **Impact:** Feature may be inaccessible or inconsistent in compact layouts.
   - **Suggested Fix:** Define fallback interaction (modal/select sheet) independent of expanded row affordances.
 
 ## Improvements Suggested
+
 - Add a "Behavior Matrix" section to plan (active/archived x grouped/ungrouped x single/bulk move).
 - Add explicit e2e scenarios:
   - move chat, send new message, reload app, verify folder unchanged
@@ -309,6 +347,7 @@ The plan is close, but UX behavior matrix and regression coverage are still unde
 - Add UX copy specs for folder delete confirmation and re-home messaging.
 
 ## Verification Checklist (Round 5)
+
 - [x] Sidebar filtering logic reviewed for archive interaction risk.
 - [x] Custom save flows in `App.jsx` and `useChat` reviewed for persistence gaps.
 - [x] Test matrix gaps identified and translated into concrete scenarios.

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { apiFetch } from "./lib/api-fetch";
 import { copyText, readText } from "./lib/clipboard";
+import { suggestMode } from "./lib/mode-suggestion";
 import MessageBubble from "./components/MessageBubble";
 import Toast from "./components/Toast";
 import RenameModal from "./components/RenameModal";
@@ -379,6 +380,7 @@ export default function App() {
   } = useModels({ isElectron, setShowOllamaSetup, mode });
 
   const [input, setInput] = useState("");
+  const [dismissedModeSuggestion, setDismissedModeSuggestion] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showDecorative3D, setShowDecorative3D] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -949,6 +951,14 @@ export default function App() {
   }
 
   // File handling
+  function buildAttachmentSignature(fileData) {
+    const raw = typeof fileData?.content === "string" ? fileData.content : "";
+    return (
+      `${fileData?.path || ""}|${fileData?.convertedFrom || ""}|${fileData?.name || ""}|` +
+      `${raw.length}|${raw.slice(0, 256)}|${raw.slice(-256)}`
+    );
+  }
+
   function attachFile(fileData) {
     // In review mode, route file to ReviewPanel instead of chat attachments
     if (mode === "review" && reviewAttachRef.current) {
@@ -964,6 +974,16 @@ export default function App() {
     if (BUILDER_MODES.includes(mode) && builderAttachRef.current) {
       builderAttachRef.current(fileData);
       return;
+    }
+    if (fileData?.type !== "image" && !fileData?.isImage) {
+      const incomingSignature = buildAttachmentSignature(fileData);
+      const isDuplicate = attachedFiles.some(
+        (existing) => buildAttachmentSignature(existing) === incomingSignature,
+      );
+      if (isDuplicate) {
+        showToast(`Skipped duplicate attachment: ${fileData.name}`);
+        return;
+      }
     }
     setAttachedFiles((prev) => [...prev, fileData]);
     showToast(`Attached: ${fileData.name}`);
@@ -1159,6 +1179,26 @@ export default function App() {
   }
 
   const currentMode = MODES.find((m) => m.id === mode);
+
+  // Soft mode-suggestion: when the draft prompt strongly looks like a different
+  // mode's task, surface a non-overriding banner. Click switches modes; X
+  // dismisses for the current draft. Suggestion auto-clears when input clears.
+  const suggestedModeId = useMemo(
+    () => suggestMode(input, mode),
+    [input, mode],
+  );
+  const suggestedMode = useMemo(
+    () =>
+      suggestedModeId ? MODES.find((m) => m.id === suggestedModeId) : null,
+    [suggestedModeId],
+  );
+  const showModeSuggestion =
+    !!suggestedMode &&
+    suggestedModeId !== dismissedModeSuggestion &&
+    !streaming;
+  useEffect(() => {
+    if (!input.trim()) setDismissedModeSuggestion(null);
+  }, [input]);
 
   // Splash screen — shown once per browser session
   if (!splashDismissed) {
@@ -2137,6 +2177,42 @@ export default function App() {
                     </div>
                   )}
 
+                  {showModeSuggestion && (
+                    <div className="mb-2 px-3 py-2 rounded-lg border border-indigo-500/30 bg-indigo-500/5 flex items-center gap-3">
+                      <span className="text-base" aria-hidden="true">
+                        {suggestedMode.icon}
+                      </span>
+                      <div className="flex-1 text-xs text-slate-300">
+                        This looks like a{" "}
+                        <span className="text-indigo-300 font-medium">
+                          {suggestedMode.label}
+                        </span>{" "}
+                        task. Switch?
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode(suggestedModeId);
+                          setDismissedModeSuggestion(null);
+                        }}
+                        className="text-xs px-2.5 py-1 rounded-md border border-indigo-400/40 text-indigo-200 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                        title={`Switch to ${suggestedMode.label} mode`}
+                      >
+                        Switch
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDismissedModeSuggestion(suggestedModeId)
+                        }
+                        className="text-xs px-1.5 py-1 rounded-md text-slate-500 hover:text-slate-300 hover:bg-slate-700/40 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400/40"
+                        title="Dismiss suggestion"
+                        aria-label="Dismiss mode suggestion"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <div className="flex-1 flex flex-col gap-1.5">
                       <label htmlFor="chat-input" className="sr-only">

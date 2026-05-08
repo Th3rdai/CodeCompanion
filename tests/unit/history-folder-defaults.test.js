@@ -57,4 +57,3 @@ test("history normalizes legacy file without folderId as inbox", () => {
   assert.equal(Object.prototype.hasOwnProperty.call(listed, "title"), true);
   assert.equal(Object.prototype.hasOwnProperty.call(listed, "model"), true);
 });
-

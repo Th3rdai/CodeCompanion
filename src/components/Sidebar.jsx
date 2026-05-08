@@ -153,9 +153,9 @@ export default function Sidebar({
           (h.title || "").toLowerCase().includes(q) ||
           (h.mode || "").toLowerCase().includes(q) ||
           (h.model || "").toLowerCase().includes(q) ||
-          ((folderById.get(h.folderId || "inbox")?.name || "Inbox")
+          (folderById.get(h.folderId || "inbox")?.name || "Inbox")
             .toLowerCase()
-            .includes(q)),
+            .includes(q),
       );
     }
     return list;
@@ -541,79 +541,86 @@ export default function Sidebar({
               No chats
             </p>
           )}
-          {(isCollapsed ? [{ folder: null, items: filtered }] : groupedConversations).map(
-            (group) => {
-              const folder = group.folder;
-              const items = group.items;
-              const folderCollapsed = !!folder?.collapsed;
-              return (
-                <div key={folder ? folder.id : "flat-list"} className="mb-1">
-                  {!isCollapsed && folder && (
-                    <div className="flex items-center gap-1 px-2 py-1">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onToggleFolderCollapsed?.(folder.id, !folderCollapsed)
-                        }
-                        className="text-slate-400 hover:text-slate-200 text-xs px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
-                        aria-label={
-                          folderCollapsed
-                            ? `Expand ${folder.name}`
-                            : `Collapse ${folder.name}`
-                        }
-                      >
-                        {folderCollapsed ? "▸" : "▾"}
-                      </button>
-                      <span className="text-xs text-slate-400 truncate">
-                        {folder.name}
-                      </span>
-                      <span className="text-[10px] text-slate-600">
-                        {items.length}
-                      </span>
-                      {!folder.system && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => promptRenameFolder(folder)}
-                            className="ml-auto text-[10px] text-slate-500 hover:text-slate-300 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
-                            title="Rename folder"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Delete folder "${folder.name}"? Conversations will move to Inbox.`,
-                                )
-                              ) {
-                                onDeleteFolder?.(folder.id);
-                              }
-                            }}
-                            className="text-[10px] text-slate-500 hover:text-red-300 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
-                            title="Delete folder"
-                          >
-                            🗑
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  {folderCollapsed && !isCollapsed ? null : items.map((h) => {
-            const modeIcon = modes?.find((m) => m.id === h.mode)?.icon || "💬";
-            const isSelected = selectedIds.has(h.id);
-            const rowLabel = `${h.title || "Untitled"}${h.mode ? `, ${h.mode}` : ""}`;
+          {(isCollapsed
+            ? [{ folder: null, items: filtered }]
+            : groupedConversations
+          ).map((group) => {
+            const folder = group.folder;
+            const items = group.items;
+            const folderCollapsed = !!folder?.collapsed;
             return (
-              <div
-                key={h.id}
-                role="button"
-                tabIndex={0}
-                aria-label={isCollapsed ? rowLabel : undefined}
-                aria-current={
-                  activeId === h.id && !multiSelectMode ? "true" : undefined
-                }
-                className={`group flex items-center rounded-lg cursor-pointer transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/55 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900/80
+              <div key={folder ? folder.id : "flat-list"} className="mb-1">
+                {!isCollapsed && folder && (
+                  <div className="flex items-center gap-1 px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onToggleFolderCollapsed?.(folder.id, !folderCollapsed)
+                      }
+                      className="text-slate-400 hover:text-slate-200 text-xs px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                      aria-label={
+                        folderCollapsed
+                          ? `Expand ${folder.name}`
+                          : `Collapse ${folder.name}`
+                      }
+                    >
+                      {folderCollapsed ? "▸" : "▾"}
+                    </button>
+                    <span className="text-xs text-slate-400 truncate">
+                      {folder.name}
+                    </span>
+                    <span className="text-[10px] text-slate-600">
+                      {items.length}
+                    </span>
+                    {!folder.system && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => promptRenameFolder(folder)}
+                          className="ml-auto text-[10px] text-slate-500 hover:text-slate-300 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                          title="Rename folder"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Delete folder "${folder.name}"? Conversations will move to Inbox.`,
+                              )
+                            ) {
+                              onDeleteFolder?.(folder.id);
+                            }
+                          }}
+                          className="text-[10px] text-slate-500 hover:text-red-300 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60"
+                          title="Delete folder"
+                        >
+                          🗑
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+                {folderCollapsed && !isCollapsed
+                  ? null
+                  : items.map((h) => {
+                      const modeIcon =
+                        modes?.find((m) => m.id === h.mode)?.icon || "💬";
+                      const isSelected = selectedIds.has(h.id);
+                      const rowLabel = `${h.title || "Untitled"}${h.mode ? `, ${h.mode}` : ""}`;
+                      return (
+                        <div
+                          key={h.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={isCollapsed ? rowLabel : undefined}
+                          aria-current={
+                            activeId === h.id && !multiSelectMode
+                              ? "true"
+                              : undefined
+                          }
+                          className={`group flex items-center rounded-lg cursor-pointer transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/55 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-900/80
                   ${isCollapsed ? "justify-center p-2 mb-1" : "gap-2 px-3 py-2.5 mb-1"}
                   ${
                     isSelected && multiSelectMode
@@ -622,102 +629,105 @@ export default function Sidebar({
                         ? "bg-indigo-600/20 border border-indigo-500/30 neon-glow-sm"
                         : "hover:bg-indigo-500/10"
                   }`}
-                onClick={() => {
-                  if (multiSelectMode) {
-                    toggleSelect(h.id);
-                  } else {
-                    onSelect(h.id);
-                    onClose();
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    if (multiSelectMode) toggleSelect(h.id);
-                    else {
-                      onSelect(h.id);
-                      onClose();
-                    }
-                  }
-                }}
-                onContextMenu={(e) => handleContextMenu(e, h)}
-                title={isCollapsed ? h.title || "Untitled" : undefined}
-              >
-                {isCollapsed ? (
-                  <span
-                    className="text-base leading-none"
-                    role="img"
-                    aria-hidden="true"
-                  >
-                    {modeIcon}
-                  </span>
-                ) : (
-                  <>
-                    {multiSelectMode && (
-                      <span
-                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors text-xs ${
-                          isSelected
-                            ? "bg-indigo-500 border-indigo-400 text-white"
-                            : "border-slate-500 text-transparent hover:border-slate-400"
-                        }`}
-                      >
-                        ✓
-                      </span>
-                    )}
-                    <span className="text-sm shrink-0">{modeIcon}</span>
-                    {h.overallGrade && (
-                      <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                          h.overallGrade === "A"
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : h.overallGrade === "B"
-                              ? "bg-lime-500/20 text-lime-400"
-                              : h.overallGrade === "C"
-                                ? "bg-yellow-500/20 text-yellow-400"
-                                : h.overallGrade === "D"
-                                  ? "bg-orange-500/20 text-orange-400"
-                                  : "bg-red-500/20 text-red-400"
-                        }`}
-                      >
-                        {h.overallGrade}
-                      </span>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-slate-200 truncate">
-                        {h.title || "Untitled"}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {h.model && (
-                          <span className="text-indigo-400">
-                            {h.model.split(":")[0]}
-                          </span>
-                        )}
-                        {h.model && " · "}
-                        {formatConversationDate(h.createdAt)}
-                      </div>
-                    </div>
-                    {!multiSelectMode && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleContextMenu(e, h);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1 rounded cursor-pointer focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
-                        aria-label="More options"
-                      >
-                        ⋯
-                      </button>
-                    )}
-                  </>
-                )}
+                          onClick={() => {
+                            if (multiSelectMode) {
+                              toggleSelect(h.id);
+                            } else {
+                              onSelect(h.id);
+                              onClose();
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              if (multiSelectMode) toggleSelect(h.id);
+                              else {
+                                onSelect(h.id);
+                                onClose();
+                              }
+                            }
+                          }}
+                          onContextMenu={(e) => handleContextMenu(e, h)}
+                          title={
+                            isCollapsed ? h.title || "Untitled" : undefined
+                          }
+                        >
+                          {isCollapsed ? (
+                            <span
+                              className="text-base leading-none"
+                              role="img"
+                              aria-hidden="true"
+                            >
+                              {modeIcon}
+                            </span>
+                          ) : (
+                            <>
+                              {multiSelectMode && (
+                                <span
+                                  className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors text-xs ${
+                                    isSelected
+                                      ? "bg-indigo-500 border-indigo-400 text-white"
+                                      : "border-slate-500 text-transparent hover:border-slate-400"
+                                  }`}
+                                >
+                                  ✓
+                                </span>
+                              )}
+                              <span className="text-sm shrink-0">
+                                {modeIcon}
+                              </span>
+                              {h.overallGrade && (
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                                    h.overallGrade === "A"
+                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      : h.overallGrade === "B"
+                                        ? "bg-lime-500/20 text-lime-400"
+                                        : h.overallGrade === "C"
+                                          ? "bg-yellow-500/20 text-yellow-400"
+                                          : h.overallGrade === "D"
+                                            ? "bg-orange-500/20 text-orange-400"
+                                            : "bg-red-500/20 text-red-400"
+                                  }`}
+                                >
+                                  {h.overallGrade}
+                                </span>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-slate-200 truncate">
+                                  {h.title || "Untitled"}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {h.model && (
+                                    <span className="text-indigo-400">
+                                      {h.model.split(":")[0]}
+                                    </span>
+                                  )}
+                                  {h.model && " · "}
+                                  {formatConversationDate(h.createdAt)}
+                                </div>
+                              </div>
+                              {!multiSelectMode && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleContextMenu(e, h);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 text-slate-500 hover:text-slate-300 text-xs transition-opacity px-1 rounded cursor-pointer focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/60"
+                                  aria-label="More options"
+                                >
+                                  ⋯
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
               </div>
             );
           })}
-                </div>
-              );
-            },
-          )}
         </div>
       </nav>
       {contextMenu && (

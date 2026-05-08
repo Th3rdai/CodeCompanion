@@ -30,10 +30,7 @@ const FAKE_TOOL_CODE_NOTICE =
 function stripFakeToolCodeArtifacts(text) {
   let out = text;
   // Fenced ```tool_code ... ``` blocks (Gemma's documented format).
-  out = out.replace(
-    /```tool_code\s*\n[\s\S]*?\n?```/gi,
-    FAKE_TOOL_CODE_NOTICE,
-  );
+  out = out.replace(/```tool_code\s*\n[\s\S]*?\n?```/gi, FAKE_TOOL_CODE_NOTICE);
   // Bare `TOOL_CODE: ...` lines that claim image-related work; conservative
   // gate so legitimate prose mentioning the literal keyword survives.
   out = out.replace(

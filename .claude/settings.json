@@ -1,4 +1,33 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npm run validate:fast)",
+      "Bash(npm run validate:static)",
+      "Bash(npm run validate:p7)",
+      "Bash(npm run test:unit)",
+      "Bash(npm run test:integration)",
+      "Bash(npm run mcp:test)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run format:check)",
+      "Bash(npx gitnexus analyze)",
+      "Bash(npx playwright test)",
+      "Bash(codesign -d *)",
+      "Bash(spctl --assess *)",
+      "Bash(gh release download *)",
+      "mcp__archon__find_tasks",
+      "Bash(sed -n '103p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)",
+      "Bash(sed -n '222p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)",
+      "Bash(sed -n '45p' /Users/james/Projects/CodeCompanion/lib/chat-post-handler.js)",
+      "Bash(sed -n '46p' /Users/james/Projects/CodeCompanion/lib/chat-post-handler.js)",
+      "Bash(sed -n '123p' /Users/james/Projects/CodeCompanion/lib/ollama-client.js)",
+      "Edit(/.claude/skills/plan-reviewer/**)",
+      "Bash(sed -n '170,200p' /Users/james/Projects/CodeCompanion/lib/ollama-client.js)",
+      "Bash(sed -n '215,260p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)",
+      "Bash(sed -n '290,335p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -23,24 +52,13 @@
       }
     ]
   },
-  "permissions": {
-    "allow": [
-      "Bash(npm run validate:fast)",
-      "Bash(npm run validate:static)",
-      "Bash(npm run validate:p7)",
-      "Bash(npm run test:unit)",
-      "Bash(npm run test:integration)",
-      "Bash(npm run mcp:test)",
-      "Bash(npm run build)",
-      "Bash(npm run lint)",
-      "Bash(npm run typecheck)",
-      "Bash(npm run format:check)",
-      "Bash(npx gitnexus analyze)",
-      "Bash(npx playwright test)",
-      "Bash(codesign -d *)",
-      "Bash(spctl --assess *)",
-      "Bash(gh release download *)",
-      "mcp__archon__find_tasks"
-    ]
+  "mcpServers": {
+    "context-mode": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@context-mode/mcp-server"
+      ]
+    }
   }
 }

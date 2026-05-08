@@ -259,7 +259,10 @@ function exportPng(
     return new XMLSerializer().serializeToString(parsed);
   };
 
-  const attemptRender = (svgText, { allowForeignObjectFallback = true } = {}) => {
+  const attemptRender = (
+    svgText,
+    { allowForeignObjectFallback = true } = {},
+  ) => {
     const svgBlob = new Blob([svgText], { type: "image/svg+xml" });
     const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
 
@@ -346,7 +349,9 @@ function exportPng(
         drawRaster(blobImg, () => URL.revokeObjectURL(blobUrl));
       blobImg.onerror = () => {
         URL.revokeObjectURL(blobUrl);
-        failAttempt("Could not load diagram for PNG export — try SVG export instead.");
+        failAttempt(
+          "Could not load diagram for PNG export — try SVG export instead.",
+        );
       };
       blobImg.src = blobUrl;
     };
