@@ -1,13 +1,26 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
+const net = require("net");
 const { spawn } = require("child_process");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForServer(baseUrl, timeoutMs = 15000) {
+function reserveFreePort() {
+  return new Promise((resolve, reject) => {
+    const s = net.createServer();
+    s.listen(0, "127.0.0.1", () => {
+      const addr = s.address();
+      const p = typeof addr === "object" && addr ? addr.port : null;
+      s.close(() => (p != null ? resolve(p) : reject(new Error("no port"))));
+    });
+    s.on("error", reject);
+  });
+}
+
+async function waitForServer(baseUrl, timeoutMs = 25000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
@@ -20,7 +33,7 @@ async function waitForServer(baseUrl, timeoutMs = 15000) {
 }
 
 test("rate limiting blocks burst traffic on create-project endpoint", async () => {
-  const port = 3319;
+  const port = await reserveFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: path.resolve(__dirname, ".."),
@@ -29,6 +42,9 @@ test("rate limiting blocks burst traffic on create-project endpoint", async () =
       PORT: String(port),
       DEBUG: "0",
       FORCE_HTTP: "1",
+      // Full suite may run test files concurrently; skip MCP handshakes so
+      // /api/config is reachable quickly and local dev MCPs cannot starve CI.
+      CC_SKIP_MCP_AUTOCONNECT: "1",
       RATE_LIMIT_WINDOW_MS: "60000",
       RATE_LIMIT_MAX_CREATE: "2",
     },
