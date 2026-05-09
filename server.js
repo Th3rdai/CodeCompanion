@@ -27,6 +27,7 @@ const {
 } = require("./lib/ollama-client");
 
 const { buildFileTree, readProjectFile } = require("./lib/file-browser");
+const { getHostTimeSnapshot } = require("./lib/host-time");
 const McpClientManager = require("./lib/mcp-client-manager");
 const ToolCallHandler = require("./lib/tool-call-handler");
 const {
@@ -329,6 +330,13 @@ app.use("/api", createExperimentRouter(appContext));
 app.use("/api", createReviewRouter(appContext));
 app.use("/api", createPentestRouter(appContext));
 app.use("/api", createDictateTranscribeRouter(appContext));
+
+// ── GET /api/host-time ─────────────────────────────────
+// Host machine clock (Node process). Public read-only; no secrets.
+
+app.get("/api/host-time", (req, res) => {
+  res.json(getHostTimeSnapshot());
+});
 
 // ── GET /api/models ──────────────────────────────────
 
