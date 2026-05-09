@@ -33,7 +33,7 @@ module.exports = function createRouter(appContext) {
       return res.status(400).json({ error: "Images must be an array" });
     }
     if (images && images.length > 10) {
-      log("ERROR", `Too many images: ${images.length}`, { limit: 10 });
+      log("WARN", `Too many images: ${images.length}`, { limit: 10 });
       return res.status(400).json({ error: "Maximum 10 images per message" });
     }
 

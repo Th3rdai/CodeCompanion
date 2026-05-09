@@ -355,6 +355,32 @@ test("validateCommand: * allowlist permits cat with file path args", () => {
   assert.equal(r.allowed, true);
 });
 
+test("validateCommand: rejects source file as argv0 even with * allowlist", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: ["*"],
+    },
+  };
+  const r = validateCommand("DockLockManager.swift", [], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /source or document file/i);
+});
+
+test("validateCommand: rejects JSON-like command field", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: ["*"],
+    },
+  };
+  const r = validateCommand('{"command":"find"}', [], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /braces|malformed/i);
+});
+
 test("validateCommand: * allowlist still enforces blocklist", () => {
   const cfg = {
     ...baseTerminalConfig,

@@ -13,6 +13,7 @@ const {
   isLocalOrPrivateLanHostname,
   isTrustedMediaPageUrl,
 } = require("./media-origin");
+const { TRUSTED_ORIGIN_PERMISSIONS } = require("./permission-policy");
 const { fork } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -736,13 +737,16 @@ function configureSessionMediaPermissions() {
     return { actualPort, appPath, electronDir: __dirname };
   }
 
+  // Allowlist lives in ./permission-policy.js so a regression test can lock it.
+  // "media" also requires an audio-only details check (mediaPermissionWantsAudioOnly).
+
   session.defaultSession.setPermissionRequestHandler(
     (webContents, permission, callback, details) => {
-      if (permission !== "media") {
+      if (!TRUSTED_ORIGIN_PERMISSIONS.has(permission)) {
         callback(false);
         return;
       }
-      if (!mediaPermissionWantsAudioOnly(details)) {
+      if (permission === "media" && !mediaPermissionWantsAudioOnly(details)) {
         callback(false);
         return;
       }
@@ -762,7 +766,7 @@ function configureSessionMediaPermissions() {
         return;
       }
       emergencyLog(
-        `[Media] Denied — untrusted origin (page=${pageUrl} requesting=${requesting})`,
+        `[Permission] Denied ${permission} — untrusted origin (page=${pageUrl} requesting=${requesting})`,
       );
       callback(false);
     },
@@ -770,8 +774,9 @@ function configureSessionMediaPermissions() {
 
   session.defaultSession.setPermissionCheckHandler(
     (webContents, permission, requestingOrigin, details) => {
-      if (permission !== "media") return false;
-      if (!mediaPermissionWantsAudioOnly(details)) return false;
+      if (!TRUSTED_ORIGIN_PERMISSIONS.has(permission)) return false;
+      if (permission === "media" && !mediaPermissionWantsAudioOnly(details))
+        return false;
       const ctx = mediaTrustContext();
       if (requestingOrigin && isTrustedMediaPageUrl(requestingOrigin, ctx))
         return true;
@@ -785,7 +790,7 @@ function configureSessionMediaPermissions() {
     },
   );
 
-  emergencyLog("Session media permission handlers installed");
+  emergencyLog("Session media + clipboard permission handlers installed");
 }
 
 /**

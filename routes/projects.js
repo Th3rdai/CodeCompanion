@@ -14,7 +14,7 @@ const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
-  const { log, dataRoot: _dataRoot } = appContext;
+  const { log, debug = () => {}, dataRoot: _dataRoot } = appContext;
 
   // ── GET /api/project-health ──────────────────────────
   router.get("/project-health", (req, res) => {
@@ -49,10 +49,6 @@ module.exports = function createRouter(appContext) {
 
   // ── POST /api/create-project (ICM scaffold) ──────────
   router.post("/create-project", (req, res) => {
-    log(
-      "INFO",
-      "create-project body keys: " + Object.keys(req.body || {}).join(", "),
-    );
     const {
       name,
       description,
@@ -65,16 +61,21 @@ module.exports = function createRouter(appContext) {
       makerEnabled,
     } = req.body;
     if (!name || !outputRoot) {
-      log(
-        "WARN",
-        `create-project missing fields — name: "${name}", outputRoot: "${outputRoot}"`,
-      );
+      debug("create-project missing fields", {
+        name,
+        outputRoot,
+        keys: Object.keys(req.body || {}),
+      });
       return res.status(400).json({
         success: false,
         error: "name and outputRoot are required",
         code: "MISSING_FIELDS",
       });
     }
+    log(
+      "INFO",
+      "create-project body keys: " + Object.keys(req.body || {}).join(", "),
+    );
     const config = getConfig();
     try {
       const result = scaffoldProject(

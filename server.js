@@ -153,8 +153,21 @@ app.use((_req, res, next) => {
 // Serve Vite production build (dist/) if available, fallback to legacy public/
 const distDir = path.join(__dirname, "dist");
 const publicDir = path.join(__dirname, "public");
-const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
-const spaIndexPath = path.join(staticDir, "index.html");
+let staticDir = fs.existsSync(distDir) ? distDir : publicDir;
+let spaIndexPath = path.join(staticDir, "index.html");
+// Incomplete dist/ (folder exists but no index.html) used to pick dist and fail;
+// fall back to public/ when it has a shell so `node server.js` still serves UI.
+if (
+  !fs.existsSync(spaIndexPath) &&
+  staticDir === distDir &&
+  fs.existsSync(path.join(publicDir, "index.html"))
+) {
+  log("WARN", "dist/ has no index.html — using public/ for static UI", {
+    distDir,
+  });
+  staticDir = publicDir;
+  spaIndexPath = path.join(staticDir, "index.html");
+}
 if (!fs.existsSync(spaIndexPath)) {
   log(
     "ERROR",

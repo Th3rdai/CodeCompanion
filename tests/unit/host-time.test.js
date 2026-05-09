@@ -1,6 +1,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { getHostTimeSnapshot } = require("../../lib/host-time.js");
+const {
+  getHostTimeSnapshot,
+  formatHostTimeForPrompt,
+} = require("../../lib/host-time.js");
 
 test("getHostTimeSnapshot returns stable shape for fixed Date", () => {
   const fixed = new Date("2026-05-09T15:30:00.000Z");
@@ -19,4 +22,12 @@ test("getHostTimeSnapshot default uses current time", () => {
   const after = Date.now();
   assert.ok(s.unixMs >= before && s.unixMs <= after);
   assert.match(s.iso, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test("formatHostTimeForPrompt includes ISO instant and label", () => {
+  const fixed = new Date("2026-05-09T15:30:00.000Z");
+  const line = formatHostTimeForPrompt({ now: fixed });
+  assert.ok(line.startsWith("CURRENT_HOST_TIME:"));
+  assert.ok(line.includes("2026-05-09T15:30:00.000Z"));
+  assert.ok(line.includes("UTC calendar date"));
 });
