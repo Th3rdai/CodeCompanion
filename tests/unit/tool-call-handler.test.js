@@ -183,6 +183,79 @@ builtin.run_terminal_cmd
   });
 });
 
+// ─── <tool_code> wrapper fallback (Gemma/Gemini hallucination) ───────────
+// Reproduces the 2026-05-08 dockblock session where kimi-k2.5:cloud emitted
+// `<tool_code>builtin.run_terminal_cmd({...})</tool_code>` instead of
+// `TOOL_CALL: builtin.run_terminal_cmd({...})`. Old parser found 0 tool calls
+// and the round ended with prose-only narration; corrective retries never
+// recovered. New fallback peels the wrapper and runs the same balanced-args
+// extraction the primary parser uses so JSON with parens/newlines survives.
+
+test("parseToolCalls extracts a builtin call wrapped in <tool_code>...</tool_code>", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<tool_code>
+builtin.run_terminal_cmd({"command": "cat", "args": ["/Users/james/Projects/dockblock/Sources/DockBlock/ContentView.swift"]})
+</tool_code>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].serverId, "builtin");
+  assert.strictEqual(calls[0].toolName, "run_terminal_cmd");
+  assert.strictEqual(calls[0].args.command, "cat");
+  assert.deepStrictEqual(calls[0].args.args, [
+    "/Users/james/Projects/dockblock/Sources/DockBlock/ContentView.swift",
+  ]);
+});
+
+test("parseToolCalls extracts a builtin call wrapped in ```tool_code``` fence", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text =
+    "Sure, let me run that.\n\n```tool_code\n" +
+    'builtin.run_terminal_cmd({"command": "ls", "args": ["-la"]})\n' +
+    "```";
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].serverId, "builtin");
+  assert.strictEqual(calls[0].toolName, "run_terminal_cmd");
+  assert.strictEqual(calls[0].args.command, "ls");
+});
+
+test("parseToolCalls preserves nested JSON with parens/newlines inside <tool_code>", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text = `<tool_code>
+builtin.write_file({"path": "x.md", "content": "first line\\nsecond (parenthesized) line\\nthird"})
+</tool_code>`;
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].toolName, "write_file");
+  assert.match(calls[0].args.content, /second \(parenthesized\) line/);
+});
+
+test("parseToolCalls primary TOOL_CALL: takes precedence over a stray <tool_code> in same response", () => {
+  // If the model emits a real TOOL_CALL: line, we must use that and ignore
+  // any decorative <tool_code> blocks elsewhere — fallbacks only fire when
+  // the primary parser found nothing.
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const text =
+    'Here is what I will run:\n\n<tool_code>builtin.read_file({"path":"OLD"})</tool_code>\n\n' +
+    'TOOL_CALL: builtin.read_file({"path":"NEW"})';
+  const calls = h.parseToolCalls(text);
+  assert.strictEqual(calls.length, 1);
+  assert.strictEqual(calls[0].args.path, "NEW");
+});
+
+test("parseToolCalls ignores empty / non-call <tool_code> blocks (e.g. prose)", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler({});
+  const calls = h.parseToolCalls(
+    "<tool_code>\nI was going to run a command but didn't.\n</tool_code>",
+  );
+  assert.strictEqual(calls.length, 0);
+});
+
 test("executeTool MCP returns error when callTool exceeds timeout", async () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(80);
   const mockMcp = {
@@ -468,7 +541,7 @@ test("buildToolsPrompt includes anti-hallucination block and sourcePath hint for
   );
 });
 
-test("buildToolsPrompt defaults to in-chat answers and no file creation unless asked", () => {
+test("buildToolsPrompt default response mode allows project writes when helpful", () => {
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler(
     { getAllTools: () => [] },
@@ -480,14 +553,33 @@ test("buildToolsPrompt defaults to in-chat answers and no file creation unless a
     "expected default response mode guidance",
   );
   assert.ok(
+    p.includes("Prefer answering directly in chat"),
+    "expected in-chat preference for short answers",
+  );
+  assert.ok(
+    p.includes("builtin.write_file") &&
+      p.includes("builtin.generate_office_file"),
+    "expected file-writing tools named in default mode guidance",
+  );
+});
+
+test("buildToolsPrompt strict chat file mode restores explicit-artifact wording", () => {
+  const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
+  const h = new ToolCallHandler(
+    { getAllTools: () => [] },
+    { getConfig: () => ({ chatRequireExplicitFileWrites: true }) },
+  );
+  const p = h.buildToolsPrompt();
+  assert.ok(p.includes("DEFAULT RESPONSE MODE"));
+  assert.ok(
     p.includes("Do NOT create/save files by default."),
-    "expected explicit no-file-by-default instruction",
+    "expected strict no-file-by-default instruction",
   );
   assert.ok(
     p.includes(
       "Only use file-writing tools when the user explicitly asks for a file artifact",
     ),
-    "expected explicit file-artifact gate",
+    "expected explicit file-artifact gate when strict",
   );
 });
 

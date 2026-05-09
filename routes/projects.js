@@ -6,6 +6,7 @@ const os = require("os");
 const { getConfig } = require("../lib/config");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { ollamaAuthOpts, chatComplete } = require("../lib/ollama-client");
+const { formatBrandAssetsPrompt } = require("../lib/brand-context");
 const { scaffoldProject } = require("../lib/icm-scaffolder");
 const { scaffoldBuildProject } = require("../lib/build-scaffolder");
 const { scanProjectForValidation } = require("../lib/validate");
@@ -237,11 +238,19 @@ Respond with ONLY a single JSON object, no markdown or explanation, with these e
 
 Example: {"audience":"Developers and technical writers","tone":"Professional","outputRoot":"~/AI_Dev/"}`;
 
+    const brandPrompt = formatBrandAssetsPrompt(config.brandAssets);
+    const wizardMessages = brandPrompt
+      ? [
+          { role: "system", content: brandPrompt.trimStart() },
+          { role: "user", content: prompt },
+        ]
+      : [{ role: "user", content: prompt }];
+
     try {
       const text = await chatComplete(
         ollamaUrl,
         selectedModel,
-        [{ role: "user", content: prompt }],
+        wizardMessages,
         15000,
         [],
         ollamaAuthOpts(config),

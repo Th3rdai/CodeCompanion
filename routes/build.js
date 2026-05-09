@@ -13,6 +13,7 @@ const GsdBridge = require("../lib/gsd-bridge");
 const { isWithinBasePath } = require("../lib/file-browser");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { ollamaAuthOpts, chatComplete } = require("../lib/ollama-client");
+const { formatBrandAssetsPrompt } = require("../lib/brand-context");
 const {
   CLIENT_INTERNAL_ERROR,
   STREAM_INTERNAL_ERROR,
@@ -210,7 +211,8 @@ module.exports = function createRouter(appContext) {
         {
           role: "system",
           content:
-            "You are a friendly project coach. Given the project state, suggest the single most important next action. Be concise (2-3 sentences). Use encouraging, non-technical language. If the project is complete, congratulate them.",
+            "You are a friendly project coach. Given the project state, suggest the single most important next action. Be concise (2-3 sentences). Use encouraging, non-technical language. If the project is complete, congratulate them." +
+            formatBrandAssetsPrompt(config.brandAssets),
         },
         {
           role: "user",
@@ -286,7 +288,8 @@ module.exports = function createRouter(appContext) {
           content:
             "You are a technical researcher preparing context for project planning. Given the project state and roadmap, research phase " +
             phaseNumber +
-            ". Identify: 1) What needs to be built, 2) Key technical decisions, 3) Dependencies and risks, 4) Suggested approach. Be thorough but concise. Use markdown formatting.",
+            ". Identify: 1) What needs to be built, 2) Key technical decisions, 3) Dependencies and risks, 4) Suggested approach. Be thorough but concise. Use markdown formatting." +
+            formatBrandAssetsPrompt(config.brandAssets),
         },
         {
           role: "user",
@@ -366,7 +369,8 @@ module.exports = function createRouter(appContext) {
           content:
             "You are a project planner. Given the research context and project state, create a concrete plan for phase " +
             phaseNumber +
-            ". Include: 1) Phase goal, 2) Tasks with specific file paths and actions, 3) Success criteria, 4) Estimated complexity. Format as markdown with clear headings.",
+            ". Include: 1) Phase goal, 2) Tasks with specific file paths and actions, 3) Success criteria, 4) Estimated complexity. Format as markdown with clear headings." +
+            formatBrandAssetsPrompt(config.brandAssets),
         },
         {
           role: "user",
