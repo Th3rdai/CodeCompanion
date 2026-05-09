@@ -13,6 +13,9 @@
     "url": "https://github.com/th3rdai/CodeCompanion.git"
   },
   "main": "electron/main.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node server.js",
     "dev:server": "node server.js",
