@@ -67,10 +67,12 @@ export default function SettingsPanel({
   onSave,
   onClose,
   onOpenMemoryPanel,
+  onRunSetupAssistant,
 }) {
   const [activeTab, setActiveTab] = useState("general");
   const [url, setUrl] = useState(ollamaUrl);
   const [ollamaApiKey, setOllamaApiKey] = useState("");
+  const [dictateGroqApiKey, setDictateGroqApiKey] = useState("");
   const [folder, setFolder] = useState(projectFolder || "");
   const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || "");
   useEffect(() => setIcmTemplate(icmTemplatePath || ""), [icmTemplatePath]);
@@ -87,6 +89,10 @@ export default function SettingsPanel({
   // Auto-continue (chat mode) state
   const [autoContinueEnabled, setAutoContinueEnabled] = useState(false);
   const [autoContinueMaxSteps, setAutoContinueMaxSteps] = useState(5);
+
+  /** When true, Chat mode blocks write_file / generate_office_file unless the user clearly asks for a file. */
+  const [chatRequireExplicitFileWrites, setChatRequireExplicitFileWrites] =
+    useState(false);
 
   // Brand assets state
   const [brandAssets, setBrandAssets] = useState([]);
@@ -198,6 +204,11 @@ export default function SettingsPanel({
             setAutoContinueEnabled(data.autoContinue.enabled ?? false);
             setAutoContinueMaxSteps(data.autoContinue.maxSteps ?? 5);
           }
+          if (data.chatRequireExplicitFileWrites != null) {
+            setChatRequireExplicitFileWrites(
+              !!data.chatRequireExplicitFileWrites,
+            );
+          }
           if (data.preferredPort != null) setPreferredPort(data.preferredPort);
           if (data.imageSupport) {
             setImageSupport({
@@ -209,6 +220,8 @@ export default function SettingsPanel({
           }
           if (data.ollamaApiKey != null)
             setOllamaApiKey(data.ollamaApiKey || "");
+          if (data.dictateGroqApiKey != null)
+            setDictateGroqApiKey(data.dictateGroqApiKey || "");
           if (data.docling) {
             setDoclingUrl(data.docling.url || "http://127.0.0.1:5002");
             setDoclingApiKey(data.docling.apiKey || "");
@@ -659,6 +672,13 @@ export default function SettingsPanel({
     return { ollamaApiKey: t };
   }
 
+  function dictateGroqApiKeyPayload() {
+    const t = (dictateGroqApiKey || "").trim();
+    if (t === "") return { dictateGroqApiKey: "" };
+    if (/^•+$/.test(t)) return {};
+    return { dictateGroqApiKey: t };
+  }
+
   async function handleTest() {
     setTesting(true);
     setTestResult(null);
@@ -919,6 +939,43 @@ export default function SettingsPanel({
                   to store the key.
                 </p>
               </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-700/40">
+                <label
+                  className="block text-sm text-slate-300 mb-2 font-medium"
+                  htmlFor="settings-dictate-groq-key"
+                >
+                  Voice dictation (offline fallback)
+                </label>
+                <input
+                  id="settings-dictate-groq-key"
+                  type="password"
+                  value={dictateGroqApiKey}
+                  onChange={(e) => setDictateGroqApiKey(e.target.value)}
+                  placeholder="Groq API key — only if Web Speech is blocked (VPN / firewall)"
+                  autoComplete="off"
+                  className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                />
+                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                  The mic button normally uses Chrome&apos;s online speech
+                  engine. When that fails with a network error, Code Companion
+                  can transcribe via{" "}
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    Groq Whisper
+                    <ExternalLink className="w-3 h-3 inline" aria-hidden />
+                  </a>{" "}
+                  (free tier). Or set env{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    GROQ_API_KEY
+                  </code>
+                  . Save &amp; Close to store the key in your config.
+                </p>
+              </div>
             </section>
 
             {/* Document Conversion (Docling) */}
@@ -1061,7 +1118,12 @@ export default function SettingsPanel({
               </div>
               <p className="text-xs text-slate-500 mb-3">
                 Allow the AI agent to run terminal commands in your project
-                folder. Commands are restricted to the allowlist below.
+                folder. Commands must match the allowlist below (exact names or
+                simple <span className="font-mono">*</span> /{" "}
+                <span className="font-mono">?</span> patterns like{" "}
+                <span className="font-mono">git*</span>), or a lone{" "}
+                <span className="font-mono">*</span> for all basenames.
+                Blocklist still applies.
               </p>
               <div className="flex items-center gap-2 mt-2 mb-3">
                 <button
@@ -1102,12 +1164,34 @@ export default function SettingsPanel({
                     type="text"
                     value={terminalAllowlist}
                     onChange={(e) => setTerminalAllowlist(e.target.value)}
-                    placeholder="npm, npx, node, git, python (comma-separated)"
+                    placeholder="npm, git*, python3 — or * for all (comma-separated)"
                     className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
                   />
                   <p className="text-xs text-slate-500 mt-1 mb-3">
-                    Comma-separated list of allowed command names. Leave empty
-                    to deny all commands.
+                    Comma-separated command basenames. Patterns may use{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      *
+                    </code>{" "}
+                    and{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      ?
+                    </code>{" "}
+                    only (e.g.{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      git*
+                    </code>{" "}
+                    matches <span className="font-mono">git</span>,{" "}
+                    <span className="font-mono">git-lfs</span>, etc.; no{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800">[]</code>{" "}
+                    or{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800">{}</code>
+                    ). A lone{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-amber-200/90">
+                      *
+                    </code>{" "}
+                    allows every basename (highest risk). Blocklist still
+                    applies. Leave empty with no lone * to deny all until you
+                    add entries.
                   </p>
 
                   <div className="flex items-center justify-between mb-4">
@@ -1119,17 +1203,14 @@ export default function SettingsPanel({
                         Run one shell line via bash (macOS/Linux) or cmd
                         (Windows) when the command uses{" "}
                         <span className="font-mono">&&</span>, pipes, redirects,
-                        etc. Add{" "}
-                        <span className="font-mono">bash</span> or{" "}
+                        etc. Add <span className="font-mono">bash</span> or{" "}
                         <span className="font-mono">sh</span> to the allowlist
                         (or <span className="font-mono">cmd</span> on Windows).
                       </p>
                     </div>
                     <button
                       type="button"
-                      onClick={() =>
-                        setTerminalAllowShellChaining((v) => !v)
-                      }
+                      onClick={() => setTerminalAllowShellChaining((v) => !v)}
                       className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ml-2 ${terminalAllowShellChaining ? "bg-indigo-500" : "bg-slate-600"}`}
                       aria-label="Toggle shell chaining for agent terminal"
                     >
@@ -1453,6 +1534,35 @@ export default function SettingsPanel({
               )}
             </div>
 
+            {typeof onRunSetupAssistant === "function" && (
+              <section
+                className="rounded-xl border border-indigo-500/25 bg-slate-900/40 p-4 space-y-2"
+                aria-labelledby="settings-guided-setup-heading"
+              >
+                <h3
+                  id="settings-guided-setup-heading"
+                  className="text-sm font-semibold text-slate-100 tracking-tight"
+                >
+                  Guided setup
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Short chat that maps your goals to safe Settings changes. See
+                  repo root{" "}
+                  <code className="text-[11px] bg-slate-800 px-1 rounded">
+                    SETUPUX.md
+                  </code>{" "}
+                  for scope.
+                </p>
+                <button
+                  type="button"
+                  onClick={onRunSetupAssistant}
+                  className="btn-neon text-white rounded-lg px-4 py-2 text-sm font-medium"
+                >
+                  Run setup assistant
+                </button>
+              </section>
+            )}
+
             {/* Agent Readiness — Chat agent idea → running software */}
             <section
               className="rounded-xl border border-emerald-500/25 bg-slate-900/40 p-4 space-y-3"
@@ -1737,12 +1847,11 @@ export default function SettingsPanel({
                     Auto-Continue (Chat-protocol modes)
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    In Chat / Explain / Clean Up / Safety Check / Idea →
-                    Code Spec / Code → Plain English, when the model returns
-                    prose after running tools but doesn't signal completion,
-                    the server re-prompts with "continue" so multi-step work
-                    doesn't stall at turn boundaries. Stops when the model
-                    writes{" "}
+                    In Chat / Explain / Clean Up / Safety Check / Idea → Code
+                    Spec / Code → Plain English, when the model returns prose
+                    after running tools but doesn't signal completion, the
+                    server re-prompts with "continue" so multi-step work doesn't
+                    stall at turn boundaries. Stops when the model writes{" "}
                     <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
                       TASK_COMPLETE
                     </code>
@@ -1803,6 +1912,48 @@ export default function SettingsPanel({
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Chat: strict file writes */}
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={chatRequireExplicitFileWrites}
+                  onChange={(e) => {
+                    const next = e.target.checked;
+                    setChatRequireExplicitFileWrites(next);
+                    apiFetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        chatRequireExplicitFileWrites: next,
+                      }),
+                    }).catch(() => {});
+                  }}
+                  className="mt-0.5 w-4 h-4 accent-indigo-500 cursor-pointer"
+                />
+                <div className="flex-1">
+                  <div className="text-sm text-slate-300 font-medium">
+                    Chat: require explicit file request
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    When on, <strong className="text-slate-300">Chat</strong>{" "}
+                    mode blocks saving to the project (
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      write_file
+                    </code>
+                    ,{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      generate_office_file
+                    </code>
+                    ) unless the user clearly asks (for example: save as
+                    markdown, export PDF). Off by default — the agent may write
+                    files when that helps. Saying not to save to a file still
+                    blocks writes.
+                  </p>
+                </div>
+              </label>
             </div>
 
             {/* Chat Timeout */}
@@ -2492,10 +2643,11 @@ export default function SettingsPanel({
             <div className="glass rounded-lg p-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-200">
-                  Welcome Tour
+                  Welcome tour
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Re-show the onboarding walkthrough and privacy banner
+                  Re-show the first-run welcome (quick tour + optional Settings
+                  help) and the privacy banner
                 </p>
               </div>
               <button
@@ -3148,7 +3300,10 @@ export default function SettingsPanel({
           </button>
           <button
             onClick={async () => {
-              await onSave(url, folder, icmTemplate, ollamaApiKeyPayload());
+              await onSave(url, folder, icmTemplate, {
+                ...ollamaApiKeyPayload(),
+                ...dictateGroqApiKeyPayload(),
+              });
               try {
                 await apiFetch("/api/config", {
                   method: "POST",

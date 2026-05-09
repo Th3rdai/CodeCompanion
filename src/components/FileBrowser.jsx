@@ -1,7 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Braces, Code2, Wind } from "lucide-react";
 import { apiFetch } from "../lib/api-fetch";
 import { convertDocument } from "../lib/document-processor";
+import {
+  attachChatImageFromBlob,
+  guessImageMimeFromFilename,
+  isBrowserChatImageFilename,
+} from "../lib/file-browser-image-attach";
 
 // Persist folder expand/collapse state in localStorage (survives refresh)
 const TREE_STATE_KEY = "cc_file_tree_state";
@@ -230,6 +235,7 @@ export default function FileBrowser({
   onSetFolder,
   attachLabel,
   onToast,
+  imageSupportConfig = {},
 }) {
   const TREE_REQUEST_TIMEOUT_MS = 20000;
   const [tree, setTree] = useState(null);
@@ -248,6 +254,19 @@ export default function FileBrowser({
   const [dropping, setDropping] = useState(null); // { total, done }
   const [converting, setConverting] = useState(null); // path being converted
   const dragCounter = useRef(0);
+
+  const clearPreview = useCallback(() => {
+    setPreview((p) => {
+      if (p?.imageObjectUrl) {
+        try {
+          URL.revokeObjectURL(p.imageObjectUrl);
+        } catch {
+          /* ignore */
+        }
+      }
+      return null;
+    });
+  }, []);
 
   const folderPath = tree?.root || projectFolder;
 
@@ -335,6 +354,7 @@ export default function FileBrowser({
   }
 
   async function handleFileClick(node) {
+    clearPreview();
     // Handle convertible documents (PDF, PPTX, etc.)
     if (node.convertible) {
       setConverting(node.path);
@@ -386,6 +406,53 @@ export default function FileBrowser({
       return;
     }
 
+    // Raster images: binary via read-raw — never UTF-8 /api/files/read (garbles vision context)
+    if (isBrowserChatImageFilename(node.name)) {
+      setLoadingFile(true);
+      try {
+        const folderParam = tree?.root
+          ? `&folder=${encodeURIComponent(tree.root)}`
+          : "";
+        const rawRes = await apiFetch(
+          `/api/files/read-raw?path=${encodeURIComponent(node.path)}${folderParam}`,
+        );
+        if (!rawRes.ok) {
+          const errBody = await rawRes
+            .json()
+            .catch(() => ({ error: `HTTP ${rawRes.status}` }));
+          const msg =
+            errBody?.error || `Could not read image (${rawRes.status})`;
+          if (onToast) onToast(msg);
+          else console.error("Image preview failed:", msg);
+          return;
+        }
+        const blob = await rawRes.blob();
+        const mime = guessImageMimeFromFilename(node.name);
+        const typedBlob =
+          blob.type &&
+          ["image/png", "image/jpeg", "image/gif"].includes(blob.type)
+            ? blob
+            : new Blob([blob], { type: mime });
+        const objectUrl = URL.createObjectURL(typedBlob);
+        setPreview({
+          name: node.name,
+          path: node.path,
+          isImagePreview: true,
+          imageObjectUrl: objectUrl,
+          rawBlob: typedBlob,
+          error: false,
+          lines: null,
+        });
+      } catch (err) {
+        const msg = err?.message || "Could not load image preview";
+        if (onToast) onToast(msg);
+        else console.error("Image preview failed:", err);
+      } finally {
+        setLoadingFile(false);
+      }
+      return;
+    }
+
     setLoadingFile(true);
     try {
       const folderParam = tree?.root
@@ -410,16 +477,26 @@ export default function FileBrowser({
     setLoadingFile(false);
   }
 
-  function handleAttach() {
-    if (preview && !preview.error) {
-      onAttachFile({
-        name: preview.name,
-        path: preview.path,
-        content: preview.content,
-        lines: preview.lines,
+  async function handleAttach() {
+    if (!preview || preview.error) return;
+    if (preview.isImagePreview && preview.rawBlob) {
+      await attachChatImageFromBlob({
+        blob: preview.rawBlob,
+        fileName: preview.name,
+        imageSupportConfig,
+        attachFile: onAttachFile,
+        onToast,
       });
-      setPreview(null);
+      clearPreview();
+      return;
     }
+    onAttachFile({
+      name: preview.name,
+      path: preview.path,
+      content: preview.content,
+      lines: preview.lines,
+    });
+    clearPreview();
   }
 
   async function handleQuickAttach(node) {
@@ -447,6 +524,46 @@ export default function FileBrowser({
         });
       } catch (err) {
         console.error("Quick attach conversion failed:", err);
+      } finally {
+        setConverting(null);
+      }
+      return;
+    }
+
+    if (isBrowserChatImageFilename(node.name)) {
+      setConverting(node.path);
+      try {
+        const folderParam = tree?.root
+          ? `&folder=${encodeURIComponent(tree.root)}`
+          : "";
+        const rawRes = await apiFetch(
+          `/api/files/read-raw?path=${encodeURIComponent(node.path)}${folderParam}`,
+        );
+        if (!rawRes.ok) {
+          const data = await rawRes.json().catch(() => ({}));
+          const msg =
+            data?.error || `Could not attach image (${rawRes.status})`;
+          if (onToast) onToast(msg);
+          return;
+        }
+        const blob = await rawRes.blob();
+        const mime = guessImageMimeFromFilename(node.name);
+        const typedBlob =
+          blob.type &&
+          ["image/png", "image/jpeg", "image/gif"].includes(blob.type)
+            ? blob
+            : new Blob([blob], { type: mime });
+        await attachChatImageFromBlob({
+          blob: typedBlob,
+          fileName: node.name,
+          imageSupportConfig,
+          attachFile: onAttachFile,
+          onToast,
+        });
+      } catch (err) {
+        const msg = err?.message || "Could not attach image";
+        if (onToast) onToast(msg);
+        console.error("Quick attach image failed:", err);
       } finally {
         setConverting(null);
       }
@@ -553,31 +670,69 @@ export default function FileBrowser({
       return;
     }
 
-    // Regular file drops — attach to chat
+    // Regular file drops — attach to chat (images use vision pipeline, not readAsText)
     let done = 0;
-    setDropping({ total: files.length, done: 0 });
-    files.forEach((file) => {
-      if (file.size === 0 && file.type === "") {
-        done++;
-        return;
-      } // skip dirs
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        onAttachFile({
-          name: file.name,
-          content: ev.target.result,
-          lines: ev.target.result.split("\n").length,
+    const total = files.length;
+    setDropping({ total, done: 0 });
+
+    const finishOne = () => {
+      done++;
+      setDropping({ total, done });
+      if (done === total) {
+        setTimeout(() => setDropping(null), 1200);
+      }
+    };
+
+    (async () => {
+      for (const file of files) {
+        if (file.size === 0 && file.type === "") {
+          finishOne();
+          continue;
+        }
+        const mimeFromName = guessImageMimeFromFilename(file.name);
+        const isChatImage =
+          (file.type &&
+            ["image/png", "image/jpeg", "image/gif"].includes(file.type)) ||
+          ["image/png", "image/jpeg", "image/gif"].includes(mimeFromName);
+        if (isChatImage) {
+          try {
+            const mime =
+              file.type &&
+              ["image/png", "image/jpeg", "image/gif"].includes(file.type)
+                ? file.type
+                : mimeFromName;
+            const f =
+              file.type === mime
+                ? file
+                : new File([file], file.name, { type: mime });
+            await attachChatImageFromBlob({
+              blob: f,
+              fileName: file.name,
+              imageSupportConfig,
+              attachFile: onAttachFile,
+              onToast,
+            });
+          } finally {
+            finishOne();
+          }
+          continue;
+        }
+        await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            onAttachFile({
+              name: file.name,
+              content: ev.target.result,
+              lines: ev.target.result.split("\n").length,
+            });
+            resolve();
+          };
+          reader.onerror = () => resolve();
+          reader.readAsText(file);
         });
-        done++;
-        setDropping({ total: files.length, done });
-        if (done === files.length) setTimeout(() => setDropping(null), 1200);
-      };
-      reader.onerror = () => {
-        done++;
-        if (done === files.length) setTimeout(() => setDropping(null), 1200);
-      };
-      reader.readAsText(file);
-    });
+        finishOne();
+      }
+    })();
   }
 
   return (
@@ -955,7 +1110,7 @@ export default function FileBrowser({
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="px-3 py-2 border-b border-slate-700/30 flex items-center gap-2">
             <button
-              onClick={() => setPreview(null)}
+              onClick={() => clearPreview()}
               className="text-slate-400 hover:text-indigo-300 text-xs transition-colors"
             >
               ← Back
@@ -964,13 +1119,23 @@ export default function FileBrowser({
               {preview.name}
             </span>
             <span className="text-[10px] text-slate-500">
-              {preview.lines} lines
+              {preview.isImagePreview ? "Image" : `${preview.lines} lines`}
             </span>
           </div>
           <div className="flex-1 overflow-auto p-3">
-            <pre className="font-mono text-xs text-slate-300 whitespace-pre-wrap">
-              {preview.content}
-            </pre>
+            {preview.isImagePreview && preview.imageObjectUrl ? (
+              <div className="flex justify-center">
+                <img
+                  src={preview.imageObjectUrl}
+                  alt=""
+                  className="max-w-full max-h-[50vh] object-contain rounded border border-slate-600/50"
+                />
+              </div>
+            ) : (
+              <pre className="font-mono text-xs text-slate-300 whitespace-pre-wrap">
+                {preview.content}
+              </pre>
+            )}
           </div>
           <div className="p-2 border-t border-slate-700/30">
             <button

@@ -28,13 +28,13 @@ When either is off, the tool is **absent from the prompt** and returns `{ ok: fa
 
 Same AI review as **Review mode** in the app. Reuses `lib/review.js#reviewCode` via the shared `runReviewSnippetPhase` service that `POST /api/review` also calls.
 
-| Arg          | Type              | Notes                                                                                                                      |
-| ------------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `model`      | string (required) | Concrete Ollama name or `"auto"` (resolves to `mode=review` per `autoModelMap`).                                           |
-| `code`       | string            | Inline source. Either `code` or `sourcePath` is required.                                                                  |
+| Arg          | Type              | Notes                                                                                                                                                                         |
+| ------------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`      | string (required) | Concrete Ollama name or `"auto"` (resolves to `mode=review` per `autoModelMap`).                                                                                              |
+| `code`       | string            | Inline source. Either `code` or `sourcePath` is required.                                                                                                                     |
 | `sourcePath` | string            | File or folder under the configured project folder (folder = multi-file review). Resolved server-side; symlink escapes rejected via `isWithinBasePath`. Single-file max 2 MB. |
-| `filename`   | string            | Optional. Influences validate-context lookup.                                                                              |
-| `images`     | array             | Optional. Max 10 items.                                                                                                    |
+| `filename`   | string            | Optional. Influences validate-context lookup.                                                                                                                                 |
+| `images`     | array             | Optional. Max 10 items.                                                                                                                                                       |
 
 **Example:**
 
@@ -46,13 +46,13 @@ TOOL_CALL: builtin.review_run({"model": "auto", "sourcePath": "src/app.js"})
 
 OWASP-style security scan. Uses `runPentestSnippetPhase` (`lib/pentest.js#pentestCode`) for a **file** or inline `code`, or `runPentestFolderPhase` (`lib/pentest.js#pentestFolder`) when `sourcePath` points at a **directory** — same caps as Security mode (`maxFiles: 80`, `maxTotalSize: 2 MB`). Successful folder scans attach `_scanMeta` on the report-card payload (same shape as `pentest_scan_folder`).
 
-| Arg          | Type              | Notes                                                                 |
-| ------------ | ----------------- | --------------------------------------------------------------------- |
-| `model`      | string (required) | Concrete or `"auto"` (resolves to `mode=pentest`).                    |
-| `code`       | string            | Either `code` or `sourcePath` required.                                 |
-| `sourcePath` | string            | Same path rules as `review_run` (file or folder).                     |
-| `filename`   | string            | Optional.                                                             |
-| `images`     | array             | Optional. Max 10. **Not allowed** when `sourcePath` is a folder.      |
+| Arg          | Type              | Notes                                                            |
+| ------------ | ----------------- | ---------------------------------------------------------------- |
+| `model`      | string (required) | Concrete or `"auto"` (resolves to `mode=pentest`).               |
+| `code`       | string            | Either `code` or `sourcePath` required.                          |
+| `sourcePath` | string            | Same path rules as `review_run` (file or folder).                |
+| `filename`   | string            | Optional.                                                        |
+| `images`     | array             | Optional. Max 10. **Not allowed** when `sourcePath` is a folder. |
 
 ### `builtin.pentest_scan_folder`
 
@@ -128,12 +128,12 @@ Experiment-from-Chat is **deferred for v1**. None of the new builtins are added 
 
 Every skill calls the same shared service module that the HTTP route uses:
 
-| Builtin               | Shared service                                  | HTTP route                 |
-| --------------------- | ----------------------------------------------- | -------------------------- |
-| `review_run`          | `runReviewSnippetPhase` or `runReviewFolderPhase` (if `sourcePath` is a folder) | `POST /api/review` / folder parity with `POST /api/review/folder` |
+| Builtin               | Shared service                                                                    | HTTP route                                                          |
+| --------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `review_run`          | `runReviewSnippetPhase` or `runReviewFolderPhase` (if `sourcePath` is a folder)   | `POST /api/review` / folder parity with `POST /api/review/folder`   |
 | `pentest_scan`        | `runPentestSnippetPhase` or `runPentestFolderPhase` (if `sourcePath` is a folder) | `POST /api/pentest` / folder parity with `POST /api/pentest/folder` |
-| `pentest_scan_folder` | `lib/pentest-service.js#runPentestFolderPhase`  | `POST /api/pentest/folder` |
-| `builder_score`       | `lib/score-service.js#runBuilderScorePhase`     | `POST /api/score`          |
+| `pentest_scan_folder` | `lib/pentest-service.js#runPentestFolderPhase`                                    | `POST /api/pentest/folder`                                          |
+| `builder_score`       | `lib/score-service.js#runBuilderScorePhase`                                       | `POST /api/score`                                                   |
 
 Validation, auto-model resolution, and the call into the underlying `reviewCode` / `pentestCode` / `scoreContent` only live once — drift between agent and UI is structurally prevented.
 

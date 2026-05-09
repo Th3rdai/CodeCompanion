@@ -9,6 +9,7 @@ const {
   DEFAULT_AUTO_MODEL_MAP,
 } = require("../lib/auto-model");
 const { effectiveDoclingApiKey } = require("../lib/docling-client");
+const { isDictateTranscribeConfigured } = require("../lib/dictate-transcribe");
 
 function maskSensitiveValue(value) {
   if (!value) return "";
@@ -65,6 +66,9 @@ function sanitizeConfigForClient(config) {
   if (safe.ollamaApiKey) {
     safe.ollamaApiKey = "••••••••";
   }
+
+  safe.dictateGroqConfigured = isDictateTranscribeConfigured(config);
+  safe.dictateGroqApiKey = safe.dictateGroqConfigured ? "••••••••" : "";
 
   safe.autoModelMap = mergeAutoModelMap(safe.autoModelMap);
   safe.autoModelMapDefaults = { ...DEFAULT_AUTO_MODEL_MAP };
@@ -130,7 +134,7 @@ function resolveFolder(folder) {
   return findFolderByName(path.basename(folder));
 }
 
-module.exports = function createRouter(appContext) {
+function createConfigRouter(appContext) {
   const router = express.Router();
   const { config: _config, requireLocalOrApiKey, log, debug } = appContext;
 
@@ -198,6 +202,20 @@ module.exports = function createRouter(appContext) {
         } else if (!/^•+$/.test(t)) {
           config.ollamaApiKey = t;
           log("INFO", "Ollama API key updated");
+        }
+      }
+    }
+
+    if (req.body.dictateGroqApiKey !== undefined) {
+      const v = req.body.dictateGroqApiKey;
+      if (typeof v === "string") {
+        const t = v.trim();
+        if (t === "") {
+          config.dictateGroqApiKey = "";
+          log("INFO", "Groq dictation API key cleared");
+        } else if (!/^•+$/.test(t)) {
+          config.dictateGroqApiKey = t;
+          log("INFO", "Groq dictation API key updated");
         }
       }
     }
@@ -295,6 +313,15 @@ module.exports = function createRouter(appContext) {
       log(
         "INFO",
         `Auto-continue config updated: enabled=${config.autoContinue.enabled} maxSteps=${config.autoContinue.maxSteps}`,
+      );
+    }
+
+    if (req.body.chatRequireExplicitFileWrites !== undefined) {
+      config.chatRequireExplicitFileWrites =
+        !!req.body.chatRequireExplicitFileWrites;
+      log(
+        "INFO",
+        `Chat require explicit file writes: ${config.chatRequireExplicitFileWrites}`,
       );
     }
 
@@ -448,4 +475,7 @@ module.exports = function createRouter(appContext) {
   });
 
   return router;
-};
+}
+
+createConfigRouter.sanitizeConfigForClient = sanitizeConfigForClient;
+module.exports = createConfigRouter;

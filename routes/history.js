@@ -32,6 +32,93 @@ module.exports = function createRouter(appContext) {
   const MAX_BATCH_MOVE = 200;
   const MAX_FOLDER_REHOME = 1000;
 
+  // Debounce + single-flight memory extraction per conversation so rapid POST /history
+  // (autosave, polling) does not spawn many concurrent Ollama /api/chat calls — that
+  // overloads Ollama and surfaces as AbortError / "This operation was aborted" spam.
+  const MEM_EXT_DEBOUNCE_MS = 10000;
+  const MEM_EXT_RETRY_WHEN_BUSY_MS = 2500;
+  const memoryExtractTimers = new Map();
+  const memoryExtractRunning = new Set();
+
+  function cancelMemoryExtractionSchedule(conversationId) {
+    const t = memoryExtractTimers.get(conversationId);
+    if (t) clearTimeout(t);
+    memoryExtractTimers.delete(conversationId);
+  }
+
+  function scheduleMemoryExtraction(conversationId) {
+    if (!conversationId) return;
+    const prev = memoryExtractTimers.get(conversationId);
+    if (prev) clearTimeout(prev);
+    memoryExtractTimers.set(
+      conversationId,
+      setTimeout(() => {
+        memoryExtractTimers.delete(conversationId);
+        void runDebouncedMemoryExtract(conversationId);
+      }, MEM_EXT_DEBOUNCE_MS),
+    );
+  }
+
+  async function runDebouncedMemoryExtract(conversationId) {
+    if (memoryExtractRunning.has(conversationId)) {
+      memoryExtractTimers.set(
+        conversationId,
+        setTimeout(() => {
+          memoryExtractTimers.delete(conversationId);
+          void runDebouncedMemoryExtract(conversationId);
+        }, MEM_EXT_RETRY_WHEN_BUSY_MS),
+      );
+      return;
+    }
+    const config = getConfig();
+    if (!config.memory?.enabled || !config.memory?.autoExtract) return;
+    const conv = getConversation(conversationId);
+    if (!conv?.messages || conv.messages.length < 4) return;
+
+    memoryExtractRunning.add(conversationId);
+    try {
+      const embModel = resolveEmbeddingModel(config);
+      let memModel = conv.model;
+      if (memModel === "auto") {
+        try {
+          const msgs = conv.messages || [];
+          const totalChars = msgs.reduce(
+            (s, m) =>
+              s + (typeof m.content === "string" ? m.content.length : 0),
+            0,
+          );
+          const r = await resolveAutoModel({
+            requestedModel: "auto",
+            mode: conv.mode || "chat",
+            estimatedTokens: Math.ceil(totalChars / 3.5),
+            config,
+            ollamaUrl: config.ollamaUrl,
+            ollamaOpts: ollamaAuthOpts(config),
+          });
+          memModel = r.resolved;
+        } catch {
+          const m = mergeAutoModelMap(config.autoModelMap);
+          memModel = m[conv.mode || "chat"] || m.chat || "llama3.2";
+        }
+      }
+      const projectKey = deriveProjectKey(
+        config.chatFolder || config.projectFolder || null,
+      );
+      await extractAndStore(
+        config.ollamaUrl,
+        memModel,
+        embModel,
+        conv,
+        config,
+        projectKey,
+      );
+    } catch (err) {
+      log("WARN", "Memory extraction failed", { error: err.message });
+    } finally {
+      memoryExtractRunning.delete(conversationId);
+    }
+  }
+
   function moveConversationToFolder(conversationId, folderId) {
     const targetFolder = getFolder(folderId);
     if (!targetFolder) throw new Error("Folder not found");
@@ -225,45 +312,7 @@ module.exports = function createRouter(appContext) {
         config.memory?.autoExtract &&
         req.body.messages?.length >= 4
       ) {
-        const embModel = resolveEmbeddingModel(config);
-        (async () => {
-          let memModel = req.body.model;
-          if (memModel === "auto") {
-            try {
-              const msgs = req.body.messages || [];
-              const totalChars = msgs.reduce(
-                (s, m) =>
-                  s + (typeof m.content === "string" ? m.content.length : 0),
-                0,
-              );
-              const r = await resolveAutoModel({
-                requestedModel: "auto",
-                mode: req.body.mode || "chat",
-                estimatedTokens: Math.ceil(totalChars / 3.5),
-                config,
-                ollamaUrl: config.ollamaUrl,
-                ollamaOpts: ollamaAuthOpts(config),
-              });
-              memModel = r.resolved;
-            } catch {
-              const m = mergeAutoModelMap(config.autoModelMap);
-              memModel = m[req.body.mode || "chat"] || m.chat || "llama3.2";
-            }
-          }
-          const projectKey = deriveProjectKey(
-            config.chatFolder || config.projectFolder || null,
-          );
-          await extractAndStore(
-            config.ollamaUrl,
-            memModel,
-            embModel,
-            req.body,
-            config,
-            projectKey,
-          );
-        })().catch((err) =>
-          log("WARN", "Memory extraction failed", { error: err.message }),
-        );
+        scheduleMemoryExtraction(id);
       }
 
       // Fire-and-forget conversation summary generation
@@ -332,6 +381,7 @@ module.exports = function createRouter(appContext) {
   // ── DELETE /api/history/:id ───────────────────────────
   router.delete("/history/:id", (req, res) => {
     try {
+      cancelMemoryExtractionSchedule(req.params.id);
       deleteConversation(req.params.id);
       // deleteMemoriesBySource only removes memories whose source === conversationId.
       // After the agent/project scoping migration, agent facts (source: null) and
@@ -371,6 +421,7 @@ module.exports = function createRouter(appContext) {
       cascadedMemories = 0;
     for (const id of ids) {
       try {
+        cancelMemoryExtractionSchedule(id);
         deleteConversation(id);
         cascadedMemories += deleteMemoriesBySource(id);
         ok++;

@@ -55,6 +55,36 @@ test("run_terminal_cmd runs chained line via bash when allowShellChaining and ba
   const text = String(res.result?.content?.[0]?.text || "");
   assert.ok(text.includes("a") && text.includes("b"));
 });
+
+test("run_terminal_cmd with * allowlist runs cat on a file under projectFolder", async () => {
+  if (process.platform === "win32") return;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-cat-star-"));
+  const f = path.join(root, "sample.txt");
+  fs.writeFileSync(f, "cc-cat-allowlist-star\n", "utf8");
+  const noopLog = () => {};
+  const res = await executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "cat", args: [f] },
+    {
+      projectFolder: root,
+      chatFolder: root,
+      agentTerminal: {
+        enabled: true,
+        allowlist: ["*"],
+        blocklist: ["sudo", "su", "rm -rf", "dd"],
+        maxTimeoutSec: 15,
+        maxOutputKB: 64,
+      },
+    },
+    noopLog,
+  );
+  assert.strictEqual(res.success, true, res.result?.content?.[0]?.text);
+  assert.ok(
+    String(res.result?.content?.[0]?.text || "").includes(
+      "cc-cat-allowlist-star",
+    ),
+  );
+});
 const { canConvertBuiltin } = require("../../lib/builtin-doc-converter.js");
 
 test("canConvertBuiltin is false for legacy .xls (Docling-only)", () => {

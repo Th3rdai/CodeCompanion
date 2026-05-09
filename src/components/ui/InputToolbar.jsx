@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { copyText, readText } from "../../lib/clipboard";
+import { copyText, pasteFromClipboardButton } from "../../lib/clipboard";
 import ExportPanel from "../ExportPanel";
 import DictateButton from "../DictateButton";
 
@@ -40,23 +40,17 @@ export default function InputToolbar({
   const fileRef = useRef(null);
   const hidden = new Set(hideButtons.map((b) => b.toLowerCase()));
 
-  function handlePaste() {
-    // Try programmatic clipboard read first
-    readText().then((text) => {
-      if (text && text.length > 5 && !/^[A-Z]=>/.test(text)) {
-        // Got valid text from clipboard API
-        if (setText)
-          setText((prev) => (typeof prev === "function" ? prev : prev + text));
+  async function handlePaste() {
+    await pasteFromClipboardButton({
+      focusRef: textareaRef,
+      appendText: (text) => {
+        if (setText) setText((prev) => (prev || "") + text);
+      },
+      onSuccess: () => onToast?.("Pasted from clipboard"),
+      onManualFallback: () => {
         textareaRef?.current?.focus();
-        onToast?.("Pasted from clipboard");
-      } else {
-        // Clipboard API failed or returned garbage — trigger native paste
-        textareaRef?.current?.focus();
-        const pasted = document.execCommand("paste");
-        if (!pasted) {
-          onToast?.("Click in the text area, then press Cmd+V to paste");
-        }
-      }
+        onToast?.("Click in the text area, then press Cmd+V to paste");
+      },
     });
   }
 

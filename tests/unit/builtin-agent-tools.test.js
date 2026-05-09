@@ -6,6 +6,8 @@ const {
   getBuiltinTools,
   validateBrowseUrl,
   validateCommand,
+  agentTerminalAllowlistPermitsAll,
+  terminalAllowlistMatchesBasename,
 } = require("../../lib/builtin-agent-tools.js");
 
 /**
@@ -280,6 +282,106 @@ const baseTerminalConfig = {
   projectFolder: "/tmp",
 };
 
+test("agentTerminalAllowlistPermitsAll: lone * after trim", () => {
+  assert.equal(
+    agentTerminalAllowlistPermitsAll({ allowlist: ["  *  "] }),
+    true,
+  );
+  assert.equal(agentTerminalAllowlistPermitsAll({ allowlist: ["npm"] }), false);
+  assert.equal(agentTerminalAllowlistPermitsAll({ allowlist: ["*rm"] }), false);
+});
+
+test("terminalAllowlistMatchesBasename: git* prefix glob", () => {
+  const t = { allowlist: ["git*"] };
+  assert.equal(terminalAllowlistMatchesBasename(t, "git"), true);
+  assert.equal(terminalAllowlistMatchesBasename(t, "git-lfs"), true);
+  assert.equal(terminalAllowlistMatchesBasename(t, "node"), false);
+});
+
+test("terminalAllowlistMatchesBasename: ignores unsupported [] globs", () => {
+  const t = { allowlist: ["git[x]"] };
+  assert.equal(terminalAllowlistMatchesBasename(t, "git"), false);
+});
+
+test("validateCommand: git* allowlist permits git but not npm", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: ["git*"],
+    },
+  };
+  assert.equal(validateCommand("git", ["status"], cfg).allowed, true);
+  assert.equal(validateCommand("npm", ["test"], cfg).allowed, false);
+});
+
+test("validateCommand: glob satisfies shell chaining invoker (bash* / cmd*)", () => {
+  const win = process.platform === "win32";
+  const cfg = {
+    agentTerminal: {
+      enabled: true,
+      allowShellChaining: true,
+      allowlist: win ? ["echo", "cmd*"] : ["echo", "bash*"],
+      blocklist: [],
+    },
+    projectFolder: "/tmp",
+  };
+  const r = validateCommand("echo", ["a", "&&", "echo", "b"], cfg);
+  assert.equal(r.allowed, true);
+  assert.equal(r.invokeShell, true);
+});
+
+test("validateCommand: * allowlist permits any basename", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: ["*"],
+    },
+  };
+  const r = validateCommand("curl", ["-s", "https://example.com"], cfg);
+  assert.equal(r.allowed, true);
+});
+
+test("validateCommand: * allowlist permits cat with file path args", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: ["*"],
+    },
+  };
+  const r = validateCommand("cat", ["Sources/App.swift"], cfg);
+  assert.equal(r.allowed, true);
+});
+
+test("validateCommand: * allowlist still enforces blocklist", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: ["*"],
+    },
+  };
+  const r = validateCommand("sudo", ["whoami"], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.reason, /security policy: "sudo"/);
+});
+
+test("validateCommand: * allowlist allows shell chaining without bash in list", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowShellChaining: true,
+      allowlist: ["*"],
+    },
+  };
+  const r = validateCommand("echo", ["a", "&&", "echo", "b"], cfg);
+  assert.equal(r.allowed, true);
+  assert.equal(r.invokeShell, true);
+});
+
 test("validateCommand: blocklist 'su' does not match 'sys' or 'successful'", () => {
   const r = validateCommand(
     "python3",
@@ -469,6 +571,20 @@ test("validateCommand: blocklist deny ACTION explains it's a security policy", (
   assert.ok(r.action);
   assert.match(r.action, /^ACTION:/);
   assert.match(r.action, /security policy/i);
+});
+
+test("validateCommand: blocklist rm -rf ACTION suggests swift package clean", () => {
+  const cfg = {
+    ...baseTerminalConfig,
+    agentTerminal: {
+      ...baseTerminalConfig.agentTerminal,
+      allowlist: [...baseTerminalConfig.agentTerminal.allowlist, "rm"],
+      blocklist: ["rm -rf"],
+    },
+  };
+  const r = validateCommand("rm", ["-rf", ".build"], cfg);
+  assert.equal(r.allowed, false);
+  assert.match(r.action, /swift package clean|xcodebuild clean/i);
 });
 
 test("validateCommand: allowed commands return no action field", () => {

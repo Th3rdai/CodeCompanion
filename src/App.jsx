@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { apiFetch } from "./lib/api-fetch";
-import { copyText, readText } from "./lib/clipboard";
+import { copyText, pasteFromClipboardButton } from "./lib/clipboard";
 import { suggestMode } from "./lib/mode-suggestion";
 import MessageBubble from "./components/MessageBubble";
 import Toast from "./components/Toast";
@@ -35,6 +35,7 @@ import PlannerPanel from "./components/builders/PlannerPanel";
 import OnboardingWizard, {
   isOnboardingComplete,
 } from "./components/OnboardingWizard";
+import SetupAssistantPanel from "./components/SetupAssistantPanel";
 import { GlossaryPanel } from "./components/JargonGlossary";
 import PrivacyBanner from "./components/PrivacyBanner";
 import FloatingGeometry from "./components/3d/FloatingGeometry";
@@ -458,6 +459,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(
     () => !isOnboardingComplete(),
   );
+  const [showSetupAssistant, setShowSetupAssistant] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -493,6 +495,8 @@ export default function App() {
 
   /** Cached from GET /api/config — used for image attach (drop/paste/file) without fetching every time */
   const [imageSupportConfig, setImageSupportConfig] = useState({});
+  /** Groq dictation fallback configured (server); avoids extra /api/config fetch in DictateButton */
+  const [dictateGroqConfigured, setDictateGroqConfigured] = useState(false);
 
   // Agent terminal output state
   const [terminalOutput, setTerminalOutput] = useState(null); // {command, output, exitCode, status}
@@ -788,6 +792,7 @@ export default function App() {
           ? data.imageSupport
           : {},
       );
+      setDictateGroqConfigured(!!data.dictateGroqConfigured);
     } catch {}
   }
 
@@ -822,6 +827,7 @@ export default function App() {
       if (data.imageSupport && typeof data.imageSupport === "object") {
         setImageSupportConfig(data.imageSupport);
       }
+      setDictateGroqConfigured(!!data.dictateGroqConfigured);
       await refreshModels();
       if (newFolder && String(newFolder).trim()) setShowFileBrowser(true);
     } catch {}
@@ -1029,16 +1035,15 @@ export default function App() {
 
   // Toolbar actions
   async function handlePaste() {
-    const text = await readText();
-    if (text) {
-      setInput((prev) => prev + text);
-      textareaRef.current?.focus();
-      showToast("Pasted from clipboard");
-    } else {
-      // Clipboard API denied — focus textarea so user can Ctrl/Cmd+V
-      textareaRef.current?.focus();
-      showToast("Press Ctrl+V (or ⌘V) to paste");
-    }
+    await pasteFromClipboardButton({
+      focusRef: textareaRef,
+      appendText: (text) => setInput((prev) => prev + text),
+      onSuccess: () => showToast("Pasted from clipboard"),
+      onManualFallback: () => {
+        textareaRef.current?.focus();
+        showToast("Press Ctrl+V (or ⌘V) to paste");
+      },
+    });
   }
 
   async function handleCopyLastResponse() {
@@ -2290,6 +2295,7 @@ export default function App() {
                         <DictateButton
                           onResult={handleDictation}
                           disabled={!connected || streaming}
+                          dictateGroqConfigured={dictateGroqConfigured}
                         />
                         <span className="flex-1" />
                         <span className="text-[10px] text-slate-500">
@@ -2368,6 +2374,7 @@ export default function App() {
               <FileBrowser
                 projectFolder={chatFolder || projectFolder}
                 onAttachFile={attachFile}
+                imageSupportConfig={imageSupportConfig}
                 onToast={showToast}
                 attachLabel={
                   BUILDER_MODES.includes(mode)
@@ -2461,6 +2468,10 @@ export default function App() {
             setShowSettings(false);
             setShowMemoryPanel(true);
           }}
+          onRunSetupAssistant={() => {
+            setShowSettings(false);
+            setShowSetupAssistant(true);
+          }}
         />
       )}
       {showMemoryPanel && (
@@ -2475,7 +2486,22 @@ export default function App() {
       )}
       {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
       {showOnboarding && (
-        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+        <OnboardingWizard
+          onComplete={(payload) => {
+            setShowOnboarding(false);
+            if (payload?.guidedSetup) setShowSetupAssistant(true);
+          }}
+        />
+      )}
+      {showSetupAssistant && (
+        <SetupAssistantPanel
+          isElectron={isElectron}
+          onClose={() => setShowSetupAssistant(false)}
+          onApplied={async () => {
+            await fetchConfig();
+            showToast("Settings updated");
+          }}
+        />
       )}
       {showOllamaSetup && (
         <OllamaSetup

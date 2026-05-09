@@ -10,16 +10,33 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForServer(baseUrl, timeoutMs = 15000) {
+function randomTestPort() {
+  return 28000 + Math.floor(Math.random() * 4000);
+}
+
+/** Wait until OUR sandbox child is listening (avoids fixed-port collisions with other local servers). */
+async function waitForSandboxServer(
+  baseUrl,
+  expectedProjectRoot,
+  timeoutMs = 20000,
+) {
+  const expected = path.resolve(expectedProjectRoot);
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
       const res = await fetch(`${baseUrl}/api/config`);
-      if (res.ok) return;
+      if (!res.ok) continue;
+      const cfg = await res.json();
+      const pf = cfg.projectFolder
+        ? path.resolve(String(cfg.projectFolder))
+        : "";
+      if (pf === expected) return;
     } catch {}
     await sleep(200);
   }
-  throw new Error("Server did not become ready in time");
+  throw new Error(
+    `Sandbox server did not expose projectFolder=${expected} at ${baseUrl} (wrong process on port?)`,
+  );
 }
 
 /** Model tag for POST /api/review/folder (must exist locally). Defaults to Review-mode auto map (`lib/auto-model.js`). */
@@ -60,6 +77,9 @@ function spawnSandboxServer(port, sandboxRoot) {
       CC_DATA_DIR: sandboxRoot,
       DEBUG: "0",
       FORCE_HTTP: "1",
+      CC_SKIP_MCP_AUTOCONNECT: "1",
+      // Inherited CC_API_SECRET would not affect /api/review (no gate), but keep child predictable.
+      CC_API_SECRET: "",
     },
     stdio: "pipe",
   });
@@ -68,7 +88,7 @@ function spawnSandboxServer(port, sandboxRoot) {
 // ── /api/review/folder/preview ───────────────────────────────────────────────
 
 test("POST /api/review/folder/preview returns files array, totalSize, skipped", async () => {
-  const port = 3490;
+  const port = randomTestPort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-preview-"));
   writeSandboxConfig(sandbox);
@@ -81,7 +101,7 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 
   const child = spawnSandboxServer(port, sandbox);
   try {
-    await waitForServer(baseUrl);
+    await waitForSandboxServer(baseUrl, sandbox);
     const res = await fetch(`${baseUrl}/api/review/folder/preview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -98,7 +118,9 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
       assert.ok(typeof body.files[0].size === "number");
     }
     assert.ok(
-      body.files.some((f) => f.path.endsWith("sample.js") || f.path === "sample.js"),
+      body.files.some(
+        (f) => f.path.endsWith("sample.js") || f.path === "sample.js",
+      ),
       "expected sample.js in files list",
     );
   } finally {
@@ -109,14 +131,14 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 });
 
 test("POST /api/review/folder/preview with missing folder returns 400", async () => {
-  const port = 3491;
+  const port = randomTestPort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-prev400-"));
   writeSandboxConfig(sandbox);
 
   const child = spawnSandboxServer(port, sandbox);
   try {
-    await waitForServer(baseUrl);
+    await waitForSandboxServer(baseUrl, sandbox);
     const res = await fetch(`${baseUrl}/api/review/folder/preview`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -135,7 +157,7 @@ test("POST /api/review/folder/preview with missing folder returns 400", async ()
 // ── /api/review/folder ───────────────────────────────────────────────────────
 
 test("POST /api/review/folder returns report-card or streams review fallback", async () => {
-  const port = 3492;
+  const port = randomTestPort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-full-"));
   writeSandboxConfig(sandbox);
@@ -147,7 +169,7 @@ test("POST /api/review/folder returns report-card or streams review fallback", a
   const model = reviewFolderModelTag();
 
   try {
-    await waitForServer(baseUrl);
+    await waitForSandboxServer(baseUrl, sandbox);
     const res = await fetch(`${baseUrl}/api/review/folder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -193,14 +215,14 @@ test("POST /api/review/folder returns report-card or streams review fallback", a
 });
 
 test("POST /api/review/folder with missing model or folder returns 400", async () => {
-  const port = 3493;
+  const port = randomTestPort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "cc-review-400-"));
   writeSandboxConfig(sandbox);
 
   const child = spawnSandboxServer(port, sandbox);
   try {
-    await waitForServer(baseUrl);
+    await waitForSandboxServer(baseUrl, sandbox);
     const res = await fetch(`${baseUrl}/api/review/folder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

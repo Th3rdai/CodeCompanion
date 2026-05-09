@@ -63,3 +63,48 @@ export async function readText() {
   }
   return null;
 }
+
+/** Heuristic: some environments return one-line debug junk instead of real clipboard text */
+const CLIPBOARD_BUTTON_GARBAGE = /^[A-Z]=>/;
+
+/**
+ * Paste toolbar button flow: start Clipboard read during the click gesture, try
+ * legacy `document.execCommand('paste')` on the focused field (often works when
+ * `readText` is denied, e.g. self-signed HTTPS), then append via API if needed.
+ * For controlled textareas, a successful execCommand usually fires `input`/`onChange`.
+ *
+ * @param {object} opts
+ * @param {import('react').RefObject<HTMLElement|null>|undefined} [opts.focusRef] — e.g. textarea ref
+ * @param {(text: string) => void} opts.appendText — when text came from Clipboard API
+ * @param {() => void} [opts.onSuccess] — toast after paste
+ * @param {() => void} [opts.onManualFallback] — e.g. hint to use ⌘V
+ * @returns {Promise<boolean>} true if paste likely succeeded
+ */
+export async function pasteFromClipboardButton({
+  focusRef,
+  appendText,
+  onSuccess,
+  onManualFallback,
+}) {
+  const readPromise = readText();
+  focusRef?.current?.focus?.();
+
+  try {
+    if (document.execCommand("paste")) {
+      onSuccess?.();
+      return true;
+    }
+  } catch {
+    /* execCommand unavailable or denied */
+  }
+
+  const text = await readPromise;
+  if (text != null && text !== "" && !CLIPBOARD_BUTTON_GARBAGE.test(text)) {
+    appendText(text);
+    onSuccess?.();
+    return true;
+  }
+
+  onManualFallback?.();
+  return false;
+}

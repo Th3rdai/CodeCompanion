@@ -64,24 +64,31 @@ When **`memory.enabled`** is true, the server runs **`buildMemoryContext()`** be
 | `GITHUB_TOKEN_0`, `GITHUB_TOKEN_1`, …   | unset                 | **Multi-account PATs** — when **`githubTokens[n].token`** in config is empty, the server uses **`GITHUB_TOKEN_n`** (same order as the array).                                                                                                                                                                                            |
 | `MCP_{id}__…`                           | unset                 | **Per–stdio-MCP secrets** — e.g. **`MCP_github_3rdaai_admin__GITHUB_PERSONAL_ACCESS_TOKEN`** so two GitHub MCP clients can use different PATs (see intro above).                                                                                                                                                                         |
 
-**Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, **`POST /mcp`** (HTTP MCP), and **`/api/experiment/*`** (status, start, step, note-step, snapshot). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
+**Sensitive endpoints** (localhost loopback, or `X-CC-API-Key` when `CC_API_SECRET` is set): `POST /api/config`, **`POST /api/setup-assistant`** (guided SETUPUX flow), `POST /api/files/save`, `POST /api/validate/install`, `POST /api/github/token`, `POST /api/github/push`, `GET /api/logs`, all `/api/mcp/*`, **`POST /mcp`** (HTTP MCP), and **`/api/experiment/*`** (status, start, step, note-step, snapshot). Use **`http://127.0.0.1:PORT`** or **`http://localhost:PORT`** in the browser when testing from the same machine, or set **`CC_API_SECRET`** for LAN URLs.
 
 ## Rate limiting (optional overrides)
 
 All use a window in ms via `RATE_LIMIT_WINDOW_MS` (default `60000`).
 
-| Variable                      | Default | Applies to                                                                        |
-| ----------------------------- | ------- | --------------------------------------------------------------------------------- |
-| `RATE_LIMIT_WINDOW_MS`        | `60000` | All rate limiters below                                                           |
-| `RATE_LIMIT_MAX_CHAT`         | `30`    | `POST /api/chat` and **`POST /api/experiment`** (same bucket as chat-style POSTs) |
-| `RATE_LIMIT_MAX_CREATE`       | `12`    | Create/build project endpoints                                                    |
-| `RATE_LIMIT_MAX_GITHUB_CLONE` | `6`     | `POST /api/github/clone`                                                          |
-| `RATE_LIMIT_MAX_MCP_TEST`     | `12`    | `POST /api/mcp/clients/test-connection`                                           |
-| `RATE_LIMIT_MAX_REVIEW`       | `20`    | `POST /api/review`, `/api/pentest`                                                |
-| `RATE_LIMIT_MAX_SCORE`        | `20`    | `POST /api/score`                                                                 |
-| `RATE_LIMIT_MAX_MEMORY`       | `30`    | Memory write/delete routes                                                        |
-| `RATE_LIMIT_MAX_DICTATE`      | `24`    | `POST /api/dictate-transcribe` (Groq fallback STT)                                |
-| `RATE_LIMIT_MAX_API_GLOBAL`   | `300`   | Broad cap per IP for **all** `/api/*` methods (in addition to per-route limits)   |
+| Variable                         | Default | Applies to                                                                          |
+| -------------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `RATE_LIMIT_WINDOW_MS`           | `60000` | All rate limiters below                                                             |
+| `RATE_LIMIT_MAX_CHAT`            | `30`    | `POST /api/chat` and **`POST /api/experiment`** (same bucket as chat-style POSTs)   |
+| `RATE_LIMIT_MAX_CREATE`          | `12`    | Create/build project endpoints                                                      |
+| `RATE_LIMIT_MAX_GITHUB_CLONE`    | `6`     | `POST /api/github/clone`                                                            |
+| `RATE_LIMIT_MAX_MCP_TEST`        | `12`    | `POST /api/mcp/clients/test-connection`                                             |
+| `RATE_LIMIT_MAX_REVIEW`          | `20`    | `POST /api/review`, `/api/pentest`                                                  |
+| `RATE_LIMIT_MAX_SCORE`           | `20`    | `POST /api/score`                                                                   |
+| `RATE_LIMIT_MAX_MEMORY`          | `30`    | Memory write/delete routes                                                          |
+| `RATE_LIMIT_MAX_DICTATE`         | `24`    | `POST /api/dictate-transcribe` (Groq fallback STT)                                  |
+| `RATE_LIMIT_MAX_SETUP_ASSISTANT` | `12`    | `POST /api/setup-assistant` (SETUPUX guided setup; see [SETUPUX.md](../SETUPUX.md)) |
+| `RATE_LIMIT_MAX_API_GLOBAL`      | `300`   | Broad cap per IP for **all** `/api/*` methods (in addition to per-route limits)     |
+
+## Guided setup (`POST /api/setup-assistant`, SETUPUX)
+
+| Variable                   | Default | Purpose                                                                                                                                                                                                                                |
+| -------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CC_SETUP_ASSISTANT_MODEL` | unset   | If set to a **non-`auto`** model tag, used for setup intent JSON classification. Otherwise the server uses **`mergeAutoModelMap(autoModelMap).chat`**, then **`selectedModel`**, then **`llama3.2`**. See [SETUPUX.md](../SETUPUX.md). |
 
 ## Agent tools & terminal (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`)
 

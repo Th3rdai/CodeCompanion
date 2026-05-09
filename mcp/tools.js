@@ -411,7 +411,7 @@ function registerAllTools(server, deps, disabledTools = []) {
 
   register(
     "codecompanion_run_terminal_cmd",
-    "Run a shell command in the configured project folder. Commands must appear in the agent terminal allowlist (Settings → General → Agent Terminal). Agent Terminal must be enabled. Returns stdout/stderr and exit code. Set background:true for long-running processes (dev servers, watchers) to spawn-and-return with the PID instead of blocking until exit.",
+    "Run a shell command in the configured project folder. Commands must match the agent terminal allowlist (Settings → General → Agent Terminal): exact names or simple globs using only * and ? (e.g. git*). A lone * permits any basename. Blocklist still applies. Agent Terminal must be enabled. Returns stdout/stderr and exit code. Set background:true for long-running processes (dev servers, watchers) to spawn-and-return with the PID instead of blocking until exit.",
     runTerminalCmdSchema,
     async ({
       command,

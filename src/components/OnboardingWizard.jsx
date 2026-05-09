@@ -14,6 +14,59 @@ const STORAGE_KEY = "th3rdai_onboarding_complete";
 
 const STEPS = [
   {
+    id: "quick-start",
+    choiceLayout: true,
+    title: "Welcome — quick tour & settings",
+    subtitle: "The first thing we show new folks",
+    content: (
+      <>
+        <p className="text-slate-300 text-sm mb-3">
+          Code Companion is a <strong className="text-indigo-300">local</strong>{" "}
+          workspace: AI runs through{" "}
+          <strong className="text-indigo-300">Ollama</strong> on your machine.
+          Nothing is sent to our servers.
+        </p>
+        <div className="glass rounded-lg p-3 text-xs text-slate-300 space-y-2 mb-3">
+          <p className="font-semibold text-slate-200 text-[13px]">
+            What you will use most
+          </p>
+          <ul className="list-disc list-inside space-y-1.5 text-slate-400 ml-0.5">
+            <li>
+              <span className="text-slate-200">Modes</span> in the header —
+              Chat, Explain, Review, Security, Validate, Create, Build, Diagram,
+              and more. Each is a different “lens” on your code.
+            </li>
+            <li>
+              <span className="text-slate-200">Files</span> — browse your
+              project; many tools use the folder you pick here as context.
+            </li>
+            <li>
+              <span className="text-slate-200">Settings (gear)</span> — connect
+              Ollama, set your project folder, optional{" "}
+              <strong className="text-slate-300">Memory</strong>,{" "}
+              <strong className="text-slate-300">MCP</strong> tools,{" "}
+              <strong className="text-slate-300">GitHub</strong>, Docling, voice
+              dictation, and agent safety options.
+            </li>
+            <li>
+              <span className="text-slate-200">Chat toolbar</span> — save or
+              export conversations; attach images for vision models.
+            </li>
+          </ul>
+        </div>
+        <p className="text-slate-400 text-xs leading-relaxed">
+          <strong className="text-slate-300">Quick tour</strong> walks through
+          these ideas with pictures.{" "}
+          <strong className="text-slate-300">Settings help</strong> asks what
+          you want (memory, Docling, safer defaults, …) and suggests checked
+          changes you can apply in one tap — use it after Ollama shows{" "}
+          <strong className="text-slate-300">Connected</strong> in Settings.
+        </p>
+      </>
+    ),
+    icon: "✨",
+  },
+  {
     id: "welcome",
     title: "Welcome to Code Companion",
     subtitle: "Your friendly guide to all things code",
@@ -280,10 +333,11 @@ export default function OnboardingWizard({ onComplete }) {
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
   const isFirst = step === 0;
+  const isChoiceStep = Boolean(current.choiceLayout);
 
   function goNext() {
     if (isLast) {
-      finish();
+      finish({});
       return;
     }
     setSlideDir("right");
@@ -304,17 +358,17 @@ export default function OnboardingWizard({ onComplete }) {
     }, 200);
   }
 
-  function finish() {
+  function finish(payload) {
     try {
       localStorage.setItem(STORAGE_KEY, "true");
     } catch {}
-    onComplete();
+    onComplete?.(payload || {});
   }
 
   function handleKeyDown(e) {
     if (e.key === "ArrowRight" || e.key === "Enter") goNext();
     if (e.key === "ArrowLeft") goBack();
-    if (e.key === "Escape") finish();
+    if (e.key === "Escape") finish({});
   }
 
   return (
@@ -326,7 +380,9 @@ export default function OnboardingWizard({ onComplete }) {
       aria-label="Welcome wizard"
       aria-modal="true"
     >
-      <div className="glass-heavy rounded-2xl w-full max-w-lg neon-border overflow-hidden">
+      <div
+        className={`glass-heavy rounded-2xl w-full neon-border overflow-hidden ${isChoiceStep ? "max-w-xl" : "max-w-lg"}`}
+      >
         {/* Progress bar */}
         <div className="h-1 bg-slate-800">
           <div
@@ -349,7 +405,11 @@ export default function OnboardingWizard({ onComplete }) {
           </div>
 
           {/* Step content */}
-          <div className="mb-6 min-h-[180px]">{current.content}</div>
+          <div
+            className={`mb-6 ${isChoiceStep ? "min-h-[220px] max-h-[min(52vh,420px)] overflow-y-auto pr-1" : "min-h-[180px]"}`}
+          >
+            {current.content}
+          </div>
 
           {/* Step dots */}
           <div className="flex items-center justify-center gap-2 mb-5">
@@ -377,30 +437,58 @@ export default function OnboardingWizard({ onComplete }) {
           </div>
 
           {/* Navigation buttons */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={finish}
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg"
-            >
-              Skip tour
-            </button>
-            <div className="flex gap-2">
-              {!isFirst && (
-                <button
-                  onClick={goBack}
-                  className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors"
-                >
-                  Back
-                </button>
-              )}
+          {isChoiceStep ? (
+            <div className="flex flex-col gap-3">
               <button
+                type="button"
                 onClick={goNext}
-                className="px-5 py-2 btn-neon text-white rounded-lg text-sm font-medium"
+                className="w-full px-5 py-2.5 btn-neon text-white rounded-lg text-sm font-medium"
               >
-                {isLast ? "Let's Go!" : "Next"}
+                Continue quick tour
+              </button>
+              <button
+                type="button"
+                onClick={() => finish({ guidedSetup: true })}
+                className="w-full px-5 py-2.5 rounded-lg text-sm font-medium glass border border-indigo-500/45 text-indigo-100 hover:bg-indigo-500/15"
+              >
+                Help me configure Settings now
+              </button>
+              <button
+                type="button"
+                onClick={() => finish({})}
+                className="text-xs text-slate-500 hover:text-slate-300 self-center px-3 py-1.5 rounded-lg"
+              >
+                Skip tour and setup reminders
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => finish({})}
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 py-1.5 rounded-lg"
+              >
+                Skip tour
+              </button>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {!isFirst && (
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    className="px-4 py-2 glass hover:bg-slate-600/30 text-slate-300 rounded-lg text-sm transition-colors"
+                  >
+                    Back
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="px-5 py-2 btn-neon text-white rounded-lg text-sm font-medium"
+                >
+                  {isLast ? "Let's Go!" : "Next"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

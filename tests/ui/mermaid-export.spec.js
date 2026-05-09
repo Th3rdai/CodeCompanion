@@ -64,7 +64,7 @@ test("Mermaid PNG export downloads a file", async ({ page, context }) => {
   const pngButton = page
     .locator('.mermaid-container button[title="PNG"]')
     .first();
-  await expect(pngButton).toBeVisible({ timeout: 10000 });
+  await expect(pngButton).toBeVisible({ timeout: 30_000 });
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),

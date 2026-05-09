@@ -34,6 +34,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **Voice dictation** — built-in mic buttons on Create Wizard fields using the Web Speech API
 - **Report card export** — download reviews as Markdown or JSON
 - **Onboarding wizard** — first-time user flow explaining what the app does
+- **Guided setup (SETUPUX)** — First-run welcome offers **Help me configure Settings**; later open **Settings → General → Run setup assistant**. Plain-language goals mapped to validated `POST /api/config` patches; see [SETUPUX.md](SETUPUX.md)
 - **Jargon glossary** — searchable plain-English definitions for technical terms
 - **Privacy banner** — "Your code never leaves your computer" messaging
 - **3D visual effects** — splash screen, particle fields, floating geometry, holographic token counter

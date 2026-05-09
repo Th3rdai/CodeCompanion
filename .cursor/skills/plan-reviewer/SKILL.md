@@ -2,6 +2,7 @@
 name: plan-reviewer
 description: "Reviews and validates implementation plans before execution. Use when users provide a plan, architecture, or implementation strategy that needs validation, or when they ask to review, validate, or improve a plan before starting development. Triggers: review plan, validate plan, create plan, plan review, implementation plan, architecture plan, is this plan good, plan check."
 ---
+
 # Plan Reviewer
 
 Review and validate implementation plans before they're executed. Ensure plans are complete, feasible, **grounded in the actual codebase**, and free of internal contradictions.
@@ -55,6 +56,7 @@ For **every** claim from Phase 1, independently prove or refute it against the c
 2. **Quote the evidence.** "I verified line 489" is not enough. Quote the line content. If you can't, the claim is unverified.
 
 Categorize each claim as:
+
 - ✓ **Verified** — quoted evidence supports it.
 - ✗ **Wrong** — evidence contradicts it. **Critical issue.**
 - ⚠ **Imprecise** — partly right; needs clarification.
@@ -89,11 +91,11 @@ Anything that would make a real implementer pause is a **major** issue.
 
 ### Phase 5 — Categorize Issues
 
-| Severity | Definition |
-|----------|------------|
+| Severity     | Definition                                                                         |
+| ------------ | ---------------------------------------------------------------------------------- |
 | **Critical** | Codebase-truth mismatch — implementer following the plan would produce wrong code. |
-| **Major** | Internal contradiction OR missing concrete detail that blocks implementation. |
-| **Minor** | Polish, edge case, or improvement not strictly required to ship. |
+| **Major**    | Internal contradiction OR missing concrete detail that blocks implementation.      |
+| **Minor**    | Polish, edge case, or improvement not strictly required to ship.                   |
 
 For each issue, record: **what's wrong**, **evidence** (file:line quote or section reference), **concrete fix** (specific replacement text, not "consider revising").
 
@@ -116,27 +118,34 @@ Don't propose abstractions or features beyond the plan's scope. Don't gold-plate
 ## Verdict: READY / NEEDS REVISION / BLOCKED
 
 ## Summary
+
 [1–3 sentences. Lead with the verdict reason.]
 
 ## Codebase ground truth (Phase 0)
+
 - [bullet]
 - [bullet]
 
 ## Issues
 
 ### Critical (codebase mismatches)
+
 - **[claim]** — Evidence: `file.js:NN` shows `<actual>`. Plan says `<plan claim>`. Fix: `<exact replacement>`.
 
 ### Major (internal contradictions / missing detail)
+
 - **[issue]** — Where: section X says A, section Y says B. Fix: `<exact replacement>`.
 
 ### Minor
+
 - ...
 
 ## Improvements
+
 - [reuse / edge case / security suggestion + why]
 
 ## Verification log
+
 - [claim] → ✓ verified at file:line
 - [claim] → ✗ wrong; actual is X
 - [claim] → ❓ unverifiable; need user input on Z
@@ -156,14 +165,14 @@ Before delivering the review:
 
 These are the gaps that escape thorough-looking reviews. Watch for them explicitly:
 
-| Failure mode | Symptom | Fix |
-|---|---|---|
-| **Anchoring bias** | "Verified in iteration 1, didn't re-check." Plan has rotted; review trusts stale verification. | Phase 2 rule: no transitive trust. Always re-verify. |
-| **Coherence-only review** | Review checks line citations and config-key alignment but not whether the underlying claim matches reality. | Phase 2 (reality) AND Phase 3 (coherence) as distinct passes. |
-| **Sanity-check skipped** | Plan says "create new file X". Reviewer doesn't `ls` the dir. File X already exists. | Phase 0 mandates the `ls`. |
-| **Convention assumption** | Plan assumes OpenAI-standard message format. Project uses different. Reviewer never grounds in actual code. | Phase 0 reads actual data shapes before evaluating plan. |
-| **Self-contradiction blindness** | Two sections of the same plan contradict; reviewer reads each in isolation. | Phase 3 explicit cross-section scan. |
-| **Implementer's gaps tolerated** | Plan says "decide during implementation" or leaves a `<TBD>`. Reviewer accepts. | Phase 4 implementer's-shadow pass; any TBD is at least Major. |
+| Failure mode                     | Symptom                                                                                                     | Fix                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **Anchoring bias**               | "Verified in iteration 1, didn't re-check." Plan has rotted; review trusts stale verification.              | Phase 2 rule: no transitive trust. Always re-verify.          |
+| **Coherence-only review**        | Review checks line citations and config-key alignment but not whether the underlying claim matches reality. | Phase 2 (reality) AND Phase 3 (coherence) as distinct passes. |
+| **Sanity-check skipped**         | Plan says "create new file X". Reviewer doesn't `ls` the dir. File X already exists.                        | Phase 0 mandates the `ls`.                                    |
+| **Convention assumption**        | Plan assumes OpenAI-standard message format. Project uses different. Reviewer never grounds in actual code. | Phase 0 reads actual data shapes before evaluating plan.      |
+| **Self-contradiction blindness** | Two sections of the same plan contradict; reviewer reads each in isolation.                                 | Phase 3 explicit cross-section scan.                          |
+| **Implementer's gaps tolerated** | Plan says "decide during implementation" or leaves a `<TBD>`. Reviewer accepts.                             | Phase 4 implementer's-shadow pass; any TBD is at least Major. |
 
 ## Decision Tree
 

@@ -46,24 +46,24 @@ test("resolveLogPath honors CC_DATA_DIR", () => {
   );
 });
 
-test("auditTerminalEvent creates logs/terminal-audit.log under CC_DATA_DIR", () => {
+test("auditTerminalEvent creates logs/terminal-audit.log under CC_DATA_DIR", async () => {
   const root = freshTmpRoot("create");
   auditTerminalEvent({ event: "executed", command: "node", exitCode: 0 });
   const logFile = path.join(root, "logs", "terminal-audit.log");
-  // Allow the writeStream to flush
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      assert.ok(fs.existsSync(logFile), "audit log file should exist");
-      const lines = readLines(logFile);
-      assert.strictEqual(lines.length, 1);
-      const entry = JSON.parse(lines[0]);
-      assert.strictEqual(entry.event, "executed");
-      assert.strictEqual(entry.command, "node");
-      assert.strictEqual(entry.exitCode, 0);
-      assert.match(entry.ts, /^\d{4}-\d{2}-\d{2}T/);
-      resolve();
-    }, 50);
-  });
+  const deadline = Date.now() + 5000;
+  let lines = [];
+  while (Date.now() < deadline) {
+    lines = readLines(logFile);
+    if (lines.length >= 1) break;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  assert.ok(fs.existsSync(logFile), "audit log file should exist");
+  assert.strictEqual(lines.length, 1);
+  const entry = JSON.parse(lines[0]);
+  assert.strictEqual(entry.event, "executed");
+  assert.strictEqual(entry.command, "node");
+  assert.strictEqual(entry.exitCode, 0);
+  assert.match(entry.ts, /^\d{4}-\d{2}-\d{2}T/);
 });
 
 test("auditTerminalEvent appends multiple events as separate JSON lines", async () => {
@@ -98,20 +98,24 @@ test("auditTerminalEvent never throws on bad input", () => {
   });
 });
 
-test("auditTerminalEvent reopens stream after CC_DATA_DIR rotation", () => {
+test("auditTerminalEvent reopens stream after CC_DATA_DIR rotation", async () => {
   const a = freshTmpRoot("rotate-a");
   auditTerminalEvent({ event: "executed", command: "ls" });
   const b = freshTmpRoot("rotate-b");
   auditTerminalEvent({ event: "executed", command: "pwd" });
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const linesA = readLines(path.join(a, "logs", "terminal-audit.log"));
-      const linesB = readLines(path.join(b, "logs", "terminal-audit.log"));
-      assert.strictEqual(linesA.length, 1);
-      assert.strictEqual(linesB.length, 1);
-      assert.strictEqual(JSON.parse(linesA[0]).command, "ls");
-      assert.strictEqual(JSON.parse(linesB[0]).command, "pwd");
-      resolve();
-    }, 50);
-  });
+  const fileA = path.join(a, "logs", "terminal-audit.log");
+  const fileB = path.join(b, "logs", "terminal-audit.log");
+  const deadline = Date.now() + 5000;
+  let linesA = [];
+  let linesB = [];
+  while (Date.now() < deadline) {
+    linesA = readLines(fileA);
+    linesB = readLines(fileB);
+    if (linesA.length >= 1 && linesB.length >= 1) break;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  assert.strictEqual(linesA.length, 1);
+  assert.strictEqual(linesB.length, 1);
+  assert.strictEqual(JSON.parse(linesA[0]).command, "ls");
+  assert.strictEqual(JSON.parse(linesB[0]).command, "pwd");
 });

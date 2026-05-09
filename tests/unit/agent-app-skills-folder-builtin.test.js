@@ -67,7 +67,9 @@ test("executeReviewRun: directory sourcePath uses runReviewFolderPhase (not file
   assert.equal(env.data.overallGrade, "A");
   assert.ok(env.data._reviewMeta);
   assert.ok(env.data._reviewMeta.fileCount >= 1);
-  assert.ok(captured && captured.folder && captured.folder.includes("DockLock"));
+  assert.ok(
+    captured && captured.folder && captured.folder.includes("DockLock"),
+  );
   assert.ok(Array.isArray(captured.files));
 });
 

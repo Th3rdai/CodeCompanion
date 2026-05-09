@@ -6,7 +6,13 @@ const {
   shell,
   Menu,
   systemPreferences,
+  session,
 } = require("electron");
+const {
+  isPrivateLanIPv4,
+  isLocalOrPrivateLanHostname,
+  isTrustedMediaPageUrl,
+} = require("./media-origin");
 const { fork } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -709,15 +715,118 @@ async function startApp() {
   }
 }
 
-// Accept self-signed cert from localhost when server runs HTTPS.
-// Only fires for our own server — external https URLs open in system browser.
+function mediaPermissionWantsAudioOnly(details) {
+  const types = details?.mediaTypes;
+  if (!types || types.length === 0) return true;
+  return types.includes("audio") || types.includes("unknown");
+}
+
+/**
+ * Chromium often denies getUserMedia / Web Speech in Electron unless the session
+ * explicitly allows the "media" permission for our app origins.
+ */
+function configureSessionMediaPermissions() {
+  function mediaTrustContext() {
+    let appPath = "";
+    try {
+      appPath = app.getAppPath();
+    } catch {
+      appPath = "";
+    }
+    return { actualPort, appPath, electronDir: __dirname };
+  }
+
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback, details) => {
+      if (permission !== "media") {
+        callback(false);
+        return;
+      }
+      if (!mediaPermissionWantsAudioOnly(details)) {
+        callback(false);
+        return;
+      }
+      let pageUrl = "";
+      try {
+        pageUrl = webContents?.getURL?.() || "";
+      } catch {
+        pageUrl = "";
+      }
+      const requesting = details?.requestingUrl || "";
+      const ctx = mediaTrustContext();
+      if (
+        isTrustedMediaPageUrl(pageUrl, ctx) ||
+        isTrustedMediaPageUrl(requesting, ctx)
+      ) {
+        callback(true);
+        return;
+      }
+      emergencyLog(
+        `[Media] Denied — untrusted origin (page=${pageUrl} requesting=${requesting})`,
+      );
+      callback(false);
+    },
+  );
+
+  session.defaultSession.setPermissionCheckHandler(
+    (webContents, permission, requestingOrigin, details) => {
+      if (permission !== "media") return false;
+      if (!mediaPermissionWantsAudioOnly(details)) return false;
+      const ctx = mediaTrustContext();
+      if (requestingOrigin && isTrustedMediaPageUrl(requestingOrigin, ctx))
+        return true;
+      try {
+        const pageUrl = webContents?.getURL?.() || "";
+        if (isTrustedMediaPageUrl(pageUrl, ctx)) return true;
+      } catch {
+        /* ignore */
+      }
+      return false;
+    },
+  );
+
+  emergencyLog("Session media permission handlers installed");
+}
+
+/**
+ * Some HTTPS connections (workers, speech, fetches) never fire `certificate-error`
+ * but still log ssl_client_socket_impl net_error -202. Accept local/LAN certs here.
+ * @see https://www.electronjs.org/docs/latest/api/session#sessetcertificateverifyprocproc
+ */
+function configureSessionCertificateVerifyProc() {
+  if (serverProto !== "https") return;
+  session.defaultSession.setCertificateVerifyProc((request, callback) => {
+    try {
+      const host = String(request.hostname || "");
+      if (isLocalOrPrivateLanHostname(host)) {
+        callback(0);
+        return;
+      }
+    } catch {
+      /* use Chromium result */
+    }
+    callback(-3);
+  });
+  emergencyLog("Session certificate verify proc installed (local/LAN HTTPS)");
+}
+
+// Accept self-signed cert from localhost / same-port LAN when server runs HTTPS.
+// Chromium logs net_error -202 (ERR_CERT_AUTHORITY_INVALID) if the UI or a subresource
+// hits https://192.168.x.x:port without a public CA — same cert as localhost.
 if (serverProto === "https") {
   app.on(
     "certificate-error",
     (event, webContents, url, error, cert, callback) => {
       try {
         const u = new URL(url);
-        if (u.hostname === "localhost" || u.hostname === "127.0.0.1") {
+        const sameServerPort =
+          actualPort == null || u.port === String(actualPort);
+        if (
+          u.hostname === "localhost" ||
+          u.hostname === "127.0.0.1" ||
+          u.hostname === "[::1]" ||
+          (isPrivateLanIPv4(u.hostname) && sameServerPort)
+        ) {
           event.preventDefault();
           callback(true);
           return;
@@ -731,6 +840,8 @@ if (serverProto === "https") {
 // App lifecycle
 app.whenReady().then(() => {
   emergencyLog("App ready event fired");
+  configureSessionMediaPermissions();
+  configureSessionCertificateVerifyProc();
   startApp().catch((err) => {
     emergencyLog(`startApp() rejected: ${err.message}`);
     emergencyLog(`Stack: ${err.stack}`);

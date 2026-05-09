@@ -36,15 +36,21 @@ test.describe("Onboarding first launch", () => {
   test("UX-01: displays onboarding wizard on first launch", async ({
     page,
   }) => {
-    // beforeEach already waited on the wizard dialog — assert welcome content (extra dialog wait can race a closing animation).
+    // First screen: combined quick tour + settings offer
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: /Welcome — quick tour/i,
+      }),
+    ).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/local workspace/i)).toBeVisible();
+    await page.getByRole("button", { name: /Continue quick tour/i }).click();
     await expect(
       page.getByRole("heading", {
         level: 2,
         name: "Welcome to Code Companion",
       }),
     ).toBeVisible({ timeout: 60_000 });
-
-    // Verify first step content matches vibe-coder tone
     await expect(page.getByText(/AI coding tool/i)).toBeVisible();
     await expect(page.getByText(/Product Managers/i)).not.toBeVisible(); // Should NOT appear
   });
@@ -55,8 +61,17 @@ test.describe("Onboarding first launch", () => {
     const wizardDialog = () =>
       page.getByRole("dialog", { name: "Welcome wizard" });
     await expect(wizardDialog()).toBeVisible();
+    await wizardDialog()
+      .getByRole("button", { name: /Continue quick tour/i })
+      .click();
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "Welcome to Code Companion",
+      }),
+    ).toBeVisible({ timeout: 25_000 });
     // Re-resolve dialog each step — inner content remounts on slide transitions
-    await wizardDialog().getByRole("button", { name: /Next/i }).click(); // Step 2 — Ollama
+    await wizardDialog().getByRole("button", { name: /Next/i }).click(); // Ollama
     await expect(page.getByText("Connect to Ollama")).toBeVisible({
       timeout: 25_000,
     });

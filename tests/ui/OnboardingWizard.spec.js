@@ -30,10 +30,21 @@ test.describe("OnboardingWizard component", () => {
     ).toBeVisible({ timeout: 45_000 });
   });
 
-  test("UX-01: displays 5 steps with correct vibe-coder content", async ({
+  test("UX-01: displays 6 steps with correct vibe-coder content", async ({
     page,
   }) => {
-    // Step 1: Welcome (heading — more stable than substring text match under load)
+    // Step 1: Quick tour + settings gate
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: /Welcome — quick tour/i,
+      }),
+    ).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText(/Settings help/i)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await page.getByRole("button", { name: /Continue quick tour/i }).click();
     await expect(
       page.getByRole("heading", {
         level: 2,
@@ -75,15 +86,22 @@ test.describe("OnboardingWizard component", () => {
     // Click overlay so the dialog container (tabIndex=0) receives focus — locator.focus() flakes in CI
     await wizard.click({ position: { x: 24, y: 24 } });
 
-    // ArrowRight advances step (content fades ~200ms between steps)
+    // ArrowRight advances from quick-start to classic welcome step
     await page.keyboard.press("ArrowRight");
-    await expect(page.getByText("Connect to Ollama")).toBeVisible({
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "Welcome to Code Companion",
+      }),
+    ).toBeVisible({
       timeout: 10_000,
     });
 
-    // ArrowLeft goes back
+    // ArrowLeft goes back to quick-start gate
     await page.keyboard.press("ArrowLeft");
-    await expect(page.getByText("Welcome to Code Companion")).toBeVisible({
+    await expect(
+      page.getByRole("heading", { level: 2, name: /Welcome — quick tour/i }),
+    ).toBeVisible({
       timeout: 10_000,
     });
 

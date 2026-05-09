@@ -32,6 +32,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.
 
+## [1.6.42] — 2026-05-09
+
+### Fixed
+
+- **Chat “Paste” toolbar button** — Programmatic clipboard read often fails under self-signed HTTPS or strict permissions; the button now uses a shared `pasteFromClipboardButton` flow in `src/lib/clipboard.js`: start `readText()` during the click gesture, focus the textarea, try `document.execCommand('paste')`, then fall back to appending clipboard text. Aligns main chat (`App.jsx`) with `InputToolbar` and removes the old “short clipboard text ignored” heuristic so small snippets paste reliably.
+
+### Changed
+
+- **Agent terminal denials** — When the working directory is outside Settings → Project folder, the deny message includes the resolved project root and guidance to align Project folder. When the blocklist matches `rm -rf`, the model-facing ACTION suggests safer cleanup (e.g. `swift package clean` / `xcodebuild clean`) instead of only generic policy text.
+
+### Added
+
+- **Tests** — `validateCommand` + integration coverage for `cat` under allowlist `*`; `run_terminal_cmd` smoke with `*` allowlist reads a temp file via `cat` (Unix).
+
+### Validation
+
+- `npm run validate:static`, `npm run test:unit` (**648** tests), Playwright UI + E2E, `npm run validate:p7` (Ollama workflow smoke) green; `node scripts/smoke-test-server.js` OK.
+
 ## [1.6.41] — 2026-05-05
 
 ### Added
