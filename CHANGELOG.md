@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.
 
+## [1.6.43] — 2026-05-09
+
+### Fixed
+
+- **Broken v1.6.42 desktop/CI startup:** `routes/config` and `server.js` required `lib/dictate-transcribe`, `routes/dictate-transcribe`, `routes/setup-assistant`, `lib/setup-assistant-json`, `lib/setup-services`, plus UI `SetupAssistantPanel`, `src/lib/file-browser-image-attach`, and `electron/media-origin` — those files were never committed, so `npm ci` + `node scripts/smoke-test-server.js` failed with `Cannot find module '../lib/dictate-transcribe'`. All sources and their unit/integration tests are now in the repository.
+
 ## [1.6.42] — 2026-05-09
 
 ### Fixed
