@@ -20,7 +20,13 @@ function reserveFreePort() {
   });
 }
 
-async function waitForServer(baseUrl, timeoutMs = 25000) {
+async function waitForServer(baseUrl, timeoutMs = 60000) {
+  // 60s headroom matches scripts/smoke-test-server.js. CI runners are
+  // measurably slower than local machines, and as of CTXFIX Phase 4
+  // (commit 503c492) the server's preflight/boot path takes long enough
+  // on GitHub Actions that the previous 25s ceiling was failing every run
+  // with "Server did not become ready in time" before the actual test
+  // body could execute.
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
