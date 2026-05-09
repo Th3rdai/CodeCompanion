@@ -50,6 +50,10 @@ on:
 permissions:
   contents: read
 
+# Match CI and stay ahead of GitHub hosted-runner Node 20 removal (see docs/RELEASES-AND-UPDATES.md).
+env:
+  NODE_CI_VERSION: "22"
+
 concurrency:
   group: desktop-build-${{ github.ref }}
   cancel-in-progress: true
@@ -62,10 +66,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_CI_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -121,10 +125,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_CI_VERSION }}
           cache: npm
 
       - name: Install dependencies
@@ -233,10 +237,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_CI_VERSION }}
 
       - name: Verify package.json matches tag
         run: |

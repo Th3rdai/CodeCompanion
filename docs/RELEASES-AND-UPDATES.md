@@ -32,6 +32,16 @@ For **local packaging** (smoke tests, not the default release path), see **[BUIL
 
 ---
 
+## CI Node.js version (GitHub Actions)
+
+Hosted runners are **deprecating Node.js 20** (GitHub announced a move toward Node 24 as default; Node 20 images will be removed on a published timeline — see [GitHub changelog](https://github.blog/changelog/) for “Node.js” / runner updates).
+
+| Item | Detail |
+| ---- | ------ |
+| **Current CI target** | **Node 22** — Active LTS, supported by `actions/setup-node@v4`, Vite, and Electron Builder on `ubuntu-latest`, `macos-latest`, and `windows-2022`. |
+| **Where it is set** | Workflow env `NODE_CI_VERSION` in `.github/workflows/ci.yml` and `.github/workflows/build.yml` (single bump updates unit tests + desktop builds). |
+| **Follow-up** | Revisit **Node 24** once it is the default on `ubuntu-latest` and native rebuilds (`node-pty` / `electron-rebuild`) are green on all matrix OSes. Optionally add `"engines": { "node": ">=22" }` in `package.json` if you want `npm` to warn local devs; keep it loose if you still support Node 20 locally until deprecation. |
+
 ## Before you cut a release
 
 1. **Land changes on the main branch** (or the branch you release from) and run checks you care about (e.g. `npm run test:unit`, targeted Playwright, manual smoke of the Electron build).
