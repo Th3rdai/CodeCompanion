@@ -165,3 +165,86 @@ test("resolveAutoModel honors excludeModels even without a demote", async () => 
     clearDemotions();
   }
 });
+
+// ─── preferVision + preferToolCapable: skip Moondream (narrates vs TOOL_CALL) ─
+
+const VISION_TOOL_TAGS = [
+  {
+    name: "moondream:latest",
+    size: 2_000_000_000,
+    modified_at: "2026-05-09",
+    details: { family: "moondream", parameter_size: "1.8B" },
+  },
+  {
+    name: "llava:34b",
+    size: 20_000_000_000,
+    modified_at: "2026-05-09",
+    details: { family: "llava", parameter_size: "34B" },
+  },
+];
+
+const VISION_TOOL_SHOW = {
+  "moondream:latest": {
+    model_info: { "moondream.context_length": 8192 },
+    details: { family: "moondream" },
+  },
+  "llava:34b": {
+    model_info: { "llava.context_length": 32768 },
+    details: { family: "llava" },
+  },
+};
+
+test("resolveAutoModel preferVision+preferToolCapable skips Moondream when another local vision exists", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: VISION_TOOL_TAGS,
+    showByModel: VISION_TOOL_SHOW,
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await resolveAutoModel({
+      requestedModel: "auto",
+      mode: "chat",
+      estimatedTokens: 500,
+      config: { ollamaUrl: "http://test:11434", autoModelMap: { chat: "qwen3-32k" } },
+      ollamaUrl: "http://test:11434",
+      ollamaOpts: {},
+      preferVision: true,
+      preferToolCapable: true,
+    });
+    assert.equal(r.resolved, "llava:34b", "must not pick moondream when tools + vision");
+    assert.equal(r.wasAuto, true);
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
+
+test("resolveAutoModel preferVision+preferToolCapable still uses Moondream if it is the only vision model", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: [VISION_TOOL_TAGS[0]],
+    showByModel: { "moondream:latest": VISION_TOOL_SHOW["moondream:latest"] },
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await resolveAutoModel({
+      requestedModel: "auto",
+      mode: "chat",
+      estimatedTokens: 500,
+      config: { ollamaUrl: "http://test:11434", autoModelMap: { chat: "qwen3-32k" } },
+      ollamaUrl: "http://test:11434",
+      ollamaOpts: {},
+      preferVision: true,
+      preferToolCapable: true,
+    });
+    assert.equal(r.resolved, "moondream:latest");
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
