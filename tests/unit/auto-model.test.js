@@ -207,13 +207,20 @@ test("resolveAutoModel preferVision+preferToolCapable skips Moondream when anoth
       requestedModel: "auto",
       mode: "chat",
       estimatedTokens: 500,
-      config: { ollamaUrl: "http://test:11434", autoModelMap: { chat: "qwen3-32k" } },
+      config: {
+        ollamaUrl: "http://test:11434",
+        autoModelMap: { chat: "qwen3-32k" },
+      },
       ollamaUrl: "http://test:11434",
       ollamaOpts: {},
       preferVision: true,
       preferToolCapable: true,
     });
-    assert.equal(r.resolved, "llava:34b", "must not pick moondream when tools + vision");
+    assert.equal(
+      r.resolved,
+      "llava:34b",
+      "must not pick moondream when tools + vision",
+    );
     assert.equal(r.wasAuto, true);
   } finally {
     global.fetch = original;
@@ -235,7 +242,10 @@ test("resolveAutoModel preferVision+preferToolCapable still uses Moondream if it
       requestedModel: "auto",
       mode: "chat",
       estimatedTokens: 500,
-      config: { ollamaUrl: "http://test:11434", autoModelMap: { chat: "qwen3-32k" } },
+      config: {
+        ollamaUrl: "http://test:11434",
+        autoModelMap: { chat: "qwen3-32k" },
+      },
       ollamaUrl: "http://test:11434",
       ollamaOpts: {},
       preferVision: true,

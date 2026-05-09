@@ -53,7 +53,8 @@ test("chatStream JSON body includes images on last user message", async () => {
 
 test("chat-post-handler agent fallback calls chatStream with images as 4th argument", () => {
   const src = fs.readFileSync(HANDLER_PATH, "utf8");
-  const re = /await\s+chatStream\s*\(\s*config\.ollamaUrl\s*,\s*model\s*,\s*fallbackMessages\s*,\s*images\s*\|\|\s*\[\]\s*,\s*\{/;
+  const re =
+    /await\s+chatStream\s*\(\s*config\.ollamaUrl\s*,\s*model\s*,\s*fallbackMessages\s*,\s*images\s*\|\|\s*\[\]\s*,\s*\{/;
   assert.ok(
     re.test(src),
     "agent streaming fallback must stay chatStream(url, model, fallbackMessages, images||[], {…}) — see lib/ollama-client.js chatStream JSDoc",

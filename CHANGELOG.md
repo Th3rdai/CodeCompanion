@@ -32,6 +32,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.
 
+## [1.6.45] — 2026-05-09
+
+### Fixed
+
+- **Host date/time grounding in prompts** — Chat and review system prompts now prepend a consistent host clock line (`CURRENT_HOST_TIME`) so model responses stay grounded to current local date/time and timezone context.
+- **Terminal tool arg-shape resilience** — `builtin.run_terminal_cmd` now accepts malformed model payloads where `args` arrives as a JSON-stringified array/scalar instead of a real array, normalizing safely before `child_process.spawn`.
+- **Terminal command-shape guardrails** — Added early denials for malformed `command` payloads (JSON blobs, source-file argv0, newline/braces corruption) to prevent ENOENT spawn noise and provide actionable correction guidance.
+- **MCP schema compile fallback** — MCP client schema validator now retries by stubbing missing `$defs` references for dangling `#/$defs/*` refs before falling back to passthrough validation.
+- **Server static fallback robustness** — If `dist/` exists but lacks `index.html`, server now falls back to `public/` when available instead of serving a broken shell.
+- **P7 file smoke strict compatibility** — `GET /api/files/read` default folder resolution now checks chat/project/repo roots; `POST /api/files/save` now supports validated temp roots (`/tmp`, `/private/tmp`) used by strict API smoke scripts while preserving traversal protections.
+
+### Changed
+
+- **Log hygiene** — Expected client/input-limit conditions (`too many images`, corrective TOOL_CALL retries, create-project missing required fields) now log at warning/info/debug levels that better distinguish user/input issues from runtime failures.
+- **Electron permission policy structure** — Media/clipboard trusted permission allowlist centralized in `electron/permission-policy.js`, with tests locking behavior.
+
+### Validation
+
+- `npm run test:unit` (**684** tests) pass.
+- Playwright UI suite: **35 pass / 15 skip**.
+- Playwright E2E suite: **23 pass**.
+- `npm run mcp:test`: stdio MCP **19 tools**.
+- P7 strict API smoke rerun: all checks green (including file read/save traversal guards).
+
 ## [1.6.44] — 2026-05-09
 
 ### Fixed

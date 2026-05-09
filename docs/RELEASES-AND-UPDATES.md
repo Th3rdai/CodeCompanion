@@ -36,11 +36,11 @@ For **local packaging** (smoke tests, not the default release path), see **[BUIL
 
 Hosted runners are **deprecating Node.js 20** (GitHub announced a move toward Node 24 as default; Node 20 images will be removed on a published timeline — see [GitHub changelog](https://github.blog/changelog/) for “Node.js” / runner updates).
 
-| Item | Detail |
-| ---- | ------ |
-| **Current CI target** | **Node 22** — Active LTS, supported by `actions/setup-node@v4`, Vite, and Electron Builder on `ubuntu-latest`, `macos-latest`, and `windows-2022`. |
-| **Where it is set** | Workflow env `NODE_CI_VERSION` in `.github/workflows/ci.yml` and `.github/workflows/build.yml` (single bump updates unit tests + desktop builds). |
-| **Follow-up** | Revisit **Node 24** once it is the default on `ubuntu-latest` and native rebuilds (`node-pty` / `electron-rebuild`) are green on all matrix OSes. **`package.json` declares `"engines": { "node": ">=22" }`** so local `npm install` warns if Node is too old (aligns with CI). |
+| Item                  | Detail                                                                                                                                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Current CI target** | **Node 22** — Active LTS, supported by `actions/setup-node@v4`, Vite, and Electron Builder on `ubuntu-latest`, `macos-latest`, and `windows-2022`.                                                                                                                              |
+| **Where it is set**   | Workflow env `NODE_CI_VERSION` in `.github/workflows/ci.yml` and `.github/workflows/build.yml` (single bump updates unit tests + desktop builds).                                                                                                                               |
+| **Follow-up**         | Revisit **Node 24** once it is the default on `ubuntu-latest` and native rebuilds (`node-pty` / `electron-rebuild`) are green on all matrix OSes. **`package.json` declares `"engines": { "node": ">=22" }`** so local `npm install` warns if Node is too old (aligns with CI). |
 
 ## Before you cut a release
 

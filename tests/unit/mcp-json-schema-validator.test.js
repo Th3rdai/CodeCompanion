@@ -17,7 +17,11 @@ test("createMcpJsonSchemaValidator stubs missing $defs for dangling $ref", () =>
   };
   const validate = v.getValidator(badSchema);
   assert.equal(typeof validate, "function");
-  assert.equal(warnings.length, 0, "should compile after stubbing ScreenInstance");
+  assert.equal(
+    warnings.length,
+    0,
+    "should compile after stubbing ScreenInstance",
+  );
   const ok = validate({ screen: { any: "value" } });
   assert.equal(ok.valid, true);
 });

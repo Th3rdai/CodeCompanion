@@ -42,9 +42,7 @@ test("chat-post-handler injects host time context into the system prompt", () =>
   // inside the `if (hasAgentTools)` branch, clobbering dateContext for every
   // chat (because chat always has agent tools). Inside that block, leadIn must
   // ONLY be appended to (`+=`), never replaced (`=`).
-  const agentBranch = src.match(
-    /if \(hasAgentTools\) \{[\s\S]*?\n  \}\n/,
-  );
+  const agentBranch = src.match(/if \(hasAgentTools\) \{[\s\S]*?\n {2}\}\n/);
   assert.ok(agentBranch, "Could not locate hasAgentTools block in handler");
   assert.ok(
     !/^\s*leadIn\s*=[^=+]/m.test(agentBranch[0]),

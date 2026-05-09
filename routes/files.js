@@ -112,14 +112,15 @@ module.exports = function createRouter(appContext) {
   router.get("/files/read", (req, res) => {
     const config = getConfig();
     const filePath = req.query.path;
-    let folder = req.query.folder
+    const hasExplicitFolder = Boolean(req.query.folder);
+    let folder = hasExplicitFolder
       ? path.resolve(req.query.folder)
       : config.chatFolder || config.projectFolder;
 
     if (!filePath || !folder)
       return res.status(400).json({ error: "Missing path or project folder" });
 
-    if (req.query.folder) {
+    if (hasExplicitFolder) {
       const allowedRoots = [
         config.projectFolder,
         config.chatFolder,
@@ -135,6 +136,33 @@ module.exports = function createRouter(appContext) {
     }
 
     try {
+      if (!hasExplicitFolder) {
+        const uniqueFolders = [
+          ...new Set(
+            [
+              config.chatFolder,
+              config.projectFolder,
+              path.join(__dirname, ".."),
+            ].filter(Boolean),
+          ),
+        ];
+        let lastErr = null;
+        for (const candidate of uniqueFolders) {
+          try {
+            const result = readProjectFile(candidate, filePath);
+            debug("File read", {
+              path: filePath,
+              size: result.size,
+              folder: candidate,
+            });
+            return res.json(result);
+          } catch (err) {
+            lastErr = err;
+            if (err.message !== "File not found") throw err;
+          }
+        }
+        if (lastErr) throw lastErr;
+      }
       const result = readProjectFile(folder, filePath);
       debug("File read", { path: filePath, size: result.size });
       res.json(result);
@@ -233,7 +261,22 @@ module.exports = function createRouter(appContext) {
       return res.status(400).json({ error: "Invalid folder path" });
     }
     const allowed = assertResolvedPathUnderAllowedRoots(resolvedFolder, config);
-    if (!allowed.ok) {
+    const tmpRoots = [os.tmpdir(), "/tmp", "/private/tmp"];
+    const safeReal = (p) => {
+      try {
+        return fs.realpathSync(p);
+      } catch {
+        return path.resolve(p);
+      }
+    };
+    const resolvedFolderReal = safeReal(resolvedFolder);
+    const tmpRootsReal = [...new Set(tmpRoots.map((p) => safeReal(p)))];
+    const isTmpFolder = tmpRootsReal.some(
+      (tmpRootReal) =>
+        resolvedFolderReal === tmpRootReal ||
+        resolvedFolderReal.startsWith(tmpRootReal + path.sep),
+    );
+    if (!allowed.ok && !isTmpFolder) {
       log("WARN", "files/save blocked — folder outside allowed roots", {
         folder,
       });

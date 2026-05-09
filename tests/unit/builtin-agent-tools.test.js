@@ -6,6 +6,7 @@ const {
   getBuiltinTools,
   validateBrowseUrl,
   validateCommand,
+  executeBuiltinTool,
   agentTerminalAllowlistPermitsAll,
   terminalAllowlistMatchesBasename,
 } = require("../../lib/builtin-agent-tools.js");
@@ -281,6 +282,62 @@ const baseTerminalConfig = {
   },
   projectFolder: "/tmp",
 };
+
+test("run_terminal_cmd: accepts args as JSON-stringified array", async () => {
+  const projectRoot = process.cwd();
+  const cfg = {
+    projectFolder: projectRoot,
+    chatFolder: projectRoot,
+    agentTerminal: {
+      enabled: true,
+      allowShellChaining: false,
+      allowlist: ["echo"],
+      blocklist: [],
+      maxTimeoutSec: 10,
+      maxOutputKB: 64,
+      confirmBeforeRun: false,
+    },
+  };
+  const out = await executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "echo", args: '["hello","world"]' },
+    cfg,
+    () => {},
+    "test-client",
+    {},
+  );
+  assert.equal(out.success, true);
+  const text = out.result?.content?.[0]?.text || "";
+  assert.match(text, /hello world/);
+});
+
+test("run_terminal_cmd: accepts args as JSON-stringified scalar", async () => {
+  const projectRoot = process.cwd();
+  const cfg = {
+    projectFolder: projectRoot,
+    chatFolder: projectRoot,
+    agentTerminal: {
+      enabled: true,
+      allowShellChaining: false,
+      allowlist: ["echo"],
+      blocklist: [],
+      maxTimeoutSec: 10,
+      maxOutputKB: 64,
+      confirmBeforeRun: false,
+    },
+  };
+  const out = await executeBuiltinTool(
+    "run_terminal_cmd",
+    { command: "echo", args: '"solo-arg"' },
+    cfg,
+    () => {},
+    "test-client",
+    {},
+  );
+  assert.equal(out.success, true);
+  const text = out.result?.content?.[0]?.text || "";
+  assert.match(text, /solo-arg/);
+});
 
 test("agentTerminalAllowlistPermitsAll: lone * after trim", () => {
   assert.equal(
