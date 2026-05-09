@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Agent app skill `builtin.pentest_scan`** — `sourcePath` may now be a **folder** (multi-file scan via the same `runPentestFolderPhase` path as Security mode / `pentest_scan_folder`), with `_scanMeta` on structured results. Folder scans reject `images`. Tool description and `docs/AGENT-SKILLS.md` updated.
 
+## [1.6.44] — 2026-05-09
+
+### Fixed
+
+- **Chat images with agent tools** — The “streaming fallback” path (when the model does not follow the tool-call loop) called `chatStream` with the wrong arguments, so images were not sent to Ollama. The fallback now uses the same 5-argument API as the main stream and reads the NDJSON body. Vision payloads are attached to the last real user message (not assistant/system), recovery stub user lines are skipped, and `data:image/...;base64,` prefixes are stripped. Adds `tests/unit/ollama-client-vision-attach.test.js`.
+
 ## [1.6.43] — 2026-05-09
 
 ### Fixed
