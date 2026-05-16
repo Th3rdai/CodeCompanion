@@ -311,6 +311,8 @@ function ServerModal({ mode, client, onSaved, onClose }) {
   const [args, setArgs] = useState("");
   const [envVars, setEnvVars] = useState("");
   const [clearEnv, setClearEnv] = useState(false);
+  const [headers, setHeaders] = useState("");
+  const [rejectUnauthorized, setRejectUnauthorized] = useState(true);
   const [autoConnect, setAutoConnect] = useState(true);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
@@ -334,6 +336,22 @@ function ServerModal({ mode, client, onSaved, onClose }) {
           .map(([k, v]) => `${k}=${v}`)
           .join("\n"),
       );
+      // Pre-populate headers for remote transports
+      const hdrs =
+        client.headers && typeof client.headers === "object"
+          ? client.headers
+          : {};
+      setHeaders(
+        Object.entries(hdrs)
+          .map(([k, v]) => `${k}=${v}`)
+          .join("\n"),
+      );
+      // Load rejectUnauthorized (default to true if not set for backwards compatibility)
+      setRejectUnauthorized(
+        client.rejectUnauthorized !== undefined
+          ? client.rejectUnauthorized
+          : true,
+      );
       setClearEnv(false);
       setAutoConnect(client.autoConnect !== false);
     }
@@ -350,6 +368,8 @@ function ServerModal({ mode, client, onSaved, onClose }) {
             .split("\n")
             .flatMap((a) => (a.trim() ? a.trim().split(/\s+/) : []))
         : [],
+      headers: isRemote && headers.trim() ? parseEnvLines(headers) : undefined,
+      rejectUnauthorized: isRemote ? rejectUnauthorized : undefined,
     };
   }
 
@@ -358,6 +378,10 @@ function ServerModal({ mode, client, onSaved, onClose }) {
     const base = { ...buildTransportPayload() };
     if (transport === "stdio" && envVars.trim()) {
       base.env = parseEnvLines(envVars);
+    }
+    const isRemote = transport === "http" || transport === "sse";
+    if (isRemote && headers.trim()) {
+      base.headers = parseEnvLines(headers);
     }
     return base;
   }
@@ -401,6 +425,11 @@ function ServerModal({ mode, client, onSaved, onClose }) {
         } else if (envVars.trim()) {
           body.env = parseEnvLines(envVars);
         }
+        // Add headers for remote transports
+        const isRemote = transport === "http" || transport === "sse";
+        if (isRemote && headers.trim()) {
+          body.headers = parseEnvLines(headers);
+        }
 
         const res = await apiFetch(
           `/api/mcp/clients/${encodeURIComponent(client.id)}`,
@@ -432,6 +461,7 @@ function ServerModal({ mode, client, onSaved, onClose }) {
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "");
+        const isRemote = transport === "http" || transport === "sse";
         const res = await apiFetch("/api/mcp/clients", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -441,6 +471,7 @@ function ServerModal({ mode, client, onSaved, onClose }) {
             autoConnect,
             ...buildTransportPayload(),
             env: parseEnvLines(envVars),
+            headers: isRemote && headers.trim() ? parseEnvLines(headers) : undefined,
           }),
         });
         const data = await res.json().catch(() => ({}));
@@ -595,6 +626,44 @@ function ServerModal({ mode, client, onSaved, onClose }) {
                     Clear all environment variables
                   </label>
                 )}
+              </div>
+            </>
+          )}
+
+          {(transport === "http" || transport === "sse") && (
+            <>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1 font-medium">
+                  Headers (KEY=VALUE)
+                </label>
+                <p className="text-xs text-slate-500 mb-1">
+                  Add authentication headers like Authorization, X-API-Key, etc.
+                </p>
+                <textarea
+                  value={headers}
+                  onChange={(e) => setHeaders(e.target.value)}
+                  placeholder={
+                    "Authorization=Bearer your-token\nX-API-Key=your-key"
+                  }
+                  className="w-full input-glow text-slate-100 rounded-lg px-3 py-2 outline-none font-mono text-sm"
+                  rows={2}
+                />
+              </div>
+
+              <div className="mt-3">
+                <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!rejectUnauthorized}
+                    onChange={(e) => setRejectUnauthorized(!e.target.checked)}
+                    className="rounded border-slate-600 bg-slate-800 text-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-0"
+                  />
+                  <span>Accept self-signed certificates (insecure)</span>
+                </label>
+                <p className="text-xs text-slate-500 mt-1 ml-6">
+                  Enable this to connect to servers with self-signed or invalid
+                  SSL certificates (e.g., https://192.168.x.x)
+                </p>
               </div>
             </>
           )}
