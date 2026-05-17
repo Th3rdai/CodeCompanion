@@ -244,6 +244,7 @@ export default function FileBrowser({
   const [_loadingFile, setLoadingFile] = useState(false);
   const [folderInput, setFolderInput] = useState("");
   const [launchingClaude, setLaunchingClaude] = useState(false);
+  const [launchingCodex, setLaunchingCodex] = useState(false);
   const [launchingCursor, setLaunchingCursor] = useState(false);
   const [launchingWindsurf, setLaunchingWindsurf] = useState(false);
   const [launchingOpenCode, setLaunchingOpenCode] = useState(false);
@@ -862,24 +863,38 @@ export default function FileBrowser({
               {launchingOpenCode ? "Opening..." : "OpenCode"}
             </button>
           </div>
-          <button
-            onClick={() =>
-              launchIDE(
-                "/api/launch-claude-code",
-                "Claude Code",
-                setLaunchingClaude,
-              )
-            }
-            disabled={launchingClaude || !folderPath}
-            className="w-full text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/40 border border-indigo-400/40 shadow-sm shadow-indigo-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            <img
-              src="/ide-logos/claude.jpg"
-              alt=""
-              className="w-5 h-5 rounded-full"
-            />
-            {launchingClaude ? "Opening..." : "Claude Code"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() =>
+                launchIDE(
+                  "/api/launch-claude-code",
+                  "Claude Code",
+                  setLaunchingClaude,
+                )
+              }
+              disabled={launchingClaude || !folderPath}
+              className="flex-1 text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/40 border border-indigo-400/40 shadow-sm shadow-indigo-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <img
+                src="/ide-logos/claude.jpg"
+                alt=""
+                className="w-5 h-5 rounded-full"
+              />
+              {launchingClaude ? "Opening..." : "Claude Code"}
+            </button>
+            <button
+              onClick={() =>
+                launchIDE("/api/launch-codex", "OpenAI Codex", setLaunchingCodex)
+              }
+              disabled={launchingCodex || !folderPath}
+              className="flex-1 text-sm font-medium px-3 py-2.5 rounded-lg bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/40 border border-emerald-400/40 shadow-sm shadow-emerald-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" className="opacity-80" />
+              </svg>
+              {launchingCodex ? "Opening..." : "OpenAI Codex"}
+            </button>
+          </div>
         </div>
       )}
 

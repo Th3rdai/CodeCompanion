@@ -207,5 +207,33 @@ module.exports = function createRouter(appContext) {
     }
   });
 
+  // ── POST /api/launch-codex ────────────────────────────
+  router.post("/launch-codex", async (req, res) => {
+    const { projectPath } = req.body;
+    const folder = projectPath || getConfig().projectFolder;
+    if (!folder)
+      return res.status(400).json({ error: "No project folder specified" });
+    if (!_validateIDEFolder(folder))
+      return res.status(400).json({ error: "Invalid folder path" });
+
+    try {
+      if (ideLauncher) {
+        await ideLauncher.launchIDE("codex", folder);
+        log("INFO", `Launched OpenAI Codex in: ${folder}`);
+        res.json({ success: true, folder });
+      } else {
+        const { execFile } = require("child_process");
+        const safeFolder = folder.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        const script = `tell application "Terminal"\n  activate\n  do script "cd " & quoted form of "${safeFolder}" & " && codex"\nend tell`;
+        execFile("osascript", ["-e", script], { stdio: "ignore" }, () => {});
+        log("INFO", `Launched OpenAI Codex in: ${folder} (macOS only)`);
+        res.json({ success: true, folder });
+      }
+    } catch (err) {
+      log("ERROR", "launch-codex failed", { error: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
+    }
+  });
+
   return router;
 };

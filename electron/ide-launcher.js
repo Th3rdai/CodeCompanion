@@ -5,7 +5,7 @@ const execAsync = promisify(exec);
 
 /**
  * Launches an IDE with a project folder, using platform-aware commands
- * @param {string} ideName - 'vscode', 'cursor', 'windsurf', 'claude-code', or 'opencode'
+ * @param {string} ideName - 'vscode', 'cursor', 'windsurf', 'claude-code', 'opencode', or 'codex'
  * @param {string} folder - Absolute path to project folder
  * @returns {Promise<void>}
  * @throws {Error} If IDE/platform combo unsupported or launch fails
@@ -64,6 +64,17 @@ async function launchIDE(ideName, folder) {
         command = `cmd /c start cmd /k "cd /d \\"${folder}\\" && opencode"`;
       } else if (platform === "linux") {
         command = `x-terminal-emulator -e "cd '${folder}' && opencode"`;
+      }
+      break;
+
+    case "codex":
+      if (platform === "darwin") {
+        const script = `tell application "Terminal" to do script "cd \\"${folder}\\" && codex"`;
+        command = `osascript -e '${script.replace(/'/g, "'\\''")}'`;
+      } else if (platform === "win32") {
+        command = `cmd /c start cmd /k "cd /d \\"${folder}\\" && codex"`;
+      } else if (platform === "linux") {
+        command = `x-terminal-emulator -e "cd '${folder}' && codex"`;
       }
       break;
 
