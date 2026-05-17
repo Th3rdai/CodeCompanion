@@ -12,6 +12,7 @@ import TerminalPanel from "./components/TerminalPanel";
 import Sidebar from "./components/Sidebar";
 import Splite from "./components/ui/Splite";
 import ChatSessionProgress from "./components/ui/ChatSessionProgress";
+import PreflightBanner from "./components/ui/PreflightBanner";
 import SplashScreen from "./components/3d/SplashScreen";
 import HeaderScene from "./components/3d/HeaderScene";
 import EmptyStateScene from "./components/3d/EmptyStateScene";
@@ -66,6 +67,7 @@ import { use3DEffects } from "./contexts/Effects3DContext";
 import { useModels } from "./hooks/useModels";
 import { useChat } from "./hooks/useChat";
 import { useImageAttachments } from "./hooks/useImageAttachments";
+import { estimateMessageTokens } from "./lib/context-budget";
 
 /** Per Settings project folder: last File Browser root (survives restarts if server fell back to project root). */
 const FILE_BROWSER_ROOTS_KEY = "cc_file_browser_roots";
@@ -501,6 +503,12 @@ export default function App() {
   // Agent terminal output state
   const [terminalOutput, setTerminalOutput] = useState(null); // {command, output, exitCode, status}
 
+  // Preflight context banner state (Phase 1 — CTXFIX.md)
+  const [preflightBannerVisible, setPreflightBannerVisible] = useState(false);
+  const [contextLength, setContextLength] = useState(null); // Model's context window size
+  const [estimatedTokens, setEstimatedTokens] = useState(0); // Current conversation token estimate
+  const [enablePreflightBanner, setEnablePreflightBanner] = useState(false); // Config flag from server
+
   const hasImages = attachedFiles.some((f) => f.type === "image" || f.isImage);
   const showVisionWarning =
     hasImages && !isVisionModel && selectedModel !== "auto";
@@ -594,6 +602,60 @@ export default function App() {
     dragCounter,
     setDragging,
   });
+
+  // ── Preflight Context Banner: Fetch context length when model changes ──────
+  useEffect(() => {
+    if (!selectedModel) {
+      setContextLength(null);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (selectedModel === "auto") {
+      params.set("auto", "1");
+      params.set("mode", mode);
+      if (estimatedTokens > 0) {
+        params.set("estimatedTokens", String(estimatedTokens));
+      }
+    } else {
+      params.set("name", selectedModel);
+    }
+
+    fetch(`/api/model-context?${params}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.contextLength !== undefined) {
+          setContextLength(data.contextLength);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch context length:", err);
+        setContextLength(null);
+      });
+  }, [selectedModel, mode, estimatedTokens]);
+
+  // ── Preflight Context Banner: Check threshold with 200ms debouncing ────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!contextLength || contextLength <= 0) {
+        setPreflightBannerVisible(false);
+        return;
+      }
+
+      // Calculate estimated tokens from messages + pending input
+      const messageTokens = estimateMessageTokens(messages);
+      const inputTokens = estimateMessageTokens([{ content: input }]);
+      const total = messageTokens + inputTokens;
+
+      setEstimatedTokens(total);
+
+      // Show banner when above 80% threshold
+      const threshold = contextLength * 0.8;
+      setPreflightBannerVisible(total > threshold);
+    }, 200); // 200ms debounce per CTXFIX.md spec
+
+    return () => clearTimeout(timer);
+  }, [messages, input, contextLength]);
 
   const selectMode = useCallback(
     (id) => {
@@ -793,6 +855,7 @@ export default function App() {
           : {},
       );
       setDictateGroqConfigured(!!data.dictateGroqConfigured);
+      setEnablePreflightBanner(data.enablePreflightBanner ?? false);
     } catch {}
   }
 
@@ -2138,6 +2201,14 @@ export default function App() {
                   />
                 </div>
               )}
+
+            {/* Preflight Context Banner — Phase 1 (CTXFIX.md) */}
+            <PreflightBanner
+              visible={preflightBannerVisible && enablePreflightBanner}
+              estimatedTokens={estimatedTokens}
+              contextLength={contextLength}
+              onNewThread={startNew}
+            />
 
             {/* Input — hidden in Create, Review, and Terminal modes */}
             {mode !== "create" &&

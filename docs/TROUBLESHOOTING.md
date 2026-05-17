@@ -13,7 +13,25 @@ The browser shows **Technical detail: Failed to fetch** when **`fetch()` to this
 3. **HTTPS + self-signed cert** — If you use **`https://`**, open the site once and **accept the certificate**; otherwise the browser may block requests.
 4. **LAN / API key** — Sensitive routes need loopback **or** **`CC_API_SECRET`** on the server and **`VITE_CC_API_KEY`** in the built SPA (see **ENVIRONMENT_VARIABLES.md**).
 
-## Chat: the model says “413”, “Docling failed”, or “conversion service” errors
+## Context budget banner: token estimation
+
+The **preflight context banner** (CTXFIX Phase 1) appears above chat when the pending message + history approaches the model's context window (80% threshold). The token count shown is an **estimate** based on character length — actual tokenization may differ slightly.
+
+**Banner doesn't appear:**
+
+1. Check **`enablePreflightBanner`** in **`.cc-config.json`** (default **`false`** in v1.7.0; flipped to **`true`** in v1.7.1).
+2. Verify the toolbar model selector shows a model (not "Loading...") so the UI can fetch context length via **`GET /api/model-context`**.
+3. If using **Auto (best per mode)**, the endpoint resolves the actual model first — may be slower on first use.
+
+**Percentage seems wrong:**
+
+The estimator uses **`Math.ceil(totalChars / 3.5)`** as a conservative approximation. Different models tokenize text differently (especially with code, emojis, or non-Latin scripts), so the banner percentage is **guidance only**. The server auto-boosts **`num_ctx`** when needed (see **`autoAdjustContext`** in **`lib/config.js`**).
+
+**Banner flickers near the threshold:**
+
+The server uses **256-token hysteresis buckets** and **5-minute caching** to reduce API calls and UI flicker. Minor changes near 80% may take a few keystrokes to cross the boundary visibly.
+
+## Chat: the model says "413", "Docling failed", or "conversion service" errors
 
 The assistant **does not receive HTTP status codes** from your browser. If it mentions **413**, **payload too large**, or a failed **Docling** / **conversion service** without you having pasted an **exact** error message, it may be **hallucinating** — especially when a **PDF** or binary file was attached as **raw bytes** or only a **filename** appears in the message.
 
