@@ -2,11 +2,13 @@
 
 **Status:** Active
 **Created:** 2026-05-24
-**Last Updated:** 2026-05-24
+**Last Updated:** 2026-05-24 (Sprint 1 Docker complete)
 
 ## Overview
 
 Master tracking document for planned improvements from `.planning/drafts/`. Total estimated effort: ~21-28 days.
+
+**NEW: Sprint 1 Docker Deployment** completed 2026-05-24 (Claudette) — see bottom of document for details.
 
 **Implementation order:** Priority-based, low-risk first, with flag-gating for behavioral changes.
 
@@ -342,6 +344,72 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 
 ---
 
+## 🐳 Sprint 1: Docker Deployment (NEW — COMPLETE)
+
+**Source:** Archon task planning
+**Severity:** MEDIUM — Production deployment capability
+**Total Effort:** 2 days
+**Assignee:** Claudette
+**Status:** ✅ COMPLETE (2026-05-24)
+**Commit:** `5f215e5`
+
+### Tasks Completed (5/5)
+
+- [x] Add `/api/health` endpoint to `server.js`
+  - Health check for Docker/K8s liveness probes
+  - Returns `{ status: "ok", version: "1.6.48" }`
+  - Registered before SPA fallback
+
+- [x] Create multi-stage Dockerfile
+  - Builder stage: Install deps, run build
+  - Runtime stage: Production deps only, minimal image
+  - Health check using `/api/health`
+  - ENV HOST=0.0.0.0, PORT=8900
+
+- [x] Create `.dockerignore`
+  - Excludes `node_modules`, `electron/`, `.git`, logs, secrets, tests, build artifacts
+
+- [x] Create `docker-compose.yml` with Ollama sidecar
+  - Two services: `codecompanion` + `ollama`
+  - Named volumes for persistence (`cc_data`, `ollama_data`)
+  - Health checks and service dependencies
+  - Environment variable passthrough
+
+- [x] Create `scripts/smoke-test-docker.sh`
+  - Automated deployment validation
+  - Polls `/api/health` every 3s (max 60s)
+  - Shows logs on failure
+  - Added `"smoke:docker"` npm script
+
+- [x] Write `docs/DOCKER-DEPLOY.md` (374 lines)
+  - Prerequisites, quick start, configuration
+  - Operations (logs, stop/restart, updates, health checks)
+  - Backup/restore procedures
+  - Troubleshooting, security considerations, performance tuning
+
+### Deliverables
+
+**Files:** 7 changed, 623 insertions
+- `server.js`: Health endpoint (9 lines)
+- `Dockerfile`: Multi-stage build (50 lines)
+- `.dockerignore`: Exclusion rules (73 lines)
+- `docker-compose.yml`: Service orchestration (55 lines)
+- `scripts/smoke-test-docker.sh`: Smoke test (61 lines)
+- `package.json`: Added npm script (1 line)
+- `docs/DOCKER-DEPLOY.md`: Documentation (374 lines)
+
+### Acceptance Criteria
+
+✅ All met:
+- Health endpoint responds HTTP 200 with version
+- Docker builds without errors
+- Docker Compose starts both services
+- Ollama sidecar accessible from app container
+- Smoke test passes within 60s timeout
+- Documentation covers all deployment scenarios
+
+---
+
 ## ⚠️ Not Included in Sequential Implementation
 
 ### ❌ SETUPUX
@@ -357,32 +425,35 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 
 ## 📊 Progress Summary
 
-**Total Items:** 8 priorities, ~25 phases/sub-phases
-**Total Effort:** 21-28 days
-**Completed:** 0 / 8 priorities
-**In Progress:** 0 / 8 priorities
-**Blocked:** 0 / 8 priorities
+**Total Items:** 9 priorities (8 original + Sprint 1), ~25 phases/sub-phases
+**Total Effort:** 23-30 days (includes Sprint 1)
+**Completed:** 5 / 9 priorities (P1, P2, P4, P6, Sprint 1)
+**In Progress:** 2 / 9 priorities (P3, P7)
+**In Review:** 1 priority with active review work (P3)
+**Blocked:** 0 / 9 priorities
 
 ### By Priority
 
-- [ ] P1: RESPONSEFIX (3-5 days) — Claude Code
-- [ ] P2: CTXFIX P4-P5 (1-2 days) — Cursor
-- [ ] P3: MEMORYFIX P1a-1b (3 days) — Claude Code
-- [ ] P4: CTXFIX P1 (2 days) — Cursor
-- [ ] P5: MEMORYFIX P2 (2 days) — Claude Code
-- [ ] P6: CTXFIX P3 (2 days) — Cursor
-- [ ] P7: CTXFIX P2 (3-4 days) — Claude Code
-- [ ] P8: MEMORYFIX P3-5 (5-6 days) — Mix
+- [x] P1: RESPONSEFIX (3-5 days) — Claude Code — **done**
+- [x] P2: CTXFIX P4-P5 (1-2 days) — Cursor — **done**
+- [ ] P3: MEMORYFIX P1a-1b (3 days) — Claude Code — **doing/review** (P1a review, P1b doing)
+- [x] P4: CTXFIX P1 (2 days) — Cursor — **done**
+- [ ] P5: MEMORYFIX P2 (2 days) — Claude Code — **todo**
+- [x] P6: CTXFIX P3 (2 days) — Cursor — **done**
+- [ ] P7: CTXFIX P2 (3-4 days) — Claude Code — **doing** (high risk, ship last)
+- [ ] P8: MEMORYFIX P3-5 (5-6 days) — Mix — **todo**
+- [x] **Sprint 1: Docker Deployment (2 days) — Claudette — done** ✅
 
 ---
 
 ## 🎯 Recommended First Sprint
 
-**Week 1-2:** Focus on highest-impact, lowest-risk items
+**Week 1-2 (original order intent):** Focus on highest-impact, lowest-risk items
+**Actual state now:** 1-2 completed, 3 in progress.
 
 1. ✅ RESPONSEFIX (all phases) — 3-5 days — **Claude Code**
 2. ✅ CTXFIX P4-P5 — 1-2 days — **Cursor**
-3. ✅ MEMORYFIX P1a-P1b — 3 days — **Claude Code**
+3. 🔄 MEMORYFIX P1a-P1b — 3 days — **Claude Code** (P1a review, P1b doing)
 
 **Total:** 7-10 days for significant user-facing improvements with minimal risk.
 
@@ -400,6 +471,11 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 
 **Next Steps:**
 
-1. Transfer to Archon project management
-2. Assign tasks to Claude Code / Cursor agents
-3. Begin with P1: RESPONSEFIX
+1. Keep Archon task statuses as source of truth for all priorities
+2. Complete P3 (move P1a review → done, finish P1b doing)
+3. Continue P7 compaction behind flag gate and ship-last sequencing
+4. **Sprint 2: Audit Log** (3 tasks) — next available work
+5. **Sprint 2: Multi-User** (users.js with bcrypt, roles) — available
+
+**Recent Completions:**
+- ✅ Sprint 1: Docker Deployment (2026-05-24, commit `5f215e5`) — Claudette
