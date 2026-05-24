@@ -4,6 +4,7 @@ const {
   findCompactionSplitIndex,
   buildCompactionCacheKey,
   capCompactionSummary,
+  compactHistory,
 } = require("../../lib/history-compaction");
 
 function makeHistory(count) {
@@ -70,5 +71,35 @@ test("capCompactionSummary enforces max length with suffix", () => {
   const capped = capCompactionSummary(text, 32);
   assert.equal(capped.length, 32);
   assert.match(capped, /\.\.\.\[truncated\]$/);
+});
+
+test("compactHistory returns summary path when summarizer succeeds", async () => {
+  const messages = makeHistory(20);
+  const system = { role: "system", content: "sys" };
+  const result = await compactHistory({
+    messages,
+    systemMessage: system,
+    keepRecent: 5,
+    summarize: async () => "summary text",
+  });
+  assert.equal(result.kind, "summary");
+  assert.equal(result.rebuiltMessages[0], system);
+  assert.equal(result.rebuiltMessages[1].role, "system");
+  assert.equal(result.rebuiltMessages[1]._kind, "compaction_summary");
+  assert.equal(result.rebuiltMessages[1].content, "summary text");
+});
+
+test("compactHistory falls back when summarizer fails", async () => {
+  const messages = makeHistory(20);
+  const result = await compactHistory({
+    messages,
+    keepRecent: 5,
+    summarize: async () => {
+      throw new Error("boom");
+    },
+  });
+  assert.equal(result.kind, "fallback");
+  assert.equal(result.reason, "boom");
+  assert.equal(result.rebuiltMessages.length, 5);
 });
 
