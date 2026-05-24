@@ -620,6 +620,124 @@ function ExportDropdown({ data, filename, onToast }) {
 }
 
 // ── Main Security Report ────────────────────────────
+// ── Compliance Controls Section ────────────────────
+
+function ComplianceControlsSection({ controls }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const frameworkConfigs = [
+    {
+      key: "nist",
+      label: "NIST SP 800-53",
+      description: "National Institute of Standards and Technology",
+      color: "text-blue-300",
+      bg: "bg-blue-500/10",
+      border: "border-blue-500/30",
+    },
+    {
+      key: "soc2",
+      label: "SOC 2",
+      description: "Trust Services Criteria",
+      color: "text-purple-300",
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/30",
+    },
+    {
+      key: "hipaa",
+      label: "HIPAA",
+      description: "45 CFR Part 164",
+      color: "text-emerald-300",
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/30",
+    },
+    {
+      key: "pci",
+      label: "PCI DSS v4.0",
+      description: "Payment Card Industry Data Security Standard",
+      color: "text-amber-300",
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/30",
+    },
+  ];
+
+  const totalControls =
+    (controls.nist?.length || 0) +
+    (controls.soc2?.length || 0) +
+    (controls.hipaa?.length || 0) +
+    (controls.pci?.length || 0);
+
+  return (
+    <div className="glass rounded-xl border border-slate-700/30 p-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between cursor-pointer hover:bg-slate-700/20 -m-4 p-4 rounded-xl transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-indigo-400" />
+          <div className="text-left">
+            <h3 className="text-sm font-semibold text-slate-200">
+              Compliance Controls Triggered
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {totalControls} control{totalControls !== 1 ? "s" : ""} across 4
+              frameworks
+            </p>
+          </div>
+        </div>
+        {isExpanded ? (
+          <ChevronDown className="w-4 h-4 text-slate-400" />
+        ) : (
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        )}
+      </button>
+
+      {isExpanded && (
+        <div className="mt-4 space-y-3 fade-in">
+          {frameworkConfigs.map((framework) => {
+            const controlList = controls[framework.key] || [];
+            if (controlList.length === 0) return null;
+
+            return (
+              <div
+                key={framework.key}
+                className={`rounded-lg border ${framework.border} ${framework.bg} p-3`}
+              >
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h4
+                      className={`text-sm font-semibold ${framework.color} mb-0.5`}
+                    >
+                      {framework.label}
+                    </h4>
+                    <p className="text-xs text-slate-400 mb-2">
+                      {framework.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {controlList.map((control) => (
+                        <span
+                          key={control}
+                          className="text-xs font-mono bg-slate-800/60 text-slate-300 border border-slate-600/40 px-2 py-1 rounded"
+                        >
+                          {control}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div
+                    className={`text-xs font-semibold ${framework.color} bg-slate-800/60 px-2 py-1 rounded`}
+                  >
+                    {controlList.length}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SecurityReport({
   data,
   filename,
@@ -639,6 +757,7 @@ export default function SecurityReport({
     categories,
     cleanBillOfHealth,
     testCaseSuggestions,
+    complianceControls,
   } = data;
 
   return (
@@ -792,6 +911,16 @@ export default function SecurityReport({
           />
         ))}
       </div>
+
+      {/* Compliance Controls Triggered */}
+      {complianceControls &&
+        !cleanBillOfHealth &&
+        (complianceControls.nist?.length > 0 ||
+          complianceControls.soc2?.length > 0 ||
+          complianceControls.hipaa?.length > 0 ||
+          complianceControls.pci?.length > 0) && (
+          <ComplianceControlsSection controls={complianceControls} />
+        )}
 
       {/* Test Case Suggestions */}
       {testCaseSuggestions && testCaseSuggestions.length > 0 && (
