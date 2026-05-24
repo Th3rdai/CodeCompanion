@@ -10,6 +10,7 @@ const {
 } = require("../lib/auto-model");
 const { effectiveDoclingApiKey } = require("../lib/docling-client");
 const { isDictateTranscribeConfigured } = require("../lib/dictate-transcribe");
+const { logEvent, EVENT_TYPES } = require("../lib/audit-log");
 
 function maskSensitiveValue(value) {
   if (!value) return "";
@@ -471,6 +472,39 @@ function createConfigRouter(appContext) {
     }
 
     updateConfig(config);
+
+    // Audit log: settings changed
+    // Capture which top-level settings were modified
+    const changedSettings = Object.keys(req.body).filter(
+      (key) =>
+        ![
+          "brandAssets",
+          "mcpServers",
+          "mcpClients",
+          "memory",
+          "imageSupport",
+          "docling",
+          "agentTerminal",
+          "agentBrowser",
+          "toolExec",
+          "agentValidate",
+          "agentPlanner",
+          "agentAppSkills",
+          "autoContinue",
+          "experimentMode",
+        ].includes(key),
+    );
+
+    logEvent({
+      event: EVENT_TYPES.SETTINGS_CHANGED,
+      userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+      ip: req.ip || req.socket?.remoteAddress || "unknown",
+      meta: {
+        changedSettings: changedSettings.length > 0 ? changedSettings : ["nested-object"],
+        settingCount: Object.keys(req.body).length,
+      },
+    });
+
     res.json(sanitizeConfigForClient(getConfig()));
   });
 

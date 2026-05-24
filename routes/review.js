@@ -10,6 +10,7 @@ const {
   CLIENT_INTERNAL_ERROR,
   STREAM_INTERNAL_ERROR,
 } = require("../lib/client-errors");
+const { logEvent, EVENT_TYPES } = require("../lib/audit-log");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
@@ -41,6 +42,19 @@ module.exports = function createRouter(appContext) {
       imageCount: images?.length || 0,
     });
 
+    // Audit log: review started
+    logEvent({
+      event: EVENT_TYPES.REVIEW_STARTED,
+      userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+      ip: req.ip || req.socket?.remoteAddress || "unknown",
+      meta: {
+        model: reqModel,
+        codeLength: code.length,
+        filename: filename || null,
+        imageCount: images?.length || 0,
+      },
+    });
+
     const config = getConfig();
     const httpAbort = new AbortController();
     // Do not use req.on("close") — it can fire when the request body stream ends,
@@ -66,6 +80,22 @@ module.exports = function createRouter(appContext) {
           "INFO",
           `Review complete: overall grade ${result.data.overallGrade}`,
         );
+
+        // Audit log: review completed (report-card mode)
+        logEvent({
+          event: EVENT_TYPES.REVIEW_COMPLETED,
+          userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+          ip: req.ip || req.socket?.remoteAddress || "unknown",
+          meta: {
+            grade: result.data.overallGrade,
+            categories: result.data.categories
+              ? Object.keys(result.data.categories)
+              : [],
+            model: reqModel === "auto" ? model : reqModel,
+            mode: "report-card",
+          },
+        });
+
         const payload = { ...result };
         if (reqModel === "auto") payload.resolvedModel = model;
         return res.json(payload);
@@ -133,6 +163,19 @@ module.exports = function createRouter(appContext) {
                 "INFO",
                 `Review fallback complete: ${tokenCount} tokens streamed`,
               );
+
+              // Audit log: review completed (chat fallback mode)
+              logEvent({
+                event: EVENT_TYPES.REVIEW_COMPLETED,
+                userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+                ip: req.ip || req.socket?.remoteAddress || "unknown",
+                meta: {
+                  model: reqModel === "auto" ? model : reqModel,
+                  mode: "chat-fallback",
+                  tokenCount,
+                },
+              });
+
               break;
             }
 
@@ -262,6 +305,20 @@ module.exports = function createRouter(appContext) {
         `Review folder: ${folder} — ${files.length} files, ${(totalSize / 1024).toFixed(1)}KB${skipped ? `, ${skipped} skipped` : ""}`,
       );
 
+      // Audit log: folder review started
+      logEvent({
+        event: EVENT_TYPES.REVIEW_STARTED,
+        userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+        ip: req.ip || req.socket?.remoteAddress || "unknown",
+        meta: {
+          model: reqModel,
+          folder,
+          fileCount: files.length,
+          totalSize,
+          skipped,
+        },
+      });
+
       const { model, result } = await runReviewFolderPhase({
         config,
         log,
@@ -278,6 +335,25 @@ module.exports = function createRouter(appContext) {
           "INFO",
           `Review folder complete: overall grade ${result.data.overallGrade}`,
         );
+
+        // Audit log: folder review completed (report-card mode)
+        logEvent({
+          event: EVENT_TYPES.REVIEW_COMPLETED,
+          userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+          ip: req.ip || req.socket?.remoteAddress || "unknown",
+          meta: {
+            grade: result.data.overallGrade,
+            categories: result.data.categories
+              ? Object.keys(result.data.categories)
+              : [],
+            model: reqModel === "auto" ? model : reqModel,
+            mode: "report-card",
+            folder,
+            fileCount: files.length,
+            totalSize,
+          },
+        });
+
         const payload = {
           ...result,
           meta: { fileCount: files.length, totalSize, skipped, folder },

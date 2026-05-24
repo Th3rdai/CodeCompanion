@@ -19,6 +19,7 @@ const {
   sweepStaleActiveExperiments,
 } = require("./lib/experiment-store");
 const { initMemory, flushMemoryToDisk } = require("./lib/memory");
+const { initAuditLog } = require("./lib/audit-log");
 const {
   listModels,
   checkConnection,
@@ -66,6 +67,7 @@ initHistory(dataRoot);
 initHistoryFolders(dataRoot);
 initExperimentStore(dataRoot);
 initMemory(dataRoot);
+initAuditLog(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
 
 try {
@@ -313,6 +315,7 @@ const createFilesRouter = require("./routes/files");
 const createScoreRouter = require("./routes/score");
 const createValidateRouter = require("./routes/validate");
 const createDictateTranscribeRouter = require("./routes/dictate-transcribe");
+const createAuditRouter = require("./routes/audit");
 
 const appContext = {
   config,
@@ -343,6 +346,7 @@ app.use("/api", createExperimentRouter(appContext));
 app.use("/api", createReviewRouter(appContext));
 app.use("/api", createPentestRouter(appContext));
 app.use("/api", createDictateTranscribeRouter(appContext));
+app.use("/api", createAuditRouter(appContext));
 
 // ── GET /api/host-time ─────────────────────────────────
 // Host machine clock (Node process). Public read-only; no secrets.

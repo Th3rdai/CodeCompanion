@@ -7,6 +7,7 @@ const {
   FORMAT_META,
 } = require("../lib/office-generator");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
+const { logEvent, EVENT_TYPES } = require("../lib/audit-log");
 
 module.exports = function createRouter(appContext) {
   const router = express.Router();
@@ -43,6 +44,30 @@ module.exports = function createRouter(appContext) {
           "INFO",
           `Generated ${filename}: ${(result.size / 1024).toFixed(1)}KB in ${result.processingTime}s`,
         );
+
+        // Audit log: review/security export
+        // Infer export type from filename patterns
+        const filenameLower = filename.toLowerCase();
+        const isReviewExport =
+          filenameLower.includes("review") ||
+          filenameLower.includes("security") ||
+          filenameLower.includes("pentest") ||
+          filenameLower.includes("report-card");
+
+        if (isReviewExport) {
+          logEvent({
+            event: EVENT_TYPES.REVIEW_EXPORTED,
+            userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
+            ip: req.ip || req.socket?.remoteAddress || "unknown",
+            meta: {
+              filename,
+              format: ext,
+              sizeKB: (result.size / 1024).toFixed(1),
+              processingTime: result.processingTime,
+            },
+          });
+        }
+
         res.setHeader(
           "Content-Disposition",
           `attachment; filename="${filename}"`,
