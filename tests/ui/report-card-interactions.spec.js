@@ -7,6 +7,57 @@ const { test, expect } = require("@playwright/test");
 const browserAppReady = require("../helpers/app-ready.js");
 const { reloadAndWaitForModels } = require("../helpers/reload-app-ready.js");
 
+const MODE_TIMEOUT = 20_000;
+const PALETTE_SHORTCUT = process.platform === "darwin" ? "Meta+K" : "Control+K";
+
+async function dismissTransientOverlays(page) {
+  const splashDismiss = page.getByRole("button", {
+    name: /click or press enter to start/i,
+  });
+  if (await splashDismiss.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await splashDismiss.click();
+  }
+
+  const onboardingSkip = page.getByRole("button", { name: /skip tour/i });
+  if (await onboardingSkip.isVisible({ timeout: 1000 }).catch(() => false)) {
+    await onboardingSkip.first().click();
+  }
+}
+
+async function enterReviewMode(page) {
+  const reviewTab = page.getByTestId("mode-tab-review").first();
+  if (await reviewTab.isVisible({ timeout: 2500 }).catch(() => false)) {
+    await reviewTab.click({ timeout: MODE_TIMEOUT });
+    return;
+  }
+
+  const moreButton = page.getByTestId("mode-tab-more").first();
+  if (await moreButton.isVisible({ timeout: 2500 }).catch(() => false)) {
+    await moreButton.click({ timeout: MODE_TIMEOUT });
+    if (await reviewTab.isVisible({ timeout: 2500 }).catch(() => false)) {
+      await reviewTab.click({ timeout: MODE_TIMEOUT });
+      return;
+    }
+  }
+
+  const paletteButton = page.getByTestId("mode-tab-palette-open").first();
+  if (await paletteButton.isVisible({ timeout: 2500 }).catch(() => false)) {
+    await paletteButton.click({ timeout: MODE_TIMEOUT });
+  } else {
+    await page.keyboard.press(PALETTE_SHORTCUT);
+  }
+
+  const paletteList = page.locator("#mode-palette-list");
+  if (!(await paletteList.isVisible({ timeout: 2500 }).catch(() => false))) {
+    await page.keyboard.press(PALETTE_SHORTCUT);
+  }
+
+  await expect(paletteList).toBeVisible({ timeout: MODE_TIMEOUT });
+  const reviewOption = page.getByRole("option", { name: /^review$/i }).first();
+  await expect(reviewOption).toBeVisible({ timeout: MODE_TIMEOUT });
+  await reviewOption.click({ timeout: MODE_TIMEOUT });
+}
+
 const mockReportCardResponse = {
   type: "report-card",
   data: {
@@ -86,14 +137,19 @@ test.describe("ReportCard Progressive Disclosure", () => {
       localStorage.setItem("th3rdai_privacy_banner_dismissed", "true");
     });
     await reloadAndWaitForModels(page, { timeout: 75_000 });
+    await expect(page.getByTestId("mode-tab-palette-open").first()).toBeVisible(
+      {
+        timeout: MODE_TIMEOUT,
+      },
+    );
 
-    // Enter Review mode via the mode palette (stable even if tabs move into "More").
-    await expect(page.getByTestId("mode-tab-palette-open")).toBeVisible({
-      timeout: 75_000,
+    await dismissTransientOverlays(page);
+    await enterReviewMode(page);
+    await expect(
+      page.getByRole("button", { name: /run code review/i }).first(),
+    ).toBeVisible({
+      timeout: MODE_TIMEOUT,
     });
-    await page.getByTestId("mode-tab-palette-open").click();
-    await page.getByRole("searchbox", { name: /filter modes/i }).fill("Review");
-    await page.getByRole("option", { name: /^Review$/i }).click();
     await page
       .getByPlaceholder("Paste your code here...")
       .fill("function test() { return true; }");
@@ -113,66 +169,31 @@ test.describe("ReportCard Progressive Disclosure", () => {
     });
   });
 
-  test("displays color-coded grades with category labels", async ({ page }) => {
-    // Verify category names are displayed
+  test("renders grades, shows top priority, and toggles detailed findings", async ({
+    page,
+  }) => {
     await expect(page.getByText(/bugs/i).first()).toBeVisible();
     await expect(page.getByText(/security/i).first()).toBeVisible();
     await expect(page.getByText(/readability/i).first()).toBeVisible();
     await expect(page.getByText(/completeness/i).first()).toBeVisible();
-
-    // Verify overall grade is displayed
     await expect(page.getByText("B").first()).toBeVisible();
-  });
 
-  test("shows top priority callout", async ({ page }) => {
-    // The top priority finding should be visible
     await expect(
       page.getByText(/Missing input validation/i).first(),
     ).toBeVisible();
-  });
 
-  test('"Show all findings" toggle expands to reveal detailed findings', async ({
-    page,
-  }) => {
-    // Look for the expand button
-    const showAllButton = page.getByRole("button", {
-      name: /show all findings/i,
-    });
+    const showAllButton = page
+      .getByRole("button", { name: /show all findings/i })
+      .first();
+    await expect(showAllButton).toBeVisible({ timeout: 15_000 });
+    await showAllButton.click();
 
-    // If show all exists, click it
-    if (await showAllButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await showAllButton.click();
+    const hideButton = page.getByRole("button", { name: /hide/i }).first();
+    await expect(hideButton).toBeVisible({ timeout: 15_000 });
+    await hideButton.click();
 
-      // Detailed findings should now be visible
-      await expect(
-        page.getByText(/Missing input validation/i).first(),
-      ).toBeVisible();
-
-      // Button text should change
-      await expect(page.getByRole("button", { name: /hide/i })).toBeVisible();
-    } else {
-      // Findings may already be expanded — just verify they're present
-      await expect(
-        page.getByText(/Missing input validation/i).first(),
-      ).toBeVisible();
-    }
-  });
-
-  test("toggle collapses findings back to minimal view", async ({ page }) => {
-    const showAllButton = page.getByRole("button", {
-      name: /show all findings/i,
-    });
-
-    if (await showAllButton.isVisible({ timeout: 3000 }).catch(() => false)) {
-      // Expand
-      await showAllButton.click();
-      await expect(page.getByRole("button", { name: /hide/i })).toBeVisible();
-
-      // Collapse
-      await page.getByRole("button", { name: /hide/i }).click();
-      await expect(
-        page.getByRole("button", { name: /show all findings/i }),
-      ).toBeVisible();
-    }
+    await expect(
+      page.getByRole("button", { name: /show all findings/i }).first(),
+    ).toBeVisible({ timeout: 15_000 });
   });
 });
