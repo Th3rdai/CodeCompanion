@@ -7,7 +7,7 @@
  * 3. Progress indicators (verification of existing implementation)
  */
 
-import { describe, it, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,9 +43,9 @@ describe("Tool-Call Loop Pattern Detection", () => {
         (signatureCounts[entry.signature] || 0) + 1;
     });
 
-    const repeatedTools = Object.entries(signatureCounts).filter(
-      ([_, count]) => count >= 3,
-    );
+    const repeatedTools = Object.entries(signatureCounts)
+      .filter(([, count]) => count >= 3)
+      .sort(([, a], [, b]) => b - a);
 
     if (repeatedTools.length > 0) {
       const [mostRepeatedTool, repeatCount] = repeatedTools[0];
@@ -86,7 +86,11 @@ describe("Tool-Call Loop Pattern Detection", () => {
     recordToolCall(3, "builtin", "run_terminal_cmd");
 
     const pattern = detectPattern(3);
-    assert.strictEqual(pattern, null, "Should not detect pattern with different tools");
+    assert.strictEqual(
+      pattern,
+      null,
+      "Should not detect pattern with different tools",
+    );
   });
 
   it("should detect pattern across non-consecutive rounds", () => {
@@ -97,7 +101,11 @@ describe("Tool-Call Loop Pattern Detection", () => {
     recordToolCall(5, "builtin", "run_terminal_cmd");
 
     const pattern = detectPattern(5);
-    assert.notStrictEqual(pattern, null, "Should detect pattern across non-consecutive rounds");
+    assert.notStrictEqual(
+      pattern,
+      null,
+      "Should detect pattern across non-consecutive rounds",
+    );
     assert.strictEqual(pattern.count, 3);
   });
 
@@ -107,11 +115,19 @@ describe("Tool-Call Loop Pattern Detection", () => {
     recordToolCall(3, "builtin", "run_terminal_cmd");
 
     const firstWarning = detectPattern(3);
-    assert.notStrictEqual(firstWarning, null, "Should detect pattern first time");
+    assert.notStrictEqual(
+      firstWarning,
+      null,
+      "Should detect pattern first time",
+    );
 
     recordToolCall(4, "builtin", "run_terminal_cmd");
     const secondWarning = detectPattern(4);
-    assert.strictEqual(secondWarning, null, "Should not warn again after first warning");
+    assert.strictEqual(
+      secondWarning,
+      null,
+      "Should not warn again after first warning",
+    );
   });
 
   it("should report most repeated tool when multiple patterns exist", () => {
@@ -128,8 +144,9 @@ describe("Tool-Call Loop Pattern Detection", () => {
 
     const pattern = detectPattern(7);
     assert.notStrictEqual(pattern, null, "Should detect pattern");
-    // Should report the first one found (order depends on Object.entries)
-    assert.ok(pattern.count >= 3, "Should report a tool with 3+ calls");
+    // Should report the MOST repeated tool (sorted desc), not just the first
+    assert.strictEqual(pattern.tool, "builtin.run_terminal_cmd");
+    assert.strictEqual(pattern.count, 4);
   });
 });
 
@@ -141,11 +158,19 @@ describe("Background Process Auto-Suggestion", () => {
   // Simplified version of the detection logic for testing
   function detectLongRunningCommand(command, args = []) {
     const cmd = command.toLowerCase();
-    const fullCmd = [cmd, ...args.map((a) => String(a).toLowerCase())].join(" ");
+    const fullCmd = [cmd, ...args.map((a) => String(a).toLowerCase())].join(
+      " ",
+    );
 
     const patterns = [
-      { pattern: /npm\s+(run\s+)?(dev|start|serve|watch)/, name: "npm dev server" },
-      { pattern: /npx\s+(vite|webpack-dev-server|next\s+dev)/, name: "dev server" },
+      {
+        pattern: /npm\s+(run\s+)?(dev|start|serve|watch)/,
+        name: "npm dev server",
+      },
+      {
+        pattern: /npx\s+(vite|webpack-dev-server|next\s+dev)/,
+        name: "dev server",
+      },
       { pattern: /node\s+(server|app|index)\.js/, name: "Node server" },
       { pattern: /nodemon/, name: "nodemon watcher" },
       { pattern: /python.*-m\s+http\.server/, name: "Python HTTP server" },
@@ -157,7 +182,8 @@ describe("Background Process Auto-Suggestion", () => {
       { pattern: /webpack\s+--watch/, name: "webpack watcher" },
       { pattern: /tsc\s+--watch/, name: "TypeScript watcher" },
       { pattern: /sass\s+--watch/, name: "Sass watcher" },
-      { pattern: /\bwatch\b/, name: "file watcher" },
+      { pattern: /^watch\b/, name: "file watcher" },
+      { pattern: /(--watch|:watch)\b/, name: "watch mode" },
       { pattern: /\btail\s+-f\b/, name: "log tail" },
     ];
 
@@ -246,7 +272,10 @@ describe("Background Process Auto-Suggestion", () => {
     });
 
     it("should detect 'python manage.py runserver'", () => {
-      const result = detectLongRunningCommand("python", ["manage.py", "runserver"]);
+      const result = detectLongRunningCommand("python", [
+        "manage.py",
+        "runserver",
+      ]);
       assert.strictEqual(result.isLongRunning, true);
       assert.ok(result.suggestion.includes("Django dev server"));
     });
@@ -309,6 +338,23 @@ describe("Background Process Auto-Suggestion", () => {
       const result = detectLongRunningCommand("tail", ["-f", "app.log"]);
       assert.strictEqual(result.isLongRunning, true);
       assert.ok(result.suggestion.includes("log tail"));
+    });
+
+    it("should detect ':watch' npm scripts (e.g. 'npm run test:watch')", () => {
+      const result = detectLongRunningCommand("npm", ["run", "test:watch"]);
+      assert.strictEqual(result.isLongRunning, true);
+    });
+
+    it("should NOT detect 'watch' as a filename or arg substring", () => {
+      // Regression guard: the old /\bwatch\b/ matched these false positives.
+      assert.strictEqual(
+        detectLongRunningCommand("cat", ["watch.js"]).isLongRunning,
+        false,
+      );
+      assert.strictEqual(
+        detectLongRunningCommand("grep", ["watch", "src/app.js"]).isLongRunning,
+        false,
+      );
     });
   });
 
@@ -378,7 +424,8 @@ describe("Progress Indicators", () => {
         tool: "builtin.run_terminal_cmd",
         count: 3,
         round: 4,
-        message: "Multiple attempts needed (builtin.run_terminal_cmd called 3 times). Working on it...",
+        message:
+          "Multiple attempts needed (builtin.run_terminal_cmd called 3 times). Working on it...",
       },
     };
 

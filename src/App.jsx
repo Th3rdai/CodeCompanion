@@ -604,8 +604,10 @@ export default function App() {
   });
 
   // ── Preflight Context Banner: Fetch context length when model changes ──────
+  // Gated on enablePreflightBanner so installs with the feature off (the
+  // default) never poll /api/model-context or recompute on each keystroke.
   useEffect(() => {
-    if (!selectedModel) {
+    if (!enablePreflightBanner || !selectedModel) {
       setContextLength(null);
       return;
     }
@@ -632,10 +634,17 @@ export default function App() {
         console.error("Failed to fetch context length:", err);
         setContextLength(null);
       });
-  }, [selectedModel, mode, estimatedTokens]);
+  }, [enablePreflightBanner, selectedModel, mode, estimatedTokens]);
 
   // ── Preflight Context Banner: Check threshold with 200ms debouncing ────────
+  // Gated on enablePreflightBanner so the debounced token recompute + setState
+  // only runs when the feature is enabled.
   useEffect(() => {
+    if (!enablePreflightBanner) {
+      setPreflightBannerVisible(false);
+      return;
+    }
+
     const timer = setTimeout(() => {
       if (!contextLength || contextLength <= 0) {
         setPreflightBannerVisible(false);
@@ -655,7 +664,7 @@ export default function App() {
     }, 200); // 200ms debounce per CTXFIX.md spec
 
     return () => clearTimeout(timer);
-  }, [messages, input, contextLength]);
+  }, [enablePreflightBanner, messages, input, contextLength]);
 
   const selectMode = useCallback(
     (id) => {

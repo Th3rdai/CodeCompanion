@@ -18,8 +18,14 @@ try {
 // F-06 fix: validate folder path for IDE launch — reject dangerous characters
 function _validateIDEFolder(folder) {
   if (!folder || typeof folder !== "string") return false;
-  // Reject newlines, semicolons, pipes, backticks, $() — shell metacharacters
-  if (/[\n\r;|`$]/.test(folder)) return false;
+  // Reject shell/AppleScript metacharacters that could break out of the
+  // quoted folder argument in the IDE launch commands (osascript `do script`,
+  // `cmd /k`, `x-terminal-emulator -e`). Besides the obvious shell separators
+  // (newlines, `;`, `|`, backtick, `$`), this also rejects `"`, `'`, and `&`:
+  // those are legal in directory names but are exactly the delimiters/operators
+  // the launch commands interpolate the folder into, so a maliciously-named
+  // (but real) directory could otherwise inject commands. See ide-launcher.js.
+  if (/[\n\r;|`$"'&]/.test(folder)) return false;
   return fs.existsSync(folder);
 }
 
@@ -225,9 +231,20 @@ module.exports = function createRouter(appContext) {
         const { execFile } = require("child_process");
         const safeFolder = folder.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
         const script = `tell application "Terminal"\n  activate\n  do script "cd " & quoted form of "${safeFolder}" & " && codex"\nend tell`;
-        execFile("osascript", ["-e", script], { stdio: "ignore" }, () => {});
-        log("INFO", `Launched OpenAI Codex in: ${folder} (macOS only)`);
-        res.json({ success: true, folder });
+        // Report based on the osascript result — `do script` returns as soon
+        // as Terminal accepts the command, so a non-null err means the launch
+        // genuinely failed (e.g. not macOS) rather than a false success.
+        execFile("osascript", ["-e", script], (err) => {
+          if (res.headersSent) return;
+          if (err) {
+            log("ERROR", "launch-codex (fallback) failed", {
+              error: err.message,
+            });
+            return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
+          }
+          log("INFO", `Launched OpenAI Codex in: ${folder} (macOS only)`);
+          res.json({ success: true, folder });
+        });
       }
     } catch (err) {
       log("ERROR", "launch-codex failed", { error: err.message });
