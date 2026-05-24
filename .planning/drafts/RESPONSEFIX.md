@@ -78,11 +78,11 @@ Secondary issue: cleanup depends on complete tag matching and does not protect a
 
 ## Sanitization Path Matrix
 
-| Path | Token source | Sanitization hook | Empty-output action | Finalization order |
-|---|---|---|---|---|
-| `tool_final` | `finalText` split to token words | `sanitizeAssistantFinal()` then emit | `buildEmptyAssistantReplyMessage(model)` | `token* -> done -> [DONE]` |
-| `fallback_stream` | NDJSON `parsed.message.content` | `sanitizeAssistantChunk(chunk, state)` per chunk + final flush | `buildEmptyAssistantReplyMessage(model)` | `token* -> done -> [DONE]` |
-| `standard_stream` | NDJSON `parsed.message.content` | `sanitizeAssistantChunk(chunk, state)` per chunk + final flush | `buildEmptyAssistantReplyMessage(model)` | `token* -> done -> [DONE]` |
+| Path              | Token source                     | Sanitization hook                                              | Empty-output action                      | Finalization order         |
+| ----------------- | -------------------------------- | -------------------------------------------------------------- | ---------------------------------------- | -------------------------- |
+| `tool_final`      | `finalText` split to token words | `sanitizeAssistantFinal()` then emit                           | `buildEmptyAssistantReplyMessage(model)` | `token* -> done -> [DONE]` |
+| `fallback_stream` | NDJSON `parsed.message.content`  | `sanitizeAssistantChunk(chunk, state)` per chunk + final flush | `buildEmptyAssistantReplyMessage(model)` | `token* -> done -> [DONE]` |
+| `standard_stream` | NDJSON `parsed.message.content`  | `sanitizeAssistantChunk(chunk, state)` per chunk + final flush | `buildEmptyAssistantReplyMessage(model)` | `token* -> done -> [DONE]` |
 
 Implementation rule: each request must pass through a single finalization gate so `done` and `[DONE]` are emitted once.
 

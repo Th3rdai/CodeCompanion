@@ -261,16 +261,16 @@ resolve({
 
 ### Supported Patterns
 
-| Category                   | Examples                                                           | Detection |
-| -------------------------- | ------------------------------------------------------------------ | --------- |
-| **npm dev servers**        | `npm run dev`, `npm start`, `npm run watch`                        | ✅        |
-| **npx dev servers**        | `npx vite`, `npx webpack-dev-server`, `npx next dev`               | ✅        |
-| **Node.js servers**        | `node server.js`, `node app.js`, `nodemon`                         | ✅        |
-| **Python servers**         | `python -m http.server`, `python manage.py runserver`, `flask run` | ✅        |
-| **Static site generators** | `jekyll serve`, `hugo server`, `gatsby develop`                    | ✅        |
-| **Build watchers**         | `webpack --watch`, `tsc --watch`, `sass --watch`                   | ✅        |
-| **Generic watchers**       | `watch <cmd>`, `npm run test:watch`, `tail -f`                     | ✅        |
-| **Not flagged** (filenames/args) | `cat watch.js`, `grep watch x`                               | —         |
+| Category                         | Examples                                                           | Detection |
+| -------------------------------- | ------------------------------------------------------------------ | --------- |
+| **npm dev servers**              | `npm run dev`, `npm start`, `npm run watch`                        | ✅        |
+| **npx dev servers**              | `npx vite`, `npx webpack-dev-server`, `npx next dev`               | ✅        |
+| **Node.js servers**              | `node server.js`, `node app.js`, `nodemon`                         | ✅        |
+| **Python servers**               | `python -m http.server`, `python manage.py runserver`, `flask run` | ✅        |
+| **Static site generators**       | `jekyll serve`, `hugo server`, `gatsby develop`                    | ✅        |
+| **Build watchers**               | `webpack --watch`, `tsc --watch`, `sass --watch`                   | ✅        |
+| **Generic watchers**             | `watch <cmd>`, `npm run test:watch`, `tail -f`                     | ✅        |
+| **Not flagged** (filenames/args) | `cat watch.js`, `grep watch x`                                     | —         |
 
 ### Example Output
 

@@ -29,12 +29,12 @@
 
 **Plan-reviewer iteration log (abbreviated)**
 
-| Iter | Verdict | Key fixes |
-|------|---------|-----------|
-| 1 | NEEDS REVISION | `compactMemories()` is persist-only; Re-embed UI 404; SSE items lack `id`; topics storage locked |
-| 2 | NEEDS REVISION | `saveMemoryConfig` omits `maxMemories`; `updateMemory` allowedFields incomplete; stale `embeddingModel` not filtered; Phase 1 split into 1a/1b |
-| 3 | READY | Ship order, config keys, test commands aligned; gaps G1–G14 verified |
-| 4 | NEEDS REVISION → fixed | addMemory/topics task; nearMisses spec; Phase 4 metadata owner; test fixes |
+| Iter | Verdict                | Key fixes                                                                                                                                      |
+| ---- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | NEEDS REVISION         | `compactMemories()` is persist-only; Re-embed UI 404; SSE items lack `id`; topics storage locked                                               |
+| 2    | NEEDS REVISION         | `saveMemoryConfig` omits `maxMemories`; `updateMemory` allowedFields incomplete; stale `embeddingModel` not filtered; Phase 1 split into 1a/1b |
+| 3    | READY                  | Ship order, config keys, test commands aligned; gaps G1–G14 verified                                                                           |
+| 4    | NEEDS REVISION → fixed | addMemory/topics task; nearMisses spec; Phase 4 metadata owner; test fixes                                                                     |
 
 ---
 
@@ -83,20 +83,20 @@ flowchart LR
 
 ### Three-tier recall ([`lib/memory.js:622-643`](lib/memory.js))
 
-| Tier | Types | Scope | When injected |
-|------|-------|-------|---------------|
-| Agent | `fact` | `source: null` | Every chat (Pass 1) |
-| Project | `project`, `pattern` | `projectKey` from `deriveProjectKey(chatFolder \|\| projectFolder)` | When active folder set (Pass 2) |
-| Conversation | `summary` (+ `topics[]` after Phase 1a) | `source = conversationId` | Same thread only (Pass 3) |
+| Tier         | Types                                   | Scope                                                               | When injected                   |
+| ------------ | --------------------------------------- | ------------------------------------------------------------------- | ------------------------------- |
+| Agent        | `fact`                                  | `source: null`                                                      | Every chat (Pass 1)             |
+| Project      | `project`, `pattern`                    | `projectKey` from `deriveProjectKey(chatFolder \|\| projectFolder)` | When active folder set (Pass 2) |
+| Conversation | `summary` (+ `topics[]` after Phase 1a) | `source = conversationId`                                           | Same thread only (Pass 3)       |
 
 **Project key derivation** ([`lib/memory.js:30-37`](lib/memory.js)): folder basename lowercased, non-alphanumeric → `-`. Example: `/Users/james/Projects/CodeCompanion` → `codecompanion`.
 
 ### Two summary systems (G13 — do not conflate)
 
-| Mechanism | Storage | Embedding | Purpose |
-|-----------|---------|-----------|---------|
-| `conv.summary` | Conversation JSON ([`routes/history.js:318-360`](routes/history.js)) | No | Sidebar list blurb (~500 chars) |
-| Memory `summary` | `memories.json` | Yes | Semantic recall in chat (Pass 3) |
+| Mechanism        | Storage                                                              | Embedding | Purpose                          |
+| ---------------- | -------------------------------------------------------------------- | --------- | -------------------------------- |
+| `conv.summary`   | Conversation JSON ([`routes/history.js:318-360`](routes/history.js)) | No        | Sidebar list blurb (~500 chars)  |
+| Memory `summary` | `memories.json`                                                      | Yes       | Semantic recall in chat (Pass 3) |
 
 Phase 4 rolling upsert applies to **memory summaries only**.
 
@@ -108,36 +108,36 @@ Phase 4 rolling upsert applies to **memory summaries only**.
 
 ### Config keys today
 
-| Key | `lib/config.js` default | `.cc-config.json.example` | Runtime read |
-|-----|-------------------------|---------------------------|--------------|
-| `enabled` | `false` | `false` | Yes |
-| `embeddingModel` | `""` | `""` | Yes |
-| `maxContextTokens` | `500` | `500` | Yes |
-| `recallThreshold` | **missing (G2)** | `0.6` | Yes (Settings saves) |
-| `autoExtract` | `true` | `true` | Yes |
-| `maxMemories` | `500` | `500` | **No — hardcoded (G1)** |
-| `enhancedRecall` | **missing** | **missing** | Phase 3 |
+| Key                | `lib/config.js` default | `.cc-config.json.example` | Runtime read            |
+| ------------------ | ----------------------- | ------------------------- | ----------------------- |
+| `enabled`          | `false`                 | `false`                   | Yes                     |
+| `embeddingModel`   | `""`                    | `""`                      | Yes                     |
+| `maxContextTokens` | `500`                   | `500`                     | Yes                     |
+| `recallThreshold`  | **missing (G2)**        | `0.6`                     | Yes (Settings saves)    |
+| `autoExtract`      | `true`                  | `true`                    | Yes                     |
+| `maxMemories`      | `500`                   | `500`                     | **No — hardcoded (G1)** |
+| `enhancedRecall`   | **missing**             | **missing**               | Phase 3                 |
 
 ---
 
 ## Known gaps (verified G1–G14)
 
-| ID | Issue | Evidence | Fix |
-|----|-------|----------|-----|
-| G1 | `maxMemories` ignored at runtime | `const maxMemories = 500` at [`lib/memory.js:425`](lib/memory.js) | 1a |
-| G2 | `recallThreshold` missing from config defaults | Example [`.cc-config.json.example:42`](.cc-config.json.example); defaults [`lib/config.js:123-128`](lib/config.js) | 1a |
-| G3 | `topics` extracted, never stored | Schema [`lib/memory.js:355-357`](lib/memory.js); no store after line 521 | 1a |
-| G4 | Docs claim per-conversation-only recall | [`docs/ENVIRONMENT_VARIABLES.md:38-44`](docs/ENVIRONMENT_VARIABLES.md), [`docs/AGENT-READINESS.md:58`](docs/AGENT-READINESS.md) | 1a |
-| G5 | Sync disk write every mutation | [`_persistToDisk`](lib/memory.js:320-325) on every add/update/dedup | 2 |
-| G6 | Last user message only for query embed | [`buildMemoryContext:594-608`](lib/memory.js) | 3 |
-| G7 | Extraction uses last 20 messages | [`extractAndStore:375-376`](lib/memory.js) | 4 |
-| G8 | `compactMemories()` is persist-only | [`lib/memory.js:92-97`](lib/memory.js) — no prune/shrink | 2 |
-| G9 | `projectKey` = folder basename only | [`deriveProjectKey`](lib/memory.js:30-37) | Appendix |
-| G10 | CONCERNS deactivated-entry bloat | [`_loadFromDisk`](lib/memory.js:305-311) strips `active: false` on load — issue largely stale | doc note |
-| G11 | Re-embed UI calls missing API | [`SettingsPanel.jsx:393`](src/components/SettingsPanel.jsx) vs no route in [`routes/memory.js`](routes/memory.js) | 1b |
-| G12 | SSE items lack memory `id` | [`chat-post-handler.js:875`](lib/chat-post-handler.js) `{ type, content }` only | 3 |
-| G13 | Dual summary systems undocumented | See table above | this doc |
-| G14 | Stale embeddings after model change | `searchMemories` no `embeddingModel` filter | 1b |
+| ID  | Issue                                          | Evidence                                                                                                                        | Fix      |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| G1  | `maxMemories` ignored at runtime               | `const maxMemories = 500` at [`lib/memory.js:425`](lib/memory.js)                                                               | 1a       |
+| G2  | `recallThreshold` missing from config defaults | Example [`.cc-config.json.example:42`](.cc-config.json.example); defaults [`lib/config.js:123-128`](lib/config.js)              | 1a       |
+| G3  | `topics` extracted, never stored               | Schema [`lib/memory.js:355-357`](lib/memory.js); no store after line 521                                                        | 1a       |
+| G4  | Docs claim per-conversation-only recall        | [`docs/ENVIRONMENT_VARIABLES.md:38-44`](docs/ENVIRONMENT_VARIABLES.md), [`docs/AGENT-READINESS.md:58`](docs/AGENT-READINESS.md) | 1a       |
+| G5  | Sync disk write every mutation                 | [`_persistToDisk`](lib/memory.js:320-325) on every add/update/dedup                                                             | 2        |
+| G6  | Last user message only for query embed         | [`buildMemoryContext:594-608`](lib/memory.js)                                                                                   | 3        |
+| G7  | Extraction uses last 20 messages               | [`extractAndStore:375-376`](lib/memory.js)                                                                                      | 4        |
+| G8  | `compactMemories()` is persist-only            | [`lib/memory.js:92-97`](lib/memory.js) — no prune/shrink                                                                        | 2        |
+| G9  | `projectKey` = folder basename only            | [`deriveProjectKey`](lib/memory.js:30-37)                                                                                       | Appendix |
+| G10 | CONCERNS deactivated-entry bloat               | [`_loadFromDisk`](lib/memory.js:305-311) strips `active: false` on load — issue largely stale                                   | doc note |
+| G11 | Re-embed UI calls missing API                  | [`SettingsPanel.jsx:393`](src/components/SettingsPanel.jsx) vs no route in [`routes/memory.js`](routes/memory.js)               | 1b       |
+| G12 | SSE items lack memory `id`                     | [`chat-post-handler.js:875`](lib/chat-post-handler.js) `{ type, content }` only                                                 | 3        |
+| G13 | Dual summary systems undocumented              | See table above                                                                                                                 | this doc |
+| G14 | Stale embeddings after model change            | `searchMemories` no `embeddingModel` filter                                                                                     | 1b       |
 
 ---
 
@@ -208,7 +208,6 @@ Phase 4 rolling upsert applies to **memory summaries only**.
 ### Tasks
 
 1. **Add `reembedAllMemories(ollamaUrl, embeddingModel, config)`** in `lib/memory.js`:
-
    - Loop `_memories` where `content` is non-empty string.
    - Call `embed()` per record; on failure, increment `failures`, log, continue.
    - Update `embedding`, `embeddingModel`, `updatedAt`.
@@ -263,10 +262,15 @@ Phase 4 rolling upsert applies to **memory summaries only**.
 
    ```js
    function flushMemoryToDisk() {
-     if (_persistTimer) { clearTimeout(_persistTimer); _persistTimer = null; }
+     if (_persistTimer) {
+       clearTimeout(_persistTimer);
+       _persistTimer = null;
+     }
      _persistToDiskSync(); // rename current _persistToDisk body
    }
-   function _schedulePersist() { /* debounce */ }
+   function _schedulePersist() {
+     /* debounce */
+   }
    ```
 
    Export `flushMemoryToDisk` from `module.exports`. Optional: `process.on("SIGINT", () => flushMemoryToDisk())` for dev Ctrl+C. Note: `compactMemories` is already exported; the compact route wires the existing function only.
@@ -280,7 +284,6 @@ Phase 4 rolling upsert applies to **memory summaries only**.
    ```
 
 3. **Enhance `compactMemories()` (G8)** — replace persist-only stub:
-
    - Record `storageBytesBefore` from file stat.
    - Remove records with `!embedding` and `createdAt` older than 7 days.
    - Write minified JSON: `JSON.stringify(_memories)` (no `null, 2` pretty-print).
@@ -331,9 +334,13 @@ Compact **may** reduce bytes via minification + orphan cleanup; not guaranteed i
      if (!lastUser?.content) return "";
      if (!enhancedRecall) return lastUser.content;
      const idx = messages.lastIndexOf(lastUser);
-     const prevAssistant = messages.slice(0, idx).reverse().find((m) => m.role === "assistant");
+     const prevAssistant = messages
+       .slice(0, idx)
+       .reverse()
+       .find((m) => m.role === "assistant");
      const parts = [];
-     if (prevAssistant?.content) parts.push(`Assistant: ${String(prevAssistant.content).slice(0, 1024)}`);
+     if (prevAssistant?.content)
+       parts.push(`Assistant: ${String(prevAssistant.content).slice(0, 1024)}`);
      parts.push(`User: ${String(lastUser.content).slice(0, 1024)}`);
      return parts.join("\n").slice(0, 2048);
    }
@@ -344,7 +351,8 @@ Compact **may** reduce bytes via minification + orphan cleanup; not guaranteed i
 3. **`rankMemories(results)`** — after merge/dedupe:
 
    ```js
-   const ageDays = (Date.now() - new Date(r.updatedAt || r.createdAt)) / 86400000;
+   const ageDays =
+     (Date.now() - new Date(r.updatedAt || r.createdAt)) / 86400000;
    const recencyBoost = Math.exp(-ageDays / 30);
    r.finalScore = r.score * (r.confidence ?? 0.5) * recencyBoost;
    ```
@@ -396,12 +404,10 @@ Compact **may** reduce bytes via minification + orphan cleanup; not guaranteed i
 ### Tasks
 
 1. **Conversation metadata fields** (persisted in conversation JSON via `saveConversation` — extra keys allowed):
-
    - `lastMemoryExtractAt` — ISO timestamp
    - `lastMemoryExtractMsgIndex` — 0-based message index
 
 2. **Incremental slice** in `extractAndStore`:
-
    - If `lastMemoryExtractMsgIndex` set: use `msgs.slice(index)` for extraction prompt (cap at 20 if slice longer).
    - Else: last 20 messages (current behavior).
    - Skip if fewer than 4 messages since last index (matches [`routes/history.js:76`](routes/history.js) threshold).
@@ -481,16 +487,16 @@ Compact **may** reduce bytes via minification + orphan cleanup; not guaranteed i
 
 ## Cross-cutting concerns
 
-| Concern | Rule |
-|---------|------|
-| Security | Mutating routes use `requireLocalOrApiKey` ([`routes/memory.js`](routes/memory.js)) |
-| Auth | GET list/search unauthenticated today — unchanged; see [`docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md`](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) H-05 |
-| Packaging | No new top-level runtime dirs ([`electron-builder.config.js`](electron-builder.config.js)) |
-| GitNexus | Impact analysis before editing exported symbols |
-| Parallel chat | Memory retrieval already parallel with auto-model ([`chat-post-handler.js:632`](lib/chat-post-handler.js)) |
-| Delete cascade | [`deleteMemoriesBySource`](routes/history.js:386-391) on conversation delete — summaries only |
-| Extraction debounce | `MEM_EXT_DEBOUNCE_MS = 10000` ([`routes/history.js:38`](routes/history.js)) |
-| Stats bytes | `getStats().storageBytes` already exists ([`lib/memory.js:257-271`](lib/memory.js)) — Phase 2 Settings UI can consume without new backend field |
+| Concern             | Rule                                                                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Security            | Mutating routes use `requireLocalOrApiKey` ([`routes/memory.js`](routes/memory.js))                                                                                        |
+| Auth                | GET list/search unauthenticated today — unchanged; see [`docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md`](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) H-05 |
+| Packaging           | No new top-level runtime dirs ([`electron-builder.config.js`](electron-builder.config.js))                                                                                 |
+| GitNexus            | Impact analysis before editing exported symbols                                                                                                                            |
+| Parallel chat       | Memory retrieval already parallel with auto-model ([`chat-post-handler.js:632`](lib/chat-post-handler.js))                                                                 |
+| Delete cascade      | [`deleteMemoriesBySource`](routes/history.js:386-391) on conversation delete — summaries only                                                                              |
+| Extraction debounce | `MEM_EXT_DEBOUNCE_MS = 10000` ([`routes/history.js:38`](routes/history.js))                                                                                                |
+| Stats bytes         | `getStats().storageBytes` already exists ([`lib/memory.js:257-271`](lib/memory.js)) — Phase 2 Settings UI can consume without new backend field                            |
 
 ### Memory record schema (post-MEMORYFIX)
 
@@ -529,14 +535,14 @@ Compact **may** reduce bytes via minification + orphan cleanup; not guaranteed i
 
 ## Testing matrix
 
-| Phase | Tests | Command |
-|-------|-------|---------|
-| 1a | Config defaults; topics on summary; maxMemories cap | `npm run test:unit` |
-| 1b | Stale embedding filter; reembed handler | `npm run test:unit` (+ optional integration) |
-| 2 | Debounce coalesce; compact byte reduction | `npm run test:unit` |
-| 3 | buildQueryText; rankMemories; SSE shape | `npm run test:unit` |
-| 4 | Upsert summary; incremental slice | `npm run test:unit` |
-| 5 | Pin survives prune; forget API | manual + unit |
+| Phase | Tests                                               | Command                                      |
+| ----- | --------------------------------------------------- | -------------------------------------------- |
+| 1a    | Config defaults; topics on summary; maxMemories cap | `npm run test:unit`                          |
+| 1b    | Stale embedding filter; reembed handler             | `npm run test:unit` (+ optional integration) |
+| 2     | Debounce coalesce; compact byte reduction           | `npm run test:unit`                          |
+| 3     | buildQueryText; rankMemories; SSE shape             | `npm run test:unit`                          |
+| 4     | Upsert summary; incremental slice                   | `npm run test:unit`                          |
+| 5     | Pin survives prune; forget API                      | manual + unit                                |
 
 Existing tests: [`tests/unit/memory-scope.test.js`](tests/unit/memory-scope.test.js) (scoping + cosine only); [`tests/unit/memory-config-defaults.test.js`](tests/unit/memory-config-defaults.test.js) (Phase 1a config merge).
 
