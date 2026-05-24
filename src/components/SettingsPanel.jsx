@@ -76,6 +76,7 @@ export default function SettingsPanel({
   const [folder, setFolder] = useState(projectFolder || "");
   const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || "");
   useEffect(() => setIcmTemplate(icmTemplatePath || ""), [icmTemplatePath]);
+  const [organizationName, setOrganizationName] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [folderResult, setFolderResult] = useState(null);
@@ -222,6 +223,8 @@ export default function SettingsPanel({
             setOllamaApiKey(data.ollamaApiKey || "");
           if (data.dictateGroqApiKey != null)
             setDictateGroqApiKey(data.dictateGroqApiKey || "");
+          if (data.organizationName != null)
+            setOrganizationName(data.organizationName || "");
           if (data.docling) {
             setDoclingUrl(data.docling.url || "http://127.0.0.1:5002");
             setDoclingApiKey(data.docling.apiKey || "");
@@ -1713,6 +1716,23 @@ export default function SettingsPanel({
                 <code className="bg-slate-700/50 px-1 rounded">Commands</code>{" "}
                 and <code className="bg-slate-700/50 px-1 rounded">ICM-fw</code>
                 . New Create projects will copy these into the project.
+              </p>
+            </div>
+
+            {/* Organization Name */}
+            <div>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Organization Name
+              </label>
+              <input
+                type="text"
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+                placeholder="e.g. Acme Corp"
+                className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1.5">
+                Organization name to include in compliance audit reports.
               </p>
             </div>
 
@@ -3303,6 +3323,7 @@ export default function SettingsPanel({
               await onSave(url, folder, icmTemplate, {
                 ...ollamaApiKeyPayload(),
                 ...dictateGroqApiKeyPayload(),
+                organizationName,
               });
               try {
                 await apiFetch("/api/config", {

@@ -19,6 +19,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { copyText } from "../lib/clipboard";
+import { apiFetch } from "../lib/api-fetch";
 
 // ── Grade color mapping ─────────────────────────────
 const GRADE_COLORS = {
@@ -760,6 +761,46 @@ export default function SecurityReport({
     complianceControls,
   } = data;
 
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  async function handleGenerateComplianceReport() {
+    if (generatingReport) return;
+
+    setGeneratingReport(true);
+    try {
+      const response = await apiFetch("/api/pentest/compliance-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          securityReport: data,
+          filename: filename || "security-audit",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Security-Compliance-Audit-Report_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      onToast?.("Compliance report generated successfully");
+    } catch (err) {
+      console.error("Failed to generate compliance report:", err);
+      onToast?.(`Failed to generate report: ${err.message}`);
+    } finally {
+      setGeneratingReport(false);
+    }
+  }
+
   return (
     <div className="space-y-4 fade-in max-w-3xl mx-auto">
       {/* Overall Grade Header */}
@@ -797,6 +838,17 @@ export default function SecurityReport({
           </div>
           <div className="flex gap-2 shrink-0 flex-wrap justify-end">
             <ExportDropdown data={data} filename={filename} onToast={onToast} />
+            {!cleanBillOfHealth && (
+              <button
+                onClick={handleGenerateComplianceReport}
+                disabled={generatingReport}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 hover:text-indigo-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Generate compliance audit report PDF"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                {generatingReport ? "Generating..." : "Compliance Report"}
+              </button>
+            )}
             {onRemediate && (
               <button
                 onClick={onRemediate}

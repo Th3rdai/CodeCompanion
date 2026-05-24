@@ -4,6 +4,7 @@
   "ollamaApiKey": "",
   "dictateGroqApiKey": "",
   "icmTemplatePath": "",
+  "organizationName": "",
   "reviewTimeoutSec": 300,
   "chatTimeoutSec": 600,
   "numCtx": 0,
