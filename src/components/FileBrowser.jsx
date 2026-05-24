@@ -884,7 +884,11 @@ export default function FileBrowser({
             </button>
             <button
               onClick={() =>
-                launchIDE("/api/launch-codex", "OpenAI Codex", setLaunchingCodex)
+                launchIDE(
+                  "/api/launch-codex",
+                  "OpenAI Codex",
+                  setLaunchingCodex,
+                )
               }
               disabled={launchingCodex || !folderPath}
               className="flex-1 text-sm font-medium px-3 py-2.5 rounded-lg bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/40 border border-emerald-400/40 shadow-sm shadow-emerald-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"

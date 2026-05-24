@@ -62,6 +62,9 @@ function silentLog() {
 }
 
 test.beforeAll(() => {
+  // These tests directly require() modules, so set the environment variable here
+  // rather than relying on playwright.config.js webServer environment
+  process.env.CC_ALLOW_AGENT_TERMINAL = "1";
   auditModule = require("../../lib/terminal-audit");
   toolsModule = require("../../lib/builtin-agent-tools");
 });

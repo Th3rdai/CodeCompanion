@@ -471,7 +471,8 @@ function ServerModal({ mode, client, onSaved, onClose }) {
             autoConnect,
             ...buildTransportPayload(),
             env: parseEnvLines(envVars),
-            headers: isRemote && headers.trim() ? parseEnvLines(headers) : undefined,
+            headers:
+              isRemote && headers.trim() ? parseEnvLines(headers) : undefined,
           }),
         });
         const data = await res.json().catch(() => ({}));
