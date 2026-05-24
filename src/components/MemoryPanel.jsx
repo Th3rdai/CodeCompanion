@@ -12,7 +12,10 @@ import {
   User,
   FolderOpen,
   Pin,
+  PinOff,
   Sparkles,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 
 const TYPE_COLORS = {
@@ -82,6 +85,21 @@ export default function MemoryPanel({ onClose }) {
   const [expandedId, setExpandedId] = useState(null);
   const [compacting, setCompacting] = useState(false);
   const [compactMsg, setCompactMsg] = useState("");
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  function toggleSelected(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
 
   useEffect(() => {
     fetchMemories();
@@ -166,6 +184,74 @@ export default function MemoryPanel({ onClose }) {
         );
       }
     } catch {}
+  }
+
+  // Bulk pin/unpin selected memories via PUT { pinned }.
+  async function bulkSetPinned(pinned) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) =>
+          apiFetch(`/api/memory/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pinned }),
+          }).then((res) => {
+            if (!res.ok) throw new Error("request failed");
+            return id;
+          }),
+        ),
+      );
+      const succeeded = new Set(
+        results
+          .filter((r) => r.status === "fulfilled")
+          .map((r) => r.value),
+      );
+      if (succeeded.size > 0) {
+        setMemories((prev) =>
+          prev.map((m) => (succeeded.has(m.id) ? { ...m, pinned } : m)),
+        );
+      }
+    } finally {
+      clearSelection();
+      setBulkBusy(false);
+    }
+  }
+
+  // Bulk delete (forget) selected memories via DELETE.
+  async function bulkForget() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (
+      !confirm(
+        `Forget ${ids.length} selected ${ids.length === 1 ? "memory" : "memories"}? This cannot be undone.`,
+      )
+    )
+      return;
+    setBulkBusy(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) =>
+          apiFetch(`/api/memory/${id}`, { method: "DELETE" }).then((res) => {
+            if (!res.ok) throw new Error("request failed");
+            return id;
+          }),
+        ),
+      );
+      const succeeded = new Set(
+        results
+          .filter((r) => r.status === "fulfilled")
+          .map((r) => r.value),
+      );
+      if (succeeded.size > 0) {
+        setMemories((prev) => prev.filter((m) => !succeeded.has(m.id)));
+      }
+    } finally {
+      clearSelection();
+      setBulkBusy(false);
+    }
   }
 
   // Compact: drop summaries from deleted conversations (keeps pinned) — MEMORYFIX P4.
@@ -286,7 +372,10 @@ export default function MemoryPanel({ onClose }) {
           {FILTER_TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setFilter(tab.id)}
+              onClick={() => {
+                setFilter(tab.id);
+                clearSelection();
+              }}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 filter === tab.id
                   ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40"
@@ -317,6 +406,49 @@ export default function MemoryPanel({ onClose }) {
           </div>
         )}
 
+        {/* Bulk action bar */}
+        {selectedIds.size > 0 && (
+          <div className="glass rounded-lg px-3 py-2 mb-3 flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-medium text-slate-300">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+              <button
+                onClick={() => bulkSetPinned(true)}
+                disabled={bulkBusy}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
+                title="Pin selected — protect from auto-pruning"
+              >
+                <Pin className="w-3 h-3" /> Pin
+              </button>
+              <button
+                onClick={() => bulkSetPinned(false)}
+                disabled={bulkBusy}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-slate-600/30 text-slate-300 hover:bg-slate-600/40 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+                title="Unpin selected — allow auto-pruning"
+              >
+                <PinOff className="w-3 h-3" /> Unpin
+              </button>
+              <button
+                onClick={bulkForget}
+                disabled={bulkBusy}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-red-500/15 text-red-300 hover:bg-red-500/25 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/70"
+                title="Forget selected — delete permanently"
+              >
+                <Trash2 className="w-3 h-3" /> Forget
+              </button>
+              <button
+                onClick={clearSelection}
+                disabled={bulkBusy}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-white transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+                title="Clear selection"
+              >
+                <X className="w-3 h-3" /> Clear
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Memory list */}
         <div className="flex-1 overflow-y-auto scrollbar-thin space-y-2">
           {loading ? (
@@ -338,6 +470,32 @@ export default function MemoryPanel({ onClose }) {
               return (
                 <div key={memory.id} className="glass rounded-lg p-3 group">
                   <div className="flex items-start gap-3">
+                    {/* Selection checkbox */}
+                    <button
+                      onClick={() => toggleSelected(memory.id)}
+                      className={`shrink-0 mt-0.5 p-1 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 ${
+                        selectedIds.has(memory.id)
+                          ? "text-indigo-400"
+                          : "text-slate-500 hover:text-indigo-300"
+                      }`}
+                      title={
+                        selectedIds.has(memory.id)
+                          ? "Deselect memory"
+                          : "Select memory"
+                      }
+                      aria-label={
+                        selectedIds.has(memory.id)
+                          ? "Deselect memory"
+                          : "Select memory"
+                      }
+                      aria-pressed={selectedIds.has(memory.id)}
+                    >
+                      {selectedIds.has(memory.id) ? (
+                        <CheckSquare className="w-4 h-4" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
                     <div className="flex-1 min-w-0">
                       {/* Type badge + scope + project key + date */}
                       <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
