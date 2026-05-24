@@ -11,6 +11,7 @@
 **Actual Issue:** Speed optimization experiments with smaller models (qwen2.5:7b, qwen3:latest) revealed tool result presentation reliability issues, which initially masked successful requirement lookups.
 
 **Final Solution:**
+
 - ✅ Database confirmed complete (requirement 11.3.1 exists and works)
 - ✅ Applied prompt engineering fix to `lib/chat-post-handler.js:1960-1968` for better tool result presentation
 - ✅ Reverted to reliable model configuration (`qwen3.6:latest` 23.9GB) for consistent behavior
@@ -29,7 +30,20 @@ PCI-Assistant's `requirement_lookup` tool cannot find requirement **11.3.1** ("I
   "version": "4.0.1",
   "found": false,
   "error": "Requirement 11.3.1 not found",
-  "available_sections": ["4","9","3","5","12","11","8","10","1","2","6","7"]
+  "available_sections": [
+    "4",
+    "9",
+    "3",
+    "5",
+    "12",
+    "11",
+    "8",
+    "10",
+    "1",
+    "2",
+    "6",
+    "7"
+  ]
 }
 ```
 
@@ -48,6 +62,7 @@ PCI-Assistant's `requirement_lookup` tool cannot find requirement **11.3.1** ("I
 ## Configuration
 
 **PCI-Assistant Server:**
+
 - URL: `https://192.168.50.7:8000/mcp/sse`
 - API Key: `pci_mcp_GWVYGWb2fSSRAii8NFiYs_IJQjurHsakv304YlKkvjs`
 - Transport: SSE
@@ -55,6 +70,7 @@ PCI-Assistant's `requirement_lookup` tool cannot find requirement **11.3.1** ("I
 - Available tools: `pci_compliance_check`, `evidence_analysis`, `gap_assessment`, `requirement_lookup`
 
 **Code Companion Client:**
+
 - Config file: `/Users/james/Library/Application Support/code-companion/.cc-config.json`
 - Client ID: `pci-assistant`
 - Auto-connect: `true`
@@ -81,6 +97,7 @@ PCI-Assistant's `requirement_lookup` tool cannot find requirement **11.3.1** ("I
 From PCI-DSS v4.0.1 official document:
 
 **Requirement 11.3.1**
+
 - **Title:** "Internal vulnerability scans are performed"
 - **Parent:** 11.3 ("External and internal vulnerabilities are regularly identified, prioritized, and addressed")
 - **Type:** Defined Approach Testing Procedures
@@ -101,12 +118,14 @@ This is definitely a valid requirement and should exist in any complete v4.0.1 d
 ### 1. Systematic Testing (see PCI-REQUIREMENT-TEST-CHECKLIST.md)
 
 Test multiple requirements through Code Companion chat to identify pattern:
+
 - Parent requirements (x.x format): 1.1, 3.4, 6.1, 11.3, 12.1
 - Sub-requirements (x.x.x format): 1.1.1, 3.4.1, 6.3.1, 8.3.1, 11.3.1, 11.3.2, 12.3.1
 
 ### 2. PCI-Assistant Server Investigation
 
 **Check logs:**
+
 ```bash
 # Docker
 docker logs pci-assistant-container
@@ -119,6 +138,7 @@ tail -f /var/log/pci-assistant/app.log
 ```
 
 **Check database:**
+
 ```sql
 -- Total requirements
 SELECT COUNT(*) FROM requirements;
@@ -137,6 +157,7 @@ LIMIT 10;
 ```
 
 **Verify data import:**
+
 ```bash
 # Check for PCI-DSS data files
 ls -l /app/data/pci-dss-v4.0.1/

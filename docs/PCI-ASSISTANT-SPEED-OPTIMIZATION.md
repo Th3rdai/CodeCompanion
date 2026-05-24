@@ -11,6 +11,7 @@ Investigation into speeding up PCI-Assistant integration revealed that **smaller
 ## Timeline
 
 ### Initial Performance (Baseline)
+
 - **Model:** `qwen3.6:latest` (23.9GB)
 - **Response Time:** ~110 seconds
 - **MCP Tool Execution:** 18-22ms (fast)
@@ -18,6 +19,7 @@ Investigation into speeding up PCI-Assistant integration revealed that **smaller
 - **Reliability:** ✅ Perfect - consistent instruction following
 
 ### Optimization Attempt 1: qwen2.5:7b
+
 - **Model:** `qwen2.5:7b` (4.6GB)
 - **Response Time:** 22.7 seconds ✅ (4.8x faster)
 - **Tool Execution:** 19ms (fast)
@@ -27,6 +29,7 @@ Investigation into speeding up PCI-Assistant integration revealed that **smaller
   - Would describe actions instead of executing proper TOOL_CALL
 
 ### Optimization Attempt 2: qwen3:latest
+
 - **Model:** `qwen3:latest` (5.2GB)
 - **Response Time:** 26-82 seconds ✅ (initially promising)
 - **Tool Execution:** 22-306ms (fast)
@@ -36,6 +39,7 @@ Investigation into speeding up PCI-Assistant integration revealed that **smaller
   - Wrong tool selection (called `requirement_lookup` instead of `evidence_analysis`)
 
 ### Final Solution: qwen3.6:latest + Prompt Engineering
+
 - **Model:** `qwen3.6:latest` (23.9GB) - original reliable model
 - **Response Time:** ~110 seconds (acceptable)
 - **Reliability:** ✅ **Perfect**
@@ -66,11 +70,13 @@ Investigation into speeding up PCI-Assistant integration revealed that **smaller
 **Lines:** 1960-1968
 
 **Before (vague):**
+
 ```javascript
-"Present these results to the user in a helpful response."
+"Present these results to the user in a helpful response.";
 ```
 
 **After (explicit):**
+
 ```javascript
 `⚡ PRESENT RESULTS NOW — The tool has completed successfully. Present the tool results to the user immediately in a clear, direct response. Do NOT:
 - Write files or take additional actions
@@ -78,33 +84,38 @@ Investigation into speeding up PCI-Assistant integration revealed that **smaller
 - Add extra steps beyond presenting these results
 - Output TOOL_CALL again unless the user asks a follow-up question
 
-Simply show the user what the tool returned. If the user later asks for revisions, you MUST call the tool again with updated parameters.`
+Simply show the user what the tool returned. If the user later asks for revisions, you MUST call the tool again with updated parameters.`;
 ```
 
 **Impact:**
+
 - ✅ Helps larger models present results cleanly
 - ⚠️ Helps smaller models in SHORT conversations only
 - ❌ Doesn't fix fundamental capability gaps in long conversations
 
 ## Performance Comparison
 
-| Model | Size | Speed | Short Conv | Long Conv | Tool Select | Production Ready |
-|-------|------|-------|------------|-----------|-------------|------------------|
-| **qwen3.6:latest** | 23.9GB | 110s ❌ | ✅ Perfect | ✅ Perfect | ✅ Perfect | ✅ **YES** |
-| qwen3:latest | 5.2GB | 26-82s ✅ | ✅ With fix | ❌ Degrades | ❌ Wrong tools | ❌ NO |
-| qwen2.5:7b | 4.6GB | 22.7s ✅ | ❌ Unreliable | ❌ Fails | ❌ Wrong tools | ❌ NO |
+| Model              | Size   | Speed     | Short Conv    | Long Conv   | Tool Select    | Production Ready |
+| ------------------ | ------ | --------- | ------------- | ----------- | -------------- | ---------------- |
+| **qwen3.6:latest** | 23.9GB | 110s ❌   | ✅ Perfect    | ✅ Perfect  | ✅ Perfect     | ✅ **YES**       |
+| qwen3:latest       | 5.2GB  | 26-82s ✅ | ✅ With fix   | ❌ Degrades | ❌ Wrong tools | ❌ NO            |
+| qwen2.5:7b         | 4.6GB  | 22.7s ✅  | ❌ Unreliable | ❌ Fails    | ❌ Wrong tools | ❌ NO            |
 
 ## Recommendations
 
 ### For Production Use
+
 ✅ **Use `qwen3.6:latest` (23.9GB)**
+
 - Reliable instruction following
 - Handles long conversations
 - Correct tool selection
 - ~110 second response time is acceptable for reliability
 
 ### Configuration
+
 In `.cc-config.json`:
+
 ```json
 {
   "autoModelMap": {
@@ -114,13 +125,16 @@ In `.cc-config.json`:
 ```
 
 ### For Experimentation Only
+
 ⚠️ Smaller models can be used for:
+
 - Short conversations (< 5 messages)
 - Single tool calls
 - Speed demonstrations
 - Non-critical use cases
 
 **Never use for:**
+
 - Production troubleshooting
 - Long investigative sessions
 - Critical data analysis
@@ -129,21 +143,25 @@ In `.cc-config.json`:
 ## Lessons Learned
 
 ### 1. MCP Performance is Not the Bottleneck
+
 - MCP tool execution: 18-306ms (consistently fast)
 - Model thinking time: 22-110 seconds (actual bottleneck)
 - Focus optimization on model selection, not MCP transport
 
 ### 2. Model Size vs Capability Trade-off
+
 - Size reduction: 23.9GB → 5.2GB = 78% smaller
 - Speed improvement: 110s → 26s = 4.2x faster
 - Reliability cost: Perfect → Unreliable = **Unacceptable**
 
 ### 3. Context Window Matters
+
 - Short conversations (< 10 messages): Smaller models work
 - Long conversations (13+ messages, 16K+ tokens): Only larger models reliable
 - Critical for debugging/troubleshooting workflows
 
 ### 4. Prompt Engineering Has Limits
+
 - Can improve presentation in short conversations
 - Cannot compensate for fundamental model capability gaps
 - Essential but not sufficient for smaller models
@@ -151,12 +169,14 @@ In `.cc-config.json`:
 ## Testing Methodology
 
 ### Test Case: requirement_lookup("11.3.1")
+
 1. User requests PCI requirement lookup
 2. Model must make proper TOOL_CALL
 3. MCP tool executes and returns data
 4. Model must present results clearly (no file writing, no narration)
 
 ### Success Criteria
+
 ✅ Tool call made correctly
 ✅ Results retrieved (18-22ms)
 ✅ Results presented to user
@@ -164,6 +184,7 @@ In `.cc-config.json`:
 ✅ No autonomous file operations
 
 ### Failure Modes Observed
+
 ❌ Model narrates instead of making TOOL_CALL
 ❌ Model makes tool call but then attempts file writing
 ❌ Model selects wrong tool (`requirement_lookup` vs `evidence_analysis`)
@@ -172,11 +193,13 @@ In `.cc-config.json`:
 ## Files Modified
 
 ### 1. lib/chat-post-handler.js (lines 1960-1968)
+
 **Purpose:** Explicit tool result presentation instructions
 **Benefit:** Helps all models present results cleanly
 **Limitation:** Doesn't fix capability gaps in smaller models
 
 ### 2. .cc-config.json (not committed - contains secrets)
+
 **Change:** Set `autoModelMap.chat` to `qwen3.6:latest`
 **Documented:** This file
 **Location:** `~/.config/code-companion/.cc-config.json` or user's config directory
@@ -191,11 +214,13 @@ In `.cc-config.json`:
 ## Future Improvements
 
 ### Potential Optimizations (Low Priority)
+
 1. **Streaming Optimization** - Could reduce perceived latency
 2. **Caching** - For repeated requirement lookups
 3. **Model Quantization** - Test Q4/Q5 versions of large models
 
 ### Why Not Pursued
+
 - Current performance (110s) is acceptable
 - Reliability is more critical than speed
 - User confirmed working solution satisfactory

@@ -149,7 +149,7 @@ Verify all major API routes respond correctly. Server must be running on port 89
 !`curl -ksf -X POST https://127.0.0.1:8903/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"validate","version":"1.0"}}}' | node -e "process.stdin.on('data',d=>{const r=JSON.parse(d);console.log('MCP initialize:',r.result?'OK':'ERROR')})"`
 
 ### Agent Browser Config
-!`curl -ksf https://127.0.0.1:8903/api/config | node -e "process.stdin.on('data',d=>{const c=JSON.parse(d);console.log('Agent browser config present:',c.agentBrowser!=null?'OK':'MISSING')})"`
+!`curl -ksf https://127.0.0.1:8903/api/config | node -e "process.stdin.on('data',d=>{const c=JSON.parse(d);console.log('Agent browser config present:',c.agentBrowser?'OK':'MISSING')})"`
 
 ## Phase 8: User Workflow Smoke Tests
 
