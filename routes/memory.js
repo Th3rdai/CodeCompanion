@@ -9,6 +9,7 @@ const {
   searchMemories,
   getStats: getMemoryStats,
   resolveEmbeddingModel,
+  reembedAllMemories,
 } = require("../lib/memory");
 const { listModels, embed, ollamaAuthOpts } = require("../lib/ollama-client");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
@@ -69,7 +70,9 @@ module.exports = function createRouter(appContext) {
         embModel,
         ollamaAuthOpts(config),
       );
-      const results = searchMemories(queryEmbedding, 10, 0.3);
+      const results = searchMemories(queryEmbedding, 10, 0.3, {
+        embeddingModel: embModel,
+      });
       const cleaned = results.map(({ embedding: _embedding, ...rest }) => rest);
       res.json(cleaned);
     } catch (err) {
@@ -144,6 +147,25 @@ module.exports = function createRouter(appContext) {
       res.json(cleaned);
     } catch (err) {
       log("ERROR", "Failed to add memory", { error: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
+    }
+  });
+
+  // ── POST /api/memory/reembed ──────────────────────────
+  // Recompute embeddings for all stored memories with the current embedding
+  // model. Called by Settings → Memory after the embedding model is changed.
+  router.post("/memory/reembed", requireLocalOrApiKey, async (req, res) => {
+    try {
+      const config = getConfig();
+      const embModel = resolveEmbeddingModel(config);
+      const result = await reembedAllMemories(
+        config.ollamaUrl,
+        embModel,
+        ollamaAuthOpts(config),
+      );
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      log("ERROR", "Failed to re-embed memories", { error: err.message });
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   });

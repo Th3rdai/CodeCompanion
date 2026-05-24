@@ -18,7 +18,7 @@ const {
   initExperimentStore,
   sweepStaleActiveExperiments,
 } = require("./lib/experiment-store");
-const { initMemory } = require("./lib/memory");
+const { initMemory, flushMemoryToDisk } = require("./lib/memory");
 const {
   listModels,
   checkConnection,
@@ -640,6 +640,7 @@ mountMcpHttp(app, {
 // ── Graceful shutdown ────────────────────────────────
 process.on("SIGINT", async () => {
   log("INFO", "Shutting down — disconnecting MCP clients...");
+  flushMemoryToDisk();
   await mcpClientManager.disconnectAll();
   stopDocling(log);
   process.exit(0);
@@ -647,6 +648,7 @@ process.on("SIGINT", async () => {
 
 process.on("SIGTERM", async () => {
   log("INFO", "Shutting down (SIGTERM) — cleaning up...");
+  flushMemoryToDisk();
   await mcpClientManager.disconnectAll();
   stopDocling(log);
   process.exit(0);
