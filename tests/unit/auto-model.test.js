@@ -166,6 +166,100 @@ test("resolveAutoModel honors excludeModels even without a demote", async () => 
   }
 });
 
+// ─── preferToolCapable: swap a weak LOCAL base to a validated tool-caller ────
+// Regression for "auto picks gemma4 (a poor tool-caller) to use tools": the swap
+// used to be cloud-base-only, and gemma4 was on the tool-capable allowlist.
+const LOCAL_TOOL_TAGS = [
+  {
+    name: "gemma4:latest",
+    size: 5_000_000_000,
+    modified_at: "2026-05-01",
+    details: { family: "gemma", parameter_size: "4B" },
+  },
+  {
+    name: "qwen3-32k:latest",
+    size: 6_000_000_000,
+    modified_at: "2026-05-01",
+    details: { family: "qwen3", parameter_size: "8B" },
+  },
+];
+const LOCAL_TOOL_SHOW = {
+  "gemma4:latest": {
+    model_info: { "gemma.context_length": 8192 },
+    details: { family: "gemma" },
+  },
+  "qwen3-32k:latest": {
+    model_info: { "qwen3.context_length": 32768 },
+    details: { family: "qwen3" },
+  },
+};
+
+async function runResolveLocal({ chat }) {
+  return resolveAutoModel({
+    requestedModel: "auto",
+    mode: "chat",
+    estimatedTokens: 500,
+    config: { ollamaUrl: "http://test:11434", autoModelMap: { chat } },
+    ollamaUrl: "http://test:11434",
+    ollamaOpts: {},
+    preferToolCapable: true,
+  });
+}
+
+test("resolveAutoModel preferToolCapable swaps a weak local base (gemma4) to an installed tool-caller", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: LOCAL_TOOL_TAGS,
+    showByModel: LOCAL_TOOL_SHOW,
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await runResolveLocal({ chat: "gemma4" });
+    assert.equal(r.resolved, "qwen3-32k:latest"); // swapped away from gemma4
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
+
+test("resolveAutoModel preferToolCapable keeps a weak local base when it is the only model", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: [LOCAL_TOOL_TAGS[0]],
+    showByModel: LOCAL_TOOL_SHOW,
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await runResolveLocal({ chat: "gemma4" });
+    assert.equal(r.resolved, "gemma4:latest"); // only model installed → fallback
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
+
+test("resolveAutoModel preferToolCapable keeps a strong local base (qwen3-32k) as-is", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: LOCAL_TOOL_TAGS,
+    showByModel: LOCAL_TOOL_SHOW,
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await runResolveLocal({ chat: "qwen3-32k" });
+    assert.equal(r.resolved, "qwen3-32k:latest");
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
+
 // ─── preferVision + preferToolCapable: skip Moondream (narrates vs TOOL_CALL) ─
 
 const VISION_TOOL_TAGS = [
