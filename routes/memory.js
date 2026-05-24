@@ -10,7 +10,9 @@ const {
   getStats: getMemoryStats,
   resolveEmbeddingModel,
   reembedAllMemories,
+  compactMemories,
 } = require("../lib/memory");
+const { listConversations } = require("../lib/history");
 const { listModels, embed, ollamaAuthOpts } = require("../lib/ollama-client");
 const { CLIENT_INTERNAL_ERROR } = require("../lib/client-errors");
 
@@ -166,6 +168,20 @@ module.exports = function createRouter(appContext) {
       res.json({ ok: true, ...result });
     } catch (err) {
       log("ERROR", "Failed to re-embed memories", { error: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
+    }
+  });
+
+  // ── POST /api/memory/compact ──────────────────────────
+  // Rebuild the store and prune orphaned summaries (whose conversation was
+  // deleted). Pinned memories are preserved.
+  router.post("/memory/compact", requireLocalOrApiKey, (req, res) => {
+    try {
+      const validSources = listConversations().map((c) => c.id);
+      const result = compactMemories({ validSources });
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      log("ERROR", "Failed to compact memories", { error: err.message });
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   });
