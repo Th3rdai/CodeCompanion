@@ -42,13 +42,15 @@ const sanitizeAssistantFinal = new Function(
 
 describe("sanitizeAssistantChunk", () => {
   test("removes complete <think> tags", () => {
-    const input = "Here is some text <think>internal reasoning</think> and more text";
+    const input =
+      "Here is some text <think>internal reasoning</think> and more text";
     const output = sanitizeAssistantChunk(input);
     assert.equal(output, "Here is some text  and more text");
   });
 
   test("removes complete <thought> tags", () => {
-    const input = "Here is some text <thought>internal reasoning</thought> and more text";
+    const input =
+      "Here is some text <thought>internal reasoning</thought> and more text";
     const output = sanitizeAssistantChunk(input);
     assert.equal(output, "Here is some text  and more text");
   });

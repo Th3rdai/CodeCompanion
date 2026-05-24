@@ -84,11 +84,11 @@ Centralized `sanitizeAssistantChunk`/`sanitizeAssistantFinal` and wired them bef
 
 ## Sanitization Path Matrix (current + target)
 
-| Path | Token source | Sanitization hook | Empty-output action | Finalization |
-|---|---|---|---|---|
-| `tool_final` | `finalText` → `sanitizeAssistantFinal()` → `split(/(\s+)/)` words (`:2123-2129`) | final-string only (no stateful filter needed) | `sendEvent({ error: buildEmptyAssistantReplyMessage(model) })` | via `finalizeSseOnce()` |
-| `fallback_stream` | NDJSON `parsed.message.content` (`:2182`, `:2213`) | `sanitizeAssistantChunk(chunk, state)` per chunk + flush | `sendEvent({ error: buildEmptyAssistantReplyMessage(model) })` (exists `:2253`) | via `finalizeSseOnce()` |
-| `standard_stream` | NDJSON `parsed.message.content` (`:2424`, `:2463`) | `sanitizeAssistantChunk(chunk, state)` per chunk + flush | `sendEvent({ error: buildEmptyAssistantReplyMessage(model) })` (**new** — see Phase 3) | via `finalizeSseOnce()` |
+| Path              | Token source                                                                     | Sanitization hook                                        | Empty-output action                                                                    | Finalization            |
+| ----------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------- |
+| `tool_final`      | `finalText` → `sanitizeAssistantFinal()` → `split(/(\s+)/)` words (`:2123-2129`) | final-string only (no stateful filter needed)            | `sendEvent({ error: buildEmptyAssistantReplyMessage(model) })`                         | via `finalizeSseOnce()` |
+| `fallback_stream` | NDJSON `parsed.message.content` (`:2182`, `:2213`)                               | `sanitizeAssistantChunk(chunk, state)` per chunk + flush | `sendEvent({ error: buildEmptyAssistantReplyMessage(model) })` (exists `:2253`)        | via `finalizeSseOnce()` |
+| `standard_stream` | NDJSON `parsed.message.content` (`:2424`, `:2463`)                               | `sanitizeAssistantChunk(chunk, state)` per chunk + flush | `sendEvent({ error: buildEmptyAssistantReplyMessage(model) })` (**new** — see Phase 3) | via `finalizeSseOnce()` |
 
 Empty-output is carried on the **`error`** event (matches the existing convention at `:2134`/`:2253`, and useChat's `parsed.error` handler at `:673`), not on `done`. Each request must pass through a single finalization gate so `done` and `[DONE]` are emitted exactly once.
 
@@ -99,7 +99,7 @@ Empty-output is carried on the **`error`** event (matches the existing conventio
 - **Introduce `finalizeSseOnce({ error, total_duration, eval_count })`** as the only completion writer:
   - Internally: optionally `sendEvent({ error })`, then `sendEvent({ done: true, total_duration, eval_count })` (omit duration/count fields when undefined), then write the raw `[DONE]` frame, then `res.end()`.
   - Guard with a request-scoped `let finalized = false;` declared next to `sendEvent` (~`:899`); first call sets it, subsequent calls no-op. This replaces the inconsistently-applied `res.writableEnded` checks.
-  - **Convert all 17 existing completion sites** to route through it: the 5 `done: true` sites and the 12 raw `[DONE]` sites enumerated in *Current Codebase State* (including the 6 abort/error `[DONE]` writes at `:1132`/`:1229`/`:1348`/`:1839`/`:2402`/`:2559`/`:2609`, which are easy to miss).
+  - **Convert all 17 existing completion sites** to route through it: the 5 `done: true` sites and the 12 raw `[DONE]` sites enumerated in _Current Codebase State_ (including the 6 abort/error `[DONE]` writes at `:1132`/`:1229`/`:1348`/`:1839`/`:2402`/`:2559`/`:2609`, which are easy to miss).
 - **Standard-path zero-token guard (the genuinely missing piece):** in the standard `readStream`, before the `[DONE]` at the final-buffer branch (`~:2447`) and before the `return` in the other branch (`~:2484`), if `tokenCount === 0` after the sanitizer flush, pass `error: buildEmptyAssistantReplyMessage(model)` into `finalizeSseOnce`.
 - **Recovery (tool-call mode only, v1):**
   - reuse `generateFinalTextFromToolResults(...)` (`:1078`); at most one attempt; never re-enter tool loops.
@@ -183,6 +183,7 @@ Empty-output is carried on the **`error`** event (matches the existing conventio
 ## Plan Review Log
 
 ### Iteration 2026-05-24 (post-Phase-1-commit) — verdict: NEEDS REVISION → addressed
+
 - **Critical:** sanitizers not exported (`:2614`) → Phase 4 tests can't import → added export step to Phase 1 gap.
 - **Major:** baseline stale (Phase 1 shipped `7d20709`) → re-baselined Ground Truth + reduced Phase 1 to the export gap.
 - **Major:** Phase 2 (stateful filter) is the real remaining work, `state` param unused (`:83`) → promoted to primary change with unterminated-tag drop.

@@ -102,4 +102,3 @@ test("compactHistory falls back when summarizer fails", async () => {
   assert.equal(result.reason, "boom");
   assert.equal(result.rebuiltMessages.length, 5);
 });
-

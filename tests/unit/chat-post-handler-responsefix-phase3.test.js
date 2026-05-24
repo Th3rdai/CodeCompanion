@@ -19,9 +19,12 @@ describe("RESPONSEFIX Phase 3: Empty-output handling", () => {
   test("standard streaming path checks for zero tokens after sanitization", () => {
     // Find the standard streaming path (starts around line 2433)
     const standardIdx = SRC.indexOf("// ── Standard streaming path");
-    const endIdx = SRC.indexOf("req.on(\"close\", () => {", standardIdx);
+    const endIdx = SRC.indexOf('req.on("close", () => {', standardIdx);
     assert.ok(standardIdx > 0, "expected to find standard streaming section");
-    assert.ok(endIdx > standardIdx, "expected to find req.on('close') after standard streaming");
+    assert.ok(
+      endIdx > standardIdx,
+      "expected to find req.on('close') after standard streaming",
+    );
 
     // Look for the empty-output check in standard streaming
     const standardSection = SRC.slice(standardIdx, endIdx);
@@ -54,7 +57,10 @@ describe("RESPONSEFIX Phase 3: Empty-output handling", () => {
       fallbackIdx,
     );
     assert.ok(fallbackIdx > 0, "expected to find fallback streaming section");
-    assert.ok(fallbackEnd > fallbackIdx, "expected to find end of fallback section");
+    assert.ok(
+      fallbackEnd > fallbackIdx,
+      "expected to find end of fallback section",
+    );
 
     // Look for the empty-output check in fallback streaming
     const fallbackSection = SRC.slice(fallbackIdx, fallbackEnd);
@@ -89,7 +95,10 @@ describe("RESPONSEFIX Phase 3: Recovery pass", () => {
   test("tool-call path attempts recovery when displayText is empty but tool results exist", () => {
     // Find the recovery pass section
     const recoveryIdx = SRC.indexOf("Phase 3: Recovery pass");
-    assert.ok(recoveryIdx > 0, "expected to find Phase 3 recovery pass comment");
+    assert.ok(
+      recoveryIdx > 0,
+      "expected to find Phase 3 recovery pass comment",
+    );
 
     const recoverySection = SRC.slice(recoveryIdx, recoveryIdx + 2000);
 
@@ -177,7 +186,10 @@ describe("RESPONSEFIX Phase 3: Single finalization gate", () => {
       finalizationIdx > 0,
       "expected to find common finalization section",
     );
-    assert.ok(standardIdx > finalizationIdx, "expected standard path after tool-call mode");
+    assert.ok(
+      standardIdx > finalizationIdx,
+      "expected standard path after tool-call mode",
+    );
 
     const finalizationSection = SRC.slice(finalizationIdx, standardIdx);
 
@@ -204,9 +216,12 @@ describe("RESPONSEFIX Phase 3: Single finalization gate", () => {
     // There are also error paths, but we're only checking success paths here
 
     const standardIdx = SRC.indexOf("// ── Standard streaming path");
-    const endIdx = SRC.indexOf("req.on(\"close\", () => {", standardIdx);
+    const endIdx = SRC.indexOf('req.on("close", () => {', standardIdx);
     assert.ok(standardIdx > 0, "expected to find standard streaming section");
-    assert.ok(endIdx > standardIdx, "expected to find req.on('close') after standard streaming");
+    assert.ok(
+      endIdx > standardIdx,
+      "expected to find req.on('close') after standard streaming",
+    );
 
     const standardSection = SRC.slice(standardIdx, endIdx);
 

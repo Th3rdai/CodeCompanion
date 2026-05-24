@@ -42,6 +42,7 @@ docker compose up -d
 ```
 
 This will:
+
 - Pull the Ollama image
 - Build the Code Companion image
 - Start both services
@@ -52,6 +53,7 @@ This will:
 Open your browser to **http://localhost:8900**
 
 Check service status:
+
 ```bash
 docker compose ps
 docker compose logs -f codecompanion
@@ -76,14 +78,14 @@ docker compose exec ollama ollama list
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `0.0.0.0` | Server bind address (0.0.0.0 for Docker) |
-| `PORT` | `8900` | Application port |
-| `OLLAMA_URL` | `http://ollama:11434` | Ollama service URL (**must** use service name in Compose) |
-| `CC_API_SECRET` | _(empty)_ | API secret for non-localhost access (required when accessing from outside Docker network) |
-| `DEBUG` | `0` | Enable debug logging (set to `1`) |
-| `PROJECT_FOLDER` | _(empty)_ | Project folder path for File Browser |
+| Variable         | Default               | Description                                                                               |
+| ---------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| `HOST`           | `0.0.0.0`             | Server bind address (0.0.0.0 for Docker)                                                  |
+| `PORT`           | `8900`                | Application port                                                                          |
+| `OLLAMA_URL`     | `http://ollama:11434` | Ollama service URL (**must** use service name in Compose)                                 |
+| `CC_API_SECRET`  | _(empty)_             | API secret for non-localhost access (required when accessing from outside Docker network) |
+| `DEBUG`          | `0`                   | Enable debug logging (set to `1`)                                                         |
+| `PROJECT_FOLDER` | _(empty)_             | Project folder path for File Browser                                                      |
 
 **Important**: `OLLAMA_URL` must use the Docker service name (`http://ollama:11434`) when running in Docker Compose. Do not use `localhost` or `127.0.0.1`.
 
@@ -91,10 +93,10 @@ docker compose exec ollama ollama list
 
 The stack creates two named volumes for data persistence:
 
-| Volume | Purpose | Container Path |
-|--------|---------|----------------|
-| `ollama_data` | Ollama models and configuration | `/root/.ollama` |
-| `cc_data` | Code Companion data (conversations, settings, memory) | `/app/data` |
+| Volume        | Purpose                                               | Container Path  |
+| ------------- | ----------------------------------------------------- | --------------- |
+| `ollama_data` | Ollama models and configuration                       | `/root/.ollama` |
+| `cc_data`     | Code Companion data (conversations, settings, memory) | `/app/data`     |
 
 **Optional**: Mount a project folder for the File Browser:
 
@@ -226,6 +228,7 @@ docker system prune -a
 ### Can't Connect to Ollama
 
 Verify the `OLLAMA_URL` environment variable:
+
 - **Must** be `http://ollama:11434` (Docker service name)
 - **Not** `http://localhost:11434` or `http://127.0.0.1:11434`
 
@@ -242,12 +245,13 @@ Change the port mapping in `docker-compose.yml`:
 services:
   codecompanion:
     ports:
-      - "9000:8900"  # Host:Container
+      - "9000:8900" # Host:Container
 ```
 
 ### Out of Memory
 
 Increase Docker resource limits:
+
 - Docker Desktop: Settings → Resources → Memory
 - Linux: System memory available to Docker
 
@@ -267,12 +271,14 @@ docker compose up -d
 By default, Code Companion binds to `0.0.0.0` in Docker for container networking. To restrict access:
 
 1. **Localhost only** (via reverse proxy):
+
    ```yaml
    ports:
      - "127.0.0.1:8900:8900"
    ```
 
 2. **API Secret** (for non-localhost access):
+
    ```bash
    # Set in .env file
    CC_API_SECRET=$(openssl rand -base64 32)
@@ -325,10 +331,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: "2.0"
           memory: 4G
         reservations:
-          cpus: '1.0'
+          cpus: "1.0"
           memory: 2G
 ```
 
@@ -343,7 +349,7 @@ services:
   codecompanion:
     build:
       context: .
-      target: builder  # Use builder stage
+      target: builder # Use builder stage
     volumes:
       - ./src:/app/src
       - ./lib:/app/lib
@@ -359,6 +365,7 @@ npm run smoke:docker
 ```
 
 This will:
+
 1. Start the stack
 2. Poll `/api/health` until HTTP 200
 3. Tear down (max 60 seconds)

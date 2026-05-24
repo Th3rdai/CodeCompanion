@@ -90,7 +90,7 @@ describe("searchMemories — stale embeddingModel filter (opt-in)", () => {
     }
   });
 
-  test('records with empty-string embeddingModel are excluded when a model is requested', () => {
+  test("records with empty-string embeddingModel are excluded when a model is requested", () => {
     const dir = freshMemory();
     try {
       addMemory({

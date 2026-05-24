@@ -205,9 +205,7 @@ export default function MemoryPanel({ onClose }) {
         ),
       );
       const succeeded = new Set(
-        results
-          .filter((r) => r.status === "fulfilled")
-          .map((r) => r.value),
+        results.filter((r) => r.status === "fulfilled").map((r) => r.value),
       );
       if (succeeded.size > 0) {
         setMemories((prev) =>
@@ -241,9 +239,7 @@ export default function MemoryPanel({ onClose }) {
         ),
       );
       const succeeded = new Set(
-        results
-          .filter((r) => r.status === "fulfilled")
-          .map((r) => r.value),
+        results.filter((r) => r.status === "fulfilled").map((r) => r.value),
       );
       if (succeeded.size > 0) {
         setMemories((prev) => prev.filter((m) => !succeeded.has(m.id)));
@@ -603,7 +599,9 @@ export default function MemoryPanel({ onClose }) {
                             ? "Unpin — allow auto-pruning"
                             : "Pin — protect from auto-pruning"
                         }
-                        aria-label={memory.pinned ? "Unpin memory" : "Pin memory"}
+                        aria-label={
+                          memory.pinned ? "Unpin memory" : "Pin memory"
+                        }
                       >
                         <Pin
                           className={`w-4 h-4 ${memory.pinned ? "fill-current" : ""}`}

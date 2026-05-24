@@ -115,7 +115,9 @@ describe("deleteMemory — forget (Phase 5)", () => {
   test("deleteMemory(nonexistent) returns false", () => {
     const dir = freshMemory();
     try {
-      const result = deleteMemory("nonexistent-uuid-00000000-0000-0000-0000-000000000000");
+      const result = deleteMemory(
+        "nonexistent-uuid-00000000-0000-0000-0000-000000000000",
+      );
       assert.equal(result, false);
     } finally {
       cleanup(dir);
@@ -172,9 +174,17 @@ describe("compactMemories — Phase 4", () => {
       assert.equal(res.after, 2);
       assert.equal(res.removed, 1);
 
-      assert.equal(getMemory(dead.id), null, "orphan summary should be removed");
+      assert.equal(
+        getMemory(dead.id),
+        null,
+        "orphan summary should be removed",
+      );
       assert.notEqual(getMemory(live.id), null, "valid summary should remain");
-      assert.notEqual(getMemory(fact.id), null, "non-summary fact should remain");
+      assert.notEqual(
+        getMemory(fact.id),
+        null,
+        "non-summary fact should remain",
+      );
     } finally {
       cleanup(dir);
     }
@@ -213,7 +223,10 @@ describe("compactMemories — Phase 4", () => {
     const dir = freshMemory();
     try {
       // source omitted → stored as null (addMemory: source || null).
-      const nullSrc = addMemory({ type: "summary", content: "no source summary" });
+      const nullSrc = addMemory({
+        type: "summary",
+        content: "no source summary",
+      });
       assert.equal(nullSrc.source, null);
       const live = addMemory({
         type: "summary",
@@ -225,7 +238,11 @@ describe("compactMemories — Phase 4", () => {
 
       // Source filter is `m.source && !valid.has(m.source)`, so null source is kept.
       assert.equal(res.removed, 0);
-      assert.notEqual(getMemory(nullSrc.id), null, "null-source summary should be kept");
+      assert.notEqual(
+        getMemory(nullSrc.id),
+        null,
+        "null-source summary should be kept",
+      );
       assert.notEqual(getMemory(live.id), null);
     } finally {
       cleanup(dir);
@@ -236,8 +253,16 @@ describe("compactMemories — Phase 4", () => {
     // Array form
     const dirA = freshMemory();
     try {
-      const live = addMemory({ type: "summary", content: "live", source: "conv-A" });
-      const dead = addMemory({ type: "summary", content: "dead", source: "conv-DEAD" });
+      const live = addMemory({
+        type: "summary",
+        content: "live",
+        source: "conv-A",
+      });
+      const dead = addMemory({
+        type: "summary",
+        content: "dead",
+        source: "conv-DEAD",
+      });
       const res = compactMemories({ validSources: ["conv-A"] });
       assert.equal(res.removed, 1);
       assert.notEqual(getMemory(live.id), null);
@@ -249,8 +274,16 @@ describe("compactMemories — Phase 4", () => {
     // Set form
     const dirB = freshMemory();
     try {
-      const live = addMemory({ type: "summary", content: "live", source: "conv-A" });
-      const dead = addMemory({ type: "summary", content: "dead", source: "conv-DEAD" });
+      const live = addMemory({
+        type: "summary",
+        content: "live",
+        source: "conv-A",
+      });
+      const dead = addMemory({
+        type: "summary",
+        content: "dead",
+        source: "conv-DEAD",
+      });
       const res = compactMemories({ validSources: new Set(["conv-A"]) });
       assert.equal(res.removed, 1);
       assert.notEqual(getMemory(live.id), null);

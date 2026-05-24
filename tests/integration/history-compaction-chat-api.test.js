@@ -44,7 +44,10 @@ async function startMockOllama() {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
-            message: { role: "assistant", content: "Compacted summary from mock." },
+            message: {
+              role: "assistant",
+              content: "Compacted summary from mock.",
+            },
             done: true,
           }),
         );
@@ -79,8 +82,11 @@ async function startMockOllama() {
 }
 
 test("POST /api/chat compaction emits summary notice and rebuilds dual-system transcript", async () => {
-  const { server: ollamaMock, baseUrl: ollamaUrl, chatCalls } =
-    await startMockOllama();
+  const {
+    server: ollamaMock,
+    baseUrl: ollamaUrl,
+    chatCalls,
+  } = await startMockOllama();
   const port = 3412;
   const baseUrl = `http://127.0.0.1:${port}`;
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-compaction-"));

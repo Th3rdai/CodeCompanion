@@ -39,4 +39,3 @@ test("compaction notices are queued then emitted via SSE", () => {
   assert.ok(queueIdx < flushIdx, "queue should be declared before flush");
   assert.ok(flushIdx < sendIdx + 100, "flush loop should emit notice events");
 });
-

@@ -33,6 +33,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Acceptance: Existing non-reasoning responses unchanged
 
 **Tests:**
+
 - [ ] Update `tests/unit/chat-post-handler-phase3-wiring.test.js` for sanitizer coverage
 - [ ] Update `tests/unit/chat-empty-response.test.js` for empty-output behavior
 
@@ -47,6 +48,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Acceptance: Unterminated reasoning blocks don't leak
 
 **Tests:**
+
 - [ ] Add `tests/unit/chat-post-handler-reasoning-stream.test.js` with:
   - [ ] Fallback path chunk split (`<tho` + `ught>`)
   - [ ] Standard path chunk split
@@ -64,6 +66,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Acceptance: One `done` and one `[DONE]` per request
 
 **Tests:**
+
 - [ ] Zero-token streaming completion scenarios
 - [ ] Finalization gate single-emit invariant
 
@@ -90,11 +93,13 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Canonical rule names (kebab-case): `network-unreachable`, `context-overflow`, `model-not-found`, `model-load-failed`, `gpu-oom`, `cloud-opaque-500`, `large-payload-500`, `generic`
 
 **Commit order:**
+
 1. [ ] Add `model-load-failed` rule inline
 2. [ ] Extend `parseOllamaErrMsg` for JSON
 3. [ ] Refactor to `tryRule` + add `log` parameter
 
 **Tests:**
+
 - [ ] Extend `tests/unit/ollama-error-envelope.test.js` with:
   - [ ] JSON-body fixture (verify `code`, `errType` populated)
   - [ ] `model-load-failed` rule (4 keyword variants)
@@ -129,6 +134,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Update `docs/ENVIRONMENT_VARIABLES.md` with memory config keys
 
 **Tests:**
+
 - [ ] Config key defaults match example
 - [ ] Re-embed API returns 200 with correct behavior
 - [ ] `topics` field persists on summary records
@@ -143,12 +149,14 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Fix hardcoded `500` in `extractAndStore` → read `config.memory.maxMemories`
 
 **Tests:**
+
 - [ ] Stale embedding model records excluded from search
 - [ ] SSE memory context includes `id` field
 - [ ] `updateMemory()` accepts all valid fields
 - [ ] Debounced writes don't lose data
 
 **GitNexus Impact:**
+
 - [ ] Run `gitnexus_impact` on: `extractAndStore`, `buildMemoryContext`, `_persistToDisk`, `searchMemories`
 
 ---
@@ -177,6 +185,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Wire flag through settings UI
 
 **Tests:**
+
 - [ ] `/api/model-context` returns correct values for common models
 - [ ] Banner appears at 90% threshold
 - [ ] Banner actions work correctly
@@ -205,6 +214,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Update memory prompt injection with scored context
 
 **Tests:**
+
 - [ ] Multi-turn query produces different results than single-turn
 - [ ] RRF ranking improves over single-method ranking
 - [ ] Near-misses field present when configured
@@ -233,6 +243,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Wire flag through settings UI
 
 **Tests:**
+
 - [ ] Large tool output (>100KB) externalized to file
 - [ ] Placeholder includes correct relative path
 - [ ] Externalized content readable via `readProjectFile`
@@ -272,6 +283,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Grep `fullMessages` for stale closures after implementation
 
 **Tests:**
+
 - [ ] Compaction triggers at policy threshold
 - [ ] Summary preserves conversation coherence
 - [ ] Fallback truncation works when LLM unavailable
@@ -301,6 +313,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Update extraction to process delta only
 
 **Tests:**
+
 - [ ] Incremental extraction processes only new messages
 - [ ] Rolling upserts preserve existing summaries
 - [ ] Timestamp tracking accurate
@@ -318,6 +331,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 - [ ] Wire to Settings UI
 
 **Tests:**
+
 - [ ] Compact removes orphaned records
 - [ ] JSON minification reduces file size
 - [ ] Compact API returns space saved
@@ -338,6 +352,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
   - [ ] Export memories as JSON
 
 **Tests:**
+
 - [ ] Forget removes correct memory
 - [ ] Pinned memories always recalled
 - [ ] Bulk operations work correctly
@@ -390,6 +405,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 ### Deliverables
 
 **Files:** 7 changed, 623 insertions
+
 - `server.js`: Health endpoint (9 lines)
 - `Dockerfile`: Multi-stage build (50 lines)
 - `.dockerignore`: Exclusion rules (73 lines)
@@ -401,6 +417,7 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 ### Acceptance Criteria
 
 ✅ All met:
+
 - Health endpoint responds HTTP 200 with version
 - Docker builds without errors
 - Docker Compose starts both services
@@ -413,10 +430,12 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 ## ⚠️ Not Included in Sequential Implementation
 
 ### ❌ SETUPUX
+
 **Status:** Already shipped (v1) ✅
 **Source:** `.planning/drafts/SETUPUX.md` says "Status: Shipped"
 
 ### ❌ enterprise-privacy-pivot
+
 **Status:** Strategic/architectural change
 **Source:** `.planning/drafts/enterprise-privacy-pivot.md`
 **Recommendation:** Plan as separate v2.0 milestone with its own roadmap
@@ -478,4 +497,5 @@ Master tracking document for planned improvements from `.planning/drafts/`. Tota
 5. **Sprint 2: Multi-User** (users.js with bcrypt, roles) — available
 
 **Recent Completions:**
+
 - ✅ Sprint 1: Docker Deployment (2026-05-24, commit `5f215e5`) — Claudette

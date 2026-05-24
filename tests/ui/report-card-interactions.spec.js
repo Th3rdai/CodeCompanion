@@ -53,8 +53,11 @@ const mockReportCardResponse = {
 
 test.describe("ReportCard Progressive Disclosure", () => {
   test.describe.configure({ mode: "serial" });
+  test.describe.configure({ timeout: 90_000 });
 
   test.beforeEach(async ({ page, context }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+
     // Mock models API so the app thinks Ollama is connected
     await context.route("**/api/models", async (route) => {
       await route.fulfill({
@@ -80,25 +83,33 @@ test.describe("ReportCard Progressive Disclosure", () => {
     await page.goto("/");
     await page.evaluate(() => {
       localStorage.setItem("cc-selected-model", "test-model");
+      localStorage.setItem("th3rdai_privacy_banner_dismissed", "true");
     });
-    await reloadAndWaitForModels(page);
+    await reloadAndWaitForModels(page, { timeout: 75_000 });
 
-    // Wait for any mode tab first (proves tab strip hydrated) then Review
-    await expect(page.getByTestId("mode-tab-chat")).toBeVisible({
-      timeout: 60_000,
+    // Enter Review mode via the mode palette (stable even if tabs move into "More").
+    await expect(page.getByTestId("mode-tab-palette-open")).toBeVisible({
+      timeout: 75_000,
     });
-    await expect(page.getByTestId("mode-tab-review")).toBeVisible({
-      timeout: 60_000,
-    });
-    await page.getByTestId("mode-tab-review").click();
+    await page.getByTestId("mode-tab-palette-open").click();
+    await page.getByRole("searchbox", { name: /filter modes/i }).fill("Review");
+    await page.getByRole("option", { name: /^Review$/i }).click();
     await page
       .getByPlaceholder("Paste your code here...")
       .fill("function test() { return true; }");
+    const reviewResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/review") && response.status() === 200,
+      { timeout: 30_000 },
+    );
     await page.getByRole("button", { name: /run code review/i }).click();
+    await reviewResponse;
 
-    // Wait for report card to appear
-    await expect(page.getByText(/report card/i).first()).toBeVisible({
-      timeout: 15000,
+    // Wait for report card shell to appear before assertion-heavy tests.
+    await expect(
+      page.getByLabel("Code review report card").first(),
+    ).toBeVisible({
+      timeout: 30_000,
     });
   });
 

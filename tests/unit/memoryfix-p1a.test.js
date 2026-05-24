@@ -119,7 +119,10 @@ describe("flushMemoryToDisk", () => {
       assert.equal(fs.existsSync(filePath), true);
       const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       assert.equal(Array.isArray(parsed), true);
-      assert.equal(parsed.some((m) => m.content === "persist me"), true);
+      assert.equal(
+        parsed.some((m) => m.content === "persist me"),
+        true,
+      );
     } finally {
       cleanup(dir);
     }

@@ -228,7 +228,8 @@ describe("Phase 2: Stream-safe stateful filtering", () => {
       // Malformed: nested <think> tags - first </think> closes the block
       // This is acceptable behavior since nested reasoning tags are malformed XML
       // The important thing is that the majority of reasoning content is filtered
-      const chunk = "<think>outer <think>inner</think> still inside</think> visible";
+      const chunk =
+        "<think>outer <think>inner</think> still inside</think> visible";
       const result = sanitizeAssistantChunk(chunk, state);
       // First </think> closes the block, emitting "still inside</think>" as regular text
       assert.equal(result, " still inside</think> visible");
@@ -239,7 +240,8 @@ describe("Phase 2: Stream-safe stateful filtering", () => {
     test("uppercase and mixed case tags are filtered", () => {
       const state = {};
 
-      const chunk = "<THINK>uppercase</THINK> and <ThOuGhT>mixed</tHoUgHt> visible";
+      const chunk =
+        "<THINK>uppercase</THINK> and <ThOuGhT>mixed</tHoUgHt> visible";
       const result = sanitizeAssistantChunk(chunk, state);
       assert.equal(result, " and  visible");
     });
@@ -265,7 +267,7 @@ describe("Phase 2: Stream-safe stateful filtering", () => {
         "nk>Let me analyze this</think> ",
         "Here's my answer: ",
         "<thought>Double checking",
-        "</thought> The result is 42."
+        "</thought> The result is 42.",
       ];
 
       let accumulated = "";
@@ -274,7 +276,10 @@ describe("Phase 2: Stream-safe stateful filtering", () => {
       }
       accumulated += sanitizeAssistantFlush(state);
 
-      assert.equal(accumulated, "I'll help with that.  Here's my answer:  The result is 42.");
+      assert.equal(
+        accumulated,
+        "I'll help with that.  Here's my answer:  The result is 42.",
+      );
       assert.ok(!accumulated.includes("analyze"));
       assert.ok(!accumulated.includes("Double checking"));
     });
@@ -290,7 +295,7 @@ describe("Phase 2: Stream-safe stateful filtering", () => {
         "ought>I need to think about this.",
         " My reasoning: this is",
         " complex.</though",
-        "t> The answer is: yes."
+        "t> The answer is: yes.",
       ];
 
       let accumulated = "";
@@ -325,7 +330,10 @@ describe("Phase 2: Stream-safe stateful filtering", () => {
       }
 
       // State should still be valid
-      const result = sanitizeAssistantChunk("<think>filter this</think> final", state);
+      const result = sanitizeAssistantChunk(
+        "<think>filter this</think> final",
+        state,
+      );
       assert.equal(result, " final");
     });
 

@@ -500,7 +500,8 @@ function createConfigRouter(appContext) {
       userId: "anonymous", // TODO: replace with actual userId when multi-user is implemented
       ip: req.ip || req.socket?.remoteAddress || "unknown",
       meta: {
-        changedSettings: changedSettings.length > 0 ? changedSettings : ["nested-object"],
+        changedSettings:
+          changedSettings.length > 0 ? changedSettings : ["nested-object"],
         settingCount: Object.keys(req.body).length,
       },
     });
