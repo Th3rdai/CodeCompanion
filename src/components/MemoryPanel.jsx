@@ -11,6 +11,8 @@ import {
   MessageSquare,
   User,
   FolderOpen,
+  Pin,
+  Sparkles,
 } from "lucide-react";
 
 const TYPE_COLORS = {
@@ -78,6 +80,8 @@ export default function MemoryPanel({ onClose }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [compacting, setCompacting] = useState(false);
+  const [compactMsg, setCompactMsg] = useState("");
 
   useEffect(() => {
     fetchMemories();
@@ -147,6 +151,50 @@ export default function MemoryPanel({ onClose }) {
     } catch {}
   }
 
+  // Pin (protect from auto-pruning) / unpin via PUT { pinned } — MEMORYFIX P5.
+  async function handleTogglePin(memory) {
+    const next = !memory.pinned;
+    try {
+      const res = await apiFetch(`/api/memory/${memory.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pinned: next }),
+      });
+      if (res.ok) {
+        setMemories((prev) =>
+          prev.map((m) => (m.id === memory.id ? { ...m, pinned: next } : m)),
+        );
+      }
+    } catch {}
+  }
+
+  // Compact: drop summaries from deleted conversations (keeps pinned) — MEMORYFIX P4.
+  async function handleCompact() {
+    if (
+      !confirm(
+        "Compact the memory store? This removes conversation summaries whose chat was deleted. Pinned memories are kept.",
+      )
+    )
+      return;
+    setCompacting(true);
+    setCompactMsg("");
+    try {
+      const res = await apiFetch("/api/memory/compact", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setCompactMsg(
+          `Compacted — removed ${data.removed ?? 0} orphaned, ${data.after ?? "?"} kept.`,
+        );
+        await fetchMemories();
+      } else {
+        setCompactMsg("Compact failed.");
+      }
+    } catch {
+      setCompactMsg("Compact failed.");
+    }
+    setCompacting(false);
+  }
+
   const filtered =
     filter === "all"
       ? memories
@@ -178,13 +226,24 @@ export default function MemoryPanel({ onClose }) {
             </h2>
             <span className="text-xs text-slate-500">({filtered.length})</span>
           </div>
-          <button
-            onClick={onClose}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
-            aria-label="Close memory panel"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleCompact}
+              disabled={compacting}
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-700/40 hover:text-white disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+              title="Compact: remove summaries from deleted conversations (pinned memories are kept)"
+            >
+              <Sparkles className="w-4 h-4" />
+              {compacting ? "Compacting…" : "Compact"}
+            </button>
+            <button
+              onClick={onClose}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70"
+              aria-label="Close memory panel"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Search bar */}
@@ -252,6 +311,12 @@ export default function MemoryPanel({ onClose }) {
           </span>
         </div>
 
+        {compactMsg && (
+          <div className="mb-2 text-[11px] text-emerald-400" role="status">
+            {compactMsg}
+          </div>
+        )}
+
         {/* Memory list */}
         <div className="flex-1 overflow-y-auto scrollbar-thin space-y-2">
           {loading ? (
@@ -314,6 +379,14 @@ export default function MemoryPanel({ onClose }) {
                             <MessageSquare className="w-2.5 h-2.5" /> this chat
                           </span>
                         )}
+                        {memory.pinned && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                            title="Pinned — never auto-pruned"
+                          >
+                            <Pin className="w-2.5 h-2.5" /> pinned
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-600">
                           {relativeDate(memory.createdAt || memory.updatedAt)}
                         </span>
@@ -358,8 +431,26 @@ export default function MemoryPanel({ onClose }) {
                         </p>
                       )}
                     </div>
-                    {/* Edit + Delete buttons */}
+                    {/* Pin + Edit + Delete buttons */}
                     <div className="flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => handleTogglePin(memory)}
+                        className={`p-1 rounded transition-all ${
+                          memory.pinned
+                            ? "text-amber-400 opacity-100"
+                            : "text-slate-500 opacity-0 group-hover:opacity-100 hover:text-amber-400"
+                        }`}
+                        title={
+                          memory.pinned
+                            ? "Unpin — allow auto-pruning"
+                            : "Pin — protect from auto-pruning"
+                        }
+                        aria-label={memory.pinned ? "Unpin memory" : "Pin memory"}
+                      >
+                        <Pin
+                          className={`w-4 h-4 ${memory.pinned ? "fill-current" : ""}`}
+                        />
+                      </button>
                       <button
                         onClick={() => {
                           setEditingId(memory.id);
