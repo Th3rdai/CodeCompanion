@@ -30,6 +30,7 @@ const {
   userLikelyRequestedActionableToolWork,
   tryPromoteNarratedShellToToolCall,
   shellLineFailsAutoPromotionSafety,
+  looksLikeClaimedCompletionWithoutToolCall,
 } = require("../../lib/chat-post-handler");
 
 // ─── userExplicitlyDisallowsFileWrites — positives ─────────────────────────
@@ -545,4 +546,67 @@ test("shell-promote: a real narrated command (`git status`) is still promoted", 
   );
   assert.ok(out && out.includes("TOOL_CALL: builtin.run_terminal_cmd"));
   assert.match(out, /"command":"git"/);
+});
+
+// ─── claimed-completion-without-tool-call ("accepts prose, never does work") ─
+test("claimed-completion: 'I've created the config file' → true", () => {
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall(
+      "Done — I've created the config file with the new settings.",
+    ),
+    true,
+  );
+});
+
+test("claimed-completion: 'the file has been saved' → true", () => {
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall(
+      "The README file has been updated with the install steps.",
+    ),
+    true,
+  );
+});
+
+test("claimed-completion: 'successfully ran the tests' → true", () => {
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall(
+      "I successfully ran the test suite and everything passes.",
+    ),
+    true,
+  );
+});
+
+test("claimed-completion: 'I saved report.pdf' (filename.ext) → true", () => {
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall("I saved report.pdf to disk."),
+    true,
+  );
+});
+
+test("claimed-completion: conversational past-tense with no artifact → false", () => {
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall(
+      "I updated my understanding of the problem based on your last message.",
+    ),
+    false,
+  );
+});
+
+test("claimed-completion: 'I reviewed the code' → false (not a mutate verb)", () => {
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall(
+      "I reviewed the code and it looks correct to me.",
+    ),
+    false,
+  );
+});
+
+test("claimed-completion: empty / plain answer → false", () => {
+  assert.equal(looksLikeClaimedCompletionWithoutToolCall(""), false);
+  assert.equal(
+    looksLikeClaimedCompletionWithoutToolCall(
+      "Sure — here is how that feature works.",
+    ),
+    false,
+  );
 });
