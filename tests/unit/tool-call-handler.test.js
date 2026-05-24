@@ -184,7 +184,7 @@ builtin.run_terminal_cmd
 });
 
 // ─── <tool_code> wrapper fallback (Gemma/Gemini hallucination) ───────────
-// Reproduces the 2026-05-08 dockblock session where kimi-k2.5:cloud emitted
+// Reproduces a 2026-05-08 agent session where kimi-k2.5:cloud emitted
 // `<tool_code>builtin.run_terminal_cmd({...})</tool_code>` instead of
 // `TOOL_CALL: builtin.run_terminal_cmd({...})`. Old parser found 0 tool calls
 // and the round ended with prose-only narration; corrective retries never
@@ -195,7 +195,7 @@ test("parseToolCalls extracts a builtin call wrapped in <tool_code>...</tool_cod
   const ToolCallHandler = loadHandlerWithMcpTimeoutMs(undefined);
   const h = new ToolCallHandler({});
   const text = `<tool_code>
-builtin.run_terminal_cmd({"command": "cat", "args": ["/Users/james/Projects/dockblock/Sources/DockBlock/ContentView.swift"]})
+builtin.run_terminal_cmd({"command": "cat", "args": ["/Users/james/Projects/example-app/Sources/App/ContentView.swift"]})
 </tool_code>`;
   const calls = h.parseToolCalls(text);
   assert.strictEqual(calls.length, 1);
@@ -203,7 +203,7 @@ builtin.run_terminal_cmd({"command": "cat", "args": ["/Users/james/Projects/dock
   assert.strictEqual(calls[0].toolName, "run_terminal_cmd");
   assert.strictEqual(calls[0].args.command, "cat");
   assert.deepStrictEqual(calls[0].args.args, [
-    "/Users/james/Projects/dockblock/Sources/DockBlock/ContentView.swift",
+    "/Users/james/Projects/example-app/Sources/App/ContentView.swift",
   ]);
 });
 

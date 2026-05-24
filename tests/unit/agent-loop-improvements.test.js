@@ -1,5 +1,5 @@
 /**
- * Unit tests for DockBlock testing improvements
+ * Unit tests for agent tool-call loop improvements
  *
  * Tests three enhancements:
  * 1. Tool-call loop pattern detection (early warning at 3+ repetitions)
