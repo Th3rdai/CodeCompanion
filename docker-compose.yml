@@ -1,0 +1,55 @@
+services:
+  # Ollama LLM service (sidecar)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: codecompanion-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Code Companion web application
+  codecompanion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codecompanion-app
+    ports:
+      - "8900:8900"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8900
+      - OLLAMA_URL=http://ollama:11434
+      # Override in .env file or pass via command line
+      - CC_API_SECRET=${CC_API_SECRET:-}
+      - DEBUG=${DEBUG:-0}
+    volumes:
+      - cc_data:/app/data
+      # Optional: mount project folder for file browser
+      # - ${PROJECT_FOLDER:-./projects}:/app/projects:ro
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8900/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  # Persists Ollama models and configuration
+  ollama_data:
+    driver: local
+
+  # Persists Code Companion data (conversations, settings, memory)
+  cc_data:
+    driver: local

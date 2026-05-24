@@ -654,6 +654,15 @@ process.on("SIGTERM", async () => {
   process.exit(0);
 });
 
+// ── Health Check (Docker/K8s liveness probe) ─────────
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    version: require("./package.json").version,
+  });
+});
+
 // ── SPA Fallback (must be after all API routes) ──────
 
 app.get("*", (req, res) => {
