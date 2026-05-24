@@ -752,3 +752,76 @@ test("write_file: missing path/content returns a self-correcting error naming th
   assert.match(text, /"content"/);
   assert.match(text, /Retry/i);
 });
+
+test("list_dir: returns a compact tree and skips ignored dirs", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld-")));
+  try {
+    fs.writeFileSync(path.join(dir, "alpha.txt"), "x");
+    fs.mkdirSync(path.join(dir, "sub"));
+    fs.writeFileSync(path.join(dir, "sub", "beta.js"), "y");
+    fs.mkdirSync(path.join(dir, "node_modules"));
+    fs.writeFileSync(path.join(dir, "node_modules", "pkg.js"), "z");
+    const out = await executeBuiltinTool(
+      "list_dir",
+      { path: ".", depth: 2 },
+      { projectFolder: dir, chatFolder: dir },
+      () => {},
+      "test-client",
+      {},
+    );
+    assert.equal(out.success, true);
+    const text = out.result.content[0].text;
+    assert.match(text, /alpha\.txt/);
+    assert.match(text, /sub\//);
+    assert.match(text, /beta\.js/); // depth 2 descended into the subdir
+    assert.doesNotMatch(text, /node_modules/); // ignored
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("list_dir: errors on a non-directory path", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld2-")));
+  try {
+    fs.writeFileSync(path.join(dir, "file.txt"), "x");
+    const out = await executeBuiltinTool(
+      "list_dir",
+      { path: "file.txt" },
+      { projectFolder: dir, chatFolder: dir },
+      () => {},
+      "test-client",
+      {},
+    );
+    assert.equal(out.success, false);
+    assert.match(out.result.content[0].text, /Not a directory/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("list_dir: refuses paths outside the project folder", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld3-")));
+  try {
+    const out = await executeBuiltinTool(
+      "list_dir",
+      { path: "../../.." },
+      { projectFolder: dir, chatFolder: dir },
+      () => {},
+      "test-client",
+      {},
+    );
+    assert.equal(out.success, false);
+    assert.match(out.result.content[0].text, /outside the project folder/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
