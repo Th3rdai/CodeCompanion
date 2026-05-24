@@ -2,26 +2,28 @@
 
 **Date:** 2026-05-17
 **Status:** ✅ Complete and tested
-**Test Results:** 42/42 tests passing (37 DockBlock + 5 Phase 1)
+**Test Results:** 42/42 tests passing (37 agent-loop + 5 Phase 1)
 
 ## Overview
 
 This document describes six improvements bundled for the v1.6.48 release:
 
-**DockBlock Testing Improvements (from May 9th session):**
+**Agent tool-call loop improvements (from the May 9th agent-terminal testing session):**
+
 1. **Tool-Call Loop Pattern Detection** - Early warning when repetitive tool calls are detected
 2. **Background Process Auto-Suggestion** - Helpful suggestions when long-running commands are called without background mode
 3. **Progress Indicators** - Verified existing implementation meets requirements
 
-**CTXFIX Phase 1 Implementation:**
-4. **Preflight Context Banner** - UI warning when approaching context window limits (80% threshold)
+**CTXFIX Phase 1 Implementation:** 4. **Preflight Context Banner** - UI warning when approaching context window limits (80% threshold)
 
 ## Enhancement 1: Tool-Call Loop Pattern Detection
 
 ### Problem
-DockBlock testing on May 9th showed a 25-round tool-call loop with similar (but not identical) `sed` commands. The existing duplicate detection only catches consecutive exact duplicates, so it didn't trigger until the 25-round limit.
+
+Agent-terminal testing on May 9th showed a 25-round tool-call loop with similar (but not identical) `sed` commands. The existing duplicate detection only catches consecutive exact duplicates, so it didn't trigger until the 25-round limit.
 
 ### Solution
+
 Added pattern detection logic that tracks tool calls across all rounds and warns users early when the same tool is called 3+ times, regardless of whether the calls are consecutive or have different arguments.
 
 ### Implementation
@@ -29,6 +31,7 @@ Added pattern detection logic that tracks tool calls across all rounds and warns
 **File:** `lib/chat-post-handler.js`
 
 **Tracking Variables (lines 977-980):**
+
 ```javascript
 let hasExecutedToolCall = false;
 let lastToolCallSignature = "";
@@ -38,16 +41,19 @@ let patternWarningShown = false;
 ```
 
 **Pattern Detection Logic (lines 1893-1945):**
+
 ```javascript
 // ── Pattern Detection: Track tool call history and warn on repetitive patterns ──
 if (roundHadSuccessfulToolCall && toolCalls.length > 0) {
-  // Record each successful tool call
-  toolCalls.forEach((call) => {
+  // Record only the tool calls that actually succeeded this round — failed
+  // calls in a partially-successful round must not inflate the repeat count.
+  toolCalls.forEach((call, idx) => {
+    if (!resultsByOriginalIndex[idx]?.success) return;
     toolCallHistory.push({
       round: round + 1,
       toolName: call.toolName,
       serverId: call.serverId,
-      signature: `${call.serverId}.${toolName}`,
+      signature: `${call.serverId}.${call.toolName}`,
     });
   });
 
@@ -60,10 +66,11 @@ if (roundHadSuccessfulToolCall && toolCalls.length > 0) {
         (signatureCounts[entry.signature] || 0) + 1;
     });
 
-    // Find tools called 3+ times
-    const repeatedTools = Object.entries(signatureCounts).filter(
-      ([_, count]) => count >= 3,
-    );
+    // Find tools called 3+ times, most-repeated first so the notice names
+    // the tool actually driving the loop.
+    const repeatedTools = Object.entries(signatureCounts)
+      .filter(([, count]) => count >= 3)
+      .sort(([, a], [, b]) => b - a);
 
     if (repeatedTools.length > 0) {
       const [mostRepeatedTool, repeatCount] = repeatedTools[0];
@@ -89,9 +96,9 @@ if (roundHadSuccessfulToolCall && toolCalls.length > 0) {
 
 ### How It Works
 
-1. **Recording**: After each successful tool execution, record the round number, tool name, server ID, and a signature (`serverId.toolName`)
+1. **Recording**: For each tool call that **succeeded** this round (failed calls are skipped so they can't inflate the count), record the round number, tool name, server ID, and a signature (`serverId.toolName`)
 2. **Analysis**: Starting from round 3, analyze the history to count occurrences of each tool signature
-3. **Detection**: If any tool has been called 3+ times, send an SSE notice to the user
+3. **Detection**: If any tool has been called 3+ times, send an SSE notice to the user — naming the **most-repeated** tool (signatures are sorted by count, descending)
 4. **One-Time**: Use `patternWarningShown` flag to prevent spam (only warn once per conversation)
 
 ### SSE Event Format
@@ -110,9 +117,10 @@ if (roundHadSuccessfulToolCall && toolCalls.length > 0) {
 
 ### Test Coverage
 
-**File:** `tests/unit/dockblock-improvements.test.js` (lines 1-139)
+**File:** `tests/unit/agent-loop-improvements.test.js` (lines 1-139)
 
 Tests verify:
+
 - ✅ No false positives with 2 calls to same tool
 - ✅ Detects pattern at exactly 3 calls
 - ✅ Tracks different tools separately
@@ -125,9 +133,11 @@ Tests verify:
 ## Enhancement 2: Background Process Auto-Suggestion
 
 ### Problem
-DockBlock testing hit timeouts when running long-running commands like `npm run dev` without `background:true`. Users may not know these commands need special handling.
+
+Agent-terminal testing hit timeouts when running long-running commands like `npm run dev` without `background:true`. Users may not know these commands need special handling.
 
 ### Solution
+
 Added automatic detection of long-running command patterns with helpful suggestions when `background:true` is not used.
 
 ### Implementation
@@ -135,6 +145,7 @@ Added automatic detection of long-running command patterns with helpful suggesti
 **File:** `lib/builtin-agent-tools.js`
 
 **Detection Helper (lines 150-196):**
+
 ```javascript
 function detectLongRunningCommand(command, args = []) {
   const cmd = command.toLowerCase();
@@ -143,8 +154,14 @@ function detectLongRunningCommand(command, args = []) {
   // Pattern matching for common long-running commands
   const patterns = [
     // Node/npm dev servers
-    { pattern: /npm\s+(run\s+)?(dev|start|serve|watch)/, name: "npm dev server" },
-    { pattern: /npx\s+(vite|webpack-dev-server|next\s+dev)/, name: "dev server" },
+    {
+      pattern: /npm\s+(run\s+)?(dev|start|serve|watch)/,
+      name: "npm dev server",
+    },
+    {
+      pattern: /npx\s+(vite|webpack-dev-server|next\s+dev)/,
+      name: "dev server",
+    },
     { pattern: /node\s+(server|app|index)\.js/, name: "Node server" },
     { pattern: /nodemon/, name: "nodemon watcher" },
 
@@ -163,8 +180,11 @@ function detectLongRunningCommand(command, args = []) {
     { pattern: /tsc\s+--watch/, name: "TypeScript watcher" },
     { pattern: /sass\s+--watch/, name: "Sass watcher" },
 
-    // Generic watch commands
-    { pattern: /\bwatch\b/, name: "file watcher" },
+    // Generic watch invocations: the `watch` utility invoked as the command,
+    // or an explicit --watch flag / :watch npm-script. Anchored/qualified so
+    // filenames or args like `cat watch.js` and `grep watch x` don't match.
+    { pattern: /^watch\b/, name: "file watcher" },
+    { pattern: /(--watch|:watch)\b/, name: "watch mode" },
     { pattern: /\btail\s+-f\b/, name: "log tail" },
   ];
 
@@ -182,68 +202,75 @@ function detectLongRunningCommand(command, args = []) {
 ```
 
 **Integration into runTerminalCmd (lines 1500-1519):**
+
 ```javascript
-  // Enforce timeout limits
-  const maxMs = (terminal.maxTimeoutSec || 60) * 1000;
-  const timeoutMs = Math.min(args.timeoutMs || maxMs, 300000);
-  const maxOutputBytes = (terminal.maxOutputKB || 256) * 1024;
+// Enforce timeout limits
+const maxMs = (terminal.maxTimeoutSec || 60) * 1000;
+const timeoutMs = Math.min(args.timeoutMs || maxMs, 300000);
+const maxOutputBytes = (terminal.maxOutputKB || 256) * 1024;
 
-  // ── Long-running command detection ──────────────────────────────────────
-  // Detect commands that typically run indefinitely and suggest background mode
-  const detection = detectLongRunningCommand(command, cmdArgs);
-  const isBackground = args.background === true;
+// ── Long-running command detection ──────────────────────────────────────
+// Detect commands that typically run indefinitely and suggest background mode
+const detection = detectLongRunningCommand(command, cmdArgs);
+const isBackground = args.background === true;
 
-  // Log suggestion if long-running command detected without background mode
-  let backgroundSuggestion = null;
-  if (detection.isLongRunning && !isBackground) {
-    backgroundSuggestion = detection.suggestion;
-    log("WARN", `${LOG_PREFIX} Long-running command detected without background mode`, {
+// Log suggestion if long-running command detected without background mode
+let backgroundSuggestion = null;
+if (detection.isLongRunning && !isBackground) {
+  backgroundSuggestion = detection.suggestion;
+  log(
+    "WARN",
+    `${LOG_PREFIX} Long-running command detected without background mode`,
+    {
       command,
       args: cmdArgs,
       suggestion: backgroundSuggestion,
-    });
-  }
+    },
+  );
+}
 ```
 
 **Result Formatting (lines 1678-1699):**
+
 ```javascript
-      const statusLine = killed
-        ? `Command timed out after ${(timeoutMs / 1000).toFixed(0)}s and was killed.`
-        : `Exit code: ${code ?? "unknown"}`;
+const statusLine = killed
+  ? `Command timed out after ${(timeoutMs / 1000).toFixed(0)}s and was killed.`
+  : `Exit code: ${code ?? "unknown"}`;
 
-      const isToolFailure = killed;
+const isToolFailure = killed;
 
-      // Include background mode suggestion if present
-      let resultText = `${statusLine}\nDuration: ${(duration / 1000).toFixed(1)}s`;
-      if (backgroundSuggestion) {
-        resultText += `\n\n💡 TIP: ${backgroundSuggestion}`;
-      }
-      resultText += `\n\n${cleanOutput || "(no output)"}`;
+// Include background mode suggestion if present
+let resultText = `${statusLine}\nDuration: ${(duration / 1000).toFixed(1)}s`;
+if (backgroundSuggestion) {
+  resultText += `\n\n💡 TIP: ${backgroundSuggestion}`;
+}
+resultText += `\n\n${cleanOutput || "(no output)"}`;
 
-      resolve({
-        success: !isToolFailure,
-        result: {
-          content: [
-            {
-              type: "text",
-              text: resultText,
-            },
-          ],
-        },
-      });
+resolve({
+  success: !isToolFailure,
+  result: {
+    content: [
+      {
+        type: "text",
+        text: resultText,
+      },
+    ],
+  },
+});
 ```
 
 ### Supported Patterns
 
-| Category | Examples | Detection |
-|----------|----------|-----------|
-| **npm dev servers** | `npm run dev`, `npm start`, `npm run watch` | ✅ |
-| **npx dev servers** | `npx vite`, `npx webpack-dev-server`, `npx next dev` | ✅ |
-| **Node.js servers** | `node server.js`, `node app.js`, `nodemon` | ✅ |
-| **Python servers** | `python -m http.server`, `python manage.py runserver`, `flask run` | ✅ |
-| **Static site generators** | `jekyll serve`, `hugo server`, `gatsby develop` | ✅ |
-| **Build watchers** | `webpack --watch`, `tsc --watch`, `sass --watch` | ✅ |
-| **Generic watchers** | `watch`, `tail -f` | ✅ |
+| Category                   | Examples                                                           | Detection |
+| -------------------------- | ------------------------------------------------------------------ | --------- |
+| **npm dev servers**        | `npm run dev`, `npm start`, `npm run watch`                        | ✅        |
+| **npx dev servers**        | `npx vite`, `npx webpack-dev-server`, `npx next dev`               | ✅        |
+| **Node.js servers**        | `node server.js`, `node app.js`, `nodemon`                         | ✅        |
+| **Python servers**         | `python -m http.server`, `python manage.py runserver`, `flask run` | ✅        |
+| **Static site generators** | `jekyll serve`, `hugo server`, `gatsby develop`                    | ✅        |
+| **Build watchers**         | `webpack --watch`, `tsc --watch`, `sass --watch`                   | ✅        |
+| **Generic watchers**       | `watch <cmd>`, `npm run test:watch`, `tail -f`                     | ✅        |
+| **Not flagged** (filenames/args) | `cat watch.js`, `grep watch x`                               | —         |
 
 ### Example Output
 
@@ -260,16 +287,17 @@ Duration: 2.3s
 
 ### Test Coverage
 
-**File:** `tests/unit/dockblock-improvements.test.js` (lines 141-334)
+**File:** `tests/unit/agent-loop-improvements.test.js` (lines 141-334)
 
 Tests verify:
+
 - ✅ npm dev servers (5 tests: dev/start/watch detected, install/test not detected)
 - ✅ npx dev servers (3 tests: vite, webpack-dev-server, next dev)
 - ✅ Node.js servers (3 tests: server.js, app.js, nodemon)
 - ✅ Python servers (3 tests: http.server, Django, Flask)
 - ✅ Static site generators (3 tests: Jekyll, Hugo, Gatsby)
 - ✅ Build watchers (3 tests: webpack, TypeScript, Sass)
-- ✅ Generic watch/monitoring (2 tests: watch, tail -f)
+- ✅ Generic watch/monitoring (watch, tail -f, `:watch` scripts; plus regression guards that `cat watch.js` and `grep watch x` are NOT flagged)
 - ✅ Case insensitivity (2 tests: uppercase, mixed case)
 - ✅ Non-long-running commands (4 tests: ls, git, echo, cat)
 
@@ -278,6 +306,7 @@ Tests verify:
 ## Enhancement 3: Progress Indicators
 
 ### Assessment
+
 Reviewed existing implementation in both server and client code.
 
 **Conclusion:** Existing implementation is comprehensive and production-ready. No changes needed.
@@ -285,11 +314,13 @@ Reviewed existing implementation in both server and client code.
 ### Current Implementation
 
 **Server-Side (lib/chat-post-handler.js lines 1104-1121):**
+
 - Sends `modelWait` SSE events each round with tool name and round number
 - Maintains heartbeat timer that sends updates every 20 seconds during long waits
 - Clears heartbeat when model responds or round completes
 
 **Client-Side (src/components/ui/ChatSessionProgress.jsx):**
+
 - Professional UI with pulsing indicator and progress bar
 - Displays mode-specific labels and status messages
 - Full accessibility support (aria-live, aria-busy, aria-label)
@@ -321,9 +352,10 @@ Reviewed existing implementation in both server and client code.
 
 ### Test Coverage
 
-**File:** `tests/unit/dockblock-improvements.test.js` (lines 336-382)
+**File:** `tests/unit/agent-loop-improvements.test.js` (lines 336-382)
 
 Tests verify:
+
 - ✅ modelWait SSE event structure
 - ✅ tool_pattern SSE event structure (from Enhancement 1)
 - ✅ Heartbeat timing intervals (20 seconds)
@@ -333,9 +365,11 @@ Tests verify:
 ## Enhancement 4: Preflight Context Banner (CTXFIX Phase 1)
 
 ### Problem
+
 Users can send messages that exceed the model's context window without warning, leading to failed requests or truncated context. Phase 1 of CTXFIX provides proactive client-side warning when approaching limits.
 
 ### Solution
+
 Added a UI banner that appears when the pending message + conversation history exceeds 80% of the model's context window. Shows estimated tokens used vs. total capacity with a "New thread" action to start fresh.
 
 ### Implementation
@@ -343,6 +377,7 @@ Added a UI banner that appears when the pending message + conversation history e
 **Backend Infrastructure** (already existed from prior work):
 
 **File:** `src/lib/context-budget.js` (39 lines, created May 8)
+
 ```javascript
 const CHARS_PER_TOKEN = 3.5;
 
@@ -364,6 +399,7 @@ export function estimateMessageTokens(messages) {
 ```
 
 **File:** `server.js` (lines 412-509) - `/api/model-context` endpoint
+
 - TTL caching with 5-minute expiration
 - 256-token hysteresis buckets (refined from spec's 4096) to prevent UI flicker
 - Supports two modes:
@@ -374,6 +410,7 @@ export function estimateMessageTokens(messages) {
 - Security: `requireLocalOrApiKey` middleware
 
 **File:** `lib/auto-model.js` (lines 391-403) - `getContextLengthForModel()` helper
+
 ```javascript
 async function getContextLengthForModel(name, ollamaUrl, apiKey) {
   const safe = String(name || "").trim();
@@ -393,6 +430,7 @@ async function getContextLengthForModel(name, ollamaUrl, apiKey) {
 **Frontend Implementation** (created this session):
 
 **File:** `src/components/ui/PreflightBanner.jsx` (80 lines)
+
 ```javascript
 export default function PreflightBanner({
   visible,
@@ -428,6 +466,7 @@ export default function PreflightBanner({
 ```
 
 **Design Decisions:**
+
 - **Amber theme** - Warning state (vs. indigo for progress)
 - **Format**: "~XK of ~YK tokens used (N%)"
 - **Full ARIA accessibility** - `role="alert"`, `aria-live="polite"`, `aria-label`
@@ -438,12 +477,14 @@ export default function PreflightBanner({
 **File:** `src/App.jsx` (6 edits for integration)
 
 1. **Imports** (lines 15, 69):
+
 ```javascript
 import PreflightBanner from "./components/ui/PreflightBanner";
 import { estimateMessageTokens } from "./lib/context-budget";
 ```
 
 2. **State Variables** (around line 507-510):
+
 ```javascript
 const [preflightBannerVisible, setPreflightBannerVisible] = useState(false);
 const [contextLength, setContextLength] = useState(null);
@@ -452,6 +493,7 @@ const [enablePreflightBanner, setEnablePreflightBanner] = useState(false);
 ```
 
 3. **Context Length Fetching** (useEffect):
+
 ```javascript
 useEffect(() => {
   if (!selectedModel) {
@@ -485,6 +527,7 @@ useEffect(() => {
 ```
 
 4. **Threshold Checking** (useEffect with 200ms debouncing):
+
 ```javascript
 useEffect(() => {
   const timer = setTimeout(() => {
@@ -508,6 +551,7 @@ useEffect(() => {
 ```
 
 5. **Banner Placement** (line 2204-2210):
+
 ```javascript
 <PreflightBanner
   visible={preflightBannerVisible && enablePreflightBanner}
@@ -518,6 +562,7 @@ useEffect(() => {
 ```
 
 6. **Config Flag Wiring** (line 858):
+
 ```javascript
 setEnablePreflightBanner(data.enablePreflightBanner ?? false);
 ```
@@ -525,6 +570,7 @@ setEnablePreflightBanner(data.enablePreflightBanner ?? false);
 ### Configuration
 
 **Config Flag:** `enablePreflightBanner` in `.cc-config.json`
+
 - **Default:** `false` in v1.7.0 (conservative rollout)
 - **Planned:** `true` in v1.7.1 after dogfooding
 - **Location:** `lib/config.js` line 104
@@ -534,6 +580,7 @@ setEnablePreflightBanner(data.enablePreflightBanner ?? false);
 **File:** `tests/ui/preflight-banner.spec.js` (330 lines, 5 test cases)
 
 Tests verify:
+
 - ✅ Banner appears when approaching 80% threshold (23000 chars → ~6571 tokens with 8K context)
 - ✅ Banner hidden when below 80% threshold ("Hello world" input)
 - ✅ Banner hidden when config flag disabled (even with large input)
@@ -543,6 +590,7 @@ Tests verify:
 - ✅ Progress bar width reflects percentage correctly
 
 **Backend Tests** (already existed):
+
 - `tests/unit/context-budget.test.js` - 8/8 tests for token estimation
 - `tests/integration/model-context-api.test.js` - API endpoint coverage (part of 29 integration tests)
 
@@ -563,7 +611,8 @@ Phase 1 does not introduce new SSE events - it's purely client-side UI based on 
 ## Test Results Summary
 
 **Combined Test Suites:**
-- **DockBlock Improvements:** `tests/unit/dockblock-improvements.test.js` - 37/37 passing (77.7ms)
+
+- **Agent-loop Improvements:** `tests/unit/agent-loop-improvements.test.js` - 37/37 passing (77.7ms)
 - **Phase 1 UI:** `tests/ui/preflight-banner.spec.js` - 5/5 passing (16.9s)
 - **Phase 1 Backend (existing):** Unit tests (8/8) + Integration tests (included in 29/29)
 
@@ -572,26 +621,26 @@ Phase 1 does not introduce new SSE events - it's purely client-side UI based on 
 
 ### Test Breakdown
 
-| Enhancement | Tests | Status |
-|-------------|-------|--------|
-| Tool-Call Loop Pattern Detection | 6 | ✅ All passing |
-| Background Process Auto-Suggestion | 28 | ✅ All passing |
-| Progress Indicators | 3 | ✅ All passing |
+| Enhancement                            | Tests | Status             |
+| -------------------------------------- | ----- | ------------------ |
+| Tool-Call Loop Pattern Detection       | 6     | ✅ All passing     |
+| Background Process Auto-Suggestion     | 28    | ✅ All passing     |
+| Progress Indicators                    | 3     | ✅ All passing     |
 | **Preflight Context Banner (Phase 1)** | **5** | ✅ **All passing** |
 
 ## Running the Tests
 
 ```bash
-# Run all DockBlock improvements tests
-node --test tests/unit/dockblock-improvements.test.js
+# Run all agent-loop improvements tests
+node --test tests/unit/agent-loop-improvements.test.js
 
-# Run all unit tests (includes DockBlock tests)
+# Run all unit tests (includes agent-loop tests)
 npm run test:unit
 ```
 
 ## Files Modified
 
-### DockBlock Improvements (Enhancements 1-3)
+### Agent-loop Improvements (Enhancements 1-3)
 
 1. **lib/chat-post-handler.js**
    - Lines 977-980: Tracking variables
@@ -603,12 +652,13 @@ npm run test:unit
    - Lines 1500-1519: Integration into `runTerminalCmd`
    - Lines 1678-1699: Result formatting with suggestions
 
-3. **tests/unit/dockblock-improvements.test.js** (NEW)
+3. **tests/unit/agent-loop-improvements.test.js** (NEW)
    - Lines 1-402: Comprehensive test suite for all three enhancements
 
 ### Phase 1 Implementation (Enhancement 4)
 
 **Backend (already existed from prior work):**
+
 1. **src/lib/context-budget.js** (39 lines, created May 8)
    - Token estimation helpers shared by client and server
 
@@ -634,6 +684,7 @@ npm run test:unit
    - Environment variable documentation
 
 **Frontend (created this session - May 17):**
+
 1. **src/components/ui/PreflightBanner.jsx** (NEW - 80 lines)
    - Phase 1 UI component with accessibility support
 
@@ -654,8 +705,9 @@ npm run test:unit
 ## Production Readiness
 
 All four enhancements are:
-- ✅ **Fully implemented** - DockBlock improvements (May 9) + Phase 1 (May 17)
-- ✅ **Comprehensively tested** - 42 tests total (37 DockBlock + 5 Phase 1)
+
+- ✅ **Fully implemented** - agent-loop improvements (May 9) + Phase 1 (May 17)
+- ✅ **Comprehensively tested** - 42 tests total (37 agent-loop + 5 Phase 1)
 - ✅ **Backward compatible** - No breaking changes, config flag defaults to `false`
 - ✅ **Performance optimized** - Minimal overhead with caching, debouncing, and hysteresis
 - ✅ **User-friendly** - Clear messages, helpful suggestions, accessible UI
@@ -663,15 +715,13 @@ All four enhancements are:
 
 ## Benefits
 
-**DockBlock Improvements (Enhancements 1-3):**
+**Agent-loop Improvements (Enhancements 1-3):**
+
 1. **Earlier Loop Detection**: Users are notified at 3 repetitions instead of 25, significantly reducing wasted time
 2. **Proactive Guidance**: Background mode suggestions help users avoid timeouts before they happen
 3. **Better UX**: Verified progress indicators keep users informed during long operations
 
-**Phase 1 Context Banner (Enhancement 4):**
-4. **Proactive Warning**: Users see context usage approaching 80% before sending, not after failure
-5. **Easy Recovery**: "New thread" button provides one-click solution to clear context
-6. **Accessibility**: Full ARIA support makes warnings available to all users
+**Phase 1 Context Banner (Enhancement 4):** 4. **Proactive Warning**: Users see context usage approaching 80% before sending, not after failure 5. **Easy Recovery**: "New thread" button provides one-click solution to clear context 6. **Accessibility**: Full ARIA support makes warnings available to all users
 
 ## Future Improvements
 
@@ -685,6 +735,7 @@ Potential enhancements (not currently planned):
 ## Related Documentation
 
 **Phase 1 (CTXFIX):**
+
 - `CTXFIX.md` - Full 5-phase context handling specification
 - `docs/CC-CONFIG.md` - Configuration documentation
 - `docs/ENVIRONMENT_VARIABLES.md` - Environment variable reference
@@ -692,7 +743,8 @@ Potential enhancements (not currently planned):
 - `src/lib/context-budget.js` - Token estimation module
 - `lib/auto-model.js` - Auto model resolution and context length helpers
 
-**DockBlock Improvements:**
+**Agent-loop Improvements:**
+
 - `docs/PCI-ASSISTANT-SPEED-OPTIMIZATION.md` - Model selection and reliability analysis
 - `CLIPLAN.md` - Agent terminal specification
 - `lib/chat-post-handler.js` - Core chat handler implementation
@@ -700,7 +752,7 @@ Potential enhancements (not currently planned):
 
 ## Conclusion
 
-All four enhancements (3 DockBlock + Phase 1 CTXFIX) are complete, tested, and ready for production use in **v1.6.48 release**. Together, they significantly enhance the user experience by providing:
+All four enhancements (3 agent-loop + Phase 1 CTXFIX) are complete, tested, and ready for production use in **v1.6.48 release**. Together, they significantly enhance the user experience by providing:
 
 - **Earlier warnings** (loop detection at 3 repetitions vs. 25)
 - **Proactive guidance** (background mode suggestions, context limit warnings)
@@ -712,6 +764,7 @@ The Phase 1 implementation successfully delivers the first step of the CTXFIX ro
 **Status:** ✅ **Production Ready for v1.6.48**
 **Date:** 2026-05-17
 **Test Results:** 42/42 passing
-- DockBlock: 37/37 tests (77.7ms)
+
+- Agent-loop: 37/37 tests (77.7ms)
 - Phase 1: 5/5 UI tests (16.9s)
 - Backend: 8/8 unit + integration tests (already existed)
