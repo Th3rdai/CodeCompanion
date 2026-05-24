@@ -518,3 +518,31 @@ test("shell-promote: refuses pipes and command chaining", () => {
   assert.equal(shellLineFailsAutoPromotionSafety("ls | wc"), true);
   assert.equal(shellLineFailsAutoPromotionSafety("ls && pwd"), true);
 });
+
+test("shell-promote: a narrated filename (`SIP.md.backup`) is NOT promoted", () => {
+  // Regression: the heuristic used to spawn `SIP.md.backup` → ENOENT.
+  const prose =
+    "Done — I created the backup `SIP.md.backup` before overwriting the file.";
+  assert.equal(tryPromoteNarratedShellToToolCall(prose), null);
+});
+
+test("shell-promote: other narrated filenames are not promoted", () => {
+  assert.equal(
+    tryPromoteNarratedShellToToolCall("The report is saved as `report.pdf`."),
+    null,
+  );
+  assert.equal(
+    tryPromoteNarratedShellToToolCall(
+      "Updated `config.json` with the new key.",
+    ),
+    null,
+  );
+});
+
+test("shell-promote: a real narrated command (`git status`) is still promoted", () => {
+  const out = tryPromoteNarratedShellToToolCall(
+    "Let me run `git status` to check the working tree.",
+  );
+  assert.ok(out && out.includes("TOOL_CALL: builtin.run_terminal_cmd"));
+  assert.match(out, /"command":"git"/);
+});
