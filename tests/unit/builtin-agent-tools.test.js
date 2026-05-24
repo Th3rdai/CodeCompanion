@@ -710,3 +710,45 @@ test("getBuiltinTools gates app-skill builtins on agentAppSkills", () => {
   assert.ok(names(cfgOn).includes("pentest_scan_folder"));
   assert.ok(names(cfgOn).includes("builder_score"));
 });
+
+test("write_file: tolerates arg aliases (filename/text) and still writes", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-wf-alias-")),
+  );
+  try {
+    const out = await executeBuiltinTool(
+      "write_file",
+      { filename: "aliased.md", text: "hello via aliases" },
+      { projectFolder: dir, chatFolder: dir },
+      () => {},
+      "test-client",
+      {},
+    );
+    assert.equal(out.success, true);
+    assert.equal(
+      fs.readFileSync(path.join(dir, "aliased.md"), "utf8"),
+      "hello via aliases",
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("write_file: missing path/content returns a self-correcting error naming the keys", async () => {
+  const out = await executeBuiltinTool(
+    "write_file",
+    { foo: "bar" },
+    { projectFolder: "/tmp", chatFolder: "/tmp" },
+    () => {},
+    "test-client",
+    {},
+  );
+  assert.equal(out.success, false);
+  const text = out.result?.content?.[0]?.text || "";
+  assert.match(text, /"path"/);
+  assert.match(text, /"content"/);
+  assert.match(text, /Retry/i);
+});
