@@ -90,6 +90,7 @@ Implementation rule: each request must pass through a single finalization gate s
 
 ### Changes
 
+- Motivation note: standard streaming can currently complete with zero visible tokens and rely on client-side fallback text; this phase closes that gap with explicit server-side empty-output handling.
 - Track visible token count after sanitization on each response path.
 - Apply one concrete completion contract per path:
   1. run final sanitizer flush
@@ -127,8 +128,8 @@ Implementation rule: each request must pass through a single finalization gate s
 ### Integration Tests
 
 - Update/add handler path tests:
-  - `tests/unit/chat-post-handler-phase3-wiring.test.js` for sanitizer wiring on all token paths
-  - `tests/unit/chat-empty-response.test.js` for explicit server empty-output behavior
+  - update existing `tests/unit/chat-post-handler-phase3-wiring.test.js` for sanitizer wiring on all token paths
+  - update existing `tests/unit/chat-empty-response.test.js` for explicit server empty-output behavior
   - new focused stream test (`tests/unit/chat-post-handler-reasoning-stream.test.js`) that mocks chunk boundaries:
     - fallback path chunk split (`<tho` + `ught>`)
     - standard path chunk split
