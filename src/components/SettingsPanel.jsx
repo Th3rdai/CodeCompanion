@@ -99,6 +99,15 @@ export default function SettingsPanel({
   const [brandAssets, setBrandAssets] = useState([]);
   const [brandLoaded, setBrandLoaded] = useState(false);
 
+  // Dashboard preference state
+  const [showDashboard, setShowDashboard] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("cc-show-dashboard") || "false");
+    } catch {
+      return false;
+    }
+  });
+
   // Image support state
   const [imageSupport, setImageSupport] = useState({
     enabled: true,
@@ -2556,6 +2565,41 @@ export default function SettingsPanel({
                   between 1024-65535.
                 </p>
               </div>
+            </div>
+
+            {/* Dashboard on Startup Toggle */}
+            <div className="glass rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-200">
+                  Show Dashboard on Startup
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Start with the dashboard view showing recent work and all
+                  features
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !showDashboard;
+                  setShowDashboard(newValue);
+                  localStorage.setItem(
+                    "cc-show-dashboard",
+                    JSON.stringify(newValue),
+                  );
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 ${
+                  showDashboard ? "bg-indigo-600" : "bg-slate-600"
+                }`}
+                role="switch"
+                aria-checked={showDashboard}
+                aria-label="Toggle dashboard on startup"
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
+                    showDashboard ? "translate-x-6" : "translate-x-0"
+                  }`}
+                />
+              </button>
             </div>
 
             {/* 3D Effects Toggle */}

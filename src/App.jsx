@@ -33,6 +33,7 @@ import PromptingPanel from "./components/builders/PromptingPanel";
 import SkillzPanel from "./components/builders/SkillzPanel";
 import AgenticPanel from "./components/builders/AgenticPanel";
 import PlannerPanel from "./components/builders/PlannerPanel";
+import DashboardView from "./components/dashboard/DashboardView";
 import OnboardingWizard, {
   isOnboardingComplete,
 } from "./components/OnboardingWizard";
@@ -96,6 +97,13 @@ function isPathUnderProjectRoot(projectRoot, candidate) {
 }
 
 const MODES = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: "🏠",
+    desc: "Your home for recent work and feature discovery",
+    placeholder: "", // Dashboard has no chat input
+  },
   {
     id: "chat",
     label: "Chat",
@@ -602,6 +610,12 @@ export default function App() {
     dragCounter,
     setDragging,
   });
+
+  // ── Dashboard: Resume Conversation Handler ────────────────────────────────
+  async function handleResumeConversation(conversationId, modeId) {
+    await loadConversation(conversationId);
+    setMode(modeId);
+  }
 
   // ── Preflight Context Banner: Fetch context length when model changes ──────
   // Gated on enablePreflightBanner so installs with the feature off (the
@@ -1855,8 +1869,17 @@ export default function App() {
               </div>
             )}
 
-            {/* Messages / Create Wizard / Review Panel */}
-            {mode === "review" ? (
+            {/* Messages / Create Wizard / Review Panel / Dashboard */}
+            {mode === "dashboard" ? (
+              <DashboardView
+                modes={MODES}
+                currentMode={mode}
+                onModeSelect={setMode}
+                isElectron={isElectron}
+                history={history}
+                onResumeConversation={handleResumeConversation}
+              />
+            ) : mode === "review" ? (
               <ReviewPanel
                 selectedModel={selectedModel}
                 connected={connected}
