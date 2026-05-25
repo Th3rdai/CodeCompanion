@@ -127,21 +127,44 @@ run_sse() {
 
 run_review() {
   local body="$1"
-  local tmp
-  tmp="$(mktemp)"
-  set +e
-  "${CURLN[@]}" --max-time "${SSE_SEC}" -X POST "${BASE}/api/review" \
-    -H 'Content-Type: application/json' \
-    -d "${body}" -o "${tmp}"
-  local code=$?
-  set -e
-  if [[ "${code}" -eq 28 ]]; then
-    echo "Review: FAIL — curl timeout after ${SSE_SEC}s" >&2
+  local attempt tmp code bytes
+  for attempt in 1 2; do
+    tmp="$(mktemp)"
+    set +e
+    "${CURLN[@]}" --max-time "${SSE_SEC}" -X POST "${BASE}/api/review" \
+      -H 'Content-Type: application/json' \
+      -d "${body}" -o "${tmp}"
+    code=$?
+    set -e
+    bytes="$(wc -c <"${tmp}" | tr -d ' ')"
+
+    if [[ "${code}" -eq 28 ]]; then
+      echo "Review: FAIL — curl timeout after ${SSE_SEC}s" >&2
+      rm -f "${tmp}"
+      return 1
+    fi
+
+    if need_review_response "${tmp}"; then
+      rm -f "${tmp}"
+      return 0
+    fi
+
+    # Some validate-project runs race a server SIGTERM/restart mid-review
+    # and curl returns no body; retry once when app health is back.
+    if [[ "${attempt}" -eq 1 && "${bytes}" -eq 0 ]]; then
+      echo "Review: WARN — empty response (curl exit ${code}), retrying once..." >&2
+      rm -f "${tmp}"
+      sleep 2
+      if "${CURLF[@]}" --max-time 8 "${BASE}/api/config" >/dev/null 2>&1; then
+        continue
+      fi
+      echo "Review: FAIL — app health check failed after empty review response" >&2
+      return 1
+    fi
+
     rm -f "${tmp}"
     return 1
-  fi
-  need_review_response "${tmp}"
-  rm -f "${tmp}"
+  done
 }
 
 echo "P7: base URL ${BASE}"

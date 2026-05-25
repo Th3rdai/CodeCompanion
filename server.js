@@ -698,22 +698,24 @@ const proto = useHttps ? "https" : "http";
 const http = require("http");
 
 // ── Start docling-serve if enabled ───────────────────
-(async () => {
-  const config = getConfig();
-  const doclingResult = await startDocling(config, (msg) => log("INFO", msg));
-  if (doclingResult.managed) {
-    log(
-      "INFO",
-      `Docling server managed by Code Companion at ${doclingResult.url}`,
-    );
-  } else if (doclingResult.reason === "already-running") {
-    log("INFO", `Docling server already running at ${doclingResult.url}`);
-  } else if (doclingResult.reason === "not-installed") {
-    // Already logged by startDocling
-  } else if (doclingResult.reason === "disabled") {
-    // User disabled it — silent
-  }
-})();
+if (process.env.CC_SKIP_DOCLING_AUTOSTART !== "1") {
+  (async () => {
+    const config = getConfig();
+    const doclingResult = await startDocling(config, (msg) => log("INFO", msg));
+    if (doclingResult.managed) {
+      log(
+        "INFO",
+        `Docling server managed by Code Companion at ${doclingResult.url}`,
+      );
+    } else if (doclingResult.reason === "already-running") {
+      log("INFO", `Docling server already running at ${doclingResult.url}`);
+    } else if (doclingResult.reason === "not-installed") {
+      // Already logged by startDocling
+    } else if (doclingResult.reason === "disabled") {
+      // User disabled it — silent
+    }
+  })();
+}
 
 let serverInstance;
 

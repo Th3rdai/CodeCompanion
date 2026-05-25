@@ -1,51 +1,183 @@
-# 💡 Self-Improvement Protocol (SIP.md) for CodeCompanion
+# Self-Improvement Protocol (SIP) for CodeCompanion
 
----
+## Goal
 
-(A set of professional development standards and best practices for maintaining and enhancing the CodeCompanion codebase and functionality.)
+Improve the in-app agent's reliability, safety, and maintainability without expanding scope into unrelated product roadmap work.
 
-As we continue to develop the CodeCompanion app, our goal is not just to make it work, but to make it **robust, secure, and maintainable** for any developer to jump into. Drawing from our recent codebase reviews, this protocol outlines areas where proactive attention will elevate the product from "functional" to "industry-leading standard."
+## Scope and Non-Goals
 
----
+- Scope: agent chat/tool-call loop behavior, builtin tool safety gates, auditability, and regression coverage.
+- Scope: planning and implementation steps mapped to existing repo files and test suites.
+- Non-goal: redesigning unrelated UI features, introducing new product modes, or broad platform architecture rewrites.
+- Non-goal: replacing current logging stack wholesale; improve existing logs and audit traces in-place.
 
-### 🔒 **Module 1: Security & Integrity Hardening (Priority: Critical)**
+## Phase 0 Ground Truth (verified in repo)
 
-The biggest area of focus must be preventing external compromises from silently affecting our application.
+- Agent tool-call orchestration, round caps, and recovery notices already live in `lib/chat-post-handler.js`.
+- Builtin terminal execution already enforces allowlist checks, cwd boundary checks, and optional confirm-before-run in `lib/builtin-agent-tools.js`.
+- Terminal audit events are append-only JSON lines in `lib/terminal-audit.js`; app audit events are in `lib/audit-log.js`.
+- Markdown rendering already sanitizes with `DOMPurify` in `src/components/MarkdownContent.jsx` (there is no `MarkdownPreview.jsx`).
+- Test foundations already exist for agent guardrails and tool loop behavior in `tests/unit/chat-post-handler-guardrails.test.js`, `tests/unit/agent-loop-improvements.test.js`, and builtin tool tests.
+- `npm test` runs Playwright (`package.json`), so plan validation must call explicit scripts (`test:unit`, `test:integration`, `test:ui`, `test:e2e`) instead of relying on `npm test` for all coverage.
 
-**🎯 Improvement Focus: External Resource Integrity**
+## Execution Guard Template (applies to every SIP task)
 
-- **The Principle:** Never trust a third-party resource without verifying its authenticity.
-- **Action Item (SRI Implementation):** All external scripts loaded from Content Delivery Networks (CDNs)—such as Tailwind CSS, React, Babel, or Markdown parsers—must include **Subresource Integrity (SRI) hashes**.
-  - **Why this matters:** Without an SRI hash, if a CDN is compromised, an attacker could inject malicious JavaScript into our application without us knowing. The SRI hash acts like a digital checksum, ensuring the downloaded file is exactly what we expect it to be.
-  - **🛠️ How to implement:** Add the `integrity="sha384-."` attribute to every external `<script>` tag.
+- Trigger: clear condition that allows starting work (incident, metric drift, or explicit backlog item).
+- Scope limit: files/symbols and behavioral boundaries that may be changed.
+- Validation: required commands and acceptance checks before merge.
+- Rollback: exact toggle/revert path to restore previous behavior quickly.
+- Approval: who signs off before enabling broader rollout.
+- Audit trail: what evidence must be recorded (logs, test output, note in journal/SIP updates).
 
-**🎯 Improvement Focus: Input Sanitization**
+## Workstream A - Tool-Call Loop Stability
 
-- **The Principle:** Never trust data coming from the outside (user input, APIs, or markdown files).
-- **Action Item (XSS Prevention):** When rendering user-generated content (especially from markdown parsing), we must pass the output through a dedicated sanitization library like **DOMPurify**.
-  - **Why this matters:** Even if the markdown parser works correctly, a malicious user might use markdown features to inject harmful HTML (XSS). Sanitization strips out all dangerous code, allowing us to render the content safely.
+Priority: Critical
 
-### 🐛 **Module 2: Reliability & Error Handling (Priority: High)**
+### A1. Deterministic loop-stop behavior
 
-An application must fail loudly and give the user a clear path to recovery, never silently failing in the background.
+- Trigger: repeated same-signature tool calls in a single turn, or user-reported "agent looping" regressions.
+- Scope limit: `lib/chat-post-handler.js` loop-control and notice emission paths only.
+- Repo actions:
+  - Tighten duplicate signature handling and final-answer fallback criteria.
+  - Keep max-round behavior bounded by existing settings (`agentMaxRounds`) and current hard cap.
+  - Ensure user-visible SSE (Server-Sent Events) notices stay explicit when loops are interrupted.
+- Validation:
+  - `npm run test:unit -- tests/unit/chat-post-handler-guardrails.test.js`
+  - `npm run test:unit -- tests/unit/agent-loop-improvements.test.js`
+- Rollback:
+  - Revert the loop-control patch commit only; retain unrelated test/docs changes.
+  - If needed, temporarily lower rollout risk by reducing max rounds in settings (no code rollback required).
+- Approval: maintainer review on loop behavior diff + one reproduced scenario from logs.
+- Audit trail:
+  - Save before/after log snippets showing round-limit or duplicate-loop handling.
+  - Record final behavior notes in `journal/` daily entry.
 
-**🎯 Improvement Focus: Robust Network Failure Catching**
+### A2. Tool-result-to-final-answer continuity
 
-- **The Principle:** Every asynchronous operation (like fetching settings or calling the backend) must handle potential failures.
-- **Action Item (Explicit Logging):** Eliminate empty `catch {}` blocks. Every failure must trigger a detailed log entry using `console.error(err)` or equivalent.
-  - **Why this matters:** Silent error catching (swallowing the error) makes debugging impossible. If the app fails to connect to Ollama or a backend service, we need to know _why_ immediately.
+- Trigger: turns ending with tool output but weak/no final assistant synthesis.
+- Scope limit: final synthesis and fallback generation in `lib/chat-post-handler.js`.
+- Repo actions:
+  - Strengthen "final answer from accumulated tool results" conditions.
+  - Keep browser-specific continuation behavior unchanged unless tests prove regression-safe.
+- Validation:
+  - Existing unit guardrail suites above.
+  - One manual replay of a known tool-heavy prompt in local dev.
+- Rollback: revert continuity patch if final answer quality regresses or tool loops increase.
+- Approval: maintainer sign-off after manual replay and unit pass.
+- Audit trail: attach replay prompt + observed SSE (Server-Sent Events) notice sequence to journal entry.
 
-**🎯 Improvement Focus: Syntactic Consistency**
+## Workstream B - Builtin Tool Safety Gates
 
-- **The Principle:** Adhere strictly to the syntax rules of the environment (HTML vs. JSX/React).
-- **Action Item (Attribute Naming):** Be mindful of context-specific attributes. In standard HTML, the class attribute is lowercase (`class`), whereas in React JSX, it is camelCase (`className`). Ensure the correct version is used based on the file's context to prevent styling failures.
+Priority: Critical
 
-### ✨ **Module 3: Architectural Excellence (Priority: Ongoing)**
+### B1. Confirm-before-run and deny-path hardening
 
-These are the practices that keep the project clean, fast, and easy for new developers to work with.
+- Trigger: any denial ambiguity, missing reason text, or safety-policy bypass bug report.
+- Scope limit: terminal command validation and confirmation flow in `lib/builtin-agent-tools.js`.
+- Repo actions:
+  - Keep fail-closed behavior when confirmation callback is missing/failing.
+  - Normalize deny reason/action text so the assistant can relay exact actionable guidance.
+  - Preserve project-folder and interaction-root boundaries.
+- Validation:
+  - `npm run test:unit -- tests/unit/builtin-agent-tools.test.js`
+  - `npm run test:unit -- tests/unit/builtin-agent-tools-path.test.js`
+  - `npm run test:unit -- tests/unit/builtin-agent-tools-background.test.js`
+- Rollback:
+  - Revert only builtin terminal gate changes.
+  - Temporarily force `confirmBeforeRun=true` in config for extra safety if needed.
+- Approval: security-focused review on deny/confirm paths.
+- Audit trail: capture denied/approved command samples from `logs/terminal-audit.log`.
 
-**🎯 Improvement Focus: Progressive Modernization**
+### B2. Scope-limited file/tool operations for self-improvement actions
 
-- **The Principle:** Continual review of all dependencies and core APIs.
-- **Action Item (Upgrade/Audit):** Regular, scheduled runs of dependency audit tools (`npm audit fix`) are essential. Furthermore, whenever possible, we should migrate to modern standards (e.g., using `crypto.randomUUID()` instead of older UUID libraries).
-- **Pro-Tip (Refactoring):** Document every architectural decision. Creating a dedicated `README.md` or `DESIGN-STANDARDS.md` that explains _why_ a feature was built a certain way helps the next developer solve the problem faster.
+- Trigger: self-improvement task needs automated file mutation or command execution.
+- Scope limit: only files under configured project folder and active interaction root.
+- Repo actions:
+  - Re-verify path-resolution utilities used by builtins and app skills (`lib/agent-interaction-root.js`, `lib/agent-app-skills.js`).
+  - Add/expand tests where relative-vs-absolute resolution could escape boundaries.
+- Validation:
+  - `npm run test:unit -- tests/unit/agent-app-skills.test.js`
+  - `npm run test:unit -- tests/unit/agent-app-skill-envelope.test.js`
+- Rollback: revert only path-validation changes if false positives block legitimate workflows.
+- Approval: maintainer + one additional reviewer for path-boundary diffs.
+- Audit trail: include boundary test outputs in PR description.
+
+## Workstream C - Auditability and Evidence
+
+Priority: High
+
+### C1. Unified evidence checklist for agent incidents
+
+- Trigger: any production/dev incident where agent behavior is disputed.
+- Scope limit: documentation updates in `SIP.md`, `SIP.md`-referenced runbook notes, and minimal supporting docs only.
+- Repo actions:
+  - Define required evidence bundle: `CodeCompanion-Data/logs/app.log`, `CodeCompanion-Data/logs/debug.log`, `CodeCompanion-Data/logs/terminal-audit.log`, relevant test run output, repro prompt.
+  - Keep field naming aligned with existing JSON-line entries in `lib/terminal-audit.js` and `lib/audit-log.js`.
+- Validation: markdown-only review + one dry-run incident reconstruction.
+- Rollback: remove checklist section if it conflicts with established runbooks.
+- Approval: maintainer approval with one dry-run confirmation.
+- Audit trail: log dry-run completion in journal.
+
+### C2. Audit Logging Failure Mode (Security Enhancement)
+
+- Trigger: disk full, permissions error, or other I/O failure during audit logging.
+- Scope limit: `lib/terminal-audit.js` and `lib/audit-log.js`.
+- Repo actions:
+  - Implement fail-closed behavior: if audit logging fails, halt execution and return error.
+  - Add secondary fallback: attempt console.error() + graceful degradation (continue with warning) if file logging completely fails.
+  - Never lose evidence of agent actions; if logging fails, surface the failure clearly to the user.
+- Validation:
+  - Unit test for I/O error handling in audit paths.
+  - Manual test: simulate disk full condition and verify error propagation.
+- Rollback: revert audit failure-handling changes; revert to previous "silent failure" behavior if needed.
+- Approval: security-focused review.
+- Audit trail: document failure mode behavior in `docs/SECURITY-OPERATIONS.md`.
+
+## Workstream D - Safe Rollout and Change Governance
+
+Priority: High
+
+### D1. Progressive rollout gates for self-improvement patches
+
+- Trigger: patch changes agent behavior in tool-calling, command execution, or path boundaries.
+- Scope limit: behavior flags and guarded code paths in existing config + handler files.
+- Repo actions:
+  - Require three promotion stages: local validation -> limited internal use -> default-on.
+  - Document explicit stop conditions (loop frequency spike, deny-path regression, missing final answer synthesis).
+  - Require a rollback owner for each change before rollout starts.
+- Validation:
+  - `npm run test:unit`
+  - `npm run test:integration`
+  - targeted Playwright run (`npm run test:ui` or `npm run test:e2e`) when UI-visible behavior changes.
+- Rollback:
+  - Immediate feature-flag disable or targeted revert commit.
+  - Post-rollback incident note with root-cause hypothesis within same day.
+- Approval: maintainer approval required at each promotion stage.
+- Audit trail: keep a short rollout log in journal entries and reference associated PR/check outputs.
+
+## Implementation Sequence (no scope expansion)
+
+1. Workstream A (loop stability) and Workstream B (safety gates) first.
+2. Workstream C (evidence checklist, audit failure mode) after A/B behavior is stable.
+3. Workstream D applies to every A/B/C change and must be enforced before default-on rollout.
+
+## Definition of Done
+
+- No unresolved Critical/Major safety findings in affected workstreams.
+- All required validation commands pass for changed areas.
+- Rollback path tested or dry-run documented.
+- Approval and audit trail artifacts are attached to the corresponding change.
+
+## Open Questions (must be answered before broad rollout)
+
+| Question                                                                                             | Owner  | Deadline   | Status  |
+| ---------------------------------------------------------------------------------------------------- | ------ | ---------- | ------- |
+| What quantitative threshold defines "loop frequency spike" for stop conditions?                      | @james | 2026-05-30 | Pending |
+| Should confirm-before-run default to enabled in all environments, or remain deployment-configurable? | @james | 2026-05-30 | Pending |
+| Which single owner is accountable for rollback execution during off-hours?                           | @james | 2026-05-30 | Pending |
+
+## Appendix: Glossary
+
+- **SSE (Server-Sent Events):** A technology where the server pushes real-time updates to the browser over HTTP. Used in CodeCompanion for streaming assistant responses and progress notices to the UI.
+- **Fail-Closed:** A security principle where the system denies an action by default if any safety check cannot be completed (e.g., if audit logging fails, deny the operation).
+- **Journal Directory:** Located at `CodeCompanion-Data/logs/` in the project root, containing daily timestamped entries (`journal/YYYY-MM-DD.md`).

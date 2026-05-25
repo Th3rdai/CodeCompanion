@@ -787,7 +787,9 @@ test("list_dir: errors on a non-directory path", async () => {
   const fs = require("fs");
   const os = require("os");
   const path = require("path");
-  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld2-")));
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld2-")),
+  );
   try {
     fs.writeFileSync(path.join(dir, "file.txt"), "x");
     const out = await executeBuiltinTool(
@@ -809,7 +811,9 @@ test("list_dir: refuses paths outside the project folder", async () => {
   const fs = require("fs");
   const os = require("os");
   const path = require("path");
-  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld3-")));
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-ld3-")),
+  );
   try {
     const out = await executeBuiltinTool(
       "list_dir",

@@ -26,10 +26,7 @@ describe("compliance-mappings", () => {
 
       assert.strictEqual(actualCategories.length, 10);
       expectedCategories.forEach((cat) => {
-        assert.ok(
-          COMPLIANCE_MAP[cat],
-          `Missing OWASP category: ${cat}`,
-        );
+        assert.ok(COMPLIANCE_MAP[cat], `Missing OWASP category: ${cat}`);
       });
     });
 
@@ -47,22 +44,10 @@ describe("compliance-mappings", () => {
 
     it("should have at least one control mapping per framework per category", () => {
       Object.entries(COMPLIANCE_MAP).forEach(([key, value]) => {
-        assert.ok(
-          value.nist.length > 0,
-          `${key} should have NIST controls`,
-        );
-        assert.ok(
-          value.soc2.length > 0,
-          `${key} should have SOC 2 controls`,
-        );
-        assert.ok(
-          value.hipaa.length > 0,
-          `${key} should have HIPAA controls`,
-        );
-        assert.ok(
-          value.pci.length > 0,
-          `${key} should have PCI DSS controls`,
-        );
+        assert.ok(value.nist.length > 0, `${key} should have NIST controls`);
+        assert.ok(value.soc2.length > 0, `${key} should have SOC 2 controls`);
+        assert.ok(value.hipaa.length > 0, `${key} should have HIPAA controls`);
+        assert.ok(value.pci.length > 0, `${key} should have PCI DSS controls`);
       });
     });
   });
@@ -108,14 +93,8 @@ describe("compliance-mappings", () => {
       assert.ok(result.pci.length > 0, "Should have PCI DSS controls");
 
       // Verify specific known controls for A01 (Broken Access Control)
-      assert.ok(
-        result.nist.includes("AC-2"),
-        "A01 should map to NIST AC-2",
-      );
-      assert.ok(
-        result.soc2.includes("CC6.1"),
-        "A01 should map to SOC 2 CC6.1",
-      );
+      assert.ok(result.nist.includes("AC-2"), "A01 should map to NIST AC-2");
+      assert.ok(result.soc2.includes("CC6.1"), "A01 should map to SOC 2 CC6.1");
     });
 
     it("should deduplicate controls from multiple findings", () => {
@@ -128,11 +107,7 @@ describe("compliance-mappings", () => {
 
       // Both A01 and A07 include "CC6.1" and "CC6.2"
       const cc61Count = result.soc2.filter((c) => c === "CC6.1").length;
-      assert.strictEqual(
-        cc61Count,
-        1,
-        "Should deduplicate SOC 2 CC6.1",
-      );
+      assert.strictEqual(cc61Count, 1, "Should deduplicate SOC 2 CC6.1");
     });
 
     it("should handle findings with owaspCategory field (alternative field name)", () => {
@@ -140,10 +115,7 @@ describe("compliance-mappings", () => {
       const result = getControlsForFindings(findings);
 
       assert.ok(result.nist.length > 0, "Should extract NIST controls");
-      assert.ok(
-        result.nist.includes("SI-10"),
-        "A03 should map to NIST SI-10",
-      );
+      assert.ok(result.nist.includes("SI-10"), "A03 should map to NIST SI-10");
     });
 
     it("should return sorted control arrays", () => {
@@ -204,10 +176,22 @@ describe("compliance-mappings", () => {
       ];
       const result = getControlsForFindings(findings);
 
-      assert.ok(result.nist.length >= 10, "Should aggregate many NIST controls");
-      assert.ok(result.soc2.length >= 5, "Should aggregate many SOC 2 controls");
-      assert.ok(result.hipaa.length >= 5, "Should aggregate many HIPAA controls");
-      assert.ok(result.pci.length >= 10, "Should aggregate many PCI DSS controls");
+      assert.ok(
+        result.nist.length >= 10,
+        "Should aggregate many NIST controls",
+      );
+      assert.ok(
+        result.soc2.length >= 5,
+        "Should aggregate many SOC 2 controls",
+      );
+      assert.ok(
+        result.hipaa.length >= 5,
+        "Should aggregate many HIPAA controls",
+      );
+      assert.ok(
+        result.pci.length >= 10,
+        "Should aggregate many PCI DSS controls",
+      );
     });
   });
 

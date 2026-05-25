@@ -346,6 +346,8 @@ function spawnServer(port) {
         ...process.env,
         PORT: String(port),
         CC_DATA_DIR: dataDir,
+        // Electron main process manages Docling startup to avoid duplicate launches.
+        CC_SKIP_DOCLING_AUTOSTART: "1",
       },
       stdio: ["pipe", "pipe", "pipe", "ipc"],
     });

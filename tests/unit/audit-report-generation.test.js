@@ -1,6 +1,9 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert");
-const { generateAuditReport } = require("../../lib/office-generator");
+const {
+  generateAuditReport,
+  generateOfficeFile,
+} = require("../../lib/office-generator");
 
 describe("generateAuditReport", () => {
   it("should generate a PDF buffer from security report data", async () => {
@@ -187,5 +190,49 @@ describe("generateAuditReport", () => {
       "Multi-vulnerability report should be substantial",
     );
     assert.strictEqual(pdfBuffer.slice(0, 4).toString(), "%PDF");
+  });
+
+  it("should reject when audit PDF rendering logic throws", async () => {
+    const malformedReport = {
+      overallGrade: "D",
+      riskSummary: "Malformed vulnerability data",
+      cleanBillOfHealth: false,
+      categories: {
+        injection: {
+          grade: "F",
+          vulnerabilities: [
+            {
+              title: "Broken Severity Field",
+              severity: null,
+              description:
+                "Invalid severity should trigger a rendering failure",
+            },
+          ],
+        },
+      },
+      complianceControls: {},
+    };
+
+    await assert.rejects(
+      generateAuditReport(malformedReport, {
+        organizationName: "Containment Test Org",
+      }),
+      /toUpperCase/,
+    );
+  });
+});
+
+describe("generateOfficeFile PDF containment", () => {
+  it("should reject when generatePdf rendering logic throws", async () => {
+    const malformedContent = {
+      split() {
+        return [null];
+      },
+    };
+
+    await assert.rejects(
+      generateOfficeFile(malformedContent, "report.pdf"),
+      /trimEnd/,
+    );
   });
 });

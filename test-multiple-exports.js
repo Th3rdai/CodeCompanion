@@ -77,7 +77,7 @@ async function generateFile(filename, content, format = "md") {
 
 async function runTest() {
   console.log("🧪 Testing multiple consecutive file generations...");
-  console.log("=" .repeat(60));
+  console.log("=".repeat(60));
 
   const results = [];
   const errors = [];
@@ -115,9 +115,21 @@ async function runTest() {
   // Test 3: Mixed formats
   console.log("\n🎭 Test 3: Mixed formats");
   const mixedTests = [
-    { name: "test-docx", format: "docx", content: "# DOCX Test\n\nWord document test." },
-    { name: "test-html", format: "html", content: "# HTML Test\n\nHTML export test." },
-    { name: "test-txt", format: "txt", content: "# Text Test\n\nPlain text test." },
+    {
+      name: "test-docx",
+      format: "docx",
+      content: "# DOCX Test\n\nWord document test.",
+    },
+    {
+      name: "test-html",
+      format: "html",
+      content: "# HTML Test\n\nHTML export test.",
+    },
+    {
+      name: "test-txt",
+      format: "txt",
+      content: "# Text Test\n\nPlain text test.",
+    },
   ];
 
   for (const test of mixedTests) {
@@ -145,9 +157,7 @@ async function runTest() {
 
   if (errors.length === 0) {
     console.log("\n✨ All tests passed! File generation works correctly.");
-    console.log(
-      "   No Promise hangs detected - the fix is working! 🎉",
-    );
+    console.log("   No Promise hangs detected - the fix is working! 🎉");
   } else {
     console.log("\n⚠️  Some tests failed. Check errors above.");
     process.exit(1);

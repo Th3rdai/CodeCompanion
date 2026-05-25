@@ -193,6 +193,13 @@ function createConfigRouter(appContext) {
       log("INFO", `Ollama URL changed to: ${config.ollamaUrl}`);
     }
 
+    if (req.body.organizationName !== undefined) {
+      if (typeof req.body.organizationName === "string") {
+        config.organizationName = req.body.organizationName.trim();
+        log("INFO", "Organization name updated");
+      }
+    }
+
     if (req.body.ollamaApiKey !== undefined) {
       const v = req.body.ollamaApiKey;
       if (typeof v === "string") {
