@@ -11,6 +11,7 @@ const {
   resolveEmbeddingModel,
   reembedAllMemories,
   compactMemories,
+  analyzeMemoryQualityDryRun,
 } = require("../lib/memory");
 const { listConversations } = require("../lib/history");
 const { listModels, embed, ollamaAuthOpts } = require("../lib/ollama-client");
@@ -182,6 +183,79 @@ module.exports = function createRouter(appContext) {
       res.json({ ok: true, ...result });
     } catch (err) {
       log("ERROR", "Failed to compact memories", { error: err.message });
+      res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
+    }
+  });
+
+  // ── POST /api/memory/prune/dry-run ────────────────────
+  // Non-destructive quality analysis for duplicate/low-signal candidates.
+  // This endpoint never mutates in-memory state and never writes to disk.
+  router.post("/memory/prune/dry-run", requireLocalOrApiKey, (req, res) => {
+    try {
+      const body = req.body || {};
+      const opts = {};
+      if (body.sampleSize !== undefined) {
+        const sampleSize = Number(body.sampleSize);
+        if (!Number.isFinite(sampleSize) || sampleSize < 1 || sampleSize > 500) {
+          return res
+            .status(400)
+            .json({ error: "sampleSize must be a number between 1 and 500" });
+        }
+        opts.sampleSize = Math.floor(sampleSize);
+      }
+      if (body.thresholds !== undefined) {
+        if (
+          !body.thresholds ||
+          typeof body.thresholds !== "object" ||
+          Array.isArray(body.thresholds)
+        ) {
+          return res.status(400).json({ error: "thresholds must be an object" });
+        }
+        const t = body.thresholds;
+        if (t.nearDuplicateSimilarity !== undefined) {
+          const v = Number(t.nearDuplicateSimilarity);
+          if (!Number.isFinite(v) || v < 0.5 || v > 1) {
+            return res.status(400).json({
+              error: "thresholds.nearDuplicateSimilarity must be between 0.5 and 1",
+            });
+          }
+          opts.nearDuplicateSimilarity = v;
+        }
+        if (t.lowSignalScoreThreshold !== undefined) {
+          const v = Number(t.lowSignalScoreThreshold);
+          if (!Number.isFinite(v) || v < 0 || v > 1) {
+            return res.status(400).json({
+              error: "thresholds.lowSignalScoreThreshold must be between 0 and 1",
+            });
+          }
+          opts.lowSignalScoreThreshold = v;
+        }
+        if (t.minContentLength !== undefined) {
+          const v = Number(t.minContentLength);
+          if (!Number.isFinite(v) || v < 1 || v > 500) {
+            return res.status(400).json({
+              error: "thresholds.minContentLength must be between 1 and 500",
+            });
+          }
+          opts.minContentLength = Math.floor(v);
+        }
+        if (t.staleDays !== undefined) {
+          const v = Number(t.staleDays);
+          if (!Number.isFinite(v) || v < 1 || v > 3650) {
+            return res.status(400).json({
+              error: "thresholds.staleDays must be between 1 and 3650",
+            });
+          }
+          opts.staleDays = Math.floor(v);
+        }
+      }
+
+      const analysis = analyzeMemoryQualityDryRun(opts);
+      res.json(analysis);
+    } catch (err) {
+      log("ERROR", "Failed to run memory prune dry-run analysis", {
+        error: err.message,
+      });
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
     }
   });

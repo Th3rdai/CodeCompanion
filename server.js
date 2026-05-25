@@ -18,7 +18,11 @@ const {
   initExperimentStore,
   sweepStaleActiveExperiments,
 } = require("./lib/experiment-store");
-const { initMemory, flushMemoryToDisk } = require("./lib/memory");
+const {
+  initMemory,
+  flushMemoryToDisk,
+  startMemoryPruneCheckScheduler,
+} = require("./lib/memory");
 const { initAuditLog } = require("./lib/audit-log");
 const {
   listModels,
@@ -69,6 +73,17 @@ initExperimentStore(dataRoot);
 initMemory(dataRoot);
 initAuditLog(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
+const memoryPruneCheckScheduler = startMemoryPruneCheckScheduler({
+  getConfig,
+  log,
+});
+if (memoryPruneCheckScheduler.enabled) {
+  log("INFO", "Memory prune dry-run check scheduler started", {
+    intervalDays: Number(
+      (memoryPruneCheckScheduler.intervalMs / (24 * 60 * 60 * 1000)).toFixed(2),
+    ),
+  });
+}
 
 try {
   const sweepResult = sweepStaleActiveExperiments(Date.now(), getConfig());
@@ -644,6 +659,7 @@ mountMcpHttp(app, {
 // ── Graceful shutdown ────────────────────────────────
 process.on("SIGINT", async () => {
   log("INFO", "Shutting down — disconnecting MCP clients...");
+  memoryPruneCheckScheduler.stop();
   flushMemoryToDisk();
   await mcpClientManager.disconnectAll();
   stopDocling(log);
@@ -652,6 +668,7 @@ process.on("SIGINT", async () => {
 
 process.on("SIGTERM", async () => {
   log("INFO", "Shutting down (SIGTERM) — cleaning up...");
+  memoryPruneCheckScheduler.stop();
   flushMemoryToDisk();
   await mcpClientManager.disconnectAll();
   stopDocling(log);

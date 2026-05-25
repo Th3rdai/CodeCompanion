@@ -52,7 +52,21 @@
     "autoExtract": true,
     "maxMemories": 500,
     "hybridRecall": false,
-    "recallTurns": 3
+    "recallTurns": 3,
+    "indexCache": {
+      "enabled": false
+    },
+    "pruneCheck": {
+      "enabled": true,
+      "intervalDays": 30,
+      "sampleSize": 50,
+      "thresholds": {
+        "nearDuplicateSimilarity": 0.86,
+        "lowSignalScoreThreshold": 0.6,
+        "minContentLength": 24,
+        "staleDays": 120
+      }
+    }
   },
   "imageSupport": {
     "enabled": true,
