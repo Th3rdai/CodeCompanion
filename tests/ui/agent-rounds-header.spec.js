@@ -13,12 +13,19 @@ test.describe("Header agent rounds selector", () => {
     await expect(page.locator("#rounds-select")).toBeVisible();
   });
 
-  test("shows #rounds-select in Explain This (composer modes)", async ({
+  test("shows #rounds-select in Experiment mode (agentic modes)", async ({
+    page,
+  }) => {
+    await page.getByTestId("mode-tab-experiment").click();
+    await expect(page.locator("#rounds-select")).toBeVisible();
+  });
+
+  test("hides #rounds-select in Explain This (transform modes)", async ({
     page,
   }) => {
     await page.getByTestId("mode-tab-more").click();
     await page.getByTestId("mode-tab-explain").click();
-    await expect(page.locator("#rounds-select")).toBeVisible();
+    await expect(page.locator("#rounds-select")).toHaveCount(0);
   });
 
   test("hides #rounds-select in Review mode", async ({ page }) => {

@@ -28,6 +28,9 @@ const {
   stripAttachedFileBlock,
   capAttachedFileBlock,
   userLikelyRequestedActionableToolWork,
+  responseLeadsWithToolCall,
+  userFacingProseBeforeFirstToolCall,
+  hasAdequateProseBeforeFirstToolCall,
   tryPromoteNarratedShellToToolCall,
   shellLineFailsAutoPromotionSafety,
   looksLikeClaimedCompletionWithoutToolCall,
@@ -608,5 +611,33 @@ test("claimed-completion: empty / plain answer → false", () => {
       "Sure — here is how that feature works.",
     ),
     false,
+  );
+});
+
+test("prose-first: responseLeadsWithToolCall detects TOOL_CALL-first replies", () => {
+  assert.equal(
+    responseLeadsWithToolCall("TOOL_CALL: builtin.read_file({})"),
+    true,
+  );
+  assert.equal(responseLeadsWithToolCall("  TOOL_CALL: x"), true);
+  assert.equal(
+    responseLeadsWithToolCall("I'll check that.\nTOOL_CALL: x"),
+    false,
+  );
+  assert.equal(responseLeadsWithToolCall("Just an answer."), false);
+});
+
+test("prose-first: hasAdequateProseBeforeFirstToolCall requires brief user-facing lead-in", () => {
+  const ok =
+    'I\'ll read package.json for you.\nTOOL_CALL: builtin.read_file({"path":"package.json"})';
+  assert.equal(hasAdequateProseBeforeFirstToolCall(ok), true);
+  assert.equal(
+    hasAdequateProseBeforeFirstToolCall("TOOL_CALL: builtin.read_file({})"),
+    false,
+  );
+  assert.equal(hasAdequateProseBeforeFirstToolCall("Ok.\nTOOL_CALL: x"), false);
+  assert.equal(
+    userFacingProseBeforeFirstToolCall("I'll check.\nTOOL_CALL: x"),
+    "I'll check.",
   );
 });

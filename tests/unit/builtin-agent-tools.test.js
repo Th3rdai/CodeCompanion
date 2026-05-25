@@ -118,6 +118,25 @@ test("getBuiltinTools includes run_terminal_cmd when terminal enabled and bind i
   });
 });
 
+test("getBuiltinTools always includes read_file and write_file", () => {
+  const tools = getBuiltinTools({});
+  const names = tools.map((t) => t.name);
+  assert.ok(names.includes("read_file"));
+  assert.ok(names.includes("write_file"));
+});
+
+test("getBuiltinTools includes read_file when terminal disabled", () => {
+  const tools = getBuiltinTools({ agentTerminal: { enabled: false } });
+  assert.ok(tools.some((t) => t.name === "read_file"));
+  assert.ok(!tools.some((t) => t.name === "run_terminal_cmd"));
+});
+
+test("getBuiltinSafetyPreamble includes read_file guidance", () => {
+  const p = getBuiltinSafetyPreamble();
+  assert.ok(p.includes("FILE READING (builtin.read_file)"));
+  assert.ok(p.includes('builtin.read_file({"path": "src/App.jsx"})'));
+});
+
 test("getBuiltinTools omits run_terminal_cmd when bind is 0.0.0.0 without CC_ALLOW_AGENT_TERMINAL (non-Electron)", () => {
   withProcessEnv(
     {
@@ -802,6 +821,101 @@ test("list_dir: errors on a non-directory path", async () => {
     );
     assert.equal(out.success, false);
     assert.match(out.result.content[0].text, /Not a directory/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("read_file: returns file content under chatFolder", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const root = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-rf-")),
+  );
+  const sub = path.join(root, "app");
+  try {
+    fs.mkdirSync(sub, { recursive: true });
+    fs.writeFileSync(path.join(sub, "note.txt"), "hello read\nline2");
+    const out = await executeBuiltinTool(
+      "read_file",
+      { path: "note.txt" },
+      { projectFolder: root, chatFolder: sub },
+      () => {},
+    );
+    assert.equal(out.success, true);
+    const text = out.result.content[0].text;
+    assert.match(text, /note\.txt/);
+    assert.match(text, /hello read/);
+    assert.match(text, /line2/);
+    assert.match(text, /lines/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("read_file: rejects path escaping chatFolder via parent segments", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const root = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-rfesc-")),
+  );
+  const sub = path.join(root, "app");
+  try {
+    fs.mkdirSync(sub, { recursive: true });
+    fs.writeFileSync(path.join(root, "outside.txt"), "secret");
+    const out = await executeBuiltinTool(
+      "read_file",
+      { path: "../outside.txt" },
+      { projectFolder: root, chatFolder: sub },
+      () => {},
+    );
+    assert.equal(out.success, false);
+    assert.match(out.result.content[0].text, /File Browser folder/i);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("read_file: errors when file missing", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-rfmiss-")),
+  );
+  try {
+    const out = await executeBuiltinTool(
+      "read_file",
+      { path: "nope.txt" },
+      { projectFolder: dir, chatFolder: dir },
+      () => {},
+    );
+    assert.equal(out.success, false);
+    assert.match(out.result.content[0].text, /not found/i);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("read_file: rejects binary extension", async () => {
+  const fs = require("fs");
+  const os = require("os");
+  const path = require("path");
+  const dir = fs.realpathSync(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-rfbin-")),
+  );
+  try {
+    fs.writeFileSync(path.join(dir, "photo.png"), "not-really-png");
+    const out = await executeBuiltinTool(
+      "read_file",
+      { path: "photo.png" },
+      { projectFolder: dir, chatFolder: dir },
+      () => {},
+    );
+    assert.equal(out.success, false);
+    assert.match(out.result.content[0].text, /binary/i);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
