@@ -35,9 +35,12 @@ export function calculateAnalytics(history) {
       totals.active++;
     }
 
-    // Count messages
+    // Count messages — the /api/history list ships messageCount (not the full
+    // messages array); fall back to messages.length when full convos are passed.
     if (Array.isArray(conv.messages)) {
       totals.messages += conv.messages.length;
+    } else if (typeof conv.messageCount === "number") {
+      totals.messages += conv.messageCount;
     }
 
     // Count by mode
@@ -45,15 +48,19 @@ export function calculateAnalytics(history) {
       modeCounts[conv.mode] = (modeCounts[conv.mode] || 0) + 1;
     }
 
-    // Count by model family (extract base model name)
-    if (Array.isArray(conv.messages)) {
-      conv.messages.forEach((msg) => {
-        if (msg.model) {
-          // Extract model family (e.g., "llama3.3" from "llama3.3:70b")
-          const family = msg.model.split(":")[0];
-          modelCounts[family] = (modelCounts[family] || 0) + 1;
-        }
-      });
+    // Count by model family (extract base name, e.g. "llama3.3" from
+    // "llama3.3:70b"). Prefer per-message models when the full messages array is
+    // present; otherwise use the conversation-level model from the list endpoint.
+    const bumpModel = (model) => {
+      if (!model || typeof model !== "string") return;
+      const family = model.split(":")[0];
+      if (!family) return;
+      modelCounts[family] = (modelCounts[family] || 0) + 1;
+    };
+    if (Array.isArray(conv.messages) && conv.messages.length > 0) {
+      conv.messages.forEach((msg) => bumpModel(msg.model));
+    } else if (conv.model) {
+      bumpModel(conv.model);
     }
   });
 

@@ -257,6 +257,7 @@ function showAgentRoundsInHeader(mode) {
 
 /** Shown in the main strip; everything else lives under More or the command palette. */
 const PRIMARY_MODE_IDS = [
+  "dashboard",
   "chat",
   "review",
   "pentest",
@@ -2252,8 +2253,9 @@ export default function App() {
               onNewThread={startNew}
             />
 
-            {/* Input — hidden in Create, Review, and Terminal modes */}
-            {mode !== "create" &&
+            {/* Input — hidden in Dashboard, Create, Review, and Terminal modes */}
+            {mode !== "dashboard" &&
+              mode !== "create" &&
               mode !== "build" &&
               mode !== "review" &&
               mode !== "pentest" &&

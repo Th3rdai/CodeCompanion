@@ -24,7 +24,7 @@ export default function DashboardView({
   }, [history]);
 
   return (
-    <div className="fixed inset-0 flex flex-col mesh-gradient overflow-hidden">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       {/* Dashboard Header */}
       <div className="glass-heavy border-b border-slate-700/30 px-6 py-4">
         <div className="flex items-center gap-3">
@@ -42,6 +42,7 @@ export default function DashboardView({
             onResume={onResumeConversation}
             onStartChat={() => onModeSelect("chat")}
             loading={false}
+            modes={modes}
           />
 
           {/* Feature Grid - Phase 1 Component */}

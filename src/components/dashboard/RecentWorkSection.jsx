@@ -53,6 +53,7 @@ export default function RecentWorkSection({
   onResume,
   onStartChat,
   loading,
+  modes,
 }) {
   const [showSkeleton, setShowSkeleton] = useState(false);
 
@@ -76,19 +77,29 @@ export default function RecentWorkSection({
     return <EmptyState onStartChat={onStartChat} />;
   }
 
-  // Get last 3 conversations sorted by most recent
-  const recentConversations = conversations
-    .sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0))
+  // Normalize a conversation's recency to epoch ms. The /api/history list ships
+  // `createdAt` (ISO string); full/older convos may carry `lastActive` (epoch
+  // ms). Returns 0 when unknown so those sort last.
+  const convTime = (c) => {
+    const raw = c?.lastActive ?? c?.createdAt;
+    if (raw == null) return 0;
+    const ms = typeof raw === "number" ? raw : Date.parse(raw);
+    return Number.isFinite(ms) ? ms : 0;
+  };
+
+  // Get last 3 conversations sorted by most recent. Clone first — never mutate
+  // the history prop in place.
+  const recentConversations = [...conversations]
+    .sort((a, b) => convTime(b) - convTime(a))
     .slice(0, 3);
 
   /**
    * Format timestamp as relative time
    */
-  function formatRelativeTime(timestamp) {
-    if (!timestamp) return "Just now";
+  function formatRelativeTime(ms) {
+    if (!ms) return "Just now";
 
-    const now = Date.now();
-    const diff = now - timestamp;
+    const diff = Date.now() - ms;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -98,15 +109,25 @@ export default function RecentWorkSection({
     if (hours < 24) return `${hours}h ago`;
     if (days === 1) return "Yesterday";
     if (days < 7) return `${days}d ago`;
-    return new Date(timestamp).toLocaleDateString();
+    return new Date(ms).toLocaleDateString();
   }
 
   /**
    * Get mode emoji/label from mode ID
    */
   function getModeLabel(modeId) {
+    // Prefer the canonical modes list (icon + label) so this never drifts from
+    // the app's mode definitions; fall back to a static map, then the raw id.
+    const m = modes?.find((x) => x.id === modeId);
+    if (m) return `${m.icon ? `${m.icon} ` : ""}${m.label}`;
     const modeMap = {
       chat: "💬 Chat",
+      explain: "🔎 Explain This",
+      bugs: "🛟 Safety Check",
+      refactor: "✨ Clean Up",
+      "translate-tech": "🔤 Code → Plain English",
+      "translate-biz": "💡 Idea → Code Spec",
+      diagram: "📊 Diagram",
       review: "📝 Review",
       pentest: "🛡️ Security",
       build: "🏗️ Build",
@@ -133,45 +154,46 @@ export default function RecentWorkSection({
 
       {/* Conversation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {recentConversations.map((conv) => (
-          <button
-            key={conv.id}
-            onClick={() => onResume(conv.id, conv.mode)}
-            className="glass p-4 rounded-xl text-left hover:border-indigo-500/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0f1a] min-h-[120px]"
-            aria-label={`Resume ${conv.title || "conversation"} from ${formatRelativeTime(conv.lastActive)}`}
-          >
-            <div className="space-y-2">
-              {/* Mode Badge */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-indigo-400 font-medium">
-                  {getModeLabel(conv.mode)}
-                </span>
-                <span className="text-xs text-slate-500">
-                  {formatRelativeTime(conv.lastActive)}
-                </span>
+        {recentConversations.map((conv) => {
+          const when = formatRelativeTime(convTime(conv));
+          const msgCount = conv.messageCount ?? conv.messages?.length ?? 0;
+          return (
+            <button
+              key={conv.id}
+              onClick={() => onResume(conv.id, conv.mode)}
+              className="glass p-4 rounded-xl text-left hover:border-indigo-500/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0f1a] min-h-[120px]"
+              aria-label={`Resume ${conv.title || "conversation"} from ${when}`}
+            >
+              <div className="space-y-2">
+                {/* Mode Badge */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-indigo-400 font-medium">
+                    {getModeLabel(conv.mode)}
+                  </span>
+                  <span className="text-xs text-slate-500">{when}</span>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-sm font-semibold text-white line-clamp-2">
+                  {conv.title || "Untitled conversation"}
+                </h3>
+
+                {/* Message Count */}
+                {msgCount > 0 && (
+                  <p className="text-xs text-slate-400">
+                    {msgCount} message{msgCount !== 1 ? "s" : ""}
+                  </p>
+                )}
+
+                {/* Resume Arrow */}
+                <div className="flex items-center gap-1 text-xs text-indigo-400 font-medium mt-2">
+                  Resume
+                  <ArrowRight className="w-3 h-3" />
+                </div>
               </div>
-
-              {/* Title */}
-              <h3 className="text-sm font-semibold text-white line-clamp-2">
-                {conv.title || "Untitled conversation"}
-              </h3>
-
-              {/* Message Count */}
-              {conv.messages && conv.messages.length > 0 && (
-                <p className="text-xs text-slate-400">
-                  {conv.messages.length} message
-                  {conv.messages.length !== 1 ? "s" : ""}
-                </p>
-              )}
-
-              {/* Resume Arrow */}
-              <div className="flex items-center gap-1 text-xs text-indigo-400 font-medium mt-2">
-                Resume
-                <ArrowRight className="w-3 h-3" />
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
