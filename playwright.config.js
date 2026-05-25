@@ -11,6 +11,8 @@ const useHTTPS = baseURL.startsWith("https://");
 module.exports = defineConfig({
   testDir: "./tests",
   testMatch: "**/*.spec.js",
+  // Pre-warm server before any tests to eliminate cold-start hydration flakes
+  globalSetup: require.resolve("./tests/global-setup.js"),
   // Default OS parallelism can starve the single webServer; use 1 worker for stable first-pass UI runs.
   // Speed up locally with PW_WORKERS=2 (expect occasional flakes without retries).
   workers: process.env.PW_WORKERS ? parseInt(process.env.PW_WORKERS, 10) : 1,

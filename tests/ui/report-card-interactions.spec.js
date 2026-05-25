@@ -131,17 +131,13 @@ test.describe("ReportCard Progressive Disclosure", () => {
     });
 
     await page.addInitScript(browserAppReady);
-    await page.goto("/");
+    await page.goto("/", { waitUntil: "networkidle", timeout: 60_000 });
     await page.evaluate(() => {
       localStorage.setItem("cc-selected-model", "test-model");
       localStorage.setItem("th3rdai_privacy_banner_dismissed", "true");
     });
-    await reloadAndWaitForModels(page, { timeout: 75_000 });
-    await expect(page.getByTestId("mode-tab-palette-open").first()).toBeVisible(
-      {
-        timeout: MODE_TIMEOUT,
-      },
-    );
+    // reloadAndWaitForModels now waits for networkidle + #model-select + mode tabs
+    await reloadAndWaitForModels(page, { timeout: 60_000 });
 
     await dismissTransientOverlays(page);
     await enterReviewMode(page);
