@@ -58,7 +58,7 @@
     },
     "pruneCheck": {
       "enabled": true,
-      "intervalDays": 30,
+      "intervalDays": 24,
       "sampleSize": 50,
       "thresholds": {
         "nearDuplicateSimilarity": 0.86,
