@@ -928,7 +928,7 @@ test("buildToolsPrompt compacts large external MCP servers", () => {
 
   const p = h.buildToolsPrompt();
   assert.ok(
-    p.includes("Large MCP servers are listed in compact form"),
+    p.includes("External MCP servers are listed in compact form"),
     "expected compact-server note",
   );
   assert.ok(
@@ -1083,4 +1083,53 @@ test("executeTool MCP allows server with no disabledTools entry", async () => {
 
   assert.strictEqual(result.success, true);
   assert.strictEqual(called, true);
+});
+
+// ── compactMcpTools: external MCP tools advertised without long descriptions ──
+// Regression for the "don't bloat the prompt with MCP tool schemas" trim.
+function makeHandlerWithMcpTool(compactMcpTools) {
+  const ToolCallHandler = require(handlerPath);
+  const mcpTool = {
+    serverId: "crawl4ai-rag",
+    serverName: "crawl4ai-rag",
+    name: "search_web",
+    description: "SENTINEL_MCP_DESC search the web and return ranked results",
+    inputSchema: {
+      type: "object",
+      properties: { query: { type: "string" }, limit: { type: "number" } },
+      required: ["query"],
+    },
+  };
+  const mockMcp = { getAllTools: () => [mcpTool] };
+  return new ToolCallHandler(mockMcp, {
+    getConfig: () => ({ compactMcpTools, mcpClients: [] }),
+    log: () => {},
+    debug: () => {},
+  });
+}
+
+test("getToolsPromptAndFlags: compactMcpTools=true drops external MCP descriptions but keeps the call", () => {
+  const h = makeHandlerWithMcpTool(true);
+  const { prompt } = h.getToolsPromptAndFlags();
+  assert.ok(
+    prompt.includes("crawl4ai-rag.search_web"),
+    "tool stays callable (name present)",
+  );
+  assert.ok(
+    !prompt.includes("SENTINEL_MCP_DESC"),
+    "long description omitted in compact form",
+  );
+  assert.ok(
+    prompt.includes("query (required)"),
+    "required param still advertised",
+  );
+});
+
+test("getToolsPromptAndFlags: compactMcpTools=false keeps full external MCP descriptions", () => {
+  const h = makeHandlerWithMcpTool(false);
+  const { prompt } = h.getToolsPromptAndFlags();
+  assert.ok(
+    prompt.includes("SENTINEL_MCP_DESC"),
+    "description retained when flag disabled",
+  );
 });
