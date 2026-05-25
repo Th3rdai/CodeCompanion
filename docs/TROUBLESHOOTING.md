@@ -127,6 +127,94 @@ Crash reports may show **`EXC_CRASH (SIGKILL (Code Signature Invalid))`**, **`Te
 
 **Remediation:** Clear **`~/Library/Caches/com.th3rdai.code-companion.ShipIt`**, remove the broken **`Code Companion.app`**, reinstall from a **fresh DMG** on [GitHub Releases](https://github.com/th3rdai/CodeCompanion/releases). Full steps: **[INSTALL-MAC.md — Crash on launch: Code Signature Invalid](./INSTALL-MAC.md#crash-on-launch-code-signature-invalid-sigkill-taskgated-invalid-signature)**.
 
+## GitNexus
+
+[GitNexus](https://www.npmjs.com/package/gitnexus) powers **`gitnexus_query`** in Cursor (see **`AGENTS.md`**). This repo keeps a healthy index under **`.gitnexus/`** (see **`.gitnexus/meta.json`**). **Until `npm install` can pin `gitnexus` in the lockfile again**, use the CLI via **`npx -p gitnexus@1.6.5`** (or **`npm run gitnexus -- …`**, which wraps that) — not a local **`node_modules/gitnexus`** install.
+
+### When `npm install` fails (`node.target` is null)
+
+**Symptoms:**
+
+- **`npm install`** in the repo root exits with:
+  ```text
+  npm error Cannot destructure property 'package' of 'node.target' as it is null.
+  ```
+- Stack trace points at **`@npmcli/arborist`** **`rebuild`** (often right after **`gitnexus@1.6.5 postinstall`**).
+
+**Cause:** npm **11.x** can crash while reconciling **gitnexus** ( **`file:`** / git optional deps like **`tree-sitter-dart`** ) when the lockfile still pins an older **gitnexus** tree (e.g. **1.6.3**) while **`package.json`** requests **^1.6.5**. This is an **npm arborist** bug ([#7027](https://github.com/npm/cli/issues/7027), [GitNexus #819](https://github.com/abhigyanpatwari/GitNexus/issues/819)) — not a broken Code Companion app.
+
+**Workaround (recommended):** Do **not** add **`gitnexus`** as a **`devDependency`** until the lockfile/npm combo is fixed upstream. Use a pinned **`npx`** runner instead:
+
+```bash
+# Re-index (disable GitNexus MCP in Cursor first)
+npx -p gitnexus@1.6.5 gitnexus clean --force
+GITNEXUS_EMBEDDING_DIMS=768 npx -p gitnexus@1.6.5 gitnexus analyze --force
+
+# Smoke-test keyword search
+npx -p gitnexus@1.6.5 gitnexus query "chat handler" --repo CodeCompanion
+
+# Cursor MCP (global CLI on PATH)
+npm i -g gitnexus@1.6.5
+```
+
+From this repo you can also run **`npm run gitnexus -- <subcommand>`** (same **`npx -p gitnexus@1.6.5`** pin). **`npm install`** in the project should then complete normally (no local **gitnexus** in **`node_modules`**).
+
+**If you still need a local install:** try a clean lock regen in a throwaway folder (`npm init -y && npm i gitnexus@1.6.5`) or **`npm i -g gitnexus@1.6.5`** — avoid upgrading **1.6.3 → 1.6.5** inside a stale **`package-lock.json`** until arborist is fixed.
+
+### `query` empty / “FTS indexes missing”
+
+**`context`** and **`impact`** work without FTS; **`query`** (concept / keyword search) needs full-text indexes on **`.gitnexus/lbug`**.
+
+**Symptoms:**
+
+- MCP or CLI **`gitnexus query`** returns empty **`processes`** with a warning about FTS.
+- Logs mention **`Cannot execute write operations in a read-only database`** when ensuring FTS indexes.
+
+**Cause (gitnexus ≤1.6.3):** FTS was deferred to the first **`query`**, but the **MCP server opens the index read-only**, so **`CREATE_FTS_INDEX`** failed. **Fixed upstream in gitnexus ≥1.6.5** ([#1107](https://github.com/abhigyanpatwari/GitNexus/pull/1107)) — **`analyze`** builds FTS while the DB is writable. Use **`gitnexus@1.6.5`** via **`npx -p`** / global install (see above).
+
+**Fix (≥1.6.5):** Re-index with MCP off:
+
+```bash
+npx -p gitnexus@1.6.5 gitnexus clean --force
+GITNEXUS_EMBEDDING_DIMS=768 npx -p gitnexus@1.6.5 gitnexus analyze --force
+```
+
+Confirm **`.gitnexus/meta.json`** shows **`capabilities.fts.status": "available"`**. You should **not** need **`npm run gitnexus:warm-fts`** after a successful analyze.
+
+**Fix (legacy 1.6.3 only):** Disable MCP, then **`npm run gitnexus:warm-fts`**, re-enable MCP.
+
+**Re-index:** After large code changes, run **`npx -p gitnexus@1.6.5 gitnexus analyze`** (or **`--force`**), then **`npm run gitnexus:warm-fts`** again (MCP off). If you see **`Corrupted wal file`**, run **`npx -p gitnexus@1.6.5 gitnexus clean --force`**, then analyze again (do not open **`lbug`** with MCP or Chrome while analyze runs).
+
+**Embeddings (recommended on macOS):** Default **`analyze --embeddings`** uses local ONNX and often **exits 1** or segfaults on Node 24. Use **Ollama HTTP** instead (with MCP off):
+
+```bash
+npm run gitnexus:embed
+```
+
+This runs **`scripts/gitnexus-analyze-embeddings.mjs`**: **`clean --force`**, then **`analyze --embeddings`** with **`GITNEXUS_EMBEDDING_URL`** (base only, e.g. **`http://127.0.0.1:11434/v1`** — GitNexus appends **`/embeddings`**), **`GITNEXUS_EMBEDDING_MODEL`** (default **`nomic-embed-text`**), and **`GITNEXUS_EMBEDDING_DIMS=768`**. The index must be built with the same **`GITNEXUS_EMBEDDING_DIMS`** as your model output (384 for the built-in snowflake model, 768 for **`nomic-embed-text`**).
+
+**Cursor MCP:** Add the same three env vars under the **`gitnexus`** server in **`~/.cursor/mcp.json`** so **`query`** can embed search strings at runtime. Example:
+
+```json
+"env": {
+  "GITNEXUS_EMBEDDING_URL": "http://127.0.0.1:11434/v1",
+  "GITNEXUS_EMBEDDING_MODEL": "nomic-embed-text",
+  "GITNEXUS_EMBEDDING_DIMS": "768"
+}
+```
+
+**Richer search:** Hybrid **`query`** uses vector embeddings when **`embeddings` > 0** in **`.gitnexus/meta.json`**. Without embeddings, BM25/FTS must work; if FTS warmup fails, **`query`** stays empty — use **`context`** / **`impact`** or fix FTS + embeddings.
+
+**Stale MCP process:** Disabling GitNexus in Cursor does not always exit **`gitnexus mcp`**. Check with **`pgrep -fl "gitnexus mcp"`** and **`lsof .gitnexus/lbug`**; kill the orphan PID before **`warm-fts`** or **`analyze`**.
+
+**Warmup says OK but `query` still empty:** LadybugDB can leave orphan tables like **`2_function_fts_docs`** when **`CREATE_FTS_INDEX`** fails partway; GitNexus treats messages containing **`already exists`** as success. **`npm run gitnexus:warm-fts`** (v2 worker) drops those orphans before create and verifies with **`QUERY_FTS_INDEX`**. If verify still fails or Node **segfaults** during FTS create, use **`context`** / **`impact`** instead, or **`npx gitnexus analyze --embeddings`** for vector-only **`query`** (slow; may fail on some Node/macOS builds).
+
+**macOS / Node 24 — embeddings segfault:** Ollama HTTP embedding (`npm run gitnexus:embed`) usually finishes all nodes then **segfaults** on the vector-index step, which can **corrupt `lbug.wal`**. Recovery: `npx -p gitnexus@1.6.5 gitnexus clean --force` then `npx -p gitnexus@1.6.5 gitnexus analyze` (graph only). If embed completed before the crash, try `npm run gitnexus:embed-meta` to copy the row count into **`meta.json`** (only works when the DB still opens).
+
+**Re-enable MCP:** After the index is healthy, turn **GitNexus** back on in **Cursor → Settings → MCP**. Ensure **`~/.cursor/mcp.json`** includes the **`env`** block from the embeddings section above (base URL **`http://127.0.0.1:11434/v1`**, not `.../v1/embeddings`). **`context`** and **`impact`** work without FTS; **`query`** needs FTS warmup or embeddings — both are fragile on this stack.
+
+**Still broken:** File an issue upstream (GitNexus + LadybugDB) — MCP read-only pool vs lazy FTS, embedding teardown segfaults, and partial FTS create state on disk.
+
 ## Related
 
 - **[TESTING.md](./TESTING.md)** — Playwright **`BASE_URL`** for HTTPS, **`PW_REUSE_SERVER`**
