@@ -742,6 +742,7 @@ function ComplianceControlsSection({ controls }) {
 export default function SecurityReport({
   data,
   filename,
+  organizationName,
   onDeepDive,
   onNewScan,
   onToast,
@@ -749,6 +750,10 @@ export default function SecurityReport({
   remediating,
   remediationProgress,
 }) {
+  // Hooks must run before any early return so the call order stays stable
+  // across renders (react-hooks/rules-of-hooks).
+  const [generatingReport, setGeneratingReport] = useState(false);
+
   if (!data) return null;
 
   const {
@@ -761,10 +766,11 @@ export default function SecurityReport({
     complianceControls,
   } = data;
 
-  const [generatingReport, setGeneratingReport] = useState(false);
-
   async function handleGenerateComplianceReport() {
     if (generatingReport) return;
+
+    const normalizedOrganizationName =
+      typeof organizationName === "string" ? organizationName.trim() : "";
 
     setGeneratingReport(true);
     try {
@@ -774,6 +780,9 @@ export default function SecurityReport({
         body: JSON.stringify({
           securityReport: data,
           filename: filename || "security-audit",
+          ...(normalizedOrganizationName
+            ? { organizationName: normalizedOrganizationName }
+            : {}),
         }),
       });
 

@@ -172,6 +172,7 @@ export default function SecurityPanel({
   /** True while initial conversational (markdown) scan is streaming over SSE. */
   const [fallbackMarkdownSse, setFallbackMarkdownSse] = useState(false);
   const fallbackEndRef = useRef(null);
+  const [organizationName, setOrganizationName] = useState("");
 
   // Remediation state
   const [remediating, setRemediating] = useState(false);
@@ -210,6 +211,26 @@ export default function SecurityPanel({
       }
     }
   }, [savedPentest]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch("/api/config");
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (cancelled) return;
+        setOrganizationName(
+          typeof cfg.organizationName === "string" ? cfg.organizationName : "",
+        );
+      } catch {
+        // Keep empty fallback when config fetch fails.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -1153,6 +1174,7 @@ export default function SecurityPanel({
           <SecurityReport
             data={reportData}
             filename={filename}
+            organizationName={organizationName}
             onDeepDive={handleDeepDive}
             onNewScan={handleNewScan}
             onToast={onToast}
