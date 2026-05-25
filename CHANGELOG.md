@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Phase 28 Multi-File Code Review — Documentation Complete.** Comprehensive documentation added for the multi-file code review feature (shipped in v1.6.6). Includes:
+  - **`docs/MULTI-FILE-REVIEW.md`** — Complete user guide (334 lines) covering: How to use Scan Folder tab, file limits and troubleshooting, technical details, best practices, comparison tables, and implementation history.
+  - **`CLAUDE.md` Review Mode section** — Technical reference documenting single-file and multi-file review capabilities, backend implementation, routes, security validation, and file limits.
+  - **`.planning/ROADMAP.md` Phase 28 section** — Updated with full implementation details (backend, frontend, tests, docs), completion date (2026-04-09, commit b36b623), requirements status (MREV-01 ✅ complete, MREV-02 🔄 deferred).
+  - **`PHASE-28-GAP-ANALYSIS.md`** — Gap analysis audit confirming feature is fully implemented with comprehensive test coverage (unit, integration, E2E), no missing functionality, only 3 minor documentation gaps (now closed).
+  - **`PHASE-28-ANALYSIS-ROUND-2.md`** — Verification report validating all documentation claims against codebase (100% accuracy), cross-document consistency checks, code quality analysis, and quality metrics (A-grade documentation).
+  - **`MULTIFILE-REVIEW.md`** — Plan-reviewer findings showing feature was already implemented when implementation plan was created.
+  - **`MULTIFILE-ARCHIVED.md`** — Original implementation plan archived after discovery.
+  - **Visual markers** (⌨️ ⚠️ 🖱️) in user guide for improved scan-ability, inline cross-references between related docs, and completion commit SHA in roadmap.
+
 ### Fixed
 
 - **Playwright test cold-start hydration flakiness.** Added `tests/global-setup.js` that pre-warms the server before any tests run — loads app with `networkidle` wait, waits for `#model-select` and mode tabs to prove full React hydration, then gives React 1 second to settle lazy-loaded components. Updated `playwright.config.js` to use `globalSetup`, and improved `tests/helpers/reload-app-ready.js` to wait for `networkidle` instead of just `load`. Result: **zero flaky tests**, all pass on first try. Previously flaky `report-card-interactions.spec.js` now passes consistently in ~2.4s (was timing out at 45s). Full UI suite: **37 passed, 0 flaky** in 1.5 minutes.
