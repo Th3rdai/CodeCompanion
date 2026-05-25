@@ -84,11 +84,19 @@ src/lib/
 - [ ] `BarList` ARIA attributes (deferred - would require @testing-library/react)
 - [ ] `QuickStatsGrid` number formatting (deferred - would require @testing-library/react)
 
-### E2E Tests Needed
-- [ ] Dashboard startup with toggle enabled/disabled
-- [ ] Resume conversation from Recent Work
-- [ ] Collapse/expand analytics sections
-- [ ] Mode card navigation
+### E2E Tests ✅ Completed
+- [✅] Dashboard renders with Feature Grid and analytics sections
+- [✅] Mode card navigation switches to selected mode
+- [✅] Collapsible sections expand/collapse with chevron toggle
+- [✅] Dashboard Settings widget visibility toggles control section display
+- [✅] Export Analytics buttons are visible when data exists
+- [✅] 7-Day Activity section renders when visible
+- [✅] Recent Work section shows conversations or empty state
+- [✅] Mode and Model breakdown panels render with data or empty state
+- [✅] Dashboard persists across page reload
+
+**Test File:** `tests/e2e/dashboard.spec.js` (9 tests, 293 lines)
+**Run:** `npx playwright test tests/e2e/dashboard.spec.js --project=chromium`
 
 ### Accessibility Tests Needed
 - [ ] Screen reader testing (VoiceOver/NVDA)
@@ -120,6 +128,7 @@ src/lib/
 7. `a35d6fc` - Unit tests for CollapsibleSection localStorage persistence
 8. `6c4e0e5` - Docs: analytics + CollapsibleSection test status
 9. `f8d261c` - GitNexus index stats refresh + CollapsibleSection test tidy
+10. `6e1a06d` - E2E test suite for dashboard features (9 tests)
 
 All commits pushed to `master`.
 
