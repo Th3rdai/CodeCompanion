@@ -78,11 +78,11 @@ src/lib/
 
 ## 🧪 Testing Status
 
-### Unit Tests Needed
-- [ ] `analytics.js` calculation logic
-- [ ] `CollapsibleSection` localStorage persistence
-- [ ] `BarList` ARIA attributes
-- [ ] `QuickStatsGrid` number formatting
+### Unit Tests ✅ Completed
+- [✅] `analytics.js` calculation logic (4 tests - empty input, list shape, full conversation shape, missing data)
+- [✅] `CollapsibleSection` localStorage persistence (8 tests - JSON parsing, defaults, namespacing, error handling, toggle behavior)
+- [ ] `BarList` ARIA attributes (deferred - would require @testing-library/react)
+- [ ] `QuickStatsGrid` number formatting (deferred - would require @testing-library/react)
 
 ### E2E Tests Needed
 - [ ] Dashboard startup with toggle enabled/disabled
@@ -115,6 +115,7 @@ src/lib/
 2. `27982c9` - Phase 3: Analytics Integration
 3. `8f75cb4` - Phase 4: Polish & Launch Behavior
 4. `81994f2` - CollapsibleSection & Analytics Enhancements
-5. (pending) - Phase 5: Dashboard Enhancements (Activity Chart, Export, Visibility Toggles)
+5. `5d840a6` - Phase 5: Dashboard Enhancements (Activity Chart, Export, Visibility Toggles)
+6. `a35d6fc` - Unit tests for CollapsibleSection localStorage persistence
 
 All commits pushed to `master`.
