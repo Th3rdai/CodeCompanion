@@ -84,6 +84,10 @@ Four builder modes share a common BaseBuilderPanel architecture with config-driv
 - **Agentic**: CrewAI + LangGraph hybrid — evaluates purpose clarity (role/goal/backstory/scope), tool design (schemas, safety annotations), workflow logic (state machine, self-correction loops, termination), safety guardrails (blast radius, confirmation gates, human escalation)
 - **Planner** (Plan Designer): implementation-plan quality — clarity, feasibility, completeness, structure
 
+### Review Mode
+
+Code quality assessment with single-file and multi-file reviews. Supports paste, upload, File Browser, and **Scan Folder** tab for reviewing entire project folders at once. Produces unified report cards with A-F letter grades across 4 categories: bugs, security, readability, and completeness. Multi-file reviews concatenate all files with separators, scale timeout by file count (max 10 min), and instruct the LLM to include filenames in findings (e.g., "In auth.js, line 42..."). Same deep-dive conversations and export options as single-file reviews. Backend: `reviewFiles()` in `lib/review.js`, routes at `/api/review/folder/preview` and `/api/review/folder`. Limits: 80 files max, 2MB total size (matches Security mode). Uses `isWithinBasePath()` validation for security.
+
 ### Security Mode
 
 OWASP security assessment with multi-file and folder scanning. Supports single-file paste/upload, drag-and-drop files or folders, and recursive folder scanning via the "Scan Folder" tab or server-side `/api/pentest/folder` endpoint. Reports include 6 OWASP-mapped categories with letter grades, Deep Dive follow-up conversations, and export as Copy/Markdown/CSV/HTML/PDF/JSON. The **Remediate** button sends findings + code to the AI, generates fixed files, and downloads a zip containing `REMEDIATION-REPORT.md`, `original/`, and `remediated/` folders. Uses JSZip for client-side zip generation.
@@ -146,7 +150,7 @@ When adding a **new top-level runtime directory** (e.g. `routes/`, `workers/`, `
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (10520 symbols, 14220 relationships, 205 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (10565 symbols, 14271 relationships, 205 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

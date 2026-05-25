@@ -396,15 +396,26 @@ Plans:
 
 **Depends on**: Phase 1 (Review Engine), Phase 18/19 (Security multi-file scanning patterns).
 
-**Requirements**: MREV-01.
+**Requirements**: MREV-01 (✅ COMPLETE), MREV-02 (🔄 DEFERRED to Phase 28.1 — GitHub repo review).
 
-**Plans**: 3 plans
+**Status**: ✅ **FULLY IMPLEMENTED** (discovered 2026-05-24 during plan validation)
 
-Plans:
+**Implementation Details**:
+- Backend: `reviewFiles()` in `lib/review.js:144-168`, routes at `routes/review.js:235-329`
+- Frontend: "Scan Folder" tab in `ReviewPanel.jsx:1513-1643` with folder path input, drag-and-drop, preview, and unified report card
+- Tests: Unit tests (`tests/unit/review-files.test.js` + 5 related), integration tests (`tests/integration/review-folder.test.js`), E2E tests (`tests/e2e/review-workflow.spec.js`)
+- Documentation: `docs/MULTI-FILE-REVIEW.md` (user guide), `CLAUDE.md` (Review Mode section)
+- Validation: `PHASE-28-GAP-ANALYSIS.md` (gap analysis), `MULTIFILE-REVIEW.md` (plan-reviewer findings)
 
-- [ ] 28-00-PLAN.md — Wave 0 test scaffolds: unit stubs for reviewFiles(), integration stubs for folder routes
-- [ ] 28-01-PLAN.md — Backend: reviewFiles() in lib/review.js + /api/review/folder/preview and /api/review/folder routes
-- [ ] 28-02-PLAN.md — Frontend: Scan Folder tab in ReviewPanel.jsx with folder path input, preview step, and unified report card
+**Plans**: Feature already implemented; planning documents not created
+
+Plans (N/A — feature was already complete):
+
+- [x] ~~28-00-PLAN.md~~ — Tests already exist: unit tests at `tests/unit/review-files.test.js`, integration tests at `tests/integration/review-folder.test.js`
+- [x] ~~28-01-PLAN.md~~ — Backend already exists: `reviewFiles()` at `lib/review.js:144`, routes at `routes/review.js:235-329`
+- [x] ~~28-02-PLAN.md~~ — Frontend already exists: "Scan Folder" tab at `ReviewPanel.jsx:1513-1643`
+
+**Archived Plan**: `MULTIFILE-ARCHIVED.md` (implementation plan created 2026-05-24, archived same day after discovering feature already exists)
 
 ## Progress
 
