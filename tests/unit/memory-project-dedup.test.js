@@ -8,6 +8,7 @@ const {
   initMemory,
   addMemory,
   getMemories,
+  searchMemories,
   _deduplicateAndAdd,
   _projectIdentityName,
 } = require("../../lib/memory.js");
@@ -103,6 +104,50 @@ describe("project-identity dedup-on-write", () => {
       );
       const projects = getMemories().filter((m) => m.type === "project");
       assert.equal(projects.length, 2, "distinct project kept separate");
+    } finally {
+      cleanup(dir);
+    }
+  });
+
+  test("project-identity in-place update invalidates warmed index cache", () => {
+    const dir = freshMemory();
+    try {
+      const emb = vec(1);
+      addMemory({
+        type: "project",
+        content: "Project: Foo — Stack: Electron",
+        source: null,
+        projectKey: "foo",
+        embedding: emb,
+        embeddingModel: "m",
+        confidence: 0.8,
+      });
+
+      searchMemories(emb, 10, 0, {
+        types: ["project"],
+        embeddingModel: "m",
+        indexCacheEnabled: true,
+      });
+
+      _deduplicateAndAdd(
+        "project",
+        "Project: Foo — Stack: Express + Vite",
+        null,
+        vec(900),
+        "m",
+        0.8,
+        500,
+        "foo-app",
+      );
+
+      const after = searchMemories(emb, 10, 0, {
+        types: ["project"],
+        embeddingModel: "m",
+        indexCacheEnabled: true,
+      });
+      assert.equal(after.length, 1);
+      assert.equal(after[0].content, "Project: Foo — Stack: Express + Vite");
+      assert.equal(after[0].projectKey, "foo-app");
     } finally {
       cleanup(dir);
     }
