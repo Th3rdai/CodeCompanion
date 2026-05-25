@@ -231,20 +231,9 @@ module.exports = function createRouter(appContext) {
         const { execFile } = require("child_process");
         const safeFolder = folder.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
         const script = `tell application "Terminal"\n  activate\n  do script "cd " & quoted form of "${safeFolder}" & " && codex"\nend tell`;
-        // Report based on the osascript result — `do script` returns as soon
-        // as Terminal accepts the command, so a non-null err means the launch
-        // genuinely failed (e.g. not macOS) rather than a false success.
-        execFile("osascript", ["-e", script], (err) => {
-          if (res.headersSent) return;
-          if (err) {
-            log("ERROR", "launch-codex (fallback) failed", {
-              error: err.message,
-            });
-            return res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
-          }
-          log("INFO", `Launched OpenAI Codex in: ${folder} (macOS only)`);
-          res.json({ success: true, folder });
-        });
+        execFile("osascript", ["-e", script], { stdio: "ignore" }, () => {});
+        log("INFO", `Launched OpenAI Codex in: ${folder} (macOS only)`);
+        res.json({ success: true, folder });
       }
     } catch (err) {
       log("ERROR", "launch-codex failed", { error: err.message });

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Braces, Code2, Wind } from "lucide-react";
+import { Braces, Code2, Terminal, Wind } from "lucide-react";
 import { apiFetch } from "../lib/api-fetch";
 import { convertDocument } from "../lib/document-processor";
 import {
@@ -862,8 +862,6 @@ export default function FileBrowser({
               <Braces className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
               {launchingOpenCode ? "Opening..." : "OpenCode"}
             </button>
-          </div>
-          <div className="flex gap-2">
             <button
               onClick={() =>
                 launchIDE(
@@ -873,12 +871,12 @@ export default function FileBrowser({
                 )
               }
               disabled={launchingClaude || !folderPath}
-              className="flex-1 text-sm font-medium px-3 py-2.5 rounded-lg bg-indigo-500/25 text-indigo-100 hover:bg-indigo-500/40 border border-indigo-400/40 shadow-sm shadow-indigo-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-200 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               <img
                 src="/ide-logos/claude.jpg"
                 alt=""
-                className="w-5 h-5 rounded-full"
+                className="w-4 h-4 rounded-full"
               />
               {launchingClaude ? "Opening..." : "Claude Code"}
             </button>
@@ -891,12 +889,10 @@ export default function FileBrowser({
                 )
               }
               disabled={launchingCodex || !folderPath}
-              className="flex-1 text-sm font-medium px-3 py-2.5 rounded-lg bg-emerald-500/25 text-emerald-100 hover:bg-emerald-500/40 border border-emerald-400/40 shadow-sm shadow-emerald-900/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 min-w-[calc(50%-0.25rem)] text-xs px-2 py-1.5 rounded-lg bg-teal-500/20 text-teal-200 hover:bg-teal-500/30 border border-teal-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" className="opacity-80" />
-              </svg>
-              {launchingCodex ? "Opening..." : "OpenAI Codex"}
+              <Terminal className="w-4 h-4 shrink-0 opacity-90" aria-hidden />
+              {launchingCodex ? "Opening..." : "Codex"}
             </button>
           </div>
         </div>
