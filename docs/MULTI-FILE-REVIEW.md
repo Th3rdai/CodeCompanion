@@ -36,15 +36,15 @@ Click the **Scan Folder** tab.
 
 ### 3. Enter Folder Path
 
-**Option A**: Type the folder path
+**⌨️ Option A: Type the folder path**
 - Enter the full path to your project folder
 - Example: `/Users/you/myproject` or `C:\Users\you\myproject`
 
-**Option B**: Drag and drop
+**🖱️ Option B: Drag and drop**
 - Drag a folder from Finder/Explorer directly into the input area
 - Visual feedback shows when folder is ready to drop
 
-**Security Note**: Folder must be within your configured **Project Folder** (Settings → General → Project Folder). Paths outside this boundary will return a 403 Forbidden error.
+⚠️ **Security Note**: Folder must be within your configured **Project Folder** (Settings → General → Project Folder). Paths outside this boundary will return a 403 Forbidden error.
 
 ### 4. Preview Files
 
@@ -54,7 +54,7 @@ Click the **Preview Files** button to see what will be reviewed:
 - Total size across all files
 - Number of skipped files (binary, too large, etc.)
 
-**Warning**: If more than 20 files are detected, you'll see a warning that the review may take several minutes. You can proceed or narrow your scope by selecting a subfolder.
+⚠️ **Warning**: If more than 20 files are detected, you'll see a warning that the review may take several minutes. You can proceed or narrow your scope by selecting a subfolder.
 
 ### 5. Review Folder
 
@@ -102,6 +102,8 @@ To prevent token overflow and ensure timely reviews, the following limits are en
 | **Max total size** | 2MB | ~500K tokens at 3.5 chars/token |
 | **Per-file size** | 200KB (soft) | Larger files may be skipped |
 | **Max timeout** | 10 minutes | Scaled by file count, capped at 600s |
+
+**Note**: These limits match Security mode's folder scanning limits. See [CLAUDE.md Security Mode](../CLAUDE.md#security-mode) for comparison with OWASP security scanning.
 
 **Binary files** are automatically skipped:
 - Images (`.png`, `.jpg`, `.gif`, etc.)
@@ -183,6 +185,8 @@ The LLM naturally mentions filenames in findings. No structured `filePath` field
 1. Go to Settings → General → Project Folder
 2. Update to a parent directory that contains your target folder
 3. Retry the scan
+
+**Related**: For more on project folder configuration and security boundaries, see [Settings Panel](../CLAUDE.md#settings-panel).
 
 ### "No reviewable text files found in folder"
 
