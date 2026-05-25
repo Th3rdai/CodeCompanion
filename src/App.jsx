@@ -234,17 +234,17 @@ const MODES = [
 
 const BUILDER_MODES = ["prompting", "skillz", "agentic", "planner"];
 
+/**
+ * Modes that run the agentic TOOL_CALL loop and therefore consume agentMaxRounds.
+ * Mirrors AGENTIC_TOOL_MODES in lib/chat-post-handler.js — transform modes
+ * (explain, bugs, refactor, translate-tech, translate-biz, diagram) stream
+ * without tools, so the Rounds control would be a no-op there.
+ */
+const AGENTIC_TOOL_MODES = ["chat", "experiment"];
+
 /** Modes where POST /api/chat uses agentMaxRounds and the user should see the header control. */
 function showAgentRoundsInHeader(mode) {
-  return (
-    mode === "experiment" ||
-    (mode !== "create" &&
-      mode !== "build" &&
-      mode !== "review" &&
-      mode !== "pentest" &&
-      mode !== "terminal" &&
-      !BUILDER_MODES.includes(mode))
-  );
+  return AGENTIC_TOOL_MODES.includes(mode);
 }
 
 /** Shown in the main strip; everything else lives under More or the command palette. */
