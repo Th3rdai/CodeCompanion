@@ -22,8 +22,9 @@ Run unit tests before small backend changes; run Playwright when changing UI or 
 | `tests/e2e/`              | End-to-end workflows (image upload, review, **create mode** wizard + API guardrails, **agent terminal** allowlist/audit)                                                                                   |
 | `tests/integration/`      | Spawn server: **`api-with-images.test.js`**, **`review-folder.test.js`**, experiment API, MCP, history folders, parallel tools                                                                             |
 | `tests/*.test.js`         | Top-level Node tests (rate limit, MCP security, tone validation, UI labels)                                                                                                                                |
-| `playwright.config.js`    | Playwright: starts `npm run build && FORCE_HTTP=1 PORT=4173 node server.js`; see **Playwright env** below                                                                                                  |
-| `tests/helpers/`          | `app-ready.js` (splash + onboarding), `mode-tabs.js` (stable `data-testid` mode tabs)                                                                                                                      |
+| `playwright.config.js`    | Playwright: starts `npm run build && FORCE_HTTP=1 PORT=4173 node server.js`; includes **`globalSetup`** to pre-warm server; see **Playwright env** below                                                   |
+| `tests/global-setup.js`   | **Global setup**: Pre-warms server before any tests run (waits for `networkidle` + full React hydration). Eliminates cold-start flakiness across entire suite.                                             |
+| `tests/helpers/`          | `app-ready.js` (splash + onboarding), `reload-app-ready.js` (cache-busting reload with `networkidle` wait), `mode-tabs.js` (stable `data-testid` mode tabs)                                                |
 | `playwright-ct.config.js` | Component-test config (experimental CT)                                                                                                                                                                    |
 
 Some UI specs use **`test.skip`** placeholders (e.g. build handoff / AI ops) until fully wired — see individual files.
@@ -42,11 +43,11 @@ BASE_URL=https://127.0.0.1:4173 npm run test:ui
 
 | Variable            | Effect                                                                                                                                                         |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PW_WORKERS`        | Override parallel workers (default **2** — avoids starving the single `node server.js`).                                                                       |
+| `PW_WORKERS`        | Override parallel workers (default **1** — avoids starving the single `node server.js`).                                                                       |
 | `PW_REUSE_SERVER=1` | Reuse an existing process on **:4173** instead of starting **webServer** (faster; risk: **stale `dist/`** if the server was built before your last UI change). |
 | `BASE_URL`          | Same as above for HTTPS / alternate host.                                                                                                                      |
 
-The root config sets **`retries: 2`** so occasional hydration / single-server flake can recover without failing the whole run.
+The root config sets **`retries: 2`** for occasional flakes. The **`globalSetup`** hook pre-warms the server (waits for `networkidle` + full React hydration) before any tests run, eliminating cold-start hydration race conditions that previously required retries.
 
 ## Agent terminal E2E
 

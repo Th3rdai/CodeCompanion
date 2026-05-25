@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Playwright test cold-start hydration flakiness.** Added `tests/global-setup.js` that pre-warms the server before any tests run — loads app with `networkidle` wait, waits for `#model-select` and mode tabs to prove full React hydration, then gives React 1 second to settle lazy-loaded components. Updated `playwright.config.js` to use `globalSetup`, and improved `tests/helpers/reload-app-ready.js` to wait for `networkidle` instead of just `load`. Result: **zero flaky tests**, all pass on first try. Previously flaky `report-card-interactions.spec.js` now passes consistently in ~2.4s (was timing out at 45s). Full UI suite: **37 passed, 0 flaky** in 1.5 minutes.
+- **MCP client auto-connect warnings.** Disabled auto-connect for `Google Work` and `pci-assistant` MCP clients in Application Support config (`autoConnect: false`) to eliminate startup warnings when these services aren't running. Server now starts cleanly with no connection errors.
+- **Sprint 3 Audit Report PDF generation Promise hang.** Verified fix from previous session with integration test `test-multiple-exports.js` — 11 consecutive file generations (5 MD, 3 PDF, 3 mixed formats) all pass without hanging. Execution time ~8 seconds, no timeouts. Audit report feature is stable for production.
+
 ### Security
 
 - **Dependabot — `fast-uri` (high, GHSA-q3j6-qgpj-74h6 / CVE-2026-6321).** Path traversal via percent-encoded dot segments — `fast-uri` ≤ 3.1.0 decodes `%2F` and `%2E` before dot-segment removal in `normalize()` / `equal()`, letting URLs like `/public/%2e%2e/admin` collapse to `/admin`. Pulled in transitively as `@modelcontextprotocol/sdk → ajv → fast-uri@3.1.0`. Added npm `overrides.fast-uri = ">=3.1.1"` to force the patched version. Lockfile now resolves to `fast-uri@3.1.2`. `npm audit` reports 0 vulnerabilities; smoke test + MCP stdio (19 tools) green post-bump.
