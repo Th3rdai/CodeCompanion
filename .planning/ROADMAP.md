@@ -401,6 +401,7 @@ Plans:
 **Status**: ✅ **FULLY IMPLEMENTED** (completed 2026-04-09, commit b36b623; discovered complete 2026-05-24 during plan validation)
 
 **Implementation Details**:
+
 - Backend: `reviewFiles()` in `lib/review.js:144-168`, routes at `routes/review.js:235-329`
 - Frontend: "Scan Folder" tab in `ReviewPanel.jsx:1513-1643` with folder path input, drag-and-drop, preview, and unified report card
 - Tests: Unit tests (`tests/unit/review-files.test.js` + 5 related), integration tests (`tests/integration/review-folder.test.js`), E2E tests (`tests/e2e/review-workflow.spec.js`)

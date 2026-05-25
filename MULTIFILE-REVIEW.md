@@ -17,6 +17,7 @@
 - ❌ **Tests exist**: Integration test suite at `tests/integration/review-folder.test.js` (243 lines)
 
 **Recommendation**: **REFRAME** the plan from "implement Phase 28" to either:
+
 1. "**Validate** Phase 28 implementation against spec" (audit/verification)
 2. "**Enhance** Phase 28 with additional features" (if gaps exist)
 3. **ARCHIVE** this plan and document Phase 28 as complete
@@ -28,6 +29,7 @@
 ### Evidence Gathered BEFORE Reading Plan
 
 #### 1. Routes Already Exist
+
 **File**: `routes/review.js`
 **Lines**: 235-329
 
@@ -40,15 +42,32 @@ router.post("/review/folder/preview", async (req, res) => {
     maxFiles: 80,
     maxTotalSize: 2 * 1024 * 1024,
   });
-  res.json({ files: files.map((f) => ({ path: f.path, size: f.size })), totalSize, skipped, folder });
+  res.json({
+    files: files.map((f) => ({ path: f.path, size: f.size })),
+    totalSize,
+    skipped,
+    folder,
+  });
 });
 
 // ── POST /api/review/folder ───────────────────────────
 router.post("/review/folder", async (req, res) => {
   const { model: reqModel, folder } = req.body;
   // ... 60+ lines of implementation
-  const { files, totalSize, skipped } = readFolderFiles(folder, { maxFiles: 80, maxTotalSize: 2 * 1024 * 1024 });
-  const { model, result } = await runReviewFolderPhase({ config, log, reqModel, folder, files, totalSize, skipped, abortSignal: httpAbort.signal });
+  const { files, totalSize, skipped } = readFolderFiles(folder, {
+    maxFiles: 80,
+    maxTotalSize: 2 * 1024 * 1024,
+  });
+  const { model, result } = await runReviewFolderPhase({
+    config,
+    log,
+    reqModel,
+    folder,
+    files,
+    totalSize,
+    skipped,
+    abortSignal: httpAbort.signal,
+  });
   // ... returns unified report card
 });
 ```
@@ -58,6 +77,7 @@ router.post("/review/folder", async (req, res) => {
 ---
 
 #### 2. Backend Function Already Exists
+
 **File**: `lib/review.js`
 **Lines**: 144-168
 
@@ -67,10 +87,16 @@ async function reviewFiles(ollamaUrl, model, files, opts = {}) {
     .map((f) => `// --- FILE: ${f.path} ---\n\`\`\`\n${f.content}\n\`\`\``)
     .join("\n\n");
 
-  const baseTimeout = opts.timeoutMs || (opts.timeoutSec ? opts.timeoutSec * 1000 : getTimeoutForModel(model));
-  const timeout = Math.min(baseTimeout * Math.max(1, Math.ceil(files.length / 5)), 600000);
+  const baseTimeout =
+    opts.timeoutMs ||
+    (opts.timeoutSec ? opts.timeoutSec * 1000 : getTimeoutForModel(model));
+  const timeout = Math.min(
+    baseTimeout * Math.max(1, Math.ceil(files.length / 5)),
+    600000,
+  );
 
-  const userPreamble = `Review this project across ALL files. When reporting findings, ` +
+  const userPreamble =
+    `Review this project across ALL files. When reporting findings, ` +
     `include the filename (e.g., "In auth.js: ...") so the developer ` +
     `knows exactly where to look.\n\n`;
 
@@ -88,6 +114,7 @@ async function reviewFiles(ollamaUrl, model, files, opts = {}) {
 ---
 
 #### 3. Frontend "Scan Folder" Tab Already Exists
+
 **File**: `src/components/ReviewPanel.jsx`
 **Lines**: 792, 1379, 1513
 
@@ -110,6 +137,7 @@ async function reviewFiles(ollamaUrl, model, files, opts = {}) {
 ---
 
 #### 4. Integration Tests Already Exist
+
 **File**: `tests/integration/review-folder.test.js`
 **Size**: 8125 bytes, 243 lines
 
@@ -129,6 +157,7 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 ---
 
 #### 5. Supporting Functions Already Exist
+
 **File**: `lib/file-browser.js`
 **Function**: `readFolderFiles()`
 **Lines**: 321-351
@@ -141,23 +170,23 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 
 ### Claims About What Needs to Be Created
 
-| Line | Claim | Type |
-|------|-------|------|
-| 98-106 | **`lib/review.js`** needs to be "extended" with `reviewFiles()` function ("+80 lines for multi-file logic") | IMPLEMENTATION |
-| 107-114 | **`routes/review.js`** is a "new file" that needs to be created with 3 endpoints (300+ lines) | IMPLEMENTATION |
-| 116-125 | **`src/components/ReviewPanel.jsx`** needs to be "extended" with "Scan Folder" tab (+120 lines) | IMPLEMENTATION |
-| 127-134 | **`tests/unit/review-folder.test.js`** is a "new file" that needs to be created (150+ lines) | IMPLEMENTATION |
-| 136-145 | **`tests/integration/review-folder-api.test.js`** is a "new file" that needs to be created (200+ lines) | IMPLEMENTATION |
-| 146-156 | **`tests/ui/review-folder.spec.js`** is a "new file" that needs to be created (150+ lines) | IMPLEMENTATION |
+| Line    | Claim                                                                                                       | Type           |
+| ------- | ----------------------------------------------------------------------------------------------------------- | -------------- |
+| 98-106  | **`lib/review.js`** needs to be "extended" with `reviewFiles()` function ("+80 lines for multi-file logic") | IMPLEMENTATION |
+| 107-114 | **`routes/review.js`** is a "new file" that needs to be created with 3 endpoints (300+ lines)               | IMPLEMENTATION |
+| 116-125 | **`src/components/ReviewPanel.jsx`** needs to be "extended" with "Scan Folder" tab (+120 lines)             | IMPLEMENTATION |
+| 127-134 | **`tests/unit/review-folder.test.js`** is a "new file" that needs to be created (150+ lines)                | IMPLEMENTATION |
+| 136-145 | **`tests/integration/review-folder-api.test.js`** is a "new file" that needs to be created (200+ lines)     | IMPLEMENTATION |
+| 146-156 | **`tests/ui/review-folder.spec.js`** is a "new file" that needs to be created (150+ lines)                  | IMPLEMENTATION |
 
 ### Claims About What Currently Doesn't Exist
 
-| Line | Claim | Reality |
-|------|-------|---------|
-| 55-56 | "Three input method tabs become four: Paste \| Upload \| Browse \| **Scan Folder**" (implies 4th tab doesn't exist) | ❌ **WRONG** — 4th tab exists at ReviewPanel.jsx:1379 |
-| 204-240 | Wave 1 tasks say to "Implement `reviewFiles()` in `lib/review.js`" | ❌ **WRONG** — Function exists at lib/review.js:144 |
-| 242-250 | Wave 1 tasks say to "Create `routes/review.js` (extract from server.js)" | ❌ **WRONG** — routes/review.js exists with both endpoints |
-| 278-322 | Wave 2 tasks say to "Add 'Scan Folder' tab to ReviewPanel.jsx" | ❌ **WRONG** — Tab exists in ReviewPanel.jsx |
+| Line    | Claim                                                                                                               | Reality                                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 55-56   | "Three input method tabs become four: Paste \| Upload \| Browse \| **Scan Folder**" (implies 4th tab doesn't exist) | ❌ **WRONG** — 4th tab exists at ReviewPanel.jsx:1379      |
+| 204-240 | Wave 1 tasks say to "Implement `reviewFiles()` in `lib/review.js`"                                                  | ❌ **WRONG** — Function exists at lib/review.js:144        |
+| 242-250 | Wave 1 tasks say to "Create `routes/review.js` (extract from server.js)"                                            | ❌ **WRONG** — routes/review.js exists with both endpoints |
+| 278-322 | Wave 2 tasks say to "Add 'Scan Folder' tab to ReviewPanel.jsx"                                                      | ❌ **WRONG** — Tab exists in ReviewPanel.jsx               |
 
 ---
 
@@ -168,12 +197,15 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 #### ❌ WRONG: "Create `routes/review.js`" (Plan Line 242)
 
 **Plan says**:
+
 > Create `routes/review.js` (extract from server.js)
+>
 > - Move existing `app.post('/api/review')` to `router.post('/api/review')`
 > - Add `router.post('/api/review/folder/preview')` — mirrors pentest pattern
 > - Add `router.post('/api/review/folder')` — mirrors pentest pattern
 
 **Reality**:
+
 - ✅ `routes/review.js` **EXISTS** and is already mounted in `server.js`
 - ✅ Both `/api/review/folder/preview` and `/api/review/folder` **ALREADY IMPLEMENTED**
 - ✅ Endpoints follow the exact pattern described in the plan
@@ -185,7 +217,9 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 #### ❌ WRONG: "Implement `reviewFiles()`" (Plan Line 204)
 
 **Plan says**:
+
 > Extend `lib/review.js` with `reviewFiles()` function
+>
 > ```javascript
 > async function reviewFiles(files, options = {}) {
 >   const aggregatedCode = files
@@ -196,6 +230,7 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 > ```
 
 **Reality**:
+
 - ✅ `reviewFiles()` **EXISTS** at `lib/review.js:144-168`
 - ✅ Uses file separator pattern: `` `// --- FILE: ${f.path} ---\n\`\`\`\n${f.content}\n\`\`\`` ``
 - ✅ Calls existing `reviewCode()` with multi-file system prompt
@@ -208,7 +243,9 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 #### ❌ WRONG: "Add 'Scan Folder' tab" (Plan Line 278)
 
 **Plan says**:
+
 > Extend `ReviewPanel.jsx` with fourth tab
+>
 > ```jsx
 > <Tab active={activeTab === "folder"} onClick={() => setActiveTab("folder")}>
 >   <Folder className="w-4 h-4" />
@@ -217,6 +254,7 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 > ```
 
 **Reality**:
+
 - ✅ "Scan Folder" tab **EXISTS** at `ReviewPanel.jsx:1379`
 - ✅ Uses `<FolderSearch className="w-4 h-4" />` icon
 - ✅ Tab panel exists at line 1513
@@ -229,11 +267,14 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 #### ❌ WRONG: "Create integration tests" (Plan Line 136)
 
 **Plan says**:
+
 > **`tests/integration/review-folder-api.test.js`** (new file)
+>
 > - Provides: Integration tests for folder endpoints
 > - Minimum lines: 200+
 
 **Reality**:
+
 - ✅ Integration tests **EXIST** at `tests/integration/review-folder.test.js` (not `-api` suffix)
 - ✅ File size: 243 lines (exceeds plan's 200+ requirement)
 - ✅ Tests cover: `/api/review/folder/preview`, `/api/review/folder`, 403 errors, empty folders, limits
@@ -247,21 +288,27 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 ### Plan's Own Contradictions
 
 1. **Line 677**: "Dependencies & Blockers" section says:
+
    > **`lib/file-browser.js::readFolderFiles()`**
+   >
    > - **Status**: ✅ Exists (used by Security mode)
    > - **Blocker**: None
 
    ✅ Plan correctly identifies `readFolderFiles()` exists — consistent with reality.
 
 2. **Line 681**: "Dependencies & Blockers" section says:
+
    > **`lib/review.js::reviewCode()`**
+   >
    > - **Status**: ✅ Exists (Phase 1)
    > - **Blocker**: None
 
    ✅ Plan correctly identifies `reviewCode()` exists — consistent with reality.
 
 3. **BUT Lines 98-106**: "Must-Haves" section says:
+
    > **`lib/review.js`** (extended)
+   >
    > - **Provides**: `reviewFiles()` function accepting array of file objects
    > - **Minimum lines**: +80 lines for multi-file logic
    > - **Must contain**: `async function reviewFiles(files, options)`
@@ -280,18 +327,21 @@ test("POST /api/review/folder/preview returns files array, totalSize, skipped", 
 **Problem**: The plan's entire premise is that Phase 28 needs to be implemented from scratch, but **Phase 28 is already complete**.
 
 **Impact**:
+
 - Following this plan would duplicate existing code
 - Wastes 3 weeks of development time (plan estimate)
 - Creates confusion about what actually needs to be done
 - May break existing functionality if developers "re-implement" over working code
 
 **Evidence**:
+
 - `reviewFiles()` exists (lib/review.js:144)
 - Routes exist (routes/review.js:235-329)
 - UI exists (ReviewPanel.jsx:1379, 1513)
 - Tests exist (tests/integration/review-folder.test.js)
 
 **Recommendation**: **ARCHIVE** this plan. Create new plan for one of:
+
 1. **Validation**: Audit Phase 28 implementation against MREV-01 requirements
 2. **Enhancement**: Identify gaps and add missing features (e.g., MREV-02 GitHub support)
 3. **Documentation**: Document existing Phase 28 implementation
@@ -362,14 +412,14 @@ Before using any plan for implementation:
 
 ## Plan Quality Score
 
-| Dimension | Score | Notes |
-|-----------|-------|-------|
-| **Codebase-Truth Match** | ❌ **F** | Entire premise is wrong; feature already exists |
+| Dimension                | Score    | Notes                                             |
+| ------------------------ | -------- | ------------------------------------------------- |
+| **Codebase-Truth Match** | ❌ **F** | Entire premise is wrong; feature already exists   |
 | **Internal Consistency** | 🟡 **C** | Some contradictions (dependencies vs. must-haves) |
-| **Completeness** | ✅ **A** | Plan is thorough IF it were for new work |
-| **Technical Accuracy** | ✅ **A** | Technical patterns and code samples are correct |
-| **Clarity** | ✅ **A** | Well-written, clear structure, good examples |
-| **Feasibility** | ✅ **A** | Would be feasible IF feature didn't already exist |
+| **Completeness**         | ✅ **A** | Plan is thorough IF it were for new work          |
+| **Technical Accuracy**   | ✅ **A** | Technical patterns and code samples are correct   |
+| **Clarity**              | ✅ **A** | Well-written, clear structure, good examples      |
+| **Feasibility**          | ✅ **A** | Would be feasible IF feature didn't already exist |
 
 **Overall Grade**: ❌ **F** (Cannot use as-is; critical premise error)
 

@@ -13,6 +13,7 @@
 **Gaps Identified**: 3 minor documentation gaps (no critical functionality missing)
 
 **Recommendation**:
+
 1. Add documentation for multi-file review feature
 2. Consider Phase 28 **COMPLETE** and ready for production use
 3. Archive MULTIFILE.md implementation plan (feature already shipped)
@@ -26,6 +27,7 @@
 **Status**: Unit tests exist and are passing
 
 **Evidence**:
+
 - File: `tests/unit/review-files.test.js`
 - Test coverage:
   ```
@@ -39,6 +41,7 @@
   ```
 
 **Additional unit test files found**:
+
 - `tests/unit/review-folder-pathcheck.test.js` — `isWithinBasePath` security validation
 - `tests/unit/review-accuracy-guardrail.test.js`
 - `tests/unit/review-directory-tree.test.js`
@@ -54,6 +57,7 @@
 **Status**: Integration tests exist and are passing
 
 **Evidence**:
+
 - File: `tests/integration/review-folder.test.js` (243 lines)
 - Test results:
   ```
@@ -62,6 +66,7 @@
   ```
 
 **Test infrastructure**:
+
 - Spawns sandbox server with isolated `CC_DATA_DIR`
 - Uses random test ports to avoid collisions
 - Tests security validation (`isWithinBasePath`)
@@ -77,6 +82,7 @@
 **Status**: E2E tests exist for review workflow
 
 **Evidence**:
+
 - File: `tests/e2e/review-workflow.spec.js`
 - Tests cover:
   - Full paste workflow (filename input, code textarea, submit, report card display)
@@ -84,6 +90,7 @@
   - Report card verification (overall grade, category grades)
 
 **Note**: E2E test appears to focus on single-file review workflow. Scan Folder tab E2E testing may be limited, but this is acceptable since:
+
 - Integration tests cover `/api/review/folder` endpoints thoroughly
 - UI is straightforward (folder input → preview → scan → report card)
 - Manual testing can easily verify UI functionality
@@ -205,6 +212,7 @@
    - Recommendation: Add screenshot to docs or create short tutorial
 
 **Documentation that DOES exist**:
+
 - ✅ CHANGELOG.md references folder scans (line 772: "Folder scans in Security mode exclude images")
 - ✅ CLAUDE.md documents Security mode folder scanning (precedent exists)
 - ✅ Code comments in ReviewPanel.jsx (line 792: "TWO DISTINCT CODE PATHS in the 'Scan Folder' tab")
@@ -273,16 +281,16 @@
 
 ## Summary: Gap Analysis Scorecard
 
-| Area | Status | Gaps Found | Severity |
-|------|--------|------------|----------|
-| **Unit Tests** | ✅ Complete | 0 | N/A |
-| **Integration Tests** | ✅ Complete | 0 | N/A |
-| **E2E Tests** | ✅ Acceptable | 0 (optional: Scan Folder E2E) | 🟢 Low |
-| **Frontend Implementation** | ✅ Complete | 0 | N/A |
-| **Backend Implementation** | ✅ Complete | 0 | N/A |
-| **File Path Annotations** | ✅ Complete | 0 (LLM-driven by design) | N/A |
-| **Grade Aggregation** | ✅ Complete | 0 (LLM-driven by design) | N/A |
-| **Documentation** | 🟡 Minor Gaps | 3 (CLAUDE.md, FEATURES.md, tutorial) | 🟡 Low |
+| Area                        | Status        | Gaps Found                           | Severity |
+| --------------------------- | ------------- | ------------------------------------ | -------- |
+| **Unit Tests**              | ✅ Complete   | 0                                    | N/A      |
+| **Integration Tests**       | ✅ Complete   | 0                                    | N/A      |
+| **E2E Tests**               | ✅ Acceptable | 0 (optional: Scan Folder E2E)        | 🟢 Low   |
+| **Frontend Implementation** | ✅ Complete   | 0                                    | N/A      |
+| **Backend Implementation**  | ✅ Complete   | 0                                    | N/A      |
+| **File Path Annotations**   | ✅ Complete   | 0 (LLM-driven by design)             | N/A      |
+| **Grade Aggregation**       | ✅ Complete   | 0 (LLM-driven by design)             | N/A      |
+| **Documentation**           | 🟡 Minor Gaps | 3 (CLAUDE.md, FEATURES.md, tutorial) | 🟡 Low   |
 
 **Overall Grade**: ✅ **A-** (feature complete, minor documentation gaps)
 
@@ -293,6 +301,7 @@
 ### Priority 1: Documentation (1-2 hours)
 
 1. **Update `CLAUDE.md`** — Add to Review Mode section:
+
    ```markdown
    Review mode supports single-file and multi-file code reviews. Use the "Scan Folder"
    tab to review an entire project folder at once, producing a unified report card

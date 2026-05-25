@@ -196,7 +196,11 @@ module.exports = function createRouter(appContext) {
       const opts = {};
       if (body.sampleSize !== undefined) {
         const sampleSize = Number(body.sampleSize);
-        if (!Number.isFinite(sampleSize) || sampleSize < 1 || sampleSize > 500) {
+        if (
+          !Number.isFinite(sampleSize) ||
+          sampleSize < 1 ||
+          sampleSize > 500
+        ) {
           return res
             .status(400)
             .json({ error: "sampleSize must be a number between 1 and 500" });
@@ -209,14 +213,17 @@ module.exports = function createRouter(appContext) {
           typeof body.thresholds !== "object" ||
           Array.isArray(body.thresholds)
         ) {
-          return res.status(400).json({ error: "thresholds must be an object" });
+          return res
+            .status(400)
+            .json({ error: "thresholds must be an object" });
         }
         const t = body.thresholds;
         if (t.nearDuplicateSimilarity !== undefined) {
           const v = Number(t.nearDuplicateSimilarity);
           if (!Number.isFinite(v) || v < 0.5 || v > 1) {
             return res.status(400).json({
-              error: "thresholds.nearDuplicateSimilarity must be between 0.5 and 1",
+              error:
+                "thresholds.nearDuplicateSimilarity must be between 0.5 and 1",
             });
           }
           opts.nearDuplicateSimilarity = v;
@@ -225,7 +232,8 @@ module.exports = function createRouter(appContext) {
           const v = Number(t.lowSignalScoreThreshold);
           if (!Number.isFinite(v) || v < 0 || v > 1) {
             return res.status(400).json({
-              error: "thresholds.lowSignalScoreThreshold must be between 0 and 1",
+              error:
+                "thresholds.lowSignalScoreThreshold must be between 0 and 1",
             });
           }
           opts.lowSignalScoreThreshold = v;

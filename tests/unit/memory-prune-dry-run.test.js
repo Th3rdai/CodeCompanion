@@ -49,7 +49,9 @@ describe("memory prune dry-run analyzer", () => {
         confidence: 0.58,
       });
 
-      const before = getMemories().map((m) => m.id).sort();
+      const before = getMemories()
+        .map((m) => m.id)
+        .sort();
       const analysis = analyzeMemoryQualityDryRun({
         sampleSize: 10,
         nearDuplicateSimilarity: 0.7,
@@ -57,7 +59,9 @@ describe("memory prune dry-run analyzer", () => {
         minContentLength: 10,
         staleDays: 1,
       });
-      const after = getMemories().map((m) => m.id).sort();
+      const after = getMemories()
+        .map((m) => m.id)
+        .sort();
 
       assert.equal(analysis.readOnly, true);
       assert.equal(analysis.totalCount, before.length);
@@ -66,7 +70,10 @@ describe("memory prune dry-run analyzer", () => {
       assert.ok(analysis.exactDuplicates.removableCount >= 1);
       assert.ok(Array.isArray(analysis.nearDuplicates.pairs));
       assert.ok(Array.isArray(analysis.lowSignal.candidates));
-      assert.ok(typeof analysis.suggestedThresholds.lowSignalScoreThreshold === "number");
+      assert.ok(
+        typeof analysis.suggestedThresholds.lowSignalScoreThreshold ===
+          "number",
+      );
       assert.deepEqual(after, before);
     } finally {
       cleanup(dir);

@@ -16,6 +16,7 @@
 **Status**: Phase 28 multi-file code review is **FULLY IMPLEMENTED** in the codebase.
 
 **Evidence**:
+
 - ✅ `reviewFiles()` exists at `lib/review.js:144-168`
 - ✅ Routes exist: `/api/review/folder/preview` and `/api/review/folder` at `routes/review.js:235-329`
 - ✅ "Scan Folder" tab exists in `ReviewPanel.jsx` (lines 792, 1379, 1513)
@@ -30,6 +31,7 @@
 **ORIGINAL INTENT**: Extend Review mode to accept multiple files and whole folders.
 
 **ACTUAL STATE**: Feature is already live and functional. Users can currently:
+
 - Click "Scan Folder" tab in Review mode
 - Enter a folder path (validated against `projectFolder`)
 - Preview files (count, size, skipped files)
@@ -37,6 +39,7 @@
 - View findings with file path annotations
 
 **REVISED SCOPE**: This document now serves as:
+
 1. **Validation**: Verify existing implementation meets MREV-01 requirements
 2. **Enhancement**: Identify gaps and add missing features (e.g., MREV-02 GitHub support)
 3. **Documentation**: Document existing Phase 28 architecture for future developers
@@ -62,6 +65,7 @@
 - ✅ User can click into conversational deep-dive about any category — **VERIFIED**: Same click-to-chat behavior as single-file reviews
 
 **Implementation Details**:
+
 - Backend: `lib/review.js::reviewFiles()` concatenates files with `// --- FILE: ${f.path} ---` separators
 - Routes: `routes/review.js` has both `/preview` and full scan endpoints
 - Frontend: Fourth tab in `ReviewPanel.jsx` labeled "Scan Folder" with folder input

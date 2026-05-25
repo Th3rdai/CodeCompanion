@@ -72,8 +72,15 @@ describe("project-identity dedup-on-write", () => {
       );
       const projects = getMemories().filter((m) => m.type === "project");
       assert.equal(projects.length, 1, "no duplicate identity created");
-      assert.equal(projects[0].content, "Project: Foo — Stack: Express + Vite, Node");
-      assert.equal(projects[0].projectKey, "foo-app", "projectKey consolidated");
+      assert.equal(
+        projects[0].content,
+        "Project: Foo — Stack: Express + Vite, Node",
+      );
+      assert.equal(
+        projects[0].projectKey,
+        "foo-app",
+        "projectKey consolidated",
+      );
       assert.ok(projects[0].confidence > 0.8, "confidence bumped");
     } finally {
       cleanup(dir);
@@ -165,7 +172,16 @@ describe("project-identity dedup-on-write", () => {
         confidence: 0.9,
       });
       // Dissimilar fact → added as new (cosine path, no project shortcut).
-      _deduplicateAndAdd("fact", "User likes TypeScript", null, vec(50), "m", 0.9, 500, null);
+      _deduplicateAndAdd(
+        "fact",
+        "User likes TypeScript",
+        null,
+        vec(50),
+        "m",
+        0.9,
+        500,
+        null,
+      );
       const facts = getMemories().filter((m) => m.type === "fact");
       assert.equal(facts.length, 2, "distinct facts both retained");
     } finally {

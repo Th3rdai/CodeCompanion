@@ -49,7 +49,9 @@ test("POST /api/memory/prune/dry-run returns analysis and performs no writes", a
     confidence: 0.1,
   });
 
-  const beforeIds = getMemories().map((m) => m.id).sort();
+  const beforeIds = getMemories()
+    .map((m) => m.id)
+    .sort();
 
   const app = express();
   app.use(express.json());
@@ -83,7 +85,9 @@ test("POST /api/memory/prune/dry-run returns analysis and performs no writes", a
     assert.ok(body.exactDuplicates.totalGroups >= 1);
     assert.ok(Array.isArray(body.lowSignal.candidates));
 
-    const afterIds = getMemories().map((m) => m.id).sort();
+    const afterIds = getMemories()
+      .map((m) => m.id)
+      .sort();
     assert.deepEqual(afterIds, beforeIds);
   } finally {
     srv.close();
