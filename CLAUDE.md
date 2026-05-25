@@ -1,21 +1,21 @@
 # Code Companion — Vibe Coder Edition
 
-Web + desktop app that helps **vibe coders** (non-technical users who generate code with AI tools) understand, review, and improve AI-generated code. It connects to locally-hosted **Ollama** LLMs for friendly, jargon-free explanations, A–F report-card reviews, and guided fixes. One Express server runs standalone (web) or embedded in Electron (desktop). The *app's* user-facing tone is friendly-teacher (analogies, no jargon, patience); keep the UI focused on vibe-coder workflows.
+Web + desktop app that helps **vibe coders** (non-technical users who generate code with AI tools) understand, review, and improve AI-generated code. It connects to locally-hosted **Ollama** LLMs for friendly, jargon-free explanations, A–F report-card reviews, and guided fixes. One Express server runs standalone (web) or embedded in Electron (desktop). The _app's_ user-facing tone is friendly-teacher (analogies, no jargon, patience); keep the UI focused on vibe-coder workflows.
 
 ## Commands
 
-| Task | Command |
-|---|---|
-| Web dev (server + Vite) | `npm run dev` |
-| Desktop dev | `npm run electron:run` (build + launch) · `npm run electron:dev` (no rebuild) |
-| Production build | `npm run build` |
-| Full validation — run before commit | `npm run validate:fast` |
-| Static checks (lint + types + format) | `npm run validate:static` |
-| Unit / integration tests | `npm run test:unit` · `npm run test:integration` |
-| Playwright UI / E2E | `npm run test:ui` · `npm run test:e2e` |
-| Lint / format | `npm run lint` · `npm run format` |
-| Server-starts smoke test | `node scripts/smoke-test-server.js` |
-| MCP stdio / clients smoke | `npm run mcp:test` · `npm run mcp:clients:test` |
+| Task                                  | Command                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------- |
+| Web dev (server + Vite)               | `npm run dev`                                                                 |
+| Desktop dev                           | `npm run electron:run` (build + launch) · `npm run electron:dev` (no rebuild) |
+| Production build                      | `npm run build`                                                               |
+| Full validation — run before commit   | `npm run validate:fast`                                                       |
+| Static checks (lint + types + format) | `npm run validate:static`                                                     |
+| Unit / integration tests              | `npm run test:unit` · `npm run test:integration`                              |
+| Playwright UI / E2E                   | `npm run test:ui` · `npm run test:e2e`                                        |
+| Lint / format                         | `npm run lint` · `npm run format`                                             |
+| Server-starts smoke test              | `node scripts/smoke-test-server.js`                                           |
+| MCP stdio / clients smoke             | `npm run mcp:test` · `npm run mcp:clients:test`                               |
 
 Single unit file: `node --test tests/unit/<name>.test.js`. Testing details in **docs/TESTING.md**.
 
@@ -30,23 +30,23 @@ Single unit file: `node --test tests/unit/<name>.test.js`. Testing details in **
 
 ## Project Structure
 
-| Path | Purpose |
-|---|---|
-| `server.js` | Express app, API routes, MCP HTTP endpoint |
-| `mcp-server.js` | MCP stdio entry point |
-| `electron/` | Electron main process, IPC, `docling-manager`, `updater`, `data-manager` (data dir + dev→packaged migration) |
-| `lib/` | Backend modules — see list below |
-| `mcp/` | MCP tool registrations and Zod schemas |
-| `src/App.jsx` | Main React app, 18 modes |
-| `src/components/` | 30+ components: ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, ExportPanel, MermaidBlock, TerminalPanel, `ui/ChatSessionProgress` (global "Working" strip during SSE — **docs/SESSION-PROGRESS.md**) |
-| `src/components/builders/` | Builder panels: BaseBuilderPanel, BuilderScoreCard, Prompting/Skillz/Agentic/Planner; load/save markdown per **docs/BUILDER-MARKDOWN-LOAD.md** |
-| `src/components/3d/` | Visual effects (SplashScreen, ParticleField, FloatingGeometry, …) |
-| `src/lib/` | Client helpers — `api-fetch.js` (`apiFetch` adds `X-CC-API-Key` when `VITE_CC_API_KEY` is set, must match server `CC_API_SECRET`; for off-loopback `/api` calls), `clipboard.js` (`navigator.clipboard` + `execCommand` fallback for self-signed HTTPS), `*-parse-loaded.js` + `builder-markdown-standards.js` (builder file parsers) |
-| `tests/` | `node:test` in `tests/unit/`; integration in `tests/integration/`; Playwright in `tests/ui/`, `tests/e2e/` |
-| `.planning/` | ROADMAP.md, REQUIREMENTS.md, STATE.md |
-| `.claude/` | `settings.json` hooks, `skills/`, `agents/`, `commands/` — **docs/CLAUDE-CODE-AUTOMATION.md** |
-| `IDE_COMMANDS/` | IDE command files copied into scaffolded projects (Create & Build) |
-| `dist/` | Production build output |
+| Path                       | Purpose                                                                                                                                                                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server.js`                | Express app, API routes, MCP HTTP endpoint                                                                                                                                                                                                                                                                                            |
+| `mcp-server.js`            | MCP stdio entry point                                                                                                                                                                                                                                                                                                                 |
+| `electron/`                | Electron main process, IPC, `docling-manager`, `updater`, `data-manager` (data dir + dev→packaged migration)                                                                                                                                                                                                                          |
+| `lib/`                     | Backend modules — see list below                                                                                                                                                                                                                                                                                                      |
+| `mcp/`                     | MCP tool registrations and Zod schemas                                                                                                                                                                                                                                                                                                |
+| `src/App.jsx`              | Main React app, 18 modes                                                                                                                                                                                                                                                                                                              |
+| `src/components/`          | 30+ components: ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, ExportPanel, MermaidBlock, TerminalPanel, `ui/ChatSessionProgress` (global "Working" strip during SSE — **docs/SESSION-PROGRESS.md**)                                         |
+| `src/components/builders/` | Builder panels: BaseBuilderPanel, BuilderScoreCard, Prompting/Skillz/Agentic/Planner; load/save markdown per **docs/BUILDER-MARKDOWN-LOAD.md**                                                                                                                                                                                        |
+| `src/components/3d/`       | Visual effects (SplashScreen, ParticleField, FloatingGeometry, …)                                                                                                                                                                                                                                                                     |
+| `src/lib/`                 | Client helpers — `api-fetch.js` (`apiFetch` adds `X-CC-API-Key` when `VITE_CC_API_KEY` is set, must match server `CC_API_SECRET`; for off-loopback `/api` calls), `clipboard.js` (`navigator.clipboard` + `execCommand` fallback for self-signed HTTPS), `*-parse-loaded.js` + `builder-markdown-standards.js` (builder file parsers) |
+| `tests/`                   | `node:test` in `tests/unit/`; integration in `tests/integration/`; Playwright in `tests/ui/`, `tests/e2e/`                                                                                                                                                                                                                            |
+| `.planning/`               | ROADMAP.md, REQUIREMENTS.md, STATE.md                                                                                                                                                                                                                                                                                                 |
+| `.claude/`                 | `settings.json` hooks, `skills/`, `agents/`, `commands/` — **docs/CLAUDE-CODE-AUTOMATION.md**                                                                                                                                                                                                                                         |
+| `IDE_COMMANDS/`            | IDE command files copied into scaffolded projects (Create & Build)                                                                                                                                                                                                                                                                    |
+| `dist/`                    | Production build output                                                                                                                                                                                                                                                                                                               |
 
 **`lib/` modules**: config, ollama-client, chat-post-handler, prompts, review, **auto-model** (per-mode default model when toolbar = Auto), builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, resolve-mcp-test-config-root (`npm run mcp:clients:test` path), tool-call-handler, **security-helpers** (loopback/API-key gate, CORS, path allowlists), **client-errors** (generic 5xx/SSE messages), builtin-agent-tools, docling-client, docling-starter, builtin-doc-converter, **office-generator** (chat/office export), memory, spawn-path.
 
@@ -109,7 +109,7 @@ HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); con
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (11771 symbols, 16131 relationships, 240 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (11802 symbols, 16180 relationships, 242 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

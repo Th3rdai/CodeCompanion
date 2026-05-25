@@ -17,7 +17,10 @@ import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const dbPath = path.join(repoRoot, ".gitnexus/lbug");
 
 const FTS_INDEXES = [
@@ -55,7 +58,13 @@ if (holders.length > 0) {
 }
 
 function runOneIndex(table, indexName, properties) {
-  const args = [workerPath, dbPath, table, indexName, JSON.stringify(properties)];
+  const args = [
+    workerPath,
+    dbPath,
+    table,
+    indexName,
+    JSON.stringify(properties),
+  ];
   for (let attempt = 1; attempt <= 3; attempt++) {
     const r = spawnSync(process.execPath, args, {
       cwd: repoRoot,

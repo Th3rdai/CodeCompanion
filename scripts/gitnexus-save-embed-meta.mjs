@@ -3,16 +3,16 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const { getStoragePaths, loadMeta, saveMeta } = await import(
-  "../node_modules/gitnexus/dist/storage/repo-manager.js"
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
 );
-const { initLbug, executeQuery, closeLbug } = await import(
-  "../node_modules/gitnexus/dist/core/lbug/lbug-adapter.js"
-);
-const { EMBEDDING_TABLE_NAME } = await import(
-  "../node_modules/gitnexus/dist/core/lbug/schema.js"
-);
+const { getStoragePaths, loadMeta, saveMeta } =
+  await import("../node_modules/gitnexus/dist/storage/repo-manager.js");
+const { initLbug, executeQuery, closeLbug } =
+  await import("../node_modules/gitnexus/dist/core/lbug/lbug-adapter.js");
+const { EMBEDDING_TABLE_NAME } =
+  await import("../node_modules/gitnexus/dist/core/lbug/schema.js");
 
 const { lbugPath, storagePath } = getStoragePaths(repoRoot);
 const meta = await loadMeta(storagePath);

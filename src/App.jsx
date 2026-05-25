@@ -99,7 +99,7 @@ function isPathUnderProjectRoot(projectRoot, candidate) {
 const MODES = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "See Home →",
     icon: "🏠",
     desc: "Your home for recent work and feature discovery",
     placeholder: "", // Dashboard has no chat input

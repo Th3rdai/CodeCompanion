@@ -10,10 +10,14 @@ import { execSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const dbPath = path.join(repoRoot, ".gitnexus/lbug");
 
-const baseUrl = process.env.GITNEXUS_EMBEDDING_URL ?? "http://127.0.0.1:11434/v1";
+const baseUrl =
+  process.env.GITNEXUS_EMBEDDING_URL ?? "http://127.0.0.1:11434/v1";
 const model = process.env.GITNEXUS_EMBEDDING_MODEL ?? "nomic-embed-text";
 const dims = process.env.GITNEXUS_EMBEDDING_DIMS ?? "768";
 
@@ -23,7 +27,9 @@ process.env.GITNEXUS_EMBEDDING_DIMS = dims;
 
 function holdersOfLbug() {
   try {
-    return execSync(`lsof "${dbPath}" 2>/dev/null || true`, { encoding: "utf8" }).trim();
+    return execSync(`lsof "${dbPath}" 2>/dev/null || true`, {
+      encoding: "utf8",
+    }).trim();
   } catch {
     return "";
   }
@@ -35,24 +41,16 @@ if (held) {
   process.exit(1);
 }
 
-const { getStoragePaths, loadMeta, saveMeta } = await import(
-  "../node_modules/gitnexus/dist/storage/repo-manager.js"
-);
-const {
-  initLbug,
-  executeQuery,
-  executeWithReusedStatement,
-  closeLbug,
-} = await import("../node_modules/gitnexus/dist/core/lbug/lbug-adapter.js");
-const { runEmbeddingPipeline } = await import(
-  "../node_modules/gitnexus/dist/core/embeddings/embedding-pipeline.js"
-);
-const { EMBEDDING_TABLE_NAME } = await import(
-  "../node_modules/gitnexus/dist/core/lbug/schema.js"
-);
-const { isHttpMode } = await import(
-  "../node_modules/gitnexus/dist/core/embeddings/http-client.js"
-);
+const { getStoragePaths, loadMeta, saveMeta } =
+  await import("../node_modules/gitnexus/dist/storage/repo-manager.js");
+const { initLbug, executeQuery, executeWithReusedStatement } =
+  await import("../node_modules/gitnexus/dist/core/lbug/lbug-adapter.js");
+const { runEmbeddingPipeline } =
+  await import("../node_modules/gitnexus/dist/core/embeddings/embedding-pipeline.js");
+const { EMBEDDING_TABLE_NAME } =
+  await import("../node_modules/gitnexus/dist/core/lbug/schema.js");
+const { isHttpMode } =
+  await import("../node_modules/gitnexus/dist/core/embeddings/http-client.js");
 
 if (!isHttpMode()) {
   console.error("Set GITNEXUS_EMBEDDING_URL and GITNEXUS_EMBEDDING_MODEL");

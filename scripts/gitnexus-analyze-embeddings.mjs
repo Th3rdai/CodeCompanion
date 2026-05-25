@@ -17,11 +17,15 @@ import { execSync, spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const dbPath = path.join(repoRoot, ".gitnexus/lbug");
 
 /** OpenAI-compatible base; GitNexus appends `/embeddings`. */
-const EMBED_URL = process.env.GITNEXUS_EMBEDDING_URL ?? "http://127.0.0.1:11434/v1";
+const EMBED_URL =
+  process.env.GITNEXUS_EMBEDDING_URL ?? "http://127.0.0.1:11434/v1";
 const EMBED_MODEL = process.env.GITNEXUS_EMBEDDING_MODEL ?? "nomic-embed-text";
 const EMBED_DIMS = process.env.GITNEXUS_EMBEDDING_DIMS ?? "768";
 

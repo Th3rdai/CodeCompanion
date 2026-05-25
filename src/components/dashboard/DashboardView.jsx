@@ -29,7 +29,7 @@ export default function DashboardView({
       <div className="glass-heavy border-b border-slate-700/30 px-6 py-4">
         <div className="flex items-center gap-3">
           <Home className="w-6 h-6 text-indigo-400" />
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">Home</h1>
         </div>
       </div>
 
