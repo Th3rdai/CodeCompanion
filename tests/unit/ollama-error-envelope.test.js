@@ -111,6 +111,32 @@ test("formatUserOllamaChatError logs matched rule: network-unreachable", () => {
   assert.equal(matched, "network-unreachable");
 });
 
+test("formatUserOllamaChatError: cloud model drop is not blamed on local Ollama", () => {
+  const cloud = formatUserOllamaChatError({
+    status: 0,
+    detail: "fetch failed",
+    totalChars: 90000,
+    model: "minimax-m2:cloud",
+  });
+  assert.match(cloud, /Ollama Cloud model/i);
+  assert.doesNotMatch(cloud, /Check that Ollama is running/i);
+
+  // Local model (or no model) keeps the original "is it running?" guidance.
+  const local = formatUserOllamaChatError({
+    status: 0,
+    detail: "fetch failed",
+    totalChars: 100,
+    model: "qwen3-32k:latest",
+  });
+  assert.match(local, /Could not reach Ollama/i);
+  const noModel = formatUserOllamaChatError({
+    status: 0,
+    detail: "fetch failed",
+    totalChars: 100,
+  });
+  assert.match(noModel, /Could not reach Ollama/i);
+});
+
 test("formatUserOllamaChatError logs matched rule: context-overflow", () => {
   const { matched } = formatWithMatched({
     status: 500,
