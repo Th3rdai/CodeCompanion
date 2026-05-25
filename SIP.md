@@ -172,9 +172,17 @@ Priority: High
 
 | Question                                                                                             | Owner  | Deadline   | Status  |
 | ---------------------------------------------------------------------------------------------------- | ------ | ---------- | ------- |
-| What quantitative threshold defines "loop frequency spike" for stop conditions?                      | @james | 2026-05-30 | Pending |
-| Should confirm-before-run default to enabled in all environments, or remain deployment-configurable? | @james | 2026-05-30 | Pending |
-| Which single owner is accountable for rollback execution during off-hours?                           | @james | 2026-05-30 | Pending |
+| What quantitative threshold defines "loop frequency spike" for stop conditions?                      | @james | 2026-05-30 | Answered |
+| Should confirm-before-run default to enabled in all environments, or remain deployment-configurable? | @james | 2026-05-30 | Answered |
+| Which single owner is accountable for rollback execution during off-hours?                           | @james | 2026-05-30 | Answered |
+
+### Answers (signed off 2026-05-24)
+
+**Q1 — "loop frequency spike" threshold.** Reuse the loop's existing deterministic guards in `lib/chat-post-handler.js` instead of inventing a new metric. Define a **loop-terminated turn** as any turn that triggers (a) the identical-signature stop — same tool + same args repeated after a prior successful run, fires on 1 repeat; (b) the `tool_pattern` warning — same tool called ≥3× in a turn; or (c) `roundLimitHit:true` — the turn reached `MAX_ROUNDS` (`clamp(agentMaxRounds ‖ 10, 1, 25)`) without a natural final answer. **Stop condition (roll back):** ≥3 loop-terminated turns within any rolling 20-turn window, OR loop-terminated turns exceeding 10% of agent turns over a session. Baseline today is ~0 — these guards rarely fire in normal use. Measured from the existing `tool_pattern` SSE notices and `roundLimitHit` log lines; no new instrumentation required.
+
+**Q2 — confirm-before-run default.** Remain **deployment-configurable**; a blanket "enabled in all environments" is unsafe because the gate fails closed (`lib/builtin-agent-tools.js` — if `confirmBeforeRun=true` with no `confirmCallback`, every command is denied), which would brick headless/CI/test and unattended self-improvement runs. Resolution: flip the **default to enabled** wherever a confirm callback is wired (Electron desktop + interactive web), and keep it **off by default** only where a confirmation cannot be presented (headless, CI, tests, unattended automation). Current code default is `false` in `lib/config.js`.
+
+**Q3 — off-hours rollback owner.** Rollback requires no deploy — fast paths are config/flag toggles (force `confirmBeforeRun=true`, lower `agentMaxRounds`) or `git revert` of the single guarded commit. CodeCompanion is locally hosted (each user runs their own instance), so there is no shared production paging path; the only rollback with real blast radius is yanking/replacing a signed GitHub Release. **Accountable owner:** the change author owns code revert / flag-disable; **@james** is escalation and sole owner of any emergency GitHub Release yank or patch (release signer).
 
 ## Appendix: Glossary
 
