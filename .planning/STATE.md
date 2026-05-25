@@ -4,8 +4,8 @@ milestone: v4.0
 milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-05-02T23:40:00.000Z"
-last_activity: "2026-05-16 afternoon — PCI-Assistant MCP integration optimization: Speed investigation (qwen2.5:7b 22.7s → 4.8x improvement BUT reliability regression; qwen3:latest 26-82s similar issues). Prompt engineering fix (lib/chat-post-handler.js:1960-1968) resolves tool-result presentation in short conversations but degradation persists in long conversations (13+ messages, 16K+ tokens). Final decision: prioritize reliability over speed — reverted to qwen3.6:latest (23.9GB, 110s response time, perfect reliability). MCP infrastructure improvements: SSL cert bypass (undici Agent with custom dispatcher), header support (X-API-Key authentication), debug logging (tool-call-handler.js:827 logs PCI-Assistant parameter values), McpClientPanel UI (headers config, rejectUnauthorized toggle). Comprehensive documentation: docs/PCI-ASSISTANT-SPEED-OPTIMIZATION.md (212 lines with performance comparison table, lessons learned), PCI-ASSISTANT-ISSUE-SUMMARY.md updated (resolution: database was complete, issue was client-side model reliability). Git commit 9d32f76 pushed to origin/master with 7 files (5 modified, 2 new)."
+last_updated: "2026-05-25T22:55:00.000Z"
+last_activity: "2026-05-25 — Dashboard (See Home →) Phases 1–5 shipped on master (feature grid, Recent Work, analytics, collapsible sections, activity chart, export, visibility toggles). Unit tests for analytics + CollapsibleSection; `/validate-project --thorough` P1–P8 green (918 unit, 40 UI, 23 E2E). Docs: DASHBOARD-STATUS.md, CHANGELOG [Unreleased], CLAUDE.md 19 modes. Archon tasks synced. GitNexus index stats 12072/16847/246 in AGENTS.md + CLAUDE.md."
 progress:
   total_phases: 28
   completed_phases: 28

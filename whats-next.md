@@ -36,7 +36,14 @@ Day-after follow-ups to the v1.6.24 → v1.6.33 ship cycle. Master is **7 commit
 - **C — History → experimentIds chip**: PARTIAL → drove the two fixes above. Endpoint plumbing correct (`?include=experiments` hydrates), but 0 of 29 conversations had `experimentIds` populated; both experiment-mode chats used the legacy singular field. Surfaced `cc2c247` + `87401cf`.
 - **D — `app.log` scan**: CLEAN. 0 real code issues in 11 ERROR+WARN lines (all known/expected/external). 36 tool-call rounds. Duplicate-experiment guard fired once (working as designed).
 
-**Archon status (blocking task-sync)**: Connection to `http://192.168.50.7:8051/mcp` works (handshake + tool list), but `health_check` returns `{"status":"degraded","api_service":false,"agents_service":false}` and `find_projects` returns `connection_error`. Task management via Archon MCP is unavailable until the upstream service is back; doc updates captured locally in `journal/2026-05-02.md` + `journal/README.md` + `.planning/STATE.md` + this file. Re-sync to Archon when the API service recovers.
+**Dashboard (See Home →) — Phases 1–5 shipped (2026-05-25)**
+
+- **Feature grid**, Recent Work, client-side analytics, collapsible sections, 7-day activity chart, CSV/JSON export, widget visibility toggles. Settings startup toggle. Status: **`DASHBOARD-STATUS.md`**; commits `eb81ae0`–`f8d261c` on `master`.
+- **Tests:** `analytics.test.js` (4), `dashboard-collapsible-section.test.js` (8); agent-rounds Playwright fixed for agentic-only `#rounds-select`.
+- **Validation:** `/validate-project --thorough` P1–P8 green 2026-05-25 15:04 — unit **918**, UI **40**/15 skip, E2E **23** (`journal/2026-05-25.md`).
+- **Archon:** tasks synced 2026-05-25 (API healthy); see project **Code Companion — Vibe Coder Edition** feature **Dashboard**.
+
+**Archon status (2026-05-25):** `health_check` **healthy** (`api_service` + `agents_service` true). Task sync via MCP restored; prior degraded window documented in `journal/2026-05-02.md`.
 
 **End-of-day verification**: `validate:fast` clean (lint + typecheck + format + vite + 403 unit + 8 integration + smoke); working tree empty before this commit; installed app v1.6.33 (auto-updater will offer v1.6.34 once tagged).
 

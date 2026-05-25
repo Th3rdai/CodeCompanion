@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dashboard (See Home →) — Phases 1–5.** 19th toolbar mode: feature grid with Lucide icons, Recent Work (resume conversation), client-side analytics (`src/lib/analytics.js`), collapsible sections with `localStorage` persistence, 7-day activity chart, CSV/JSON export, and widget visibility toggles. Optional startup landing via Settings. Components under `src/components/dashboard/`; status tracker **`DASHBOARD-STATUS.md`**. Commits `eb81ae0`–`f8d261c` on `master`.
+- **Dashboard unit tests.** `tests/unit/analytics.test.js` (4 cases), `tests/unit/dashboard-collapsible-section.test.js` (8 cases — JSON defaults, namespacing, toggle, error handling).
+- **Builtin agent file tools.** `search_file`, `find_in_files`, `edit_file`, `move_file`, `delete_file`, `fetch_url`; `list_dir` ungated when agent terminal is enabled. Unit coverage in `tests/unit/builtin-agent-tools.test.js`; chat guardrails in `tests/unit/chat-post-handler-guardrails.test.js`.
 - **Phase 28 Multi-File Code Review — Documentation Complete.** Comprehensive documentation added for the multi-file code review feature (shipped in v1.6.6). Includes:
   - **`docs/MULTI-FILE-REVIEW.md`** — Complete user guide (334 lines) covering: How to use Scan Folder tab, file limits and troubleshooting, technical details, best practices, comparison tables, and implementation history.
   - **`CLAUDE.md` Review Mode section** — Technical reference documenting single-file and multi-file review capabilities, backend implementation, routes, security validation, and file limits.

@@ -66,12 +66,13 @@ Single unit file: `node --test tests/unit/<name>.test.js`. Testing details in **
 - **CSS base**: `html, body, #root` → `width:100%; height:100%; margin:0; padding:0; overflow:hidden`.
 - Design docs: **design-system/README.md** (index), **design-system/DESIGN-STANDARDS.md** (colors, glass system, width rails).
 
-## The 18 Modes
+## The 19 Modes
 
-Chat · Explain This · Safety Check · Clean Up · Code → Plain English · Idea → Code Spec · Diagram · Security · Validate · Experiment · Review · Create · Prompting · Skillz · Agentic · Planner · Build · Terminal
+See Home → · Chat · Explain This · Safety Check · Clean Up · Code → Plain English · Idea → Code Spec · Diagram · Security · Validate · Experiment · Review · Create · Prompting · Skillz · Agentic · Planner · Build · Terminal
 
 The toolbar model selector resolves `model: "auto"` server-side via per-mode defaults in `autoModelMap` (defaults in `lib/auto-model.js`); the first SSE may include `resolvedModel`. Live tool-calling (chat-style modes through `lib/chat-post-handler.js`) needs a `TOOL_CALL_CAPABLE` model; builder modes (below) only generate/score text.
 
+- **See Home →** (Dashboard): default landing when Settings → **Show dashboard on startup** is on (`localStorage` `cc-show-dashboard-on-startup`). `src/components/dashboard/` — feature grid (Lucide icons), Recent Work, client-side analytics (`src/lib/analytics.js`), collapsible sections (`CollapsibleSection`), 7-day activity chart, CSV/JSON export, widget visibility toggles (`DashboardSettings`). No chat input. Status: **`DASHBOARD-STATUS.md`**.
 - **Terminal** (Electron-only): interactive PTY (`node-pty`) spawned in `electron/main.js`, rendered by `xterm.js` (`@xterm/xterm` + `addon-fit`) in `TerminalPanel.jsx`. CWD follows the active File Browser folder (`chatFolder`, validated as an existing dir), falling back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`; changing the folder respawns the PTY. One PTY per window, killed on close; browser users see a desktop-only state. **docs/TERMINALFEATURE.md**. Agent terminal (builtin `run_terminal_cmd`, `TOOL_CALL` + `builtin.*`) lives in `lib/builtin-agent-tools.js` — **CLIPLAN.md**.
 - **Review**: single/multi-file + **Scan Folder**; A–F report cards across bugs/security/readability/completeness. `reviewFiles()` in `lib/review.js`; routes `/api/review/folder[/preview]`. Limits: 80 files, 2 MB total; `isWithinBasePath()` validation. Multi-file concatenates with separators and scales timeout by file count (max 10 min); timeout floor via `reviewTimeoutSec`.
 - **Security**: OWASP assessment, 6 mapped categories, single-file + recursive folder (`/api/pentest/folder`). **Remediate** sends findings+code to the AI and downloads a zip (`REMEDIATION-REPORT.md`, `original/`, `remediated/`) via JSZip. Same 80-file/2 MB limits as Review.
@@ -107,10 +108,9 @@ HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); con
 `docs/TROUBLESHOOTING.md` ("Failed to fetch", MCP / `CC_DATA_DIR` vs repo config, Ollama `fetch failed`) · `docs/CC-CONFIG.md` · `docs/TESTING.md` · `docs/BUILDER-MARKDOWN-LOAD.md` · `docs/TERMINALFEATURE.md` · `CLIPLAN.md` · `docs/EXPORT-CHAT.md` · `docs/DOCLING-AUTO-START.md` · `docs/AGENT-READINESS.md` · `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (planned Phases 25–27) · `docs/RELEASES-AND-UPDATES.md` · `BUILD.md` · `design-system/`. Plan-reviewer skill output: `docs/CLIPLAN-plan-review.md`, `docs/VOICE-DICTATION-*` (also `.cursor/skills/plan-reviewer/`).
 
 <!-- gitnexus:start -->
-
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (12053 symbols, 16753 relationships, 245 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (12072 symbols, 16847 relationships, 246 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -131,22 +131,22 @@ This project is indexed by GitNexus as **CodeCompanion** (12053 symbols, 16753 r
 
 ## Resources
 
-| Resource                                       | Use for                                  |
-| ---------------------------------------------- | ---------------------------------------- |
-| `gitnexus://repo/CodeCompanion/context`        | Codebase overview, check index freshness |
-| `gitnexus://repo/CodeCompanion/clusters`       | All functional areas                     |
-| `gitnexus://repo/CodeCompanion/processes`      | All execution flows                      |
-| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace             |
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/CodeCompanion/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/CodeCompanion/clusters` | All functional areas |
+| `gitnexus://repo/CodeCompanion/processes` | All execution flows |
+| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
-| Task                                         | Read this skill file                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
-| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
-| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
-| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->

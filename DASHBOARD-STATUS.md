@@ -115,7 +115,14 @@ src/lib/
 2. `27982c9` - Phase 3: Analytics Integration
 3. `8f75cb4` - Phase 4: Polish & Launch Behavior
 4. `81994f2` - CollapsibleSection & Analytics Enhancements
-5. `5d840a6` - Phase 5: Dashboard Enhancements (Activity Chart, Export, Visibility Toggles)
-6. `a35d6fc` - Unit tests for CollapsibleSection localStorage persistence
+5. `56555ff` - Collapsible sections, cleaner tiles, richer mode info modals
+6. `5d840a6` - Phase 5: Dashboard Enhancements (Activity Chart, Export, Visibility Toggles)
+7. `a35d6fc` - Unit tests for CollapsibleSection localStorage persistence
+8. `6c4e0e5` - Docs: analytics + CollapsibleSection test status
+9. `f8d261c` - GitNexus index stats refresh + CollapsibleSection test tidy
 
 All commits pushed to `master`.
+
+## ✅ Validation (2026-05-25)
+
+`/validate-project --thorough` — **P1–P8 green** (15:04). Unit **918**, MCP stdio **19**, UI **40** pass / 15 skip, E2E **23**. Agent-rounds Playwright aligned to agentic modes (`#rounds-select` on Chat/Experiment only). See `journal/2026-05-25.md`.
