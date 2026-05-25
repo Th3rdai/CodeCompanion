@@ -138,4 +138,36 @@ describe("memory prune dry-run analyzer", () => {
       cleanup(dir);
     }
   });
+
+  test("scheduler never hands setInterval a delay that overflows Node's 2^31-1 limit", () => {
+    const dir = freshMemoryDir();
+    try {
+      const intervals = [];
+      const scheduler = startMemoryPruneCheckScheduler({
+        getConfig() {
+          // Absurd interval — must be clamped. An unclamped 30+ day value
+          // (>2^31-1 ms) silently collapses to 1ms in Node, turning the
+          // dry-run check into a CPU-pegging hot loop (the prod log flood).
+          return {
+            memory: { pruneCheck: { enabled: true, intervalDays: 9999 } },
+          };
+        },
+        log() {},
+        setIntervalFn(fn, ms) {
+          intervals.push({ fn, ms });
+          return { unref() {} };
+        },
+        clearIntervalFn() {},
+      });
+
+      assert.equal(intervals.length, 1);
+      assert.ok(
+        intervals[0].ms > 0 && intervals[0].ms <= 2147483647,
+        `interval ${intervals[0].ms}ms must be within (0, 2^31-1]`,
+      );
+      scheduler.stop();
+    } finally {
+      cleanup(dir);
+    }
+  });
 });
