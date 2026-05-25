@@ -66,19 +66,15 @@ test("getBuiltinSafetyPreamble includes Create/Build workflow and milestone guid
 
 test("getBuiltinSafetyPreamble routes project markdown creation to write_file", () => {
   const p = getBuiltinSafetyPreamble();
+  // generate_office_file must steer away from project markdown
   assert.ok(
     p.includes("Do NOT use this tool for project/source Markdown files"),
   );
-  assert.ok(
-    p.includes(
-      "Always use this tool when creating or editing project Markdown/source files",
-    ),
-  );
-  assert.ok(
-    p.includes("Do NOT create Markdown files through terminal redirection"),
-  );
-  assert.ok(p.includes("builtin.write_file"));
-  assert.ok(p.includes("docs/notes.md"));
+  // The consolidated FILES section routes project markdown/source to write_file
+  assert.ok(p.includes("project Markdown/source (README, CHANGELOG"));
+  assert.ok(p.includes('builtin.write_file({"path","content"})'));
+  // ...and forbids shell redirection for file writes
+  assert.ok(p.includes("Do NOT use shell redirection"));
 });
 
 test("validateBrowseUrl rejects localhost with terminal + browser guidance", () => {
@@ -133,8 +129,8 @@ test("getBuiltinTools includes read_file when terminal disabled", () => {
 
 test("getBuiltinSafetyPreamble includes read_file guidance", () => {
   const p = getBuiltinSafetyPreamble();
-  assert.ok(p.includes("FILE READING (builtin.read_file)"));
-  assert.ok(p.includes('builtin.read_file({"path": "src/App.jsx"})'));
+  assert.ok(p.includes("builtin.read_file"));
+  assert.ok(p.includes('builtin.read_file({"path":"src/App.jsx"})'));
 });
 
 test("getBuiltinTools omits run_terminal_cmd when bind is 0.0.0.0 without CC_ALLOW_AGENT_TERMINAL (non-Electron)", () => {
