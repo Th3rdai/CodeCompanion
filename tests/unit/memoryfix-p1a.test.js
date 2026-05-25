@@ -156,7 +156,7 @@ describe("reembedAllMemories — injected embedFn", () => {
       await new Promise((r) => setTimeout(r, 5));
 
       const newVec = [0.1, 0.2, 0.3];
-      const fakeEmbed = async (url, text, model, opts) => newVec;
+      const fakeEmbed = async (_url, _text, _model, _opts) => newVec;
 
       const result = await reembedAllMemories(
         "http://unused",

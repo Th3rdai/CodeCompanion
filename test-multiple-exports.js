@@ -5,8 +5,6 @@
  */
 
 const https = require("https");
-const fs = require("fs");
-const path = require("path");
 
 // Accept self-signed cert for testing
 const agent = new https.Agent({ rejectUnauthorized: false });
