@@ -1,157 +1,115 @@
 # Code Companion — Vibe Coder Edition
 
-## Identity
+Web + desktop app that helps **vibe coders** (non-technical users who generate code with AI tools) understand, review, and improve AI-generated code. It connects to locally-hosted **Ollama** LLMs for friendly, jargon-free explanations, A–F report-card reviews, and guided fixes. One Express server runs standalone (web) or embedded in Electron (desktop). The *app's* user-facing tone is friendly-teacher (analogies, no jargon, patience); keep the UI focused on vibe-coder workflows.
 
-You are a full-stack developer building **Code Companion**, a web application that helps vibe coders (non-technical users who generate code with AI tools) understand, review, and improve their AI-generated code. It connects to locally-hosted Ollama LLMs to provide friendly, jargon-free explanations, code reviews with report-card grading, and guided fix suggestions.
+## Commands
+
+| Task | Command |
+|---|---|
+| Web dev (server + Vite) | `npm run dev` |
+| Desktop dev | `npm run electron:run` (build + launch) · `npm run electron:dev` (no rebuild) |
+| Production build | `npm run build` |
+| Full validation — run before commit | `npm run validate:fast` |
+| Static checks (lint + types + format) | `npm run validate:static` |
+| Unit / integration tests | `npm run test:unit` · `npm run test:integration` |
+| Playwright UI / E2E | `npm run test:ui` · `npm run test:e2e` |
+| Lint / format | `npm run lint` · `npm run format` |
+| Server-starts smoke test | `node scripts/smoke-test-server.js` |
+| MCP stdio / clients smoke | `npm run mcp:test` · `npm run mcp:clients:test` |
+
+Single unit file: `node --test tests/unit/<name>.test.js`. Testing details in **docs/TESTING.md**.
 
 ## Tech Stack
 
-- **Backend**: Node.js with Express, no external DB
-- **Frontend**: React 18 + Tailwind CSS, built with Vite
-- **AI**: Ollama REST API (configurable URL, default `http://localhost:11434`)
-- **Storage**: JSON files for conversation history and config
-- **Streaming**: Server-Sent Events for real-time AI responses
-- **MCP**: Model Context Protocol — built-in server (HTTP + stdio) and **external client** support (**stdio**, **http** / streamable, **sse**; http may auto-fallback to sse). Stdio transports use `lib/spawn-path.js` to extend PATH with Homebrew, `~/.local/bin`, `~/.cargo/bin`, nvm, and common Windows paths so `npx`/`uvx` resolve in Electron's minimal shell environment.
+- **Backend**: Node.js + Express, no external DB; JSON files for conversation history and config.
+- **Frontend**: React 18 + Tailwind CSS, built with Vite.
+- **AI**: Ollama REST API (configurable URL, default `http://localhost:11434`). Cloud models carry a `:cloud` suffix and proxy through the local daemon to ollama.com (needs sign-in or an API key).
+- **Streaming**: Server-Sent Events for real-time responses.
+- **Desktop**: Electron wraps the Express server — `electron/main.js`.
+- **MCP**: built-in server (HTTP + stdio) and **external client** support (stdio, http/streamable, sse; http may auto-fall back to sse). Stdio transports use `lib/spawn-path.js` to extend PATH (Homebrew, `~/.local/bin`, `~/.cargo/bin`, nvm, common Windows paths) so `npx`/`uvx` resolve in Electron's minimal shell.
 
 ## Project Structure
 
-| Path                                   | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| server.js                              | Express app, API routes, MCP HTTP endpoint                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| mcp-server.js                          | MCP stdio entry point                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| lib/                                   | Backend modules (config, ollama-client, prompts, review, **auto-model** (per-mode defaults when toolbar uses **Auto**), builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, **resolve-mcp-test-config-root** (`npm run mcp:clients:test` config path), tool-call-handler, **security-helpers** (localhost/API-key gate, CORS options, path allowlists), **client-errors** (generic 5xx/SSE messages), **builtin-agent-tools**, docling-client, **docling-starter**, **builtin-doc-converter**, **office-generator** (chat/office export), **spawn-path**) |
-| mcp/                                   | MCP tool registrations and Zod schemas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| src/App.jsx                            | Main React app with 18 modes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| src/components/                        | 30+ React components (ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, **ExportPanel**, MermaidBlock, **TerminalPanel**, **`ui/ChatSessionProgress`** — global “Working” strip during SSE; see **`docs/SESSION-PROGRESS.md`**, etc.)                                                                                                                                                                                                                                                                                                                                                                                            |
-| src/components/builders/               | Builder mode panels (BaseBuilderPanel, BuilderScoreCard, PromptingPanel, SkillzPanel, AgenticPanel, PlannerPanel); load/save markdown per **`docs/BUILDER-MARKDOWN-LOAD.md`**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| src/components/3d/                     | Visual effects (SplashScreen, ParticleField, FloatingGeometry, etc.)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| .planning/                             | Project planning docs (ROADMAP.md, REQUIREMENTS.md, STATE.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| tests/                                 | Unit tests (node:test in tests/unit/, tests/\*.test.js), API integration (`tests/integration/`, **`npm run test:integration`**), Playwright (tests/ui/, tests/e2e/) — see **docs/TESTING.md**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| dist/                                  | Production build output                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| docs/TERMINALFEATURE.md                | **Integrated Terminal mode** — living spec: Electron IPC architecture, CWD resolution (renderer suggests, main validates as existing dir; tracks File Browser `chatFolder`), Agent terminal comparison, testing checklist                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| CLIPLAN.md                             | **Agent terminal** — living spec for builtin `run_terminal_cmd` (`TOOL_CALL` + `builtin.*`); implementation in `lib/builtin-agent-tools.js` + Settings                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| src/lib/clipboard.js                   | Copy/paste helpers —`navigator.clipboard` + **execCommand** fallback for self-signed HTTPS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| src/lib/api-fetch.js                   | **`apiFetch`** — adds **`X-CC-API-Key`** when **`VITE_CC_API_KEY`** is set (must match server **`CC_API_SECRET`**); used for `/api` calls from the SPA when not on loopback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| docs/CLIPLAN-plan-review.md            | **Plan-reviewer** skill output — validated review of CLIPLAN (issues, risks, execution order)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| docs/VOICE-DICTATION-PLAN.md           | Rollout plan:**`DictateButton`** + Web Speech API on all text fields (`BaseBuilderPanel`, chat, wizards, mode panels)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| docs/VOICE-DICTATION-plan-review.md    | **Plan-reviewer** output for voice dictation plan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| docs/TROUBLESHOOTING.md                | **“Failed to fetch”**, MCP **`mcpClients`** / **`CC_DATA_DIR`** vs repo **`.cc-config.json`**, log paths, Ollama **`fetch failed`** in server logs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| docs/CC-CONFIG.md                      | **`.cc-config.json` secrets** — do not commit; sensitive fields; **`.gitignore`** / **`CodeCompanion-Data`**; prefer **`.env`** overrides (**`docs/ENVIRONMENT_VARIABLES.md`**)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `.cc-config.json.example`              | **Safe template** (committed) — copy to **`.cc-config.json`** locally; no tokens; see **`docs/CC-CONFIG.md`**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| docs/AGENT-APP-CAPABILITIES-ROADMAP.md | **Planned Phases 25–27** — agent builtins for Validate / Planner / optional GSD; see **`.planning/ROADMAP.md`**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| .cursor/skills/plan-reviewer/          | Cursor**plan-reviewer** skill — validate implementation plans before coding (also in `~/.cursor/skills/plan-reviewer/`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| `.claude/`                             | **Claude Code**: `settings.json` hooks, `skills/`, `agents/`, `commands/` — see **`docs/CLAUDE-CODE-AUTOMATION.md`**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| design-system/README.md                | Index of design docs (canonical**`.md`**; PDFs are optional exports)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| design-system/DESIGN-STANDARDS.md      | UI layout, colors, glass system, content width rails (shell = full viewport; inner `max-w-*` for readability)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Path | Purpose |
+|---|---|
+| `server.js` | Express app, API routes, MCP HTTP endpoint |
+| `mcp-server.js` | MCP stdio entry point |
+| `electron/` | Electron main process, IPC, `docling-manager`, `updater`, `data-manager` (data dir + dev→packaged migration) |
+| `lib/` | Backend modules — see list below |
+| `mcp/` | MCP tool registrations and Zod schemas |
+| `src/App.jsx` | Main React app, 18 modes |
+| `src/components/` | 30+ components: ReviewPanel, SecurityPanel, SecurityReport, ValidatePanel, CreateWizard, BuildWizard, FileBrowser, GitHubPanel, SettingsPanel, Sidebar, ExportPanel, MermaidBlock, TerminalPanel, `ui/ChatSessionProgress` (global "Working" strip during SSE — **docs/SESSION-PROGRESS.md**) |
+| `src/components/builders/` | Builder panels: BaseBuilderPanel, BuilderScoreCard, Prompting/Skillz/Agentic/Planner; load/save markdown per **docs/BUILDER-MARKDOWN-LOAD.md** |
+| `src/components/3d/` | Visual effects (SplashScreen, ParticleField, FloatingGeometry, …) |
+| `src/lib/` | Client helpers — `api-fetch.js` (`apiFetch` adds `X-CC-API-Key` when `VITE_CC_API_KEY` is set, must match server `CC_API_SECRET`; for off-loopback `/api` calls), `clipboard.js` (`navigator.clipboard` + `execCommand` fallback for self-signed HTTPS), `*-parse-loaded.js` + `builder-markdown-standards.js` (builder file parsers) |
+| `tests/` | `node:test` in `tests/unit/`; integration in `tests/integration/`; Playwright in `tests/ui/`, `tests/e2e/` |
+| `.planning/` | ROADMAP.md, REQUIREMENTS.md, STATE.md |
+| `.claude/` | `settings.json` hooks, `skills/`, `agents/`, `commands/` — **docs/CLAUDE-CODE-AUTOMATION.md** |
+| `IDE_COMMANDS/` | IDE command files copied into scaffolded projects (Create & Build) |
+| `dist/` | Production build output |
 
-## Eighteen Modes
+**`lib/` modules**: config, ollama-client, chat-post-handler, prompts, review, **auto-model** (per-mode default model when toolbar = Auto), builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, resolve-mcp-test-config-root (`npm run mcp:clients:test` path), tool-call-handler, **security-helpers** (loopback/API-key gate, CORS, path allowlists), **client-errors** (generic 5xx/SSE messages), builtin-agent-tools, docling-client, docling-starter, builtin-doc-converter, **office-generator** (chat/office export), memory, spawn-path.
 
-Chat, Explain This, Safety Check, Clean Up, Code → Plain English, Idea → Code Spec, Diagram, Security, Validate, Experiment, Review, Create, Prompting, Skillz, Agentic, Planner, Build, Terminal
+## Critical Rules & Invariants
 
-### Terminal Mode (Electron-only)
+- **Config precedence (footgun)**: the Electron app reads `.cc-config.json` from its **data dir** (`app.getPath('userData')`, e.g. macOS `~/Library/Application Support/code-companion/`), **not** the repo `.cc-config.json`. `CC_DATA_DIR` overrides; logs live in `<dataDir>/logs/app.log`. The repo `.cc-config.json` only applies to bare `node server.js`. See **docs/TROUBLESHOOTING.md**, **docs/CC-CONFIG.md**.
+- **Packaging**: when adding a **new top-level runtime directory** (e.g. `routes/`, `workers/`), you **must** add `"newdir/**/*"` to the `files` array in `electron-builder.config.js` — Electron ships only what's listed; a missing dir crashes every installer (`code=1`). After any structural change run `node scripts/smoke-test-server.js` before committing.
+- **Streaming + abort**: stream all AI responses via SSE. **Stop** in chat aborts `fetch('/api/chat')` (`AbortController` in `App.jsx`); the server then drops the SSE connection and aborts Ollama + agent tool rounds (`chatAbortController` in `server.js`, `abortSignal` in `lib/ollama-client.js`).
+- **Route order**: register API routes (especially `/api/git/*`) **before** the SPA `app.get('*')` fallback in `server.js`, or they 404 into `index.html`. `GitHubPanel` uses `parseApiJson()` so HTML error pages surface readably.
+- **Network/API security**: server **defaults to `127.0.0.1`**; use `CC_BIND_ALL=1` or `HOST=0.0.0.0` for LAN. Sensitive routes require **loopback or `X-CC-API-Key`** (`lib/security-helpers.js`, **docs/ENVIRONMENT_VARIABLES.md**, **docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md**).
+- **Ollama resilience**: auto-detect available models on startup; handle Ollama offline gracefully. The model **never receives HTTP status codes** — chat claims about "413", Docling, or a "conversion service" may be hallucinations unless the user pasted a real error; verify in `logs/app.log` (`POST /api/convert-document`).
+- **Secrets**: never commit `.cc-config.json` (tokens, API keys). `.cc-config.json.example` is the safe committed template; prefer `.env` overrides (**docs/ENVIRONMENT_VARIABLES.md**).
 
-Interactive PTY shell (`node-pty`) spawned in `electron/main.js`, communicated to the renderer via IPC, rendered by `xterm.js` (`@xterm/xterm` + `@xterm/addon-fit`) in `src/components/TerminalPanel.jsx`. **Header “⌨️ Terminal”** (Electron) jumps to this mode. CWD follows the **active File Browser folder** (`chatFolder`): the renderer passes its current folder to `terminal-start`, and the main process validates it's an existing directory before honoring it. Falls back to `cfg.chatFolder`, then `cfg.projectFolder`, then `$HOME` if the renderer-supplied path is missing/invalid. Changing the File Browser folder respawns the PTY. One PTY per window; killed on window close. Browser users see a "desktop app only" empty state. Chat input/toolbar are hidden in this mode. See `docs/TERMINALFEATURE.md`.
+## Root Container & Layout (do not break)
 
-### Save Chat
+- **Root**: `fixed inset-0 flex mesh-gradient overflow-hidden`. NEVER use `h-screen`, `h-dvh`, or viewport units on the root — `fixed inset-0` is the only reliable full-window fill across sizes/DPI/browser-chrome. Use inner `max-w-*` rails for readable content width.
+- **CSS base**: `html, body, #root` → `width:100%; height:100%; margin:0; padding:0; overflow:hidden`.
+- Design docs: **design-system/README.md** (index), **design-system/DESIGN-STANDARDS.md** (colors, glass system, width rails).
 
-Download entire conversation as a markdown file with auto-generated 1-2 word topic filename. Available via toolbar button in all modes.
+## The 18 Modes
 
-### Export (toolbar)
+Chat · Explain This · Safety Check · Clean Up · Code → Plain English · Idea → Code Spec · Diagram · Security · Validate · Experiment · Review · Create · Prompting · Skillz · Agentic · Planner · Build · Terminal
 
-**Export** opens `ExportPanel`: choose **full chat** or **last assistant response**, then one or more of **11 formats** — Markdown, Plain Text, HTML, JSON, PDF, Word (DOCX), OpenDocument Text, Excel (XLSX), OpenDocument Spreadsheet, CSV, PowerPoint (PPTX). Multi-select can download **separate files** or a **ZIP**. Server: **`POST /api/generate-office`** (rate-limited) uses `lib/office-generator.js`; **`GET /api/export/formats`** returns capability metadata. The builtin agent tool **`generate_office_file`** uses the same generator; it can also take **`sourcePath`** (a file under **Settings → Project folder**) to run **`convertBuiltin`** then export — e.g. project CSV/PDF → **`.xlsx`** without Docling. See **`docs/EXPORT-CHAT.md`**.
+The toolbar model selector resolves `model: "auto"` server-side via per-mode defaults in `autoModelMap` (defaults in `lib/auto-model.js`); the first SSE may include `resolvedModel`. Live tool-calling (chat-style modes through `lib/chat-post-handler.js`) needs a `TOOL_CALL_CAPABLE` model; builder modes (below) only generate/score text.
 
-### Deployment
+- **Terminal** (Electron-only): interactive PTY (`node-pty`) spawned in `electron/main.js`, rendered by `xterm.js` (`@xterm/xterm` + `addon-fit`) in `TerminalPanel.jsx`. CWD follows the active File Browser folder (`chatFolder`, validated as an existing dir), falling back to `cfg.chatFolder` → `cfg.projectFolder` → `$HOME`; changing the folder respawns the PTY. One PTY per window, killed on close; browser users see a desktop-only state. **docs/TERMINALFEATURE.md**. Agent terminal (builtin `run_terminal_cmd`, `TOOL_CALL` + `builtin.*`) lives in `lib/builtin-agent-tools.js` — **CLIPLAN.md**.
+- **Review**: single/multi-file + **Scan Folder**; A–F report cards across bugs/security/readability/completeness. `reviewFiles()` in `lib/review.js`; routes `/api/review/folder[/preview]`. Limits: 80 files, 2 MB total; `isWithinBasePath()` validation. Multi-file concatenates with separators and scales timeout by file count (max 10 min); timeout floor via `reviewTimeoutSec`.
+- **Security**: OWASP assessment, 6 mapped categories, single-file + recursive folder (`/api/pentest/folder`). **Remediate** sends findings+code to the AI and downloads a zip (`REMEDIATION-REPORT.md`, `original/`, `remediated/`) via JSZip. Same 80-file/2 MB limits as Review.
+- **Validate**: scans a folder/GitHub repo for linters, type checkers, test runners, CI, scripts (`lib/validate.js`), AI-generates a phased `validate.md` (Lint → Type Check → Style → Tests → E2E), one-click installs to Claude Code / Cursor / VS Code / OpenCode (or all 4).
+- **Builder modes** (Prompting, Skillz, Agentic, Planner): share `BaseBuilderPanel` — config-driven fields, AI scoring via `/api/score` (`lib/builder-score.js`, **no live tools**), CRUD + revise/re-score across 4 A–F categories. Revision flow: AI returns `<revised_prompt>` → "Apply Revision & Re-Score" → `formDataRef` syncs → re-score. Files load via File Browser "Load into Form" (`builderAttachRef` → `loadFileIntoForm()`) or the header picker; both call `config.parseLoaded()`. Methodologies: Prompting = TÂCHES meta-prompting (clarity/specificity/structure/effectiveness); Skillz = Agent Skills Spec (agentskills.io); Agentic = CrewAI + LangGraph hybrid (purpose/tools/workflow/guardrails); Planner = implementation-plan quality.
+- **Diagram**: any mode emitting a ` ```mermaid ` block renders interactive SVG (Mermaid lazy-loaded as its own Vite chunk; raw during stream, rendered after). Per-diagram zoom/fullscreen/source/theme/export (SVG/PNG with robust raster fallbacks for Electron). `MarkdownContent` uses a custom `marked` renderer + split-and-render to mix HTML with React `MermaidBlock`.
+- **Create → Build**: after Create, **Open in Build** registers the project in the Build registry and switches to Build. Both scaffolders copy `IDE_COMMANDS/` into 5 IDE paths (`.claude/commands/`, `.cursor/commands/`, `.cursor/prompts/`, `.github/prompts/`, `.opencode/commands/`); optional Create template path (`icmTemplatePath`) also copies `ICM-fw` into the project root.
+- **Tutorial** (Create & Build wizards): toggles step-by-step guidance; step 2+ pulls contextual field suggestions from `POST /api/tutorial-suggestions` (focus/click = suggest, double-click = new, Tab/right-click = accept).
 
-- **HTTPS**: Auto-generated self-signed cert via `deploy.sh`, fallback to HTTP if no cert
-- **Port**: Configurable (default 8900), stored in `.cc-config.json`
-- **Health checks**: Protocol-aware in `startup.sh`
-- **Network / API security**: Server **defaults to `127.0.0.1`**; use **`CC_BIND_ALL=1`** or **`HOST=0.0.0.0`** for LAN. Sensitive routes require **loopback** or **`X-CC-API-Key`** (see **`lib/security-helpers.js`**, **`docs/ENVIRONMENT_VARIABLES.md`**, **`docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md`**)
+## Chat, Export & Documents
 
-### Diagram Mode
+- **Save Chat**: toolbar button (all modes) downloads the conversation as markdown with an auto-named 1–2 word topic file.
+- **Export**: `ExportPanel` → full chat or last response → one+ of **11 formats** (Markdown, Plain Text, HTML, JSON, PDF, DOCX, ODT, XLSX, ODS, CSV, PPTX); multi-select downloads separate files or a ZIP. Server: `POST /api/generate-office` (rate-limited, `lib/office-generator.js`); `GET /api/export/formats` for capabilities. Builtin agent tool `generate_office_file` shares the generator and accepts `sourcePath` (a file under Settings → Project folder) to `convertBuiltin` then export (e.g. project CSV/PDF → `.xlsx`). **docs/EXPORT-CHAT.md**.
+- **Document conversion** (two-tier): built-in converters handle common formats; Docling-serve adds OCR / complex layouts when available. Built-in — PDF (pdf-parse), DOCX (mammoth), DOC (word-extractor), XLSX/CSV (read-excel-file); PPTX/PPT/ODT/ODS/ODP/RTF (officeparser; `file-type` pinned via npm overrides + `patches/officeparser+6.0.4.patch`). Legacy `.xls` not supported built-in. Generation: XLSX via ExcelJS, ODS via JSZip + ODF XML (`office-generator.js`). Docling-only: EPUB, LaTeX, TEX. `/api/convert-document` tries Docling first (when enabled) then built-in; response carries `converter: 'docling'|'builtin'`. Docling auto-starts on **port 5002** (not 5001 — macOS AirPlay), managed by `lib/docling-starter.js` (web) / `electron/docling-manager.js` (Electron); config `docling:{ url, apiKey, enabled, ocr }`; install `uv tool install "docling-serve[ui]"`. Prompts in `lib/tool-call-handler.js` / `lib/builtin-agent-tools.js` steer the agent to `generate_office_file` + `sourcePath` for project PDFs. **docs/DOCLING-AUTO-START.md**.
 
-Renders Mermaid.js diagrams inline in AI responses. Any mode can produce `\`\`\`mermaid `code blocks that render as interactive SVG diagrams. Mermaid.js is lazy-loaded on first use (separate Vite chunk). During streaming, mermaid blocks show as raw code; after completion, they render as diagrams. Each diagram has controls for zoom in/out/reset, fullscreen preview, source toggle/copy, light/dark diagram theme toggle, and export (SVG/PNG). PNG export now uses robust SVG-to-raster fallbacks (`createImageBitmap`, data URI/blob URL fallback, foreignObject stripping) plus save-picker/download fallback to improve Electron reliability. The`MarkdownContent `component uses a custom`marked `renderer to intercept mermaid blocks and a split-and-render pattern to mix HTML segments with React`MermaidBlock` components.
+## Settings & Config Keys
 
-### Builder Modes (Prompting, Skillz, Agentic, Planner)
+Tabs: General, GitHub, MCP Server, MCP Clients, Memory.
 
-Four builder modes share a common BaseBuilderPanel architecture with config-driven fields, AI-powered scoring via `/api/score`, and CRUD workflows (create, load, view, revise, score, save, download). Each mode scores content across 4 categories with letter grades (A-F). Revision flow: AI generates improved content in `<revised_prompt>` tags → user clicks "Apply Revision & Re-Score" → formDataRef syncs immediately → re-scoring reads updated content.
+- **Ollama connection**: server URL (local or `https://ollama.com`), optional Ollama Cloud API key (Bearer; stored `ollamaApiKey`, env `OLLAMA_API_KEY` when empty), test button.
+- **Auto model map**: per-mode model when toolbar = "Auto (best per mode)" (`autoModelMap`; defaults `lib/auto-model.js`). Resolved on chat/review/security/score/validate/build APIs.
+- **Memory** (`memory` in config): optional embedding memory; retrieval is **per conversation** — client sends `conversationId` on `POST /api/chat` so `buildMemoryContext()` injects only memories whose `source` matches (`lib/memory.js`).
+- **Review Timeout** `reviewTimeoutSec` (60–600s) → `reviewCode()`. Also on General: Project Folder, Agent Readiness checklist (**docs/AGENT-READINESS.md**), Create template path (Commands + ICM-fw), Brand Assets, 3D effects, color theme, welcome tour.
+- **Electron-only**: Data Management, Port Configuration (default 8900), **Software Updates** — `electron-updater` against GitHub Releases (`publish` in `electron-builder.config.js`); unpackaged dev disables Upgrade. Ship via GitHub Actions (tag push); local `electron:publish:*` is emergency-only. `getLatestTagName` patched via `patches/electron-updater+6.8.3.patch`; `allowPrerelease` in `electron/updater.js`. **docs/RELEASES-AND-UPDATES.md**, **BUILD.md** (incl. macOS signing: ad-hoc vs `MAC_CODESIGN_IDENTITY` / `:release`).
+- Config keys reference: **docs/ENVIRONMENT_VARIABLES.md**; task history in **whats-next.md**.
 
-**File Loading:** Files can be loaded into builder forms via two paths: (1) File Browser "Load into Form" button routes files through `builderAttachRef` → `loadFileIntoForm()`, or (2) native "Load from File" picker in the builder header. Both call `config.parseLoaded(content)` to deserialize file content into form fields. Parsers live in `src/lib/*-parse-loaded.js` with shared rules in `src/lib/builder-markdown-standards.js` — see **`docs/BUILDER-MARKDOWN-LOAD.md`** for CRLF, `##` splitting, BOM, and unknown-section behavior per mode.
+## Deployment
 
-**Scoring Methodologies:**
+HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); configurable port (default 8900, in `.cc-config.json`); protocol-aware health checks in `startup.sh`.
 
-- **Prompting**: TÂCHES meta-prompting methodology — evaluates clarity (Golden Rule), specificity, structure (XML tags, success criteria), effectiveness
-- **Skillz**: Agent Skills Specification (agentskills.io) — evaluates completeness, format compliance (name format, frontmatter, progressive disclosure), instruction quality (WHY explanations, workflow phases), reusability
-- **Agentic**: CrewAI + LangGraph hybrid — evaluates purpose clarity (role/goal/backstory/scope), tool design (schemas, safety annotations), workflow logic (state machine, self-correction loops, termination), safety guardrails (blast radius, confirmation gates, human escalation)
-- **Planner** (Plan Designer): implementation-plan quality — clarity, feasibility, completeness, structure
+## Key Docs
 
-### Review Mode
-
-Code quality assessment with single-file and multi-file reviews. Supports paste, upload, File Browser, and **Scan Folder** tab for reviewing entire project folders at once. Produces unified report cards with A-F letter grades across 4 categories: bugs, security, readability, and completeness. Multi-file reviews concatenate all files with separators, scale timeout by file count (max 10 min), and instruct the LLM to include filenames in findings (e.g., "In auth.js, line 42..."). Same deep-dive conversations and export options as single-file reviews. Backend: `reviewFiles()` in `lib/review.js`, routes at `/api/review/folder/preview` and `/api/review/folder`. Limits: 80 files max, 2MB total size (matches Security mode). Uses `isWithinBasePath()` validation for security.
-
-### Security Mode
-
-OWASP security assessment with multi-file and folder scanning. Supports single-file paste/upload, drag-and-drop files or folders, and recursive folder scanning via the "Scan Folder" tab or server-side `/api/pentest/folder` endpoint. Reports include 6 OWASP-mapped categories with letter grades, Deep Dive follow-up conversations, and export as Copy/Markdown/CSV/HTML/PDF/JSON. The **Remediate** button sends findings + code to the AI, generates fixed files, and downloads a zip containing `REMEDIATION-REPORT.md`, `original/`, and `remediated/` folders. Uses JSZip for client-side zip generation.
-
-### Validate Mode
-
-Generates project-specific `validate.md` command files for any local folder or GitHub repo. Workflow: (1) scan project to discover linters, type checkers, test runners, CI configs, and package scripts via `lib/validate.js`, (2) AI generates a phased validation command (Lint → Type Check → Style → Tests → E2E), (3) one-click install to Claude Code (`.claude/commands/`), Cursor (`.cursor/prompts/`), VS Code (`.github/prompts/`), or OpenCode (`.opencode/commands/`). "Install All" writes to all 4 IDEs at once.
-
-### Create → Build Handoff
-
-After project creation in Create mode, an **Open in Build** button registers the project in the Build registry and switches directly to Build mode with it selected.
-
-### IDE Command Files (Create & Build)
-
-Both scaffolders automatically copy IDE command files from `IDE_COMMANDS/` (app root) into every new project across all 5 IDE paths: `.claude/commands/`, `.cursor/commands/`, `.cursor/prompts/`, `.github/prompts/`, `.opencode/commands/`. Falls back to the configured template path's `Commands/` folder if `IDE_COMMANDS/` doesn't exist. Optional **Create template path** in Settings (`icmTemplatePath` in config) also copies `ICM-fw` contents into the project root.
-
-### GitHub panel — local VCS
-
-- **GET /api/git/status**, **POST /api/git/branch**, **GET /api/git/diff**, **POST /api/git/merge-preview**, **POST /api/git/resolve**, **POST /api/git/review** — use `config.projectFolder` as the repo; must be registered **before** the SPA `app.get('*')` fallback in `server.js`. `GitHubPanel` uses `parseApiJson()` so HTML error pages surface as readable errors.
-
-### Tutorial (Create & Build wizards)
-
-- **Tutorial** button toggles step-by-step guidance. Step 1: user fills project info (no prefill). Step 2+: contextual suggestions from **POST /api/tutorial-suggestions** (Ollama) using project name/description/role. **Focus or click** a field to get a suggestion; **double-click** for a new suggestion (step 1 cycles static alternatives; step 2+ re-calls API). Tab or right-click to accept; user can always type manually.
-
-### Settings Panel
-
-Six tabs: General, GitHub, MCP Server, MCP Clients, Memory. **Memory** tab configures optional embedding memory (`memory` in **`.cc-config.json`**); retrieval is **per conversation** — the client sends **`conversationId`** on **`POST /api/chat`** after the thread is saved so **`buildMemoryContext()`** only injects memories whose **`source`** matches that id (see **`lib/memory.js`**). General tab includes:
-
-- **Ollama connection** — server URL (local or `https://ollama.com`), optional **Ollama Cloud API key** (Bearer auth; stored as `ollamaApiKey` in `.cc-config.json`; env **`OLLAMA_API_KEY`** used when empty), test button
-- **Auto model map** — collapsible section: per-mode default model when the toolbar selects **Auto (best per mode)** (`autoModelMap` in `.cc-config.json`; defaults in **`lib/auto-model.js`**). Server resolves `model: "auto"` on chat, review, security, score, validate, build APIs, etc.; first SSE may include **`resolvedModel`**. See **`docs/ENVIRONMENT_VARIABLES.md`** (config keys) and **`whats-next.md`** (task history)
-- Project Folder with validation
-- **Agent Readiness** — General tab includes a checklist card for Chat agent setup; canonical copy in **`docs/AGENT-READINESS.md`**
-- Create template path (Commands + ICM-fw)
-- Brand Assets (label/path/description rows)
-- **Review Timeout** slider (60s–600s, step 30s, default 300s) — configurable backend timeout for AI code reviews stored as `reviewTimeoutSec` in `.cc-config.json`, passed through to `reviewCode()` in `lib/review.js`
-- 3D Visual Effects toggle
-- Color Theme picker (hue slider + 5 presets)
-- Welcome Tour restart
-- Electron-only: Data Management, Port Configuration, **Software Updates** — **Upgrade** checks [electron-updater](https://www.electron.build/auto-update.html) against **GitHub Releases** (`publish` in `electron-builder.config.js`); **Restart to upgrade** applies after download. Unpackaged dev (`electron:dev`) disables Upgrade with a short note; use a packaged install to update in-app. **Ship desktop releases via GitHub Actions** (tag push to publish repo); local `electron:publish:*` is emergency-only — **docs/RELEASES-AND-UPDATES.md**, **BUILD.md**. GitHub `getLatestTagName` is patched via **`patches/electron-updater+6.8.3.patch`** (406 on web URL); **`allowPrerelease`** is set in `electron/updater.js` for prerelease-only feeds — see **BUILD.md** (includes **macOS code signing**: ad-hoc vs `MAC_CODESIGN_IDENTITY` / `:release` scripts).
-
-## Design & Layout Standards
-
-- **Root container**: `fixed inset-0 flex mesh-gradient overflow-hidden` — NEVER use `h-screen`, `h-dvh`, or viewport units on the root. `fixed inset-0` is the only reliable way to fill the full browser window across all screen sizes, DPI scales, and browser chrome configurations.
-- **CSS base**: `html, body, #root` must have `width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden`.
-- **Document conversion**: Two-tier system — built-in converters handle common formats; Docling-serve provides higher-quality conversion (OCR, complex layouts) when available. Built-in: PDF (pdf-parse), DOCX (mammoth), DOC (word-extractor), **XLSX/CSV** (**read-excel-file**); **legacy `.xls`** not supported in built-in (use Docling or convert to `.xlsx`); **spreadsheet generation** (XLSX) uses **ExcelJS**; **ODS** output is JSZip + ODF XML in `office-generator.js`. PPTX/PPT/ODT/ODS/ODP/RTF (officeparser; **`file-type`** pinned via **npm overrides** + **`patches/officeparser+6.0.4.patch`**). Docling-only: EPUB, LaTeX, TEX. The `/api/convert-document` endpoint tries Docling first when enabled, falls back to built-in. Response includes `converter: 'docling'|'builtin'`. **Export** (see above) **generates** Office/PDF/text from chat via `office-generator.js`. Docling auto-starts on port 5002 (not 5001 — macOS AirPlay conflict). Auto-start managed by `lib/docling-starter.js` (web) and `electron/docling-manager.js` (Electron). Config: `docling: { url, apiKey, enabled, ocr }`. Install: `uv tool install "docling-serve[ui]"`. See `docs/DOCLING-AUTO-START.md` for details.
-- **Agent chat + PDFs / “413”**: The model does **not** receive HTTP status codes in chat. Claims about **413**, Docling, or “conversion service” may be **hallucinations** unless the user pasted a real error — check **`logs/app.log`** for **`POST /api/convert-document`**. Prompts in **`lib/tool-call-handler.js`** / **`lib/builtin-agent-tools.js`** instruct **`builtin.generate_office_file`** + **`sourcePath`** for project PDFs. See **`docs/TROUBLESHOOTING.md`**.
-
-## Packaging Rule — electron-builder.config.js
-
-When adding a **new top-level runtime directory** (e.g. `routes/`, `workers/`, `jobs/`), you **must** add a `"newdir/**/*"` entry to the `files` array in `electron-builder.config.js`. Electron packages only what is explicitly listed — missing directories cause a startup crash (`code=1`) in every shipped installer. After any structural change, run `node scripts/smoke-test-server.js` to verify the server starts before committing.
-
-## Rules
-
-- Stream AI responses in real-time (Server-Sent Events); **Stop** in chat aborts `fetch('/api/chat')` (`AbortController` in `App.jsx`) so the server drops the SSE connection and aborts Ollama + agent tool rounds (`chatAbortController` in `server.js`, `abortSignal` in `lib/ollama-client.js`)
-- Auto-detect available Ollama models on startup
-- Handle Ollama being offline gracefully
-- Use friendly-teacher tone — analogies, no jargon, patience
-- Keep the UI focused on vibe-coder workflows
+`docs/TROUBLESHOOTING.md` ("Failed to fetch", MCP / `CC_DATA_DIR` vs repo config, Ollama `fetch failed`) · `docs/CC-CONFIG.md` · `docs/TESTING.md` · `docs/BUILDER-MARKDOWN-LOAD.md` · `docs/TERMINALFEATURE.md` · `CLIPLAN.md` · `docs/EXPORT-CHAT.md` · `docs/DOCLING-AUTO-START.md` · `docs/AGENT-READINESS.md` · `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (planned Phases 25–27) · `docs/RELEASES-AND-UPDATES.md` · `BUILD.md` · `design-system/`. Plan-reviewer skill output: `docs/CLIPLAN-plan-review.md`, `docs/VOICE-DICTATION-*` (also `.cursor/skills/plan-reviewer/`).
 
 <!-- gitnexus:start -->
-
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (10859 symbols, 14707 relationships, 213 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (11040 symbols, 14894 relationships, 213 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -172,22 +130,22 @@ This project is indexed by GitNexus as **CodeCompanion** (10859 symbols, 14707 r
 
 ## Resources
 
-| Resource                                       | Use for                                  |
-| ---------------------------------------------- | ---------------------------------------- |
-| `gitnexus://repo/CodeCompanion/context`        | Codebase overview, check index freshness |
-| `gitnexus://repo/CodeCompanion/clusters`       | All functional areas                     |
-| `gitnexus://repo/CodeCompanion/processes`      | All execution flows                      |
-| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace             |
+| Resource | Use for |
+|----------|---------|
+| `gitnexus://repo/CodeCompanion/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/CodeCompanion/clusters` | All functional areas |
+| `gitnexus://repo/CodeCompanion/processes` | All execution flows |
+| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
-| Task                                         | Read this skill file                                        |
-| -------------------------------------------- | ----------------------------------------------------------- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
-| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
-| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
-| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
-| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
