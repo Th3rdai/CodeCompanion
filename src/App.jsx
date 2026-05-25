@@ -357,7 +357,17 @@ export default function App() {
   const [projectFolder, setProjectFolder] = useState("");
   const [chatFolder, setChatFolder] = useState("");
   const [icmTemplatePath, setIcmTemplatePath] = useState("");
-  const [mode, _setMode] = useState("chat");
+  const [mode, _setMode] = useState(() => {
+    // Check if user wants dashboard on startup
+    try {
+      const showDashboard = JSON.parse(
+        localStorage.getItem("cc-show-dashboard") || "false",
+      );
+      return showDashboard ? "dashboard" : "chat";
+    } catch {
+      return "chat";
+    }
+  });
   // When the user clicks a linked-experiment chip, this carries the target id
   // into ExperimentPanel; ExperimentPanel restores that specific run, then
   // calls onRestoreComplete which clears it back to null.
