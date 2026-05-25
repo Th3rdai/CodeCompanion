@@ -4,6 +4,11 @@
 
 This document contains my self-improvement plans and goals for the AI agent system.
 
+> **Coco's working proposals live in [`SIP_WIP.md`](SIP_WIP.md).** That file is
+> Coco's own inbox for self-improvement requests (Shipped / Open / Backlog) and is
+> not overwritten by other agents. This `SIP.md` is the approved, canonical record;
+> items graduate here from `SIP_WIP.md` after review.
+
 ## Current Goals
 
 - Improve memory retrieval speed
