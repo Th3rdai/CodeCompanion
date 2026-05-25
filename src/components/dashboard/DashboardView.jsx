@@ -1,6 +1,10 @@
+import { useMemo } from "react";
 import FeatureGrid from "./FeatureGrid";
 import RecentWorkSection from "./RecentWorkSection";
+import QuickStatsGrid from "./QuickStatsGrid";
+import AnalyticsPanels from "./AnalyticsPanels";
 import { Home } from "lucide-react";
+import { calculateAnalytics } from "../../lib/analytics";
 
 /**
  * Dashboard View - Phase 1 & 2 Implementation
@@ -14,6 +18,11 @@ export default function DashboardView({
   history,
   onResumeConversation,
 }) {
+  // Calculate analytics from history
+  const analytics = useMemo(() => {
+    return calculateAnalytics(history || []);
+  }, [history]);
+
   return (
     <div className="fixed inset-0 flex flex-col mesh-gradient overflow-hidden">
       {/* Dashboard Header */}
@@ -43,12 +52,11 @@ export default function DashboardView({
             isElectron={isElectron}
           />
 
-          {/* Placeholder for Phase 3 */}
-          <div className="glass p-6 rounded-xl">
-            <p className="text-slate-400 text-center text-sm">
-              🚧 Coming in Phase 3: Quick Stats and Analytics
-            </p>
-          </div>
+          {/* Phase 3: Quick Stats */}
+          <QuickStatsGrid analytics={analytics} />
+
+          {/* Phase 3: Analytics Panels */}
+          <AnalyticsPanels analytics={analytics} modes={modes} />
         </div>
       </div>
     </div>
