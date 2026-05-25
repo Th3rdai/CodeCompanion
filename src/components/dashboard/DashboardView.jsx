@@ -3,7 +3,6 @@ import FeatureGrid from "./FeatureGrid";
 import RecentWorkSection from "./RecentWorkSection";
 import QuickStatsGrid from "./QuickStatsGrid";
 import AnalyticsPanels from "./AnalyticsPanels";
-import { Home } from "lucide-react";
 import { calculateAnalytics } from "../../lib/analytics";
 
 /**
@@ -25,15 +24,8 @@ export default function DashboardView({
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-      {/* Dashboard Header */}
-      <div className="glass-heavy border-b border-slate-700/30 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Home className="w-6 h-6 text-indigo-400" />
-          <h1 className="text-2xl font-bold text-white">Home</h1>
-        </div>
-      </div>
-
-      {/* Main Content - Scrollable */}
+      {/* No in-view "Home" banner — the persistent "See Home →" tab in the
+          header mode strip is the title/affordance and the way back here. */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Recent Work Section - Phase 2 */}
