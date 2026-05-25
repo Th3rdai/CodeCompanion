@@ -940,7 +940,12 @@ test("buildToolsPrompt compacts large external MCP servers", () => {
     !p.includes("optional_a: string"),
     "expected optional non-enum params omitted in compact form",
   );
-  assert.ok(p.length < 14000, `prompt remained too large (${p.length})`);
+  // The always-on builtin tools (read/search/find/edit/move/delete/write/
+  // list/view/office) plus the safety preamble are listed in full and form the
+  // bulk (~14k). The 45 verbose Google tools here compact to ~3.4k; a broken
+  // external-MCP compaction would balloon the prompt past ~40k. This guards the
+  // compaction while allowing headroom for the builtin baseline.
+  assert.ok(p.length < 20000, `prompt remained too large (${p.length})`);
 });
 
 test("getToolsPromptAndFlags flags are all false when gated tools disabled (always-on tools still present)", () => {
