@@ -152,6 +152,7 @@ function jsonBodyLimit(req) {
     p === "/api/review" ||
     p === "/api/convert-document" ||
     p.startsWith("/api/pentest") ||
+    p.startsWith("/api/security") ||
     p === "/api/dictate-transcribe"
   )
     return "50mb";

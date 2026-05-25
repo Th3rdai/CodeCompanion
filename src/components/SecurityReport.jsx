@@ -774,7 +774,7 @@ export default function SecurityReport({
 
     setGeneratingReport(true);
     try {
-      const response = await apiFetch("/api/pentest/compliance-report", {
+      const response = await apiFetch("/api/security/compliance-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
