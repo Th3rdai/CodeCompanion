@@ -352,3 +352,91 @@ test("resolveAutoModel preferVision+preferToolCapable still uses Moondream if it
     clearDemotions();
   }
 });
+
+// ─── preferCloud: slow-model self-heal targets a faster cloud tool-caller ────
+// When a slow LOCAL model is demoted/excluded and preferCloud is set, auto-mode
+// should swap to a cloud tool-capable model rather than another local one.
+const CLOUD_PREF_TAGS = [
+  {
+    name: "qwen3-coder:30b",
+    size: 18_000_000_000,
+    modified_at: "2026-05-01",
+    details: { family: "qwen3", parameter_size: "30B" },
+  },
+  {
+    name: "qwen3-32k:latest",
+    size: 6_000_000_000,
+    modified_at: "2026-05-01",
+    details: { family: "qwen3", parameter_size: "8B" },
+  },
+  {
+    name: "kimi-k2:1t-cloud",
+    size: 0,
+    modified_at: "2026-05-01",
+    details: { family: "kimi", parameter_size: "" },
+  },
+];
+const CLOUD_PREF_SHOW = {
+  "qwen3-coder:30b": {
+    model_info: { "qwen3.context_length": 32768 },
+    details: { family: "qwen3" },
+  },
+  "qwen3-32k:latest": {
+    model_info: { "qwen3.context_length": 32768 },
+    details: { family: "qwen3" },
+  },
+};
+
+async function runResolveCloudPref(preferCloud) {
+  return resolveAutoModel({
+    requestedModel: "auto",
+    mode: "chat",
+    estimatedTokens: 500,
+    config: {
+      ollamaUrl: "http://test:11434",
+      autoModelMap: { chat: "qwen3-32k" },
+    },
+    ollamaUrl: "http://test:11434",
+    ollamaOpts: {},
+    preferToolCapable: true,
+    preferCloud,
+    // mirror the slow-switch call: exclude the (slow) base local model
+    excludeModels: ["qwen3-32k:latest", "qwen3-32k"],
+  });
+}
+
+test("resolveAutoModel preferCloud=false keeps a local tool-caller after excluding the base", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: CLOUD_PREF_TAGS,
+    showByModel: CLOUD_PREF_SHOW,
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await runResolveCloudPref(false);
+    assert.equal(r.resolved, "qwen3-coder:30b"); // local tool pick first
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
+
+test("resolveAutoModel preferCloud=true swaps a slow local base for a cloud tool-caller", async () => {
+  const original = global.fetch;
+  global.fetch = makeFetchStub({
+    tags: CLOUD_PREF_TAGS,
+    showByModel: CLOUD_PREF_SHOW,
+  });
+  try {
+    clearDemotions();
+    invalidateListModelsCache();
+    const r = await runResolveCloudPref(true);
+    assert.equal(r.resolved, "kimi-k2:1t-cloud"); // cloud preferred
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+    clearDemotions();
+  }
+});
