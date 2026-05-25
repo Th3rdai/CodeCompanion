@@ -98,7 +98,7 @@ describe("memory prune dry-run analyzer", () => {
             memory: {
               pruneCheck: {
                 enabled: true,
-                intervalDays: 30,
+                intervalDays: 24, // Max safe value (Node.js setInterval limit ~24.8 days)
                 sampleSize: 20,
                 thresholds: {
                   nearDuplicateSimilarity: 0.86,
@@ -124,7 +124,7 @@ describe("memory prune dry-run analyzer", () => {
 
       assert.equal(scheduler.enabled, true);
       assert.equal(intervals.length, 1);
-      assert.equal(intervals[0].ms, 30 * 24 * 60 * 60 * 1000);
+      assert.equal(intervals[0].ms, 24 * 24 * 60 * 60 * 1000); // 24 days (max safe interval)
 
       const result = scheduler.runNow("test");
       assert.ok(result);
