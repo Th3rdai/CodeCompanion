@@ -113,22 +113,16 @@ test("DashboardSettings: widget visibility keys use show prefix", () => {
     storage.setItem(key, JSON.stringify(i < 3)); // First 3 visible
   });
 
-  assert.strictEqual(
-    JSON.parse(storage.getItem(widgetKeys.recentWork)),
-    true
-  );
-  assert.strictEqual(
-    JSON.parse(storage.getItem(widgetKeys.quickStats)),
-    true
-  );
+  assert.strictEqual(JSON.parse(storage.getItem(widgetKeys.recentWork)), true);
+  assert.strictEqual(JSON.parse(storage.getItem(widgetKeys.quickStats)), true);
   assert.strictEqual(JSON.parse(storage.getItem(widgetKeys.activity)), true);
   assert.strictEqual(
     JSON.parse(storage.getItem(widgetKeys.modeBreakdown)),
-    false
+    false,
   );
   assert.strictEqual(
     JSON.parse(storage.getItem(widgetKeys.modelBreakdown)),
-    false
+    false,
   );
 });
 
