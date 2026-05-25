@@ -66,7 +66,7 @@
     "gitnexus:embed-meta": "node scripts/gitnexus-save-embed-meta.mjs",
     "mcp:inspect": "npx @modelcontextprotocol/inspector node mcp-server.js",
     "docs:pdf:releases": "node scripts/export-md-to-pdf.cjs docs/RELEASES-AND-UPDATES.md docs/RELEASES-AND-UPDATES.pdf",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package && node -e \"try{require('fs').chmodSync(require('path').join('node_modules/node-pty/prebuilds',process.platform+'-'+process.arch,'spawn-helper'),0o755)}catch(e){}\""
   },
   "dependencies": {
     "@_davideast/stitch-mcp": "^0.5.1",
