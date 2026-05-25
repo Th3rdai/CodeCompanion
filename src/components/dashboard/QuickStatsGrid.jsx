@@ -1,49 +1,47 @@
+import CollapsibleSection from "./CollapsibleSection";
+
 /**
  * QuickStatsGrid - Summary statistics display
  * Shows total conversations, active, archived, and message counts
  */
 export default function QuickStatsGrid({ analytics }) {
+  let body;
+
   if (!analytics?.totals) {
-    return (
+    body = (
       <div className="glass rounded-xl p-6 text-center">
         <p className="text-sm text-slate-400">
           No analytics data available yet
         </p>
       </div>
     );
-  }
+  } else {
+    const { totals } = analytics;
 
-  const { totals } = analytics;
+    const stats = [
+      {
+        label: "Conversations",
+        value: totals.conversations ?? 0,
+        color: "text-slate-100",
+      },
+      {
+        label: "Active",
+        value: totals.active ?? 0,
+        color: "text-indigo-300",
+      },
+      {
+        label: "Archived",
+        value: totals.archived ?? 0,
+        color: "text-slate-300",
+      },
+      {
+        label: "Messages",
+        value: totals.messages ?? 0,
+        color: "text-slate-100",
+      },
+    ];
 
-  const stats = [
-    {
-      label: "Conversations",
-      value: totals.conversations ?? 0,
-      color: "text-slate-100",
-    },
-    {
-      label: "Active",
-      value: totals.active ?? 0,
-      color: "text-indigo-300",
-    },
-    {
-      label: "Archived",
-      value: totals.archived ?? 0,
-      color: "text-slate-300",
-    },
-    {
-      label: "Messages",
-      value: totals.messages ?? 0,
-      color: "text-slate-100",
-    },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <h2 className="text-xl font-semibold text-white">Quick Stats</h2>
-
-      {/* Stats Grid */}
+    body = (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <div
@@ -57,6 +55,15 @@ export default function QuickStatsGrid({ analytics }) {
           </div>
         ))}
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <CollapsibleSection
+      title="Quick Stats"
+      storageKey="cc.dashboard.quickStats"
+    >
+      {body}
+    </CollapsibleSection>
   );
 }

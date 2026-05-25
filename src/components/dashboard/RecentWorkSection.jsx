@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Clock, ArrowRight } from "lucide-react";
+import CollapsibleSection from "./CollapsibleSection";
 
 /**
  * Skeleton screen shown while loading conversations (>300ms)
@@ -67,16 +68,6 @@ export default function RecentWorkSection({
     }
   }, [loading]);
 
-  // Show skeleton during loading
-  if (loading && showSkeleton) {
-    return <RecentWorkSkeleton />;
-  }
-
-  // Show empty state if no conversations
-  if (!conversations || conversations.length === 0) {
-    return <EmptyState onStartChat={onStartChat} />;
-  }
-
   // Normalize a conversation's recency to epoch ms. The /api/history list ships
   // `createdAt` (ISO string); full/older convos may carry `lastActive` (epoch
   // ms). Returns 0 when unknown so those sort last.
@@ -86,12 +77,6 @@ export default function RecentWorkSection({
     const ms = typeof raw === "number" ? raw : Date.parse(raw);
     return Number.isFinite(ms) ? ms : 0;
   };
-
-  // Get last 3 conversations sorted by most recent. Clone first — never mutate
-  // the history prop in place.
-  const recentConversations = [...conversations]
-    .sort((a, b) => convTime(b) - convTime(a))
-    .slice(0, 3);
 
   /**
    * Format timestamp as relative time
@@ -142,17 +127,26 @@ export default function RecentWorkSection({
     return modeMap[modeId] || modeId;
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Recent Work</h2>
-        <span className="text-sm text-slate-400">
-          Last {recentConversations.length} conversations
-        </span>
-      </div>
+  // Decide the collapsible body + header meta. Skeleton and empty states render
+  // as the section body so the section header (and its collapse toggle) is
+  // always present.
+  let meta = null;
+  let body;
 
-      {/* Conversation Cards */}
+  if (loading && showSkeleton) {
+    body = <RecentWorkSkeleton />;
+  } else if (!conversations || conversations.length === 0) {
+    body = <EmptyState onStartChat={onStartChat} />;
+  } else {
+    // Get last 3 conversations sorted by most recent. Clone first — never
+    // mutate the history prop in place.
+    const recentConversations = [...conversations]
+      .sort((a, b) => convTime(b) - convTime(a))
+      .slice(0, 3);
+
+    meta = `Last ${recentConversations.length} conversations`;
+
+    body = (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {recentConversations.map((conv) => {
           const when = formatRelativeTime(convTime(conv));
@@ -195,6 +189,16 @@ export default function RecentWorkSection({
           );
         })}
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <CollapsibleSection
+      title="Recent Work"
+      meta={meta}
+      storageKey="cc.dashboard.recentWork"
+    >
+      {body}
+    </CollapsibleSection>
   );
 }

@@ -109,7 +109,7 @@ HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); con
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (11802 symbols, 16180 relationships, 242 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (11874 symbols, 16269 relationships, 241 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

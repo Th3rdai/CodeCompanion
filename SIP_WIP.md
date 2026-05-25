@@ -5,6 +5,7 @@
 > overwrite or "simplify" this file** — append review notes under an item instead.
 >
 > **Relationship to [`SIP.md`](SIP.md):**
+>
 > - `SIP_WIP.md` (this file) = **proposals & requests awaiting review.** Coco writes here freely.
 > - `SIP.md` = the **approved, canonical record.** An item moves here only after sign-off.
 >

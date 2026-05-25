@@ -364,6 +364,7 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │       ├── MarkdownContent.jsx   # Rendered markdown with code blocks
 │       ├── Sidebar.jsx           # Conversation history sidebar
 │       ├── DictateButton.jsx     # Voice input button
+│       ├── dashboard/            # Home view: collapsible sections, feature grid, ⓘ mode-detail modals
 │       └── 3d/                   # Visual effects (SplashScreen, etc.)
 ├── tests/
 │   ├── unit/              # Node unit tests (node:test)

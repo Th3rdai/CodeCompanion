@@ -1,4 +1,7 @@
+import { useCallback, useRef, useState } from "react";
 import FeatureModeCard from "./FeatureModeCard";
+import FeatureModeDetailModal from "./FeatureModeDetailModal";
+import CollapsibleSection from "./CollapsibleSection";
 
 /**
  * Feature Grid - Displays all non-dashboard modes as clickable cards
@@ -10,39 +13,59 @@ export default function FeatureGrid({
   onModeSelect,
   isElectron,
 }) {
-  // Filter out dashboard mode (no self-reference) and Terminal in browser
+  const [detailMode, setDetailMode] = useState(null);
+  const infoButtonRefs = useRef({});
+
   const modesForGrid = modes
     .filter((m) => m.id !== "dashboard")
     .filter((m) => isElectron || m.id !== "terminal");
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">
-          Feature Access Grid
-        </h2>
-        <span className="text-sm text-slate-400">
-          {modesForGrid.length} modes available
-        </span>
-      </div>
+  const closeDetailModal = useCallback(() => {
+    if (!detailMode) return;
+    const trigger = infoButtonRefs.current[detailMode.id];
+    setDetailMode(null);
+    requestAnimationFrame(() => trigger?.focus());
+  }, [detailMode]);
 
-      {/* Grid Layout */}
-      <div
-        className="grid gap-4"
-        style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-        }}
+  const openModeFromModal = useCallback(() => {
+    if (!detailMode) return;
+    const modeId = detailMode.id;
+    setDetailMode(null);
+    onModeSelect(modeId);
+  }, [detailMode, onModeSelect]);
+
+  return (
+    <>
+      <CollapsibleSection
+        title="Feature Access Grid"
+        meta={`${modesForGrid.length} modes available`}
+        storageKey="cc.dashboard.featureGrid"
       >
-        {modesForGrid.map((mode) => (
-          <FeatureModeCard
-            key={mode.id}
-            mode={mode}
-            isActive={currentMode === mode.id}
-            onClick={() => onModeSelect(mode.id)}
-          />
-        ))}
-      </div>
-    </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {modesForGrid.map((mode) => (
+            <FeatureModeCard
+              key={mode.id}
+              mode={mode}
+              isActive={currentMode === mode.id}
+              onClick={() => onModeSelect(mode.id)}
+              onInfoClick={() => setDetailMode(mode)}
+              infoButtonRef={(el) => {
+                if (el) infoButtonRefs.current[mode.id] = el;
+                else delete infoButtonRefs.current[mode.id];
+              }}
+            />
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Rendered outside the collapsible region so the modal isn't inert'd. */}
+      {detailMode && (
+        <FeatureModeDetailModal
+          mode={detailMode}
+          onOpen={openModeFromModal}
+          onClose={closeDetailModal}
+        />
+      )}
+    </>
   );
 }

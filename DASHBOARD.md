@@ -13,6 +13,40 @@ Create an optional home dashboard for Code Companion that balances recent work r
 
 ---
 
+## Implemented Behavior (Current)
+
+> **Status: shipped.** This section documents what the dashboard does today. The implementation-plan sections below are kept for design/historical context and may describe options that were simplified during the build.
+
+The dashboard is an **optional home view** — a `dashboard` mode labelled **"See Home →"** in the mode strip, toggled by the `cc-show-dashboard` preference. When it's active the chat composer is hidden, and the mode tabs stay visible so users can jump straight into any mode.
+
+### Sections
+
+All five sections are **independently collapsible/expandable**, and each section's open/closed state **persists across reloads** in `localStorage` (keys `cc.dashboard.*`):
+
+| Section                | Component               | Notes                                                                            |
+| ---------------------- | ----------------------- | -------------------------------------------------------------------------------- |
+| Recent Work            | `RecentWorkSection.jsx` | Last 3 conversations sorted by recency; resume on click; skeleton + empty states |
+| Feature Access Grid    | `FeatureGrid.jsx`       | All non-dashboard modes as cards (Terminal hidden in the browser)                |
+| Quick Stats            | `QuickStatsGrid.jsx`    | Conversations / Active / Archived / Messages totals                              |
+| Mode Breakdown         | `AnalyticsPanels.jsx`   | Horizontal bar list of conversations per mode                                    |
+| Model Family Breakdown | `AnalyticsPanels.jsx`   | Horizontal bar list of conversations per model family                            |
+
+Collapsing is handled by a shared **`CollapsibleSection.jsx`** using the WAI-ARIA accordion pattern: a heading wrapping a toggle button wired via `aria-expanded`/`aria-controls`, an animated `grid-template-rows` (0fr↔1fr) body, `inert` collapsed content (out of tab order + a11y tree), and `prefers-reduced-motion` support.
+
+### Feature tiles
+
+Each tile (`FeatureModeCard.jsx`) shows just the **mode icon + label** for a clean, scannable grid. An **ⓘ info button** on each tile opens a detail modal (`FeatureModeDetailModal.jsx`) with richer, vibe-coder-friendly copy: a one-line tagline, a summary, a **"Great for"** checklist, and a **tip** — sourced from **`mode-details.js`** (keyed by mode id, with graceful fallback to the mode's one-line `desc`). The modal offers **Cancel** and **Open _<mode>_** actions and is keyboard-accessible (focus trap, Escape to close, focus returned to the triggering ⓘ button).
+
+### Analytics data
+
+Analytics come from `src/lib/analytics.js` (`calculateAnalytics`), computed from the `/api/history` **list** shape (`messageCount`, `mode`, `model`, `archived`) with a fallback to full-conversation `messages[]`. Bars render via `BarList.jsx`.
+
+### Component map
+
+`src/components/dashboard/`: `DashboardView.jsx` (composition) · `RecentWorkSection.jsx` · `FeatureGrid.jsx` · `FeatureModeCard.jsx` · `FeatureModeDetailModal.jsx` · `mode-details.js` · `CollapsibleSection.jsx` · `QuickStatsGrid.jsx` · `AnalyticsPanels.jsx` · `BarList.jsx` · `icon-map.js`. Analytics helper: `src/lib/analytics.js`. UI test: `tests/ui/dashboard-feature-grid.spec.js`.
+
+---
+
 ## Design System (UI/UX Pro Max Research)
 
 ### Visual Style: **Vibrant & Block-based with Developer Focus**
@@ -258,7 +292,9 @@ interface QuickStatsGridProps {
 
 - Mode SVG icon (w-10 h-10, centered, text-indigo-400 from Lucide React)
 - Mode label (text-lg font-semibold)
-- Short description (text-sm text-slate-400, 1 line, truncated)
+- Short description (text-sm text-slate-400, 1 line, truncated on tile)
+- Info button (44×44, top-right): opens `FeatureModeDetailModal` with full description; card click still navigates
+- Detail modal: icon, label, full `mode.desc`, **Open {label}** (primary), Cancel / Escape / backdrop close
 - Hover state:
   - Indigo glow (`shadow-lg shadow-indigo-500/20`)
   - Lift animation (`-translate-y-1`)
@@ -1657,7 +1693,7 @@ Dashboard implementation is complete when:
 
 ---
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Last Updated:** 2026-05-25
 **Author:** Claude Code (UI/UX Pro Max Skill)
-**Status:** Ready for Implementation
+**Status:** Implemented & shipped — see "Implemented Behavior (Current)" near the top
