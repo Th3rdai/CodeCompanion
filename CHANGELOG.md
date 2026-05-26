@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-05-25
+
 ### Added
 
 - **Dashboard (See Home →) — Phases 1–5.** 19th toolbar mode: feature grid with Lucide icons, Recent Work (resume conversation), client-side analytics (`src/lib/analytics.js`), collapsible sections with `localStorage` persistence, 7-day activity chart, CSV/JSON export, and widget visibility toggles. Optional startup landing via Settings. Components under `src/components/dashboard/`; status tracker **`DASHBOARD-STATUS.md`**. Commits `eb81ae0`–`f8d261c` on `master`.
 - **Dashboard unit tests.** `tests/unit/analytics.test.js` (4 cases), `tests/unit/dashboard-collapsible-section.test.js` (8 cases — JSON defaults, namespacing, toggle, error handling).
-- **Builtin agent file tools.** `search_file`, `find_in_files`, `edit_file`, `move_file`, `delete_file`, `fetch_url`; `list_dir` ungated when agent terminal is enabled. Unit coverage in `tests/unit/builtin-agent-tools.test.js`; chat guardrails in `tests/unit/chat-post-handler-guardrails.test.js`.
+- **Builtin agent file tools.** `search_files` (content search, grep-like), `find_files` (glob), `edit_file` (targeted string-replace + append, keeps a `.backup`), `move_file`, `delete_file`, and `fetch_url` (fetch a public URL as text — SSRF-guarded, browser-gated). `list_dir` ungated so structure discovery works even with the agent terminal off. All path-scoped to the project folder (`..` escapes rejected); read-only tools added to the Experiment-mode allowlist. Unit coverage in `tests/unit/builtin-agent-tools-new-tools.test.js` (16 cases) and `tests/unit/builtin-agent-tools.test.js`; chat guardrails in `tests/unit/chat-post-handler-guardrails.test.js`.
 - **Phase 28 Multi-File Code Review — Documentation Complete.** Comprehensive documentation added for the multi-file code review feature (shipped in v1.6.6). Includes:
   - **`docs/MULTI-FILE-REVIEW.md`** — Complete user guide (334 lines) covering: How to use Scan Folder tab, file limits and troubleshooting, technical details, best practices, comparison tables, and implementation history.
   - **`CLAUDE.md` Review Mode section** — Technical reference documenting single-file and multi-file review capabilities, backend implementation, routes, security validation, and file limits.
@@ -26,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Chat self-heals a slow model instead of dying at the timeout.** `chatComplete`'s own per-round timeout aborted its fetch with a bare `AbortError`, which the chat handler reads as a user **Stop** — so the slow-model self-heal (which only triggers on a "timed out" error) never fired, and slow local-model turns ended silently at the `slowModelSwitchSec` cap with no response. It now throws a distinct `TimeoutError`, so the turn switches to a faster tool-capable model and retries the round. Regression test `tests/unit/ollama-client-timeout-classification.test.js`.
+- **Chat stays conversational unless asked to act.** Agentic chat (chat/experiment) now answers general or open-ended questions like "what's next?" in prose and only calls tools when you explicitly ask it to act on files/commands or when answering needs live project state.
+- **Leaner agentic tool prompt.** Consolidated the overlapping builtin file-tool guidance and tightened tool descriptions (~500 tokens off every chat/experiment turn); also fixed `edit_file`'s append mode being truncated out of the 200-char tool line.
 - **Playwright test cold-start hydration flakiness.** Added `tests/global-setup.js` that pre-warms the server before any tests run — loads app with `networkidle` wait, waits for `#model-select` and mode tabs to prove full React hydration, then gives React 1 second to settle lazy-loaded components. Updated `playwright.config.js` to use `globalSetup`, and improved `tests/helpers/reload-app-ready.js` to wait for `networkidle` instead of just `load`. Result: **zero flaky tests**, all pass on first try. Previously flaky `report-card-interactions.spec.js` now passes consistently in ~2.4s (was timing out at 45s). Full UI suite: **37 passed, 0 flaky** in 1.5 minutes.
 - **MCP client auto-connect warnings.** Disabled auto-connect for `Google Work` and `pci-assistant` MCP clients in Application Support config (`autoConnect: false`) to eliminate startup warnings when these services aren't running. Server now starts cleanly with no connection errors.
 - **Sprint 3 Audit Report PDF generation Promise hang.** Verified fix from previous session with integration test `test-multiple-exports.js` — 11 consecutive file generations (5 MD, 3 PDF, 3 mixed formats) all pass without hanging. Execution time ~8 seconds, no timeouts. Audit report feature is stable for production.

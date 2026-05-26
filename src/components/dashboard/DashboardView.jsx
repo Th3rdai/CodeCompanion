@@ -75,11 +75,7 @@ export default function DashboardView({
           {showActivity && (
             <CollapsibleSection
               title="7-Day Activity"
-              meta={
-                history?.length > 0
-                  ? `${history.length} total`
-                  : null
-              }
+              meta={history?.length > 0 ? `${history.length} total` : null}
               storageKey="cc.dashboard.activity"
             >
               <div className="glass rounded-xl p-6">
@@ -87,7 +83,8 @@ export default function DashboardView({
                   <ActivityChart history={history} />
                 ) : (
                   <p className="text-sm text-slate-400 text-center py-4">
-                    No conversations yet — start chatting and watch your activity grow!
+                    No conversations yet — start chatting and watch your
+                    activity grow!
                   </p>
                 )}
               </div>

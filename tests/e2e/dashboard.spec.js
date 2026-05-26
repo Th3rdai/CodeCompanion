@@ -75,7 +75,7 @@ test("Collapsible sections expand and collapse with chevron toggle", async ({
   await openDashboard(page);
 
   // Find a collapsible section (Mode Breakdown or Model Breakdown)
-  const sectionButton = page.locator('button[aria-expanded]').first();
+  const sectionButton = page.locator("button[aria-expanded]").first();
   await expect(sectionButton).toBeVisible();
 
   // Check initial state
@@ -114,14 +114,14 @@ test("Dashboard Settings widget visibility toggles control section display", asy
   }
 
   // Find Quick Stats toggle checkbox
-  const quickStatsCheckbox = page.locator(
-    'input[type="checkbox"]'
-  ).filter({
-    has: page.locator('..').filter({ hasText: "Quick Stats" }),
+  const quickStatsCheckbox = page.locator('input[type="checkbox"]').filter({
+    has: page.locator("..").filter({ hasText: "Quick Stats" }),
   });
 
   // If we can find it, test toggle behavior
-  if (await quickStatsCheckbox.isVisible({ timeout: 1000 }).catch(() => false)) {
+  if (
+    await quickStatsCheckbox.isVisible({ timeout: 1000 }).catch(() => false)
+  ) {
     const initialChecked = await quickStatsCheckbox.isChecked();
 
     // Toggle checkbox
@@ -157,11 +157,17 @@ test("Export Analytics buttons are visible when data exists", async ({
 
   if (hasTotalConversations) {
     // Check for export buttons (may not exist if no conversations)
-    const csvVisible = await csvButton.isVisible({ timeout: 1000 }).catch(() => false);
-    const jsonVisible = await jsonButton.isVisible({ timeout: 1000 }).catch(() => false);
+    const csvVisible = await csvButton
+      .isVisible({ timeout: 1000 })
+      .catch(() => false);
+    const jsonVisible = await jsonButton
+      .isVisible({ timeout: 1000 })
+      .catch(() => false);
 
     // At least log what we found
-    console.log(`Export buttons visible: CSV=${csvVisible}, JSON=${jsonVisible}`);
+    console.log(
+      `Export buttons visible: CSV=${csvVisible}, JSON=${jsonVisible}`,
+    );
   }
 });
 
@@ -201,7 +207,9 @@ test("Recent Work section shows conversations or empty state", async ({
   await openDashboard(page);
 
   // Recent Work section should always render
-  const recentWorkSection = page.locator('h2:has-text("Recent Work")').locator("..");
+  const recentWorkSection = page
+    .locator('h2:has-text("Recent Work")')
+    .locator("..");
   await expect(recentWorkSection).toBeVisible();
 
   // Should show either conversation cards or empty state
@@ -221,7 +229,9 @@ test("Recent Work section shows conversations or empty state", async ({
     .catch(() => false);
 
   // Should have conversations, or empty state with CTA button
-  expect(hasConversations || (hasEmptyState && hasStartChatButton)).toBeTruthy();
+  expect(
+    hasConversations || (hasEmptyState && hasStartChatButton),
+  ).toBeTruthy();
 });
 
 test("Mode and Model breakdown panels render with data or empty state", async ({
@@ -254,7 +264,9 @@ test("Mode and Model breakdown panels render with data or empty state", async ({
   expect(hasModeData || hasModeEmptyState).toBeTruthy();
 
   // Find Model Breakdown section
-  const modelBreakdown = page.locator('button:has-text("Model Family Breakdown")');
+  const modelBreakdown = page.locator(
+    'button:has-text("Model Family Breakdown")',
+  );
   await expect(modelBreakdown).toBeVisible();
 
   // Expand if collapsed

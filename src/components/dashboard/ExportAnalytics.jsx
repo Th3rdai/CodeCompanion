@@ -60,7 +60,7 @@ function exportToJSON(analytics) {
       },
     },
     null,
-    2
+    2,
   );
 }
 

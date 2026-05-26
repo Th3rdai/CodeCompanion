@@ -39,7 +39,7 @@ function calculate7DayActivity(history) {
         const convDay = new Date(
           convDate.getFullYear(),
           convDate.getMonth(),
-          convDate.getDate()
+          convDate.getDate(),
         );
         return convDay.getTime() === date.getTime();
       }).length;
@@ -55,10 +55,7 @@ function calculate7DayActivity(history) {
  * Shows daily conversation counts for the last 7 days as a bar chart
  */
 export default function ActivityChart({ history }) {
-  const activityData = useMemo(
-    () => calculate7DayActivity(history),
-    [history]
-  );
+  const activityData = useMemo(() => calculate7DayActivity(history), [history]);
 
   if (!activityData || activityData.length === 0) {
     return null;

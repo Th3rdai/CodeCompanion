@@ -3,13 +3,15 @@
 ## ✅ Completed (Phases 1-5)
 
 ### Phase 1: Foundation & Mode Grid
+
 - Dashboard as 19th mode in MODES array
 - Lucide React SVG icon system (19 icons)
 - FeatureModeCard component with hover effects
 - FeatureGrid responsive layout
 - Settings toggle for startup behavior
 
-### Phase 2: Recent Work Section  
+### Phase 2: Recent Work Section
+
 - RecentWorkSection component (185 lines)
 - Skeleton loading with 300ms delay
 - Empty state with CTA
@@ -17,6 +19,7 @@
 - Resume conversation functionality
 
 ### Phase 3: Analytics Integration
+
 - BarList chart component with ARIA
 - QuickStatsGrid (totals display)
 - AnalyticsPanels (mode/model breakdowns)
@@ -24,6 +27,7 @@
 - Support for both full & list endpoint data
 
 ### Phase 4: Polish & Accessibility
+
 - CollapsibleSection with localStorage persistence
 - WCAG 2.1 AA compliance
 - Responsive design (mobile/tablet/desktop)
@@ -31,6 +35,7 @@
 - Dashboard startup behavior
 
 ### Phase 5: Dashboard Enhancements (NEW)
+
 - **7-Day Activity Chart** - Visual bar chart showing conversation counts for last 7 days
 - **Export Analytics** - Download dashboard data as CSV or JSON with one click
 - **Widget Visibility Toggles** - Show/hide dashboard sections with persistent preferences
@@ -60,6 +65,7 @@ src/lib/
 ## 🎯 Completed Enhancements (Phase 5)
 
 ### ✅ High Value (Implemented)
+
 1. **7-Day Activity Chart** - ✅ DONE - Uses existing `createdAt` timestamps, shows last 7 days
 2. **Export Analytics** - ✅ DONE - CSV/JSON download with formatted data
 3. **Widget Visibility Toggles** - ✅ DONE - Show/hide sections with localStorage persistence
@@ -67,11 +73,13 @@ src/lib/
 ## 🔮 Future Enhancements
 
 ### Medium Value
+
 4. **System Performance Metrics** - CPU, memory, network (requires `/api/metrics` endpoint)
 5. **Model Performance Stats** - Average response time, token usage per model
 6. **Conversation Length Distribution** - Histogram of message counts
 
 ### Lower Priority
+
 7. **Time-of-Day Heatmap** - When users are most active
 8. **Mode Workflow Analysis** - Common mode transition patterns
 9. **Search Analytics** - Most searched terms in File Browser
@@ -79,12 +87,14 @@ src/lib/
 ## 🧪 Testing Status
 
 ### Unit Tests ✅ Completed
+
 - [✅] `analytics.js` calculation logic (4 tests - empty input, list shape, full conversation shape, missing data)
 - [✅] `CollapsibleSection` localStorage persistence (8 tests - JSON parsing, defaults, namespacing, error handling, toggle behavior)
 - [ ] `BarList` ARIA attributes (deferred - would require @testing-library/react)
 - [ ] `QuickStatsGrid` number formatting (deferred - would require @testing-library/react)
 
 ### E2E Tests ✅ Completed
+
 - [✅] Dashboard renders with Feature Grid and analytics sections
 - [✅] Mode card navigation switches to selected mode
 - [✅] Collapsible sections expand/collapse with chevron toggle
@@ -99,6 +109,7 @@ src/lib/
 **Run:** `npx playwright test tests/e2e/dashboard.spec.js --project=chromium`
 
 ### Accessibility Tests Needed
+
 - [ ] Screen reader testing (VoiceOver/NVDA)
 - [ ] Keyboard navigation (Tab, Enter, Space)
 - [ ] Color contrast verification (automated)

@@ -14,7 +14,12 @@ function toEntries(obj) {
  * Displays conversation breakdown by mode and model family. Each panel is its
  * own collapsible section.
  */
-export default function AnalyticsPanels({ analytics, modes, showModeBreakdown = true, showModelBreakdown = true }) {
+export default function AnalyticsPanels({
+  analytics,
+  modes,
+  showModeBreakdown = true,
+  showModelBreakdown = true,
+}) {
   // Process mode counts and map to human-readable labels
   const modeCounts = useMemo(() => {
     const entries = toEntries(analytics?.modeCounts || {});
@@ -69,8 +74,8 @@ export default function AnalyticsPanels({ analytics, modes, showModeBreakdown = 
           <div className="glass rounded-xl p-6">
             {modelCounts.length === 0 ? (
               <p className="text-sm text-slate-400 text-center py-4">
-                No model data yet — try a few different models and see what shows
-                up!
+                No model data yet — try a few different models and see what
+                shows up!
               </p>
             ) : (
               <BarList

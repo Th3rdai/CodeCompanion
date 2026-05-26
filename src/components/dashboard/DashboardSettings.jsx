@@ -3,11 +3,31 @@ import { Settings, Eye, EyeOff } from "lucide-react";
 import CollapsibleSection from "./CollapsibleSection";
 
 const WIDGET_KEYS = {
-  recentWork: { key: "cc.dashboard.show.recentWork", label: "Recent Work", default: true },
-  quickStats: { key: "cc.dashboard.show.quickStats", label: "Quick Stats", default: true },
-  activity: { key: "cc.dashboard.show.activity", label: "7-Day Activity", default: true },
-  modeBreakdown: { key: "cc.dashboard.show.modeBreakdown", label: "Mode Breakdown", default: true },
-  modelBreakdown: { key: "cc.dashboard.show.modelBreakdown", label: "Model Breakdown", default: true },
+  recentWork: {
+    key: "cc.dashboard.show.recentWork",
+    label: "Recent Work",
+    default: true,
+  },
+  quickStats: {
+    key: "cc.dashboard.show.quickStats",
+    label: "Quick Stats",
+    default: true,
+  },
+  activity: {
+    key: "cc.dashboard.show.activity",
+    label: "7-Day Activity",
+    default: true,
+  },
+  modeBreakdown: {
+    key: "cc.dashboard.show.modeBreakdown",
+    label: "Mode Breakdown",
+    default: true,
+  },
+  modelBreakdown: {
+    key: "cc.dashboard.show.modelBreakdown",
+    label: "Model Breakdown",
+    default: true,
+  },
 };
 
 /**
@@ -45,9 +65,11 @@ function setWidgetVisibility(key, value) {
 export default function DashboardSettings() {
   const [visibility, setVisibility] = useState(() => {
     const initial = {};
-    Object.entries(WIDGET_KEYS).forEach(([id, { key, default: defaultValue }]) => {
-      initial[id] = getWidgetVisibility(key, defaultValue);
-    });
+    Object.entries(WIDGET_KEYS).forEach(
+      ([id, { key, default: defaultValue }]) => {
+        initial[id] = getWidgetVisibility(key, defaultValue);
+      },
+    );
     return initial;
   });
 
@@ -70,7 +92,9 @@ export default function DashboardSettings() {
         <div className="flex items-start gap-3 mb-4">
           <Settings className="w-5 h-5 text-indigo-400 mt-0.5" />
           <div>
-            <h3 className="text-sm font-medium text-white">Widget Visibility</h3>
+            <h3 className="text-sm font-medium text-white">
+              Widget Visibility
+            </h3>
             <p className="text-xs text-slate-400 mt-1">
               Show or hide dashboard sections. Changes are saved automatically.
             </p>
@@ -95,7 +119,9 @@ export default function DashboardSettings() {
                 ) : (
                   <EyeOff className="w-4 h-4 text-slate-500" />
                 )}
-                <span className={`text-sm ${visibility[id] ? "text-slate-200" : "text-slate-500"}`}>
+                <span
+                  className={`text-sm ${visibility[id] ? "text-slate-200" : "text-slate-500"}`}
+                >
                   {label}
                 </span>
               </div>
@@ -127,7 +153,8 @@ export function useWidgetVisibility(widgetId) {
     const handleStorageChange = (e) => {
       if (e.key === config.key) {
         try {
-          const newValue = e.newValue !== null ? JSON.parse(e.newValue) : config.default;
+          const newValue =
+            e.newValue !== null ? JSON.parse(e.newValue) : config.default;
           setIsVisible(newValue);
         } catch {
           // ignore
