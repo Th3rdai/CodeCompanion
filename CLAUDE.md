@@ -108,6 +108,7 @@ HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); con
 `docs/TROUBLESHOOTING.md` ("Failed to fetch", MCP / `CC_DATA_DIR` vs repo config, Ollama `fetch failed`) · `docs/CC-CONFIG.md` · `docs/TESTING.md` · `docs/BUILDER-MARKDOWN-LOAD.md` · `docs/TERMINALFEATURE.md` · `CLIPLAN.md` · `docs/EXPORT-CHAT.md` · `docs/DOCLING-AUTO-START.md` · `docs/AGENT-READINESS.md` · `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (planned Phases 25–27) · `docs/RELEASES-AND-UPDATES.md` · `BUILD.md` · `design-system/`. Plan-reviewer skill output: `docs/CLIPLAN-plan-review.md`, `docs/VOICE-DICTATION-*` (also `.cursor/skills/plan-reviewer/`).
 
 <!-- gitnexus:start -->
+
 # GitNexus — Code Intelligence
 
 This project is indexed by GitNexus as **CodeCompanion** (12119 symbols, 16907 relationships, 246 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
@@ -131,22 +132,22 @@ This project is indexed by GitNexus as **CodeCompanion** (12119 symbols, 16907 r
 
 ## Resources
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/CodeCompanion/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/CodeCompanion/clusters` | All functional areas |
-| `gitnexus://repo/CodeCompanion/processes` | All execution flows |
-| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace |
+| Resource                                       | Use for                                  |
+| ---------------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/CodeCompanion/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/CodeCompanion/clusters`       | All functional areas                     |
+| `gitnexus://repo/CodeCompanion/processes`      | All execution flows                      |
+| `gitnexus://repo/CodeCompanion/process/{name}` | Step-by-step execution trace             |
 
 ## CLI
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                        |
+| -------------------------------------------- | ----------------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->

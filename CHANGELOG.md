@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] — 2026-06-03
+
+### Changed
+
+- **Windows desktop release (v1.7.1).** Rebuilt Windows NSIS installer (`code-companion-1.7.1-x64.exe`) and portable ZIP via GitHub Actions on `windows-2022` with full CI validation (smoke test, `verify-release-output.js`, updater `latest.yml` checksum alignment). Mac and Linux artifacts rebuilt in the same tag for a complete multi-platform release feed.
+
+### Validation
+
+- `npm run validate:fast` — lint, typecheck, format, Vite build, unit + integration tests, server smoke test.
+- CI: `verify-ci-repo-matches-publish.js`, `verify-artifact-name-config.js`, per-platform `latest-*.yml` checks.
+
 ## [1.7.0] — 2026-05-25
 
 ### Added
