@@ -168,15 +168,21 @@ jobs:
           rm /tmp/certs.p12
 
       # ── Windows signing ───────────────────────────────────────────────────
-      # WIN_CSC_LINK_B64 must be a base64-encoded Windows Authenticode .pfx.
-      # CSC_LINK (macOS .p12) is intentionally excluded — wrong format for Windows.
+      # Prefer WIN_CSC_LINK_B64; fall back to CSC_LINK (legacy base64 .pfx already in repo secrets).
+      # macOS uses MAC_CERTS — CSC_LINK is not the mac .p12.
       - name: Decode Windows signing certificate
         if: matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true'
         shell: bash
         env:
           WIN_CSC_LINK_B64: ${{ fromJSON(toJSON(secrets)).WIN_CSC_LINK_B64 }}
+          CSC_LINK: ${{ fromJSON(toJSON(secrets)).CSC_LINK }}
         run: |
-          echo "$WIN_CSC_LINK_B64" | base64 --decode > "$RUNNER_TEMP/win-cert.pfx"
+          B64="${WIN_CSC_LINK_B64:-$CSC_LINK}"
+          if [ -z "$B64" ]; then
+            echo "::error::WIN_CI_SIGNING=true but neither WIN_CSC_LINK_B64 nor CSC_LINK secret is set"
+            exit 1
+          fi
+          echo "$B64" | base64 --decode > "$RUNNER_TEMP/win-cert.pfx"
           echo "WIN_CSC_LINK=$RUNNER_TEMP/win-cert.pfx" >> "$GITHUB_ENV"
 
       # ── Build ─────────────────────────────────────────────────────────────
@@ -194,10 +200,10 @@ jobs:
           APPLE_TEAM_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_TEAM_ID || '' }}
           APPLE_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_ID || '' }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          # Windows — WIN_CSC_LINK set via GITHUB_ENV; password from WIN_CSC_KEY_PASSWORD only.
-          # CSC_KEY_PASSWORD is macOS-only and must never be passed to the Windows build.
+          # Windows — WIN_CSC_LINK set via GITHUB_ENV; password from WIN_CSC_KEY_PASSWORD or CSC_KEY_PASSWORD.
           WIN_DISTRIBUTION_SIGN: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && '1' || '' }}
           WIN_CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && fromJSON(toJSON(secrets)).WIN_CSC_KEY_PASSWORD || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && fromJSON(toJSON(secrets)).CSC_KEY_PASSWORD || '' }}
 
       # ── Cleanup ───────────────────────────────────────────────────────────
       - name: Clean Windows signing certificate

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.2] — 2026-06-03
+
+### Changed
+
+- **Windows Authenticode signing in CI.** Enabled `WIN_CI_SIGNING` and updated `.github/workflows/build.yml` to decode the Windows `.pfx` from `WIN_CSC_LINK_B64` or legacy `CSC_LINK`, with `WIN_CSC_KEY_PASSWORD` / `CSC_KEY_PASSWORD` fallback. Windows NSIS installer is now Authenticode-signed on release builds.
+
+### Validation
+
+- Full CI matrix (smoke test, per-platform build, `verify-release-output.js`, publish + Google Drive mirror).
+
 ## [1.7.1] — 2026-06-03
 
 ### Changed
