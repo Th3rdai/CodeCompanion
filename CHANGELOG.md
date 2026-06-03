@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.3] — 2026-06-03
+
+### Fixed
+
+- **Windows CI signing password.** Coalesce `WIN_CSC_KEY_PASSWORD` and `CSC_KEY_PASSWORD` in GitHub Actions so an empty dedicated Windows secret no longer overrides the legacy password (fixes SignTool “PFX password is not correct” on v1.7.2).
+
 ## [1.7.2] — 2026-06-03
 
 ### Changed

@@ -185,6 +185,21 @@ jobs:
           echo "$B64" | base64 --decode > "$RUNNER_TEMP/win-cert.pfx"
           echo "WIN_CSC_LINK=$RUNNER_TEMP/win-cert.pfx" >> "$GITHUB_ENV"
 
+      - name: Prepare Windows signing password
+        if: matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true'
+        shell: bash
+        env:
+          WIN_CSC_KEY_PASSWORD: ${{ fromJSON(toJSON(secrets)).WIN_CSC_KEY_PASSWORD }}
+          CSC_KEY_PASSWORD: ${{ fromJSON(toJSON(secrets)).CSC_KEY_PASSWORD }}
+        run: |
+          PWD="${WIN_CSC_KEY_PASSWORD:-$CSC_KEY_PASSWORD}"
+          if [ -z "$PWD" ]; then
+            echo "::error::WIN_CI_SIGNING=true but neither WIN_CSC_KEY_PASSWORD nor CSC_KEY_PASSWORD is set"
+            exit 1
+          fi
+          echo "WIN_CSC_KEY_PASSWORD=$PWD" >> "$GITHUB_ENV"
+          echo "CSC_KEY_PASSWORD=$PWD" >> "$GITHUB_ENV"
+
       # ── Build ─────────────────────────────────────────────────────────────
       - name: Build Electron installer
         run: npm run ${{ matrix.script }}
@@ -200,10 +215,8 @@ jobs:
           APPLE_TEAM_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_TEAM_ID || '' }}
           APPLE_ID: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_ID || '' }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ startsWith(matrix.platform, 'mac') && env.MAC_CI_NOTARIZE == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          # Windows — WIN_CSC_LINK set via GITHUB_ENV; password from WIN_CSC_KEY_PASSWORD or CSC_KEY_PASSWORD.
+          # Windows — WIN_CSC_LINK + passwords set via GITHUB_ENV in prior steps.
           WIN_DISTRIBUTION_SIGN: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && '1' || '' }}
-          WIN_CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && fromJSON(toJSON(secrets)).WIN_CSC_KEY_PASSWORD || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.platform == 'win' && env.WIN_CI_SIGNING == 'true' && fromJSON(toJSON(secrets)).CSC_KEY_PASSWORD || '' }}
 
       # ── Cleanup ───────────────────────────────────────────────────────────
       - name: Clean Windows signing certificate
