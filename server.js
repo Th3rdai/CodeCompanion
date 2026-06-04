@@ -142,6 +142,24 @@ const { router: mcpApiRouter } = createMcpApiRoutes({
   requireLocalOrApiKey,
 });
 
+// ── Model name validation (prevent cache poisoning / log injection) ──
+function isValidModelName(name) {
+  if (!name || typeof name !== "string") return false;
+  // Allow alphanumeric, colons, dots, underscores, hyphens
+  return /^[a-zA-Z0-9:._-]+$/.test(name);
+}
+
+function sanitizeModelName(name) {
+  if (!name || typeof name !== "string") {
+    throw new Error("Invalid model name");
+  }
+  const trimmed = name.trim();
+  if (!isValidModelName(trimmed)) {
+    throw new Error(`Invalid model name format: ${trimmed.slice(0, 50)}`);
+  }
+  return trimmed;
+}
+
 // Vision chat sends base64 in JSON — 5mb is too small (browser shows "Failed to fetch" when body is rejected).
 function jsonBodyLimit(req) {
   if (!["POST", "PUT", "PATCH"].includes(req.method || "")) return "5mb";
@@ -538,8 +556,18 @@ app.get("/api/model-context", requireLocalOrApiKey, async (req, res) => {
         _modelContextCache.set(cacheKey, { at: now, value });
         return res.json(value);
       }
-      const inner = await _resolveModelContextForName(resolved, config);
-      const value = { ...inner, resolvedModel: resolved };
+
+      // Sanitize model name from external sources (prevents cache poisoning / log injection)
+      let sanitized;
+      try {
+        sanitized = sanitizeModelName(resolved);
+      } catch (err) {
+        log("WARN", `Invalid model name from auto-resolution: ${err.message}`);
+        return res.status(400).json({ error: "Invalid model name from resolution" });
+      }
+
+      const inner = await _resolveModelContextForName(sanitized, config);
+      const value = { ...inner, resolvedModel: sanitized };
       _modelContextCache.set(cacheKey, { at: now, value });
       return res.json(value);
     }
@@ -550,7 +578,16 @@ app.get("/api/model-context", requireLocalOrApiKey, async (req, res) => {
         .status(400)
         .json({ error: "Missing 'name' or 'auto=1' query parameter." });
     }
-    const value = await _resolveModelContextForName(name, config);
+
+    // Sanitize model name from query parameter
+    let sanitized;
+    try {
+      sanitized = sanitizeModelName(name);
+    } catch (err) {
+      return res.status(400).json({ error: "Invalid model name format" });
+    }
+
+    const value = await _resolveModelContextForName(sanitized, config);
     return res.json(value);
   } catch (err) {
     log("ERROR", "model-context lookup failed", {
