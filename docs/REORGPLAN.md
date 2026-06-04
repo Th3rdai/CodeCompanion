@@ -499,4 +499,4 @@ flowchart LR
 
 ---
 
-**Next step:** Approve Phase 1 file list → single PR: archive moves + `!ARCHIVES/README.md` manifest + §1E tooling ignores + README `fix_cache.html` link update.
+**Next step:** All phases 1–6 shipped (2026-06-04). Optional follow-ups: remove root doc stubs after one release; physical `lib/` subfolders if desired.
