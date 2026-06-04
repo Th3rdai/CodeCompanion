@@ -72,6 +72,12 @@ export default function SettingsPanel({
   const [activeTab, setActiveTab] = useState("general");
   const [url, setUrl] = useState(ollamaUrl);
   const [ollamaApiKey, setOllamaApiKey] = useState("");
+  // LLM provider toggle (Ollama | OpenRouter) + OpenRouter connection fields.
+  const [provider, setProvider] = useState("ollama");
+  const [openrouterApiKey, setOpenrouterApiKey] = useState("");
+  const [openrouterUrl, setOpenrouterUrl] = useState(
+    "https://openrouter.ai/api/v1",
+  );
   const [dictateGroqApiKey, setDictateGroqApiKey] = useState("");
   const [folder, setFolder] = useState(projectFolder || "");
   const [icmTemplate, setIcmTemplate] = useState(icmTemplatePath || "");
@@ -230,6 +236,13 @@ export default function SettingsPanel({
           }
           if (data.ollamaApiKey != null)
             setOllamaApiKey(data.ollamaApiKey || "");
+          if (data.provider != null) setProvider(data.provider || "ollama");
+          if (data.openrouterUrl != null)
+            setOpenrouterUrl(
+              data.openrouterUrl || "https://openrouter.ai/api/v1",
+            );
+          if (data.openrouterApiKey != null)
+            setOpenrouterApiKey(data.openrouterApiKey || "");
           if (data.dictateGroqApiKey != null)
             setDictateGroqApiKey(data.dictateGroqApiKey || "");
           if (data.organizationName != null)
@@ -684,6 +697,13 @@ export default function SettingsPanel({
     return { ollamaApiKey: t };
   }
 
+  function openrouterApiKeyPayload() {
+    const t = (openrouterApiKey || "").trim();
+    if (t === "") return { openrouterApiKey: "" };
+    if (/^•+$/.test(t)) return {};
+    return { openrouterApiKey: t };
+  }
+
   function dictateGroqApiKeyPayload() {
     const t = (dictateGroqApiKey || "").trim();
     if (t === "") return { dictateGroqApiKey: "" };
@@ -695,7 +715,15 @@ export default function SettingsPanel({
     setTesting(true);
     setTestResult(null);
     try {
-      const body = { ollamaUrl: url, ...ollamaApiKeyPayload() };
+      // Persist the active provider + its connection fields first so /api/models
+      // exercises the provider being tested (Ollama or OpenRouter).
+      const body = {
+        provider,
+        ollamaUrl: url,
+        ...ollamaApiKeyPayload(),
+        openrouterUrl,
+        ...openrouterApiKeyPayload(),
+      };
       await apiFetch("/api/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -853,104 +881,216 @@ export default function SettingsPanel({
                   id="settings-ollama-heading"
                   className="text-sm font-semibold text-slate-100 tracking-tight"
                 >
-                  Ollama connection
+                  AI provider
                 </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Use your computer (
-                  <code className="text-[11px] bg-slate-800 px-1 rounded">
-                    localhost:11434
-                  </code>
-                  ) or{" "}
+                  Choose where AI runs.{" "}
+                  <strong className="text-slate-400 font-medium">Ollama</strong>{" "}
+                  uses your computer or Ollama Cloud.{" "}
                   <strong className="text-slate-400 font-medium">
-                    Ollama Cloud
+                    OpenRouter
                   </strong>{" "}
-                  — set URL to{" "}
-                  <code className="text-[11px] bg-slate-800 px-1 rounded">
-                    https://ollama.com
-                  </code>{" "}
-                  and add your API key below.
+                  gives access to Claude, GPT, Gemini and more with one API key.
                 </p>
               </div>
 
-              <div>
-                <label
-                  className="block text-sm text-slate-300 mb-2 font-medium"
-                  htmlFor="settings-ollama-url"
-                >
-                  Server URL
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="settings-ollama-url"
-                    type="text"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="http://localhost:11434 or https://ollama.com"
-                    className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
-                  />
+              {/* Provider toggle — one active at a time */}
+              <div
+                role="radiogroup"
+                aria-label="LLM provider"
+                className="inline-flex rounded-lg border border-indigo-500/25 bg-slate-900/60 p-1 gap-1"
+              >
+                {[
+                  { id: "ollama", label: "Ollama" },
+                  { id: "openrouter", label: "OpenRouter" },
+                ].map((p) => (
                   <button
+                    key={p.id}
                     type="button"
-                    onClick={handleTest}
-                    disabled={testing}
-                    className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap shrink-0"
+                    role="radio"
+                    aria-checked={provider === p.id}
+                    onClick={() => {
+                      setProvider(p.id);
+                      setTestResult(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      provider === p.id
+                        ? "btn-neon text-white"
+                        : "text-slate-300 hover:bg-indigo-500/10"
+                    }`}
                   >
-                    {testing ? (
-                      <span className="inline-block spin">&#x27F3;</span>
-                    ) : (
-                      "Test"
-                    )}
+                    {p.label}
                   </button>
-                </div>
-                {testResult && (
-                  <div
-                    className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}
-                  >
-                    {testResult.ok
-                      ? `Connected — ${testResult.count} model${testResult.count !== 1 ? "s" : ""} found.`
-                      : `Failed: ${testResult.error}`}
-                  </div>
-                )}
+                ))}
               </div>
 
-              <div>
-                <label
-                  className="block text-sm text-slate-300 mb-2 font-medium"
-                  htmlFor="settings-ollama-api-key"
-                >
-                  Ollama Cloud API key{" "}
-                  <span className="text-slate-500 font-normal">
-                    (only if you use cloud)
-                  </span>
-                </label>
-                <input
-                  id="settings-ollama-api-key"
-                  type="password"
-                  value={ollamaApiKey}
-                  onChange={(e) => setOllamaApiKey(e.target.value)}
-                  placeholder="Paste key from ollama.com/settings/keys — leave empty for local Ollama only"
-                  autoComplete="off"
-                  className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
-                />
-                <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                  <a
-                    href="https://ollama.com/settings/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-400 hover:underline inline-flex items-center gap-0.5"
-                  >
-                    Open Ollama API keys{" "}
-                    <ExternalLink className="w-3 h-3 inline" aria-hidden />
-                  </a>
-                  <span className="text-slate-600 mx-1">·</span>
-                  Or set env{" "}
-                  <code className="text-[11px] bg-slate-800 px-1 rounded">
-                    OLLAMA_API_KEY
-                  </code>{" "}
-                  (see docs). Tap{" "}
-                  <strong className="text-slate-400">Save &amp; Close</strong>{" "}
-                  to store the key.
-                </p>
-              </div>
+              {provider === "ollama" && (
+                <>
+                  <div>
+                    <label
+                      className="block text-sm text-slate-300 mb-2 font-medium"
+                      htmlFor="settings-ollama-url"
+                    >
+                      Server URL
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="settings-ollama-url"
+                        type="text"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="http://localhost:11434 or https://ollama.com"
+                        className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTest}
+                        disabled={testing}
+                        className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap shrink-0"
+                      >
+                        {testing ? (
+                          <span className="inline-block spin">&#x27F3;</span>
+                        ) : (
+                          "Test"
+                        )}
+                      </button>
+                    </div>
+                    {testResult && (
+                      <div
+                        className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}
+                      >
+                        {testResult.ok
+                          ? `Connected — ${testResult.count} model${testResult.count !== 1 ? "s" : ""} found.`
+                          : `Failed: ${testResult.error}`}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm text-slate-300 mb-2 font-medium"
+                      htmlFor="settings-ollama-api-key"
+                    >
+                      Ollama Cloud API key{" "}
+                      <span className="text-slate-500 font-normal">
+                        (only if you use cloud)
+                      </span>
+                    </label>
+                    <input
+                      id="settings-ollama-api-key"
+                      type="password"
+                      value={ollamaApiKey}
+                      onChange={(e) => setOllamaApiKey(e.target.value)}
+                      placeholder="Paste key from ollama.com/settings/keys — leave empty for local Ollama only"
+                      autoComplete="off"
+                      className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                    />
+                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                      <a
+                        href="https://ollama.com/settings/keys"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        Open Ollama API keys{" "}
+                        <ExternalLink className="w-3 h-3 inline" aria-hidden />
+                      </a>
+                      <span className="text-slate-600 mx-1">·</span>
+                      Or set env{" "}
+                      <code className="text-[11px] bg-slate-800 px-1 rounded">
+                        OLLAMA_API_KEY
+                      </code>{" "}
+                      (see docs). Tap{" "}
+                      <strong className="text-slate-400">
+                        Save &amp; Close
+                      </strong>{" "}
+                      to store the key.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {provider === "openrouter" && (
+                <>
+                  <div>
+                    <label
+                      className="block text-sm text-slate-300 mb-2 font-medium"
+                      htmlFor="settings-openrouter-api-key"
+                    >
+                      OpenRouter API key
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="settings-openrouter-api-key"
+                        type="password"
+                        value={openrouterApiKey}
+                        onChange={(e) => setOpenrouterApiKey(e.target.value)}
+                        placeholder="sk-or-… — paste from openrouter.ai/keys"
+                        autoComplete="off"
+                        className="flex-1 input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTest}
+                        disabled={testing}
+                        className="btn-neon disabled:opacity-50 text-white rounded-lg px-4 py-2.5 text-sm font-medium whitespace-nowrap shrink-0"
+                      >
+                        {testing ? (
+                          <span className="inline-block spin">&#x27F3;</span>
+                        ) : (
+                          "Test"
+                        )}
+                      </button>
+                    </div>
+                    {testResult && (
+                      <div
+                        className={`mt-2 p-2.5 rounded-lg text-xs ${testResult.ok ? "bg-green-500/10 border border-green-500/30 text-green-400" : "bg-red-500/10 border border-red-500/30 text-red-400"}`}
+                      >
+                        {testResult.ok
+                          ? `Connected — ${testResult.count} model${testResult.count !== 1 ? "s" : ""} found.`
+                          : `Failed: ${testResult.error}`}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                      <a
+                        href="https://openrouter.ai/keys"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-400 hover:underline inline-flex items-center gap-0.5"
+                      >
+                        Open OpenRouter API keys{" "}
+                        <ExternalLink className="w-3 h-3 inline" aria-hidden />
+                      </a>
+                      <span className="text-slate-600 mx-1">·</span>
+                      Or set env{" "}
+                      <code className="text-[11px] bg-slate-800 px-1 rounded">
+                        OPENROUTER_API_KEY
+                      </code>
+                      . Memory/embeddings still require a running Ollama.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm text-slate-300 mb-2 font-medium"
+                      htmlFor="settings-openrouter-url"
+                    >
+                      OpenRouter API base URL{" "}
+                      <span className="text-slate-500 font-normal">
+                        (advanced)
+                      </span>
+                    </label>
+                    <input
+                      id="settings-openrouter-url"
+                      type="text"
+                      value={openrouterUrl}
+                      onChange={(e) => setOpenrouterUrl(e.target.value)}
+                      placeholder="https://openrouter.ai/api/v1"
+                      className="w-full input-glow text-slate-100 rounded-lg px-4 py-2.5 outline-none font-mono text-sm"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="mt-4 pt-4 border-t border-slate-700/40">
                 <label
@@ -3367,6 +3507,9 @@ export default function SettingsPanel({
               await onSave(url, folder, icmTemplate, {
                 ...ollamaApiKeyPayload(),
                 ...dictateGroqApiKeyPayload(),
+                provider,
+                openrouterUrl,
+                ...openrouterApiKeyPayload(),
                 organizationName,
               });
               try {

@@ -440,3 +440,151 @@ test("resolveAutoModel preferCloud=true swaps a slow local base for a cloud tool
     clearDemotions();
   }
 });
+
+// ── OpenRouter provider-aware resolution (OPNRTR.md) ─────────────────────────
+
+const { getContextLengthForModel } = require("../../lib/auto-model");
+
+const OR_OPTS = {
+  __ccProvider: "openrouter",
+  __ccOpenrouterApiKey: "sk-or-test",
+  __ccOpenrouterUrl: "https://openrouter.ai/api/v1",
+};
+
+const OR_MODELS = [
+  {
+    id: "anthropic/claude-sonnet-4.5",
+    context_length: 200000,
+    architecture: { input_modalities: ["text"] },
+  },
+  {
+    id: "openai/gpt-4o-mini",
+    context_length: 128000,
+    architecture: { input_modalities: ["text"] },
+  },
+  {
+    id: "openai/gpt-4o",
+    context_length: 128000,
+    architecture: { input_modalities: ["text", "image"] },
+  },
+  {
+    id: "google/gemini-pro-1.5",
+    context_length: 2000000,
+    architecture: { input_modalities: ["text", "image"] },
+  },
+  {
+    id: "cohere/command-r",
+    context_length: 128000,
+    architecture: { input_modalities: ["text"] },
+  },
+];
+
+function makeOrFetchStub(models = OR_MODELS) {
+  return async function stub(url) {
+    if (String(url).endsWith("/models")) {
+      return { ok: true, status: 200, json: async () => ({ data: models }) };
+    }
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
+}
+
+async function withOrFetch(fn) {
+  const original = global.fetch;
+  global.fetch = makeOrFetchStub();
+  invalidateListModelsCache();
+  try {
+    return await fn();
+  } finally {
+    global.fetch = original;
+    invalidateListModelsCache();
+  }
+}
+
+test("mergeAutoModelMap(saved, 'openrouter') uses the OpenRouter base map", () => {
+  const m = mergeAutoModelMap(null, "openrouter");
+  assert.equal(m.chat, "anthropic/claude-sonnet-4.5");
+  assert.equal(m.review, "openai/gpt-4o-mini");
+  assert.equal(
+    Object.keys(m).length,
+    Object.keys(DEFAULT_AUTO_MODEL_MAP).length,
+  );
+});
+
+test("resolveAutoModel (OpenRouter): per-mode default map resolves against the catalog", async () => {
+  await withOrFetch(async () => {
+    const r = await resolveAutoModel({
+      requestedModel: "auto",
+      mode: "review",
+      config: { provider: "openrouter", autoModelMap: {} },
+      ollamaUrl: "http://unused",
+      ollamaOpts: OR_OPTS,
+    });
+    assert.equal(r.resolved, "openai/gpt-4o-mini");
+    assert.equal(r.wasAuto, true);
+  });
+});
+
+test("resolveAutoModel (OpenRouter): preferVision picks the largest-context vision model", async () => {
+  await withOrFetch(async () => {
+    const r = await resolveAutoModel({
+      requestedModel: "auto",
+      mode: "chat",
+      preferVision: true,
+      config: { provider: "openrouter", autoModelMap: {} },
+      ollamaUrl: "http://unused",
+      ollamaOpts: OR_OPTS,
+    });
+    // gemini-pro-1.5 (2M, vision) beats gpt-4o (128K, vision).
+    assert.equal(r.resolved, "google/gemini-pro-1.5");
+  });
+});
+
+test("resolveAutoModel (OpenRouter): preferToolCapable keeps an allowlisted base", async () => {
+  await withOrFetch(async () => {
+    const r = await resolveAutoModel({
+      requestedModel: "auto",
+      mode: "chat", // default base anthropic/claude-sonnet-4.5 (tool-capable)
+      preferToolCapable: true,
+      config: { provider: "openrouter", autoModelMap: {} },
+      ollamaUrl: "http://unused",
+      ollamaOpts: OR_OPTS,
+    });
+    assert.equal(r.resolved, "anthropic/claude-sonnet-4.5");
+  });
+});
+
+test("resolveAutoModel (OpenRouter): preferToolCapable swaps a non-allowlisted base", async () => {
+  await withOrFetch(async () => {
+    const r = await resolveAutoModel({
+      requestedModel: "auto",
+      mode: "chat",
+      preferToolCapable: true,
+      // Force a non-tool-capable base; resolver must swap to an allowlisted one.
+      config: {
+        provider: "openrouter",
+        autoModelMap: { chat: "cohere/command-r" },
+      },
+      ollamaUrl: "http://unused",
+      ollamaOpts: OR_OPTS,
+    });
+    // First allowlisted in largest-context order is google/gemini-pro-1.5.
+    assert.equal(r.resolved, "google/gemini-pro-1.5");
+  });
+});
+
+test("getContextLengthForModel (OpenRouter): reads context length from the catalog", async () => {
+  await withOrFetch(async () => {
+    const ctx = await getContextLengthForModel(
+      "anthropic/claude-sonnet-4.5",
+      "http://unused",
+      OR_OPTS,
+    );
+    assert.equal(ctx, 200000);
+    const unknown = await getContextLengthForModel(
+      "nope/not-real",
+      "http://unused",
+      OR_OPTS,
+    );
+    assert.equal(unknown, 0);
+  });
+});

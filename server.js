@@ -390,16 +390,36 @@ app.get("/api/models", async (req, res) => {
       "Model list",
       models.map((m) => m.name),
     );
-    res.json({ models, ollamaUrl: config.ollamaUrl, connected: true });
+    res.json({
+      models,
+      ollamaUrl: config.ollamaUrl,
+      provider: effectiveProvider(config),
+      connected: true,
+    });
   } catch (err) {
-    log("ERROR", `Cannot reach Ollama at ${url}`, {
+    const provider = effectiveProvider(config);
+    const isOr = provider === "openrouter";
+    log("ERROR", `Cannot reach ${isOr ? "OpenRouter" : "Ollama"} at ${url}`, {
       error: err.message,
       cause: err.cause?.message,
     });
+    let detail = "Connection failed";
+    if (isOr) {
+      // listModels throws `OpenRouter error: NNN — …`; map the status to vetted
+      // copy (401 key, 402 credits, 429 rate-limit, …) instead of always
+      // blaming the API key.
+      const m = String(err.message || "").match(/OpenRouter error:\s*(\d{3})/i);
+      const status = m ? parseInt(m[1], 10) : 0;
+      const {
+        formatUserOpenrouterChatError,
+      } = require("./lib/openrouter-client");
+      detail = formatUserOpenrouterChatError({ status, detail: err.message });
+    }
     res.status(503).json({
-      error: "Cannot reach Ollama",
-      detail: "Connection failed",
+      error: isOr ? "Cannot reach OpenRouter" : "Cannot reach Ollama",
+      detail,
       ollamaUrl: config.ollamaUrl,
+      provider,
       connected: false,
     });
   }
@@ -413,7 +433,7 @@ const {
   resolveAutoModel,
   isCloudModelName,
 } = require("./lib/auto-model");
-const { effectiveOllamaApiKey } = require("./lib/ollama-client");
+const { effectiveProvider } = require("./lib/ollama-client");
 
 app.get("/api/auto-model/demotions", requireLocalOrApiKey, (req, res) => {
   res.json({ demoted: listDemotedModels() });
@@ -434,7 +454,7 @@ app.post(
 // when `selectedModel` or `ollamaUrl` changes (per-name path) and on every
 // pendingInput / messages keystroke (auto path with hysteresis bucket).
 //
-// `?name=<modelName>`  → { contextLength, source: "show" | "cloud-hint" | "unknown" }
+// `?name=<modelName>`  → { contextLength, source: "show" | "cloud-hint" | "catalog" | "unknown" }
 // `?auto=1&estimatedTokens=<N>` → { contextLength, source, resolvedModel }
 //
 // `contextLength` is `null` when unknown so the frontend can render
@@ -452,17 +472,23 @@ function _modelContextLabelSource(name, contextLength) {
 
 async function _resolveModelContextForName(name, config) {
   const ollamaUrl = config.ollamaUrl;
-  const apiKey = effectiveOllamaApiKey(config);
+  // Provider-aware: ollamaAuthOpts yields the OpenRouter sentinel bag when the
+  // provider is OpenRouter, so getContextLengthForModel reads the OR catalog.
+  const ctxOpts = ollamaAuthOpts(config);
   const key = `${ollamaUrl}|${name}`;
   const cached = _modelContextCache.get(key);
   const now = Date.now();
   if (cached && now - cached.at < MODEL_CTX_TTL_MS) {
     return cached.value;
   }
-  const ctx = await getContextLengthForModel(name, ollamaUrl, apiKey);
+  const ctx = await getContextLengthForModel(name, ollamaUrl, ctxOpts);
   const value = {
     contextLength: ctx > 0 ? ctx : null,
-    source: _modelContextLabelSource(name, ctx),
+    // OpenRouter lengths come from the catalog, not Ollama's /api/show.
+    source:
+      ctx > 0 && ctxOpts && ctxOpts.__ccProvider === "openrouter"
+        ? "catalog"
+        : _modelContextLabelSource(name, ctx),
   };
   _modelContextCache.set(key, { at: now, value });
   return value;
@@ -499,7 +525,7 @@ app.get("/api/model-context", requireLocalOrApiKey, async (req, res) => {
         estimatedTokens,
         config,
         ollamaUrl,
-        ollamaOpts: { apiKey: effectiveOllamaApiKey(config) },
+        ollamaOpts: ollamaAuthOpts(config),
       });
       const resolved =
         autoResult && autoResult.resolved ? autoResult.resolved : "";
