@@ -1,4 +1,4 @@
-import { Download, FileJson, FileSpreadsheet } from "lucide-react";
+import { FileJson, FileSpreadsheet } from "lucide-react";
 
 /**
  * Export analytics data as CSV

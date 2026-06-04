@@ -41,5 +41,5 @@ jobs:
       - name: Production build (Vite)
         run: npm run build
 
-      - name: Dependency audit (critical only)
-        run: npm audit --audit-level=critical
+      - name: Dependency audit (high severity and above)
+        run: npm audit --audit-level=high

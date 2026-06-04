@@ -144,7 +144,6 @@ test("Export Analytics buttons are visible when data exists", async ({
   await openDashboard(page);
 
   // Export buttons should appear if there are conversations
-  const exportSection = page.locator('text="Export:"').locator("..");
   const csvButton = page.locator('button:has-text("CSV")');
   const jsonButton = page.locator('button:has-text("JSON")');
 
