@@ -225,11 +225,11 @@ Exact pin means security patches in 41.x point releases require manual version b
 
 ## 6. Gaps Between Docs and Implementation
 
-### CLIPLAN.md — 3-Terminal-Call-Per-Round Cap Not Implemented
+### docs/CLIPLAN.md — 3-Terminal-Call-Per-Round Cap Not Implemented
 
-**Files:** `CLIPLAN.md:157`, `routes/chat.js`, `lib/builtin-agent-tools.js`
+**Files:** `docs/CLIPLAN.md:157`, `routes/chat.js`, `lib/builtin-agent-tools.js`
 
-`CLIPLAN.md:157` specifies: "cap at 3 terminal invocations per tool-call round (reject extras with a clear tool error back to the model)." No such cap exists anywhere in `routes/chat.js` or `lib/builtin-agent-tools.js`.
+`docs/CLIPLAN.md:157` specifies: "cap at 3 terminal invocations per tool-call round (reject extras with a clear tool error back to the model)." No such cap exists anywhere in `routes/chat.js` or `lib/builtin-agent-tools.js`.
 
 Contrast: `lib/builtin-agent-tools.js:643` implements a max-1-browser-tool-per-round guard for `builtin.browse_url`, but no equivalent for `run_terminal_cmd`.
 

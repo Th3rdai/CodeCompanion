@@ -81,7 +81,7 @@ Optional **AI-driven shell commands** from chat, same `TOOL_CALL:` mechanism as 
 | Topic         | Detail                                                                                                                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Enable**    | Settings → **Agent terminal** (writes `agentTerminal` in `.cc-config.json`). Requires a **project folder** set.                                                          |
-| **Spec**      | **`CLIPLAN.md`** (living reference); plan review notes in **`docs/CLIPLAN-plan-review.md`**.                                                                             |
+| **Spec**      | **`docs/CLIPLAN.md`** (living reference); plan review notes in **`docs/CLIPLAN-plan-review.md`**.                                                                        |
 | **Security**  | Allowlist/blocklist, cwd locked to project, env whitelist, intra-request rate limit, optional **`CC_ALLOW_AGENT_TERMINAL=1`** when not running as a purely local server. |
 | **Clipboard** | Copy/paste in the app uses **`src/lib/clipboard.js`** so copy works under **self-signed HTTPS** (fallback when `navigator.clipboard` is denied).                         |
 

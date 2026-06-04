@@ -51,7 +51,7 @@ The root config sets **`retries: 2`** for occasional flakes. The **`globalSetup`
 
 ## Agent terminal E2E
 
-`tests/e2e/agent-terminal.spec.js` covers `lib/builtin-agent-tools.js` `run_terminal_cmd` per **CLIPLAN.md §8** review checklist. Three scenarios:
+`tests/e2e/agent-terminal.spec.js` covers `lib/builtin-agent-tools.js` `run_terminal_cmd` per **docs/CLIPLAN.md §8** review checklist. Three scenarios:
 
 1. **Enable/disable** — `agentTerminal.enabled = false` ⇒ `getBuiltinTools()` does **not** advertise `run_terminal_cmd` (LLM never sees it).
 2. **Allowlist deny** — command not in `agentTerminal.allowlist` ⇒ executor returns `Command denied`, **does not spawn**, and writes a `denied` event (with `denyType: "allowlist"`) to `logs/terminal-audit.log`.

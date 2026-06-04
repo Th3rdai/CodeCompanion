@@ -11,7 +11,7 @@ Policy: Nothing here is imported at runtime. Safe to delete after grep confirmat
 
 ## root-plans (28 files)
 
-Completed dashboards, MCP/terminal/response fixes, phase analyses, and related review artifacts formerly at repo root. Active status: `DASHBOARD-STATUS.md` (root until Phase 2).
+Completed dashboards, MCP/terminal/response fixes, phase analyses, and related review artifacts formerly at repo root. Active status: `docs/DASHBOARD-STATUS.md`.
 
 ## pre-vite-public
 

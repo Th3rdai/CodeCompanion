@@ -5,7 +5,7 @@ milestone_name: milestone
 status: complete
 stopped_at: Completed 28-02-PLAN.md
 last_updated: "2026-05-25T22:55:00.000Z"
-last_activity: "2026-05-25 — Dashboard (See Home →) Phases 1–5 shipped on master (feature grid, Recent Work, analytics, collapsible sections, activity chart, export, visibility toggles). Unit tests for analytics + CollapsibleSection; `/validate-project --thorough` P1–P8 green (918 unit, 40 UI, 23 E2E). Docs: DASHBOARD-STATUS.md, CHANGELOG [Unreleased], CLAUDE.md 19 modes. Archon tasks synced. GitNexus index stats 12072/16847/246 in AGENTS.md + CLAUDE.md."
+last_activity: "2026-05-25 — Dashboard (See Home →) Phases 1–5 shipped on master (feature grid, Recent Work, analytics, collapsible sections, activity chart, export, visibility toggles). Unit tests for analytics + CollapsibleSection; `/validate-project --thorough` P1–P8 green (918 unit, 40 UI, 23 E2E). Docs: docs/DASHBOARD-STATUS.md, CHANGELOG [Unreleased], CLAUDE.md 19 modes. Archon tasks synced. GitNexus index stats 12072/16847/246 in AGENTS.md + CLAUDE.md."
 progress:
   total_phases: 28
   completed_phases: 28

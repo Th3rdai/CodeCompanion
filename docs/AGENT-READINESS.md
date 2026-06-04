@@ -22,7 +22,7 @@ Use this list so **Chat** (with built-in agent tools and optional MCP) can relia
 - [ ] **Blocklist** stays sensible (defaults help avoid destructive patterns).
 - [ ] Understand **no shell**: `run_terminal_cmd` uses `spawn` — no `&&`, `|`, `>`, `$(...)`. Use **`cwd`** for subdirectory runs; use **`write_file`** + run `python3 path/to/script.py` for multi-step scripts.
 
-See **CLIPLAN.md** and **docs/TERMINALFEATURE.md** (integrated Terminal vs agent terminal).
+See **docs/CLIPLAN.md** and **docs/TERMINALFEATURE.md** (integrated Terminal vs agent terminal).
 
 ## 4. Optional agent capabilities (builtins)
 

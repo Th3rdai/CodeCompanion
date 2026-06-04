@@ -237,5 +237,5 @@ Canonical wording and test commands: **`docs/PRIVACY-MESSAGING.md`**.
 - [PRIVACY-MESSAGING.md](./PRIVACY-MESSAGING.md) — banner + onboarding disclosure for Ollama vs OpenRouter
 - [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) — `OPENROUTER_API_KEY` and config keys
 - [CC-CONFIG.md](./CC-CONFIG.md) — config file precedence (data dir vs repo)
-- [CLOUDAPI.md](../CLOUDAPI.md) — Ollama Cloud (`:cloud`) proxy details
+- [CLOUDAPI.md](./CLOUDAPI.md) — Ollama Cloud (`:cloud`) proxy details
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — connection / "Failed to fetch" issues
