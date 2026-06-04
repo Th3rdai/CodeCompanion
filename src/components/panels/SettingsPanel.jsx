@@ -2013,20 +2013,20 @@ export default function SettingsPanel({
                 />
                 <div className="flex-1">
                   <div className="text-sm text-slate-300 font-medium">
-                    Auto-Continue (Chat-protocol modes)
+                    Auto-Continue (multi-step work)
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
-                    In Chat / Explain / Clean Up / Safety Check / Idea → Code
-                    Spec / Code → Plain English, when the model returns prose
-                    after running tools but doesn't signal completion, the
-                    server re-prompts with "continue" so multi-step work doesn't
-                    stall at turn boundaries. Stops when the model writes{" "}
+                    Keeps each message going until the model signals{" "}
                     <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
                       TASK_COMPLETE
-                    </code>
-                    , asks a direct question, or hits the max-step cap. Build /
-                    Create / Agentic modes have their own loops and are
-                    unaffected.
+                    </code>{" "}
+                    or{" "}
+                    <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
+                      NEEDS_USER_INPUT:
+                    </code>{" "}
+                    (Chat tool loop + streaming modes), or hits the step cap /
+                    tool round limit. Turn off for legacy single-step behavior
+                    after one tool. Build / Create use separate endpoints.
                   </p>
                 </div>
               </label>

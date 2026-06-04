@@ -12,7 +12,10 @@
  *   3. externalizeToolOutput is invoked BEFORE wrapping (so the wrapper
  *      text "Tool results:\n…" stays around either real stdout or a
  *      placeholder).
- *   4. The wrapper text uses `externalizedToolResults`, NOT raw `toolResults`.
+ *   4. The wrapper feeds `externalizedToolResults`, NOT raw `toolResults`, to
+ *      the model — inline in the browser branch, and via
+ *      buildToolResultFollowUpMessage (lib/chat-continuation-policy.js) in the
+ *      non-browser branch.
  *   5. toolContextForHistory.push uses `externalizedToolResults` so saved
  *      history doesn't drift from the prompt.
  *   6. caller (handler) is sole writer of cumulativeRef.value via `+=`.
@@ -75,18 +78,53 @@ test("toolResultMsg wrapper templates use externalizedToolResults, not raw toolR
     SRC.indexOf("loopMessages.push(toolResultMsg);"),
   );
   assert.ok(wrapperBlock.length > 0, "expected to slice the wrapper block");
-  // Both branches (browser + non-browser) must template the externalized var.
-  const externalizedHits =
+  // Both branches must feed the EXTERNALIZED var into the prompt: the browser
+  // branch inlines `${externalizedToolResults}`; the non-browser branch was
+  // extracted into buildToolResultFollowUpMessage (lib/chat-continuation-policy.js)
+  // and passes `externalizedToolResults` as its first argument. Either way the
+  // externalized value — never raw toolResults — reaches the model.
+  const inlineHits =
     wrapperBlock.split("${externalizedToolResults}").length - 1;
-  assert.ok(
-    externalizedHits >= 2,
-    `expected ≥2 ${"$"}{externalizedToolResults} interpolations in the wrapper, got ${externalizedHits}`,
+  const delegatesExternalized = wrapperBlock.includes(
+    "buildToolResultFollowUpMessage(externalizedToolResults",
   );
-  // Raw `${toolResults}` must NOT appear in the wrapper templates anymore.
+  assert.ok(
+    inlineHits >= 1 && delegatesExternalized,
+    `wrapper must inline externalizedToolResults (browser branch) AND pass it to buildToolResultFollowUpMessage (other branch); inline=${inlineHits}, delegates=${delegatesExternalized}`,
+  );
+  // Raw `${toolResults}` must NOT appear in the wrapper templates.
   assert.equal(
     wrapperBlock.includes("${toolResults}"),
     false,
     "wrapper must use externalizedToolResults, not the raw toolResults",
+  );
+});
+
+test("buildToolResultFollowUpMessage helper uses externalizedToolResults, not raw toolResults", () => {
+  // Lock #4's intent moved into this helper when the non-browser follow-up was
+  // extracted; assert the externalized value is what reaches the prompt there.
+  const POLICY_SRC = fs.readFileSync(
+    path.resolve(__dirname, "../../lib/chat-continuation-policy.js"),
+    "utf8",
+  );
+  const fnStart = POLICY_SRC.indexOf("function buildToolResultFollowUpMessage");
+  assert.ok(
+    fnStart > 0,
+    "expected buildToolResultFollowUpMessage in lib/chat-continuation-policy.js",
+  );
+  const rest = POLICY_SRC.slice(fnStart);
+  const nextDef = rest.search(/\n(function |module\.exports)/);
+  const fnBlock = nextDef > 0 ? rest.slice(0, nextDef) : rest;
+  const externalizedHits =
+    fnBlock.split("${externalizedToolResults}").length - 1;
+  assert.ok(
+    externalizedHits >= 2,
+    `helper must template externalizedToolResults in both branches, got ${externalizedHits}`,
+  );
+  assert.equal(
+    fnBlock.includes("${toolResults}"),
+    false,
+    "helper must not reintroduce raw toolResults",
   );
 });
 
