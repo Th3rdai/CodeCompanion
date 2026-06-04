@@ -20,15 +20,15 @@
 | [ ]  | P1    | P1-06   | QA    | Ollama regression pass (chat, stream, stop/cancel, tool loop)                                                                                    | P1-04, P1-05 | Regression checklist complete |
 | [ ]  | P1    | GATE-P1 | QA    | Phase gate: zero Ollama behavior regressions                                                                                                     | P1-06        | Gate signed off               |
 
-| Done | Phase | Task ID | Owner | Task                                                                                                            | Dependencies        | Evidence               |
-| ---- | ----- | ------- | ----- | --------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------- |
-| [ ]  | P2    | P2-01   | BE    | Update `lib/config.js` schema: `modelProvider`, nested `providers.*`, capability flags                          | P1 gate             | Config tests           |
-| [ ]  | P2    | P2-02   | BE    | Implement config migration (`ollamaUrl`/`ollamaApiKey` -> `providers.ollama`)                                   | P2-01               | Migration tests        |
-| [ ]  | P2    | P2-03   | BE    | Enforce save semantics: no accidental key clearing unless explicit clear                                        | P2-01               | Save/load tests        |
+| Done | Phase | Task ID | Owner | Task                                                                                                                   | Dependencies        | Evidence               |
+| ---- | ----- | ------- | ----- | ---------------------------------------------------------------------------------------------------------------------- | ------------------- | ---------------------- |
+| [ ]  | P2    | P2-01   | BE    | Update `lib/config.js` schema: `modelProvider`, nested `providers.*`, capability flags                                 | P1 gate             | Config tests           |
+| [ ]  | P2    | P2-02   | BE    | Implement config migration (`ollamaUrl`/`ollamaApiKey` -> `providers.ollama`)                                          | P2-01               | Migration tests        |
+| [ ]  | P2    | P2-03   | BE    | Enforce save semantics: no accidental key clearing unless explicit clear                                               | P2-01               | Save/load tests        |
 | [ ]  | P2    | P2-04   | FE    | Update `src/components/panels/SettingsPanel.jsx` with provider selector + per-provider key fields + test/fetch actions | P2-01               | UI screenshots         |
-| [ ]  | P2    | FE      | P2-05 | Wire settings state/load/save flow for provider config                                                          | P2-01, P2-04        | Manual flow verified   |
-| [ ]  | P2    | QA      | P2-06 | Verify no secret leakage in API responses/logs                                                                  | P2-01..P2-05        | Redaction test results |
-| [ ]  | P2    | GATE-P2 | QA    | Phase gate: legacy config deterministic, settings stable                                                        | P2-02, P2-03, P2-06 | Gate signed off        |
+| [ ]  | P2    | FE      | P2-05 | Wire settings state/load/save flow for provider config                                                                 | P2-01, P2-04        | Manual flow verified   |
+| [ ]  | P2    | QA      | P2-06 | Verify no secret leakage in API responses/logs                                                                         | P2-01..P2-05        | Redaction test results |
+| [ ]  | P2    | GATE-P2 | QA    | Phase gate: legacy config deterministic, settings stable                                                               | P2-02, P2-03, P2-06 | Gate signed off        |
 
 | Done | Phase | Task ID | Owner | Task                                                                             | Dependencies | Evidence            |
 | ---- | ----- | ------- | ----- | -------------------------------------------------------------------------------- | ------------ | ------------------- |
@@ -86,10 +86,10 @@
 
 ## Final Readiness Checklist
 
-| Done | Check                                                                                                                                                                   | Owner   | Evidence          |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------- |
+| Done | Check                                                                                                                                                                          | Owner   | Evidence          |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- | ----------------- |
 | [ ]  | Referenced files and routes verified present (`lib/chat-post-handler.js`, `lib/auto-model.js`, `server.js`, `src/components/panels/SettingsPanel.jsx`, `lib/ollama-client.js`) | BE      | Verification note |
-| [ ]  | Dependency order followed with all phase gates signed                                                                                                                   | QA      | Gate records      |
-| [ ]  | Tests added and passing (unit + integration + manual QA)                                                                                                                | QA      | Test reports      |
-| [ ]  | Ollama parity maintained                                                                                                                                                | QA      | Regression report |
-| [ ]  | Docs complete and accurate                                                                                                                                              | BE/Docs | Docs review       |
+| [ ]  | Dependency order followed with all phase gates signed                                                                                                                          | QA      | Gate records      |
+| [ ]  | Tests added and passing (unit + integration + manual QA)                                                                                                                       | QA      | Test reports      |
+| [ ]  | Ollama parity maintained                                                                                                                                                       | QA      | Regression report |
+| [ ]  | Docs complete and accurate                                                                                                                                                     | BE/Docs | Docs review       |
