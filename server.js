@@ -145,8 +145,11 @@ const { router: mcpApiRouter } = createMcpApiRoutes({
 // ── Model name validation (prevent cache poisoning / log injection) ──
 function isValidModelName(name) {
   if (!name || typeof name !== "string") return false;
-  // Allow alphanumeric, colons, dots, underscores, hyphens
-  return /^[a-zA-Z0-9:._-]+$/.test(name);
+  // Allow alphanumeric, colons, dots, underscores, hyphens, and slashes.
+  // Slashes are required for OpenRouter ids (e.g. "anthropic/claude-sonnet-4.5").
+  // No newlines/control chars, so this still blocks log injection; the value is
+  // never used as a filesystem path, so "/" poses no traversal risk here.
+  return /^[a-zA-Z0-9:._/-]+$/.test(name);
 }
 
 function sanitizeModelName(name) {

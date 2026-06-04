@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Privacy messaging (OpenRouter).** Bottom banner and onboarding copy now say **privacy-first by default** (Ollama local) and call out optional **OpenRouter** in Settings (chat goes to their API when enabled). Docs: **`docs/PRIVACY-MESSAGING.md`**.
+
 ## [1.7.4] — 2026-06-04
 
 ### Changed

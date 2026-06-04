@@ -87,6 +87,10 @@ The toolbar model selector resolves `model: "auto"` server-side via per-mode def
 
 Toolbar buttons **📖 Glossary**, **🐙 GitHub**, and **📂 Files** each toggle a **320px (`w-80`) right-side panel** in `App.jsx`. Only one panel is open at a time. **Glossary** — searchable jargon reference (`GlossaryPanel` in `JargonGlossary.jsx`); **GitHub** — clone/browse repos (`GitHubPanel`); **Files** — project file tree (`FileBrowser`). See **`docs/JARGON-GLOSSARY.md`** for glossary UX. After frontend changes, rebuild `dist/` before Electron (`npm run build` or `npm run electron:run`).
 
+## Privacy UX
+
+Bottom **PrivacyBanner** + onboarding step “Your Data Stays Here” explain **Ollama = local by default** and **OpenRouter = optional cloud** (Settings → General → AI provider). See **`docs/PRIVACY-MESSAGING.md`**. Dismissal: `th3rdai_privacy_banner_dismissed`; reset from Settings → General.
+
 ## Chat, Export & Documents
 
 - **Save Chat**: toolbar button (all modes) downloads the conversation as markdown with an auto-named 1–2 word topic file.
@@ -110,7 +114,7 @@ HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); con
 
 ## Key Docs
 
-`docs/TROUBLESHOOTING.md` ("Failed to fetch", MCP / `CC_DATA_DIR` vs repo config, Ollama `fetch failed`) · `docs/CC-CONFIG.md` · `docs/TESTING.md` · `docs/JARGON-GLOSSARY.md` · `docs/BUILDER-MARKDOWN-LOAD.md` · `docs/TERMINALFEATURE.md` · `CLIPLAN.md` · `docs/EXPORT-CHAT.md` · `docs/DOCLING-AUTO-START.md` · `docs/AGENT-READINESS.md` · `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (planned Phases 25–27) · `docs/RELEASES-AND-UPDATES.md` · `BUILD.md` · `design-system/`. Plan-reviewer skill output: `docs/CLIPLAN-plan-review.md`, `docs/VOICE-DICTATION-*` (also `.cursor/skills/plan-reviewer/`).
+`docs/TROUBLESHOOTING.md` ("Failed to fetch", MCP / `CC_DATA_DIR` vs repo config, Ollama `fetch failed`) · `docs/CC-CONFIG.md` · `docs/TESTING.md` · `docs/JARGON-GLOSSARY.md` · `docs/PRIVACY-MESSAGING.md` · `docs/PROVIDERS.md` · `docs/BUILDER-MARKDOWN-LOAD.md` · `docs/TERMINALFEATURE.md` · `CLIPLAN.md` · `docs/EXPORT-CHAT.md` · `docs/DOCLING-AUTO-START.md` · `docs/AGENT-READINESS.md` · `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (planned Phases 25–27) · `docs/RELEASES-AND-UPDATES.md` · `BUILD.md` · `design-system/`. Plan-reviewer skill output: `docs/CLIPLAN-plan-review.md`, `docs/VOICE-DICTATION-*` (also `.cursor/skills/plan-reviewer/`).
 
 <!-- gitnexus:start -->
 

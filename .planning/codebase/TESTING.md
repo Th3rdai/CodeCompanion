@@ -126,7 +126,7 @@ Used (inlined) in `tests/ui/privacy-banner.spec.js`, `OnboardingWizard.spec.js`,
 
 **Onboarding keyboard test:** click the dialog overlay to focus the wizard (`tabIndex={0}`) instead of `locator.focus()` — avoids flakes in headless Chromium.
 
-**Privacy banner:** dismiss control exposes `data-testid="privacy-banner-dismiss"` (`PrivacyBanner.jsx`); tests use it instead of ambiguous `role="status"` matches.
+**Privacy banner:** dismiss control exposes `data-testid="privacy-banner-dismiss"` (`PrivacyBanner.jsx`); asserts **Privacy-first by default** and **OpenRouter** mention (`tests/ui/privacy-banner.spec.js`).
 
 ## Mocking
 

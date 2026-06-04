@@ -28,9 +28,8 @@ test.describe("Privacy banner", () => {
     await expect(page.getByTestId("privacy-banner-dismiss")).toBeVisible({
       timeout: 45_000,
     });
-    await expect(
-      page.getByText(/Your code and conversations stay on your machine/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Privacy-first by default/i)).toBeVisible();
+    await expect(page.getByText(/OpenRouter/i)).toBeVisible();
   });
 
   test("UX-04: privacy banner dismisses and persists dismissal", async ({
