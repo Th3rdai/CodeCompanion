@@ -14,19 +14,27 @@
 ├── mcp/                    # MCP tool registrations and schemas
 ├── src/                    # React frontend
 │   ├── main.jsx
-│   ├── App.jsx
+│   ├── App.jsx             # Shell; mode routing in app/
+│   ├── app/                # modes.js, ModeRouter, ModeTabs, helpers
 │   ├── index.css
 │   ├── components/
-│   ├── components/3d/      # 3D effects
-│   ├── components/builders/# Builder mode panels
-│   ├── components/ui/      # Shared UI (Splite)
+│   │   ├── panels/         # Mode panels (Review, Settings, FileBrowser, …)
+│   │   ├── chat/           # MessageBubble, MarkdownContent, images
+│   │   ├── wizards/        # Create, Build, Onboarding
+│   │   ├── build-mode/     # Build dashboard sub-views
+│   │   ├── experiment/     # Experiment subcomponents
+│   │   ├── security/       # SecurityReport
+│   │   ├── shared/         # Sidebar, Toast, ReportCard, glossary, …
+│   │   ├── dashboard/      # See Home → view
+│   │   ├── builders/       # Builder mode panels
+│   │   ├── 3d/             # 3D effects
+│   │   └── ui/             # Splite, ChatSessionProgress, …
 │   └── contexts/
 ├── electron/               # Electron main process
 ├── tests/                  # Playwright + node:test
 ├── tests/ui/               # UI/E2E specs
 ├── tests/e2e/              # E2E specs
 ├── tests/unit/             # Unit tests
-├── tests/test/             # Duplicate test layout (unit + e2e)
 ├── resources/              # Icons, DMG background
 ├── public/                 # Legacy static (fallback if no dist)
 ├── dist/                   # Vite build output
@@ -50,9 +58,9 @@
 
 **src/components/:**
 
-- Purpose: React UI components
-- Contains: ReviewPanel, ReportCard, CreateWizard, FileBrowser, GitHubPanel, SettingsPanel, OnboardingWizard, JargonGlossary, etc.
-- Key files: `ReviewPanel.jsx`, `CreateWizard.jsx`, `builders/BaseBuilderPanel.jsx`
+- Purpose: React UI components (grouped by domain since REORGPLAN Phase 4)
+- Key files: `panels/ReviewPanel.jsx`, `wizards/CreateWizard.jsx`, `builders/BaseBuilderPanel.jsx`, `dashboard/DashboardView.jsx`
+- Orphaned legacy: `!ARCHIVES/code-orphans/DashboardPanel.jsx`
 
 **src/components/3d/:**
 

@@ -525,7 +525,10 @@ test("isOpenrouterToolCapable: prefix allowlist + small-Llama exclusion", () => 
   assert.equal(isOpenrouterToolCapable("openai/gpt-4o-mini"), true);
   assert.equal(isOpenrouterToolCapable("meta-llama/llama-4-scout"), true);
   // Sub-8B Llamas narrate instead of emitting TOOL_CALL: — excluded.
-  assert.equal(isOpenrouterToolCapable("meta-llama/llama-3.2-3b-instruct"), false);
+  assert.equal(
+    isOpenrouterToolCapable("meta-llama/llama-3.2-3b-instruct"),
+    false,
+  );
 });
 
 test("OpenRouter guard swap targets are all tool-capable", () => {

@@ -341,7 +341,8 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── tools.js           # 11 MCP tool registrations
 │   └── schemas.js         # Zod input schemas
 ├── src/                   # React frontend (Vite)
-│   ├── App.jsx            # Main app with 14 modes
+│   ├── App.jsx            # Main app shell (modes in src/app/modes.js)
+│   ├── app/               # ModeRouter, ModeTabs, modes config
 │   └── components/
 │       ├── panels/             # Mode panels (Review, Security, Settings, FileBrowser, …)
 │       ├── chat/               # MessageBubble, MarkdownContent, images, dictation

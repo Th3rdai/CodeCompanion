@@ -399,7 +399,7 @@ See **`lib/builtin-agent-tools.js`**, **`docs/EXPORT-CHAT.md`**, **`tests/unit/b
 | `lib/tool-call-handler.js`               | Constructor change; merge builtin in `buildToolsPrompt`; route in `executeTool`                         |
 | `lib/mcp-api-routes.js`                  | Reject `builtin` as MCP client id                                                                       |
 | `server.js`                              | `hasAgentTools` gate; POST config merge for `agentTerminal`; optional SSE terminal stream events (§4.7) |
-| `src/components/SettingsPanel.jsx`       | Agent Terminal section                                                                                  |
+| `src/components/panels/SettingsPanel.jsx`       | Agent Terminal section                                                                                  |
 | `src/App.jsx`                            | Chat UI for tool results; **optional** `terminalOutput` / `terminalStatus` SSE (§4.7)                   |
 | `tests/unit/builtin-agent-tools.test.js` | **NEW** — unit tests                                                                                    |
 

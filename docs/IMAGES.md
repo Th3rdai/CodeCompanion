@@ -691,10 +691,10 @@ const tokens = estimateTokens(base64);
 
 #### React Components
 
-**ImageThumbnail** (`src/components/ImageThumbnail.jsx`):
+**ImageThumbnail** (`src/components/chat/ImageThumbnail.jsx`):
 
 ```jsx
-import ImageThumbnail from "./components/ImageThumbnail";
+import ImageThumbnail from "./components/chat/ImageThumbnail";
 
 <ImageThumbnail
   src={img.thumbnail} // Data URL (WITH prefix)
@@ -707,10 +707,10 @@ import ImageThumbnail from "./components/ImageThumbnail";
 />;
 ```
 
-**ImageLightbox** (`src/components/ImageLightbox.jsx`):
+**ImageLightbox** (`src/components/chat/ImageLightbox.jsx`):
 
 ```jsx
-import ImageLightbox from "./components/ImageLightbox";
+import ImageLightbox from "./components/chat/ImageLightbox";
 
 <ImageLightbox
   isOpen={lightboxOpen}

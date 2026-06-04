@@ -358,7 +358,7 @@ Then tests
 - **MULTIFILE-ARCHIVED.md** — Original implementation plan (archived after discovery)
 - **lib/review.js** — Backend implementation (reviewFiles function)
 - **routes/review.js** — API endpoints (preview and full scan)
-- **src/components/ReviewPanel.jsx** — Frontend implementation (Scan Folder tab)
+- **src/components/panels/ReviewPanel.jsx** — Frontend implementation (Scan Folder tab)
 
 ---
 

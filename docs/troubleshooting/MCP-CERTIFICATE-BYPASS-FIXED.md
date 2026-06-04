@@ -152,7 +152,7 @@ This properly configures the underlying TLS socket to skip certificate validatio
 
 - `lib/mcp-client-manager.js` - Main fix location
 - `lib/mcp-api-routes.js` - API routes (unchanged)
-- `src/components/McpClientPanel.jsx` - UI (unchanged)
+- `src/components/panels/McpClientPanel.jsx` - UI (unchanged)
 - `PCI-ASSISTANT-CONNECTION-FINDINGS.md` - Original troubleshooting
 - `MCP-CERTIFICATE-BYPASS.md` - Initial implementation doc
 

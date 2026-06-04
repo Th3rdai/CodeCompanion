@@ -1,6 +1,6 @@
 # Chat export (toolbar)
 
-The **Export** control in the chat toolbar opens **`ExportPanel`** (`src/components/ExportPanel.jsx`).
+The **Export** control in the chat toolbar opens **`ExportPanel`** (`src/components/panels/ExportPanel.jsx`).
 
 ## Behavior
 

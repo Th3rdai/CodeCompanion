@@ -132,7 +132,7 @@ Two follow-up commits after the morning's chat-timeout + Terminal-CWD work, trig
 
 **MCP per-tool enable/disable — complete and verified (2026-04-25)**
 
-- **ToolsModal UX** (`src/components/McpClientPanel.jsx`):
+- **ToolsModal UX** (`src/components/panels/McpClientPanel.jsx`):
   - `SERVICE_LABELS` map + `getGroup()` added at module level (handles Google Workspace verb_service_noun naming; includes plural keys: `calendars`, `tasks`, `contacts`, `forms`).
   - Flat 121-item list replaced with grouped collapsible sections by service.
   - Real-time search input (name + description); auto-expands collapsed groups while typing.

@@ -194,7 +194,7 @@ is **provider-aware**:
 
 ## 7. Frontend
 
-- **Settings** ([`src/components/SettingsPanel.jsx`](../src/components/SettingsPanel.jsx)):
+- **Settings** ([`src/components/panels/SettingsPanel.jsx`](../src/components/panels/SettingsPanel.jsx)):
   a radiogroup toggle (Ollama | OpenRouter) shows the matching connection block;
   Test button posts the active provider + its fields.
 - **Model picker** ([`src/App.jsx`](../src/App.jsx) +

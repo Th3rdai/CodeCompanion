@@ -68,7 +68,7 @@ function createInsecureFetch() {
 3. **PUT /mcp/clients/:id**
    - Already handles `rejectUnauthorized` via request body spread
 
-### 3. Frontend UI (src/components/McpClientPanel.jsx)
+### 3. Frontend UI (src/components/panels/McpClientPanel.jsx)
 
 **Added State Management:**
 

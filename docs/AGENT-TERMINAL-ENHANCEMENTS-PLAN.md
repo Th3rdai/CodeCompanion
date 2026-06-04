@@ -102,7 +102,7 @@ app.get("/api/agent-terminal/test", requireLocalOrApiKey, (req, res) => {
 
 ### 1B. Frontend: new state in SettingsPanel
 
-**File:** `src/components/SettingsPanel.jsx`  
+**File:** `src/components/panels/SettingsPanel.jsx`  
 **Location:** Around line 112 (existing state declarations block).
 
 Add two new state variables:
@@ -114,7 +114,7 @@ const [terminalTestResult, setTerminalTestResult] = useState(null);
 
 ### 1C. Frontend: handler function in SettingsPanel
 
-**File:** `src/components/SettingsPanel.jsx`  
+**File:** `src/components/panels/SettingsPanel.jsx`  
 **Location:** After `handleTestDocling` function (around line 641).
 
 ```js
@@ -135,7 +135,7 @@ async function handleTestTerminal() {
 
 ### 1D. Frontend: Test button and result UI in SettingsPanel
 
-**File:** `src/components/SettingsPanel.jsx`  
+**File:** `src/components/panels/SettingsPanel.jsx`  
 **Location:** Inside the Agent Terminal section, after the description paragraph at line 980 (the `<p>` that reads "Allow the AI agent to run terminal commands…").
 
 Insert immediately **before** the `{terminalEnabled && (` block:
@@ -436,7 +436,7 @@ Execute in this order to avoid breaking the running app:
 1. **`server.js`** — add test endpoint (backend, no frontend dep)
 2. **`mcp/schemas.js`** — add `runTerminalCmdSchema` (no runtime effect until imported)
 3. **`mcp/tools.js`** — import `executeBuiltinTool` + `runTerminalCmdSchema`, add tool registration
-4. **`src/components/SettingsPanel.jsx`** — add state, handler, and UI for test button
+4. **`src/components/panels/SettingsPanel.jsx`** — add state, handler, and UI for test button
 5. **`src/App.jsx`** — add `agentTerminalEnabled` state, fetch on mount, onClose refresh, dot badge, toolbar chip
 
 ---
