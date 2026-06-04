@@ -563,7 +563,9 @@ app.get("/api/model-context", requireLocalOrApiKey, async (req, res) => {
         sanitized = sanitizeModelName(resolved);
       } catch (err) {
         log("WARN", `Invalid model name from auto-resolution: ${err.message}`);
-        return res.status(400).json({ error: "Invalid model name from resolution" });
+        return res
+          .status(400)
+          .json({ error: "Invalid model name from resolution" });
       }
 
       const inner = await _resolveModelContextForName(sanitized, config);

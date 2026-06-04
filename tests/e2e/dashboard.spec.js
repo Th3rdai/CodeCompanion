@@ -25,15 +25,24 @@ async function openDashboard(page) {
   await reloadAndWaitForModels(page);
 
   // Wait for "See Home →" tab to be visible in mode strip
-  await expect(page.getByTestId("mode-tab-home")).toBeVisible({
+  await expect(page.getByTestId("mode-tab-dashboard")).toBeVisible({
     timeout: 30_000,
   });
 
   // Click "See Home →" to navigate to dashboard
-  await page.getByTestId("mode-tab-home").click();
+  await page.getByTestId("mode-tab-dashboard").click();
 
   // Wait for dashboard to render
   await expect(page.locator(".max-w-7xl")).toBeVisible();
+}
+
+async function expandSection(page, title) {
+  const sectionButton = page.locator(`button:has-text("${title}")`);
+  await expect(sectionButton).toBeVisible();
+  if ((await sectionButton.getAttribute("aria-expanded")) === "false") {
+    await sectionButton.click();
+    await page.waitForTimeout(300);
+  }
 }
 
 test("Dashboard renders with Feature Grid and analytics sections", async ({
@@ -41,32 +50,28 @@ test("Dashboard renders with Feature Grid and analytics sections", async ({
 }) => {
   await openDashboard(page);
 
-  // Feature Grid should be visible with mode cards
-  const featureGrid = page.locator('[class*="grid"]').filter({
-    has: page.locator('[class*="glass"]'),
-  });
-  await expect(featureGrid).toBeVisible();
+  // Layout v2: Feature Grid + Recent Work expanded by default
+  await expect(
+    page.locator('button:has-text("Feature Access Grid")'),
+  ).toBeVisible();
+  await expect(page.getByTestId("feature-mode-card-chat")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Recent Work" }),
+  ).toBeVisible();
 
-  // Should have multiple mode cards (at least Chat, Explain, Review)
-  const modeCards = page.locator('[class*="glass"][class*="cursor-pointer"]');
-  await expect(modeCards.first()).toBeVisible();
-
-  // Quick Stats should be visible
-  await expect(page.getByText("Total Conversations")).toBeVisible();
-  await expect(page.getByText("Active")).toBeVisible();
+  // Quick Stats collapsed by default — expand to verify analytics tiles
+  await expandSection(page, "Quick Stats");
+  await expect(page.getByText("Conversations", { exact: true })).toBeVisible();
+  await expect(page.getByText("Active", { exact: true })).toBeVisible();
 });
 
 test("Mode card navigation switches to selected mode", async ({ page }) => {
   await openDashboard(page);
 
-  // Click on Chat mode card
-  const chatCard = page.locator('text="Chat"').locator("..");
-  await chatCard.click();
+  await page.getByTestId("feature-mode-card-chat").click();
 
   // Should navigate to Chat mode
-  await expect(page.getByPlaceholder(/type.*message/i)).toBeVisible({
-    timeout: 5000,
-  });
+  await expect(page.locator("#chat-input")).toBeVisible({ timeout: 5000 });
 });
 
 test("Collapsible sections expand and collapse with chevron toggle", async ({
@@ -213,17 +218,17 @@ test("Recent Work section shows conversations or empty state", async ({
 
   // Should show either conversation cards or empty state
   const hasConversations = await page
-    .locator('[class*="glass"]:has-text("Resume")')
+    .getByRole("button", { name: /Resume/i })
     .count()
     .then((count) => count > 0);
 
   const hasEmptyState = await page
-    .locator('text="No conversations yet"')
+    .getByText("No recent activity")
     .isVisible()
     .catch(() => false);
 
   const hasStartChatButton = await page
-    .locator('button:has-text("Start chatting")')
+    .getByRole("button", { name: "Start a Conversation" })
     .isVisible()
     .catch(() => false);
 
@@ -241,22 +246,16 @@ test("Mode and Model breakdown panels render with data or empty state", async ({
   // Find Mode Breakdown section
   const modeBreakdown = page.locator('button:has-text("Mode Breakdown")');
   await expect(modeBreakdown).toBeVisible();
-
-  // Expand if collapsed
-  const modeExpanded = await modeBreakdown.getAttribute("aria-expanded");
-  if (modeExpanded === "false") {
-    await modeBreakdown.click();
-    await page.waitForTimeout(300);
-  }
+  await expandSection(page, "Mode Breakdown");
 
   // Should have either bar list or empty state
   const hasModeData = await page
-    .locator('[role="list"][aria-label*="mode"]')
+    .locator('[role="list"][aria-label="Conversations by mode"]')
     .isVisible({ timeout: 2000 })
     .catch(() => false);
 
   const hasModeEmptyState = await page
-    .locator('text="No conversations yet"')
+    .getByText(/No conversations yet.*fill up/)
     .isVisible()
     .catch(() => false);
 
@@ -267,22 +266,16 @@ test("Mode and Model breakdown panels render with data or empty state", async ({
     'button:has-text("Model Family Breakdown")',
   );
   await expect(modelBreakdown).toBeVisible();
-
-  // Expand if collapsed
-  const modelExpanded = await modelBreakdown.getAttribute("aria-expanded");
-  if (modelExpanded === "false") {
-    await modelBreakdown.click();
-    await page.waitForTimeout(300);
-  }
+  await expandSection(page, "Model Family Breakdown");
 
   // Should have either bar list or empty state
   const hasModelData = await page
-    .locator('[role="list"][aria-label*="model"]')
+    .locator('[role="list"][aria-label="Conversations by model family"]')
     .isVisible({ timeout: 2000 })
     .catch(() => false);
 
   const hasModelEmptyState = await page
-    .locator('text="No model data yet"')
+    .getByText(/No model data yet/)
     .isVisible()
     .catch(() => false);
 
@@ -300,5 +293,5 @@ test("Dashboard persists across page reload", async ({ page }) => {
   await reloadAndWaitForModels(page);
 
   // Dashboard should still be accessible via "See Home →"
-  await expect(page.getByTestId("mode-tab-home")).toBeVisible();
+  await expect(page.getByTestId("mode-tab-dashboard")).toBeVisible();
 });

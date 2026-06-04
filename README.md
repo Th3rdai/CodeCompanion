@@ -194,10 +194,12 @@ Configure image support in Settings → Image Support:
 
 **Supported formats:** PNG, JPEG, GIF (first frame only for animated GIFs)
 
-### File Browser and "Load into Form"
+### File Browser, Glossary, and GitHub (header panels)
 
-- Open **Files** in the toolbar to browse your project. You can **Load into Form** in Prompting, Skillz, or Agentic to pull a file’s content into the current builder. In Review or Security, use **Load for Review** to attach code for review or scan.
-- **Share with AI** copies your project structure (tree) so you can paste it into chats or other tools.
+- **📂 Files** — browse your project tree; **Load into Form** in builder modes or **Load for Review** in Review/Security.
+- **📖 Glossary** — plain-English tech term definitions in the right panel (search + category filters). See **[docs/JARGON-GLOSSARY.md](docs/JARGON-GLOSSARY.md)**.
+- **🐙 GitHub** — clone and browse repos; opening Files or GitHub closes the other panels (including Glossary).
+- **Share with AI** (File Browser) copies your project structure (tree) so you can paste it into chats or other tools.
 
 ### Conversation history
 

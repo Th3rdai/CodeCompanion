@@ -636,7 +636,9 @@ export function useChat({
             `[useChat] SSE buffer exceeded ${MAX_BUFFER_SIZE} bytes, resetting to prevent DoS`,
           );
           buffer = "";
-          showToast("⚠️ Stream buffer overflow detected, connection may be unstable");
+          showToast(
+            "⚠️ Stream buffer overflow detected, connection may be unstable",
+          );
           continue;
         }
 

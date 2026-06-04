@@ -8,6 +8,7 @@ import ExportAnalytics from "./ExportAnalytics";
 import DashboardSettings, { useWidgetVisibility } from "./DashboardSettings";
 import AnalyticsPanels from "./AnalyticsPanels";
 import { calculateAnalytics } from "../../lib/analytics";
+import { migrateDashboardLayoutDefaults } from "./dashboard-section-defaults";
 
 /**
  * Dashboard View - Phase 1 & 2 Implementation
@@ -21,6 +22,9 @@ export default function DashboardView({
   history,
   onResumeConversation,
 }) {
+  // Sync before child CollapsibleSections read localStorage (no-op after layout version applied).
+  migrateDashboardLayoutDefaults();
+
   // Calculate analytics from history
   const analytics = useMemo(() => {
     return calculateAnalytics(history || []);
@@ -64,11 +68,9 @@ export default function DashboardView({
           {/* Phase 3: Quick Stats */}
           {showQuickStats && <QuickStatsGrid analytics={analytics} />}
 
-          {/* Phase 5: Export Analytics */}
+          {/* Phase 5: Export Analytics — sits between Quick Stats and 7-Day Activity */}
           {history && history.length > 0 && (
-            <div className="flex justify-end">
-              <ExportAnalytics analytics={analytics} />
-            </div>
+            <ExportAnalytics analytics={analytics} />
           )}
 
           {/* Phase 5: 7-Day Activity Chart */}

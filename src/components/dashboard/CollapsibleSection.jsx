@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { getDashboardSectionDefaultOpen } from "./dashboard-section-defaults";
 
 /**
  * CollapsibleSection - Reusable collapsible container with localStorage persistence
@@ -13,12 +14,16 @@ export default function CollapsibleSection({
   children,
 }) {
   const [isOpen, setIsOpen] = useState(() => {
-    if (!storageKey) return defaultOpen;
+    const resolvedDefault = getDashboardSectionDefaultOpen(
+      storageKey,
+      defaultOpen,
+    );
+    if (!storageKey) return resolvedDefault;
     try {
       const stored = localStorage.getItem(storageKey);
-      return stored !== null ? JSON.parse(stored) : defaultOpen;
+      return stored !== null ? JSON.parse(stored) : resolvedDefault;
     } catch {
-      return defaultOpen;
+      return resolvedDefault;
     }
   });
 

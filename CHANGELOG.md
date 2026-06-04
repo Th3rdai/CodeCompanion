@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Jargon Glossary — right-side panel.** Header **📖 Glossary** now toggles a docked right panel (same layout as **GitHub** / **Files**), replacing the draggable modal overlay. Mutual exclusion: only one right panel open at a time. Docs: **`docs/JARGON-GLOSSARY.md`**.
+- **Dashboard default layout (v2).** Shipped home view: **Recent Work** + **Feature Access Grid** expanded; **Dashboard Settings**, **Quick Stats**, **7-Day Activity**, and breakdown sections collapsed by default. One-time migration via `cc.dashboard.layoutVersion` in `dashboard-section-defaults.js`.
+
 ## [1.7.3] — 2026-06-03
 
 ### Fixed
