@@ -41,10 +41,12 @@ export default function PrivacyBanner() {
     >
       <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />
       <p className="flex-1 text-xs text-slate-400">
-        <strong className="text-slate-300">100% private.</strong> Your code and
-        conversations stay on your machine — nothing is sent to the cloud. AI
-        runs locally through Ollama. No tracking, no accounts, no data
-        collection.
+        <strong className="text-slate-300">Privacy-first by default.</strong>{" "}
+        Ollama runs AI on your machine — your code and conversations stay local.
+        Turn on <strong className="text-slate-300">OpenRouter</strong> in
+        Settings only if you want cloud models (chat then goes to their API).
+        Code Companion doesn&apos;t track you, require accounts, or collect your
+        data.
       </p>
       <button
         type="button"

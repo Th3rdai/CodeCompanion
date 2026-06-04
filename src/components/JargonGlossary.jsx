@@ -326,73 +326,17 @@ const CATEGORIES = [
 ].sort();
 
 /**
- * Floating glossary panel that can be toggled from the header.
+ * Right-side glossary panel — toggled from the header (same slot as GitHub / Files).
  * Shows all terms organized by category with search.
  */
 export function GlossaryPanel({ onClose }) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(null);
-  const [panelPos, setPanelPos] = useState(null);
-  const [dragState, setDragState] = useState(null);
-  const panelRef = useRef(null);
-
-  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  const searchRef = useRef(null);
 
   useEffect(() => {
-    // Initialize near center when opened
-    const width = Math.min(560, window.innerWidth - 32);
-    const height = Math.min(760, window.innerHeight - 48);
-    setPanelPos({
-      left: clamp(
-        (window.innerWidth - width) / 2,
-        8,
-        window.innerWidth - width - 8,
-      ),
-      top: clamp(
-        (window.innerHeight - height) / 2,
-        8,
-        window.innerHeight - height - 8,
-      ),
-    });
+    searchRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    if (!dragState) return;
-    const onMove = (e) => {
-      const panelWidth = panelRef.current?.offsetWidth || 560;
-      const panelHeight = panelRef.current?.offsetHeight || 760;
-      setPanelPos({
-        left: clamp(
-          e.clientX - dragState.offsetX,
-          8,
-          window.innerWidth - panelWidth - 8,
-        ),
-        top: clamp(
-          e.clientY - dragState.offsetY,
-          8,
-          window.innerHeight - panelHeight - 8,
-        ),
-      });
-    };
-    const onUp = () => setDragState(null);
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-  }, [dragState]);
-
-  const startDrag = useCallback(
-    (e) => {
-      if (!panelPos) return;
-      setDragState({
-        offsetX: e.clientX - panelPos.left,
-        offsetY: e.clientY - panelPos.top,
-      });
-    },
-    [panelPos],
-  );
 
   const filtered = GLOSSARY_KEYS.filter((key) => {
     const entry = GLOSSARY[key];
@@ -416,122 +360,105 @@ export function GlossaryPanel({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-      role="presentation"
+      className="w-80 glass-heavy border-l border-slate-700/30 flex flex-col h-full min-h-0"
+      role="region"
+      aria-label="Jargon Glossary"
     >
-      <div
-        ref={panelRef}
-        className="rounded-2xl w-full max-w-lg neon-border max-h-[85vh] flex flex-col shadow-2xl border border-indigo-400/30"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-label="Jargon Glossary"
-        aria-modal="true"
-        style={{
-          position: "fixed",
-          left: panelPos?.left ?? "50%",
-          top: panelPos?.top ?? "50%",
-          transform: panelPos ? "none" : "translate(-50%, -50%)",
-          backgroundColor: "rgba(8, 14, 28, 0.96)",
-          backdropFilter: "blur(8px)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="p-5 border-b border-slate-700/50 cursor-move select-none"
-          onPointerDown={startDrag}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-lg font-bold text-slate-100 neon-text">
-                Jargon Glossary
-              </h2>
-            </div>
+      {/* Header */}
+      <div className="p-3 border-b border-slate-700/30 flex items-center gap-2 shrink-0">
+        <BookOpen className="w-4 h-4 text-indigo-400 shrink-0" aria-hidden />
+        <h2 className="text-sm font-medium text-slate-200 flex-1 neon-text">
+          Jargon Glossary
+        </h2>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-sm text-slate-400 transition-colors hover:bg-slate-700/40 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
+            title="Close"
+            aria-label="Close glossary"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      <div className="px-3 py-2 border-b border-slate-700/30 shrink-0 space-y-2">
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          Plain-English definitions for the tech terms you'll encounter. No
+          judgment — everyone starts somewhere.
+        </p>
+        <input
+          ref={searchRef}
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search terms..."
+          className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500 min-h-11"
+        />
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setActiveCategory(null)}
+            className={`text-xs px-2.5 py-1 rounded-full transition-colors min-h-11 sm:min-h-0 ${
+              !activeCategory
+                ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40"
+                : "text-slate-500 hover:text-slate-300 glass"
+            }`}
+          >
+            All
+          </button>
+          {CATEGORIES.map((cat) => (
             <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-white text-xl transition-colors"
-              aria-label="Close glossary"
-            >
-              &#10005;
-            </button>
-          </div>
-          <p className="text-[10px] text-slate-400 mb-2">Drag header to move</p>
-          <p className="text-xs text-slate-500 mb-3">
-            Plain-English definitions for the tech terms you'll encounter. No
-            judgment — everyone starts somewhere.
-          </p>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search terms..."
-            className="w-full input-glow text-slate-200 text-sm rounded-lg px-3 py-2 placeholder-slate-500"
-            autoFocus
-          />
-          {/* Category pills */}
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            <button
-              onClick={() => setActiveCategory(null)}
-              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                !activeCategory
+              key={cat}
+              type="button"
+              onClick={() =>
+                setActiveCategory(activeCategory === cat ? null : cat)
+              }
+              className={`text-xs px-2.5 py-1 rounded-full transition-colors min-h-11 sm:min-h-0 ${
+                activeCategory === cat
                   ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40"
                   : "text-slate-500 hover:text-slate-300 glass"
               }`}
             >
-              All
+              {cat}
             </button>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() =>
-                  setActiveCategory(activeCategory === cat ? null : cat)
-                }
-                className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
-                  activeCategory === cat
-                    ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40"
-                    : "text-slate-500 hover:text-slate-300 glass"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Terms list */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-2">
-          {deduplicated.length === 0 && (
-            <p className="text-center text-slate-500 text-sm py-8">
-              No terms match your search.
-            </p>
-          )}
-          {deduplicated.map((key) => {
-            const entry = GLOSSARY[key];
-            return (
-              <div key={key} className="glass rounded-lg p-3 fade-in">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold text-indigo-300">
-                    {entry.term}
-                  </span>
-                  <span className="text-[10px] text-slate-600 px-1.5 py-0.5 rounded-full glass">
-                    {entry.category}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  {entry.definition}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <div className="p-3 border-t border-slate-700/30 text-center">
-          <p className="text-[10px] text-slate-600">
-            {Object.keys(seen).length || deduplicated.length} terms available
+      {/* Terms list */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin p-3 space-y-2">
+        {deduplicated.length === 0 && (
+          <p className="text-center text-slate-500 text-sm py-8">
+            No terms match your search.
           </p>
-        </div>
+        )}
+        {deduplicated.map((key) => {
+          const entry = GLOSSARY[key];
+          return (
+            <div key={key} className="glass rounded-lg p-3 fade-in">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-sm font-semibold text-indigo-300">
+                  {entry.term}
+                </span>
+                <span className="text-[10px] text-slate-600 px-1.5 py-0.5 rounded-full glass">
+                  {entry.category}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {entry.definition}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 border-t border-slate-700/30 text-center shrink-0">
+        <p className="text-[10px] text-slate-600">
+          {deduplicated.length} term{deduplicated.length !== 1 ? "s" : ""} shown
+        </p>
       </div>
     </div>
   );

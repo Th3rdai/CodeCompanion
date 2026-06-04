@@ -624,10 +624,24 @@ export function useChat({
       const decoder = new TextDecoder();
       let buffer = "";
       let lastSaveTime = Date.now();
+      const MAX_BUFFER_SIZE = 1024 * 1024; // 1MB buffer limit to prevent DoS
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
+
+        // Safety check: Reset buffer if it grows too large (malicious/broken SSE)
+        if (buffer.length > MAX_BUFFER_SIZE) {
+          console.warn(
+            `[useChat] SSE buffer exceeded ${MAX_BUFFER_SIZE} bytes, resetting to prevent DoS`,
+          );
+          buffer = "";
+          showToast(
+            "⚠️ Stream buffer overflow detected, connection may be unstable",
+          );
+          continue;
+        }
+
         const lines = buffer.split("\n");
         buffer = lines.pop();
         for (const line of lines) {

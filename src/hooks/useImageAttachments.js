@@ -142,6 +142,19 @@ export function useImageAttachments({
             continue;
           }
           const processed = await queueImageProcessing(file, imgCfg);
+
+          // Additional safety check: Verify base64 size doesn't exceed safe UI limit
+          const base64SizeBytes = processed.base64.length;
+          const base64SizeMB = base64SizeBytes / (1024 * 1024);
+          const MAX_BASE64_MB = 10; // Conservative limit to prevent UI freezes
+
+          if (base64SizeMB > MAX_BASE64_MB) {
+            showToast(
+              `❌ ${file.name}: Processed image too large (${base64SizeMB.toFixed(1)}MB). Max: ${MAX_BASE64_MB}MB`,
+            );
+            continue;
+          }
+
           const hash = await hashImage(processed.base64);
           const isDuplicate = attachedFiles.some((f) => f.hash === hash);
           if (isDuplicate) {
@@ -229,6 +242,19 @@ export function useImageAttachments({
             continue;
           }
           const processed = await queueImageProcessing(file, imgCfg);
+
+          // Additional safety check: Verify base64 size doesn't exceed safe UI limit
+          const base64SizeBytes = processed.base64.length;
+          const base64SizeMB = base64SizeBytes / (1024 * 1024);
+          const MAX_BASE64_MB = 10; // Conservative limit to prevent UI freezes
+
+          if (base64SizeMB > MAX_BASE64_MB) {
+            showToast(
+              `❌ ${file.name}: Processed image too large (${base64SizeMB.toFixed(1)}MB). Max: ${MAX_BASE64_MB}MB`,
+            );
+            continue;
+          }
+
           const hash = await hashImage(processed.base64);
           const isDuplicate = attachedFiles.some((f) => f.hash === hash);
           if (isDuplicate) {
@@ -298,6 +324,19 @@ export function useImageAttachments({
           continue;
         }
         const processed = await queueImageProcessing(file, imgCfg);
+
+        // Additional safety check: Verify base64 size doesn't exceed safe UI limit
+        const base64SizeBytes = processed.base64.length;
+        const base64SizeMB = base64SizeBytes / (1024 * 1024);
+        const MAX_BASE64_MB = 10; // Conservative limit to prevent UI freezes
+
+        if (base64SizeMB > MAX_BASE64_MB) {
+          showToast(
+            `❌ Pasted image too large (${base64SizeMB.toFixed(1)}MB). Max: ${MAX_BASE64_MB}MB`,
+          );
+          continue;
+        }
+
         const hash = await hashImage(processed.base64);
         const isDuplicate = attachedFiles.some((f) => f.hash === hash);
         if (isDuplicate) {

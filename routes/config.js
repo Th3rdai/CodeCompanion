@@ -7,7 +7,13 @@ const { getConfig, updateConfig } = require("../lib/config");
 const {
   mergeAutoModelMap,
   DEFAULT_AUTO_MODEL_MAP,
+  DEFAULT_AUTO_MODEL_MAP_OPENROUTER,
 } = require("../lib/auto-model");
+const {
+  effectiveProvider,
+  effectiveOpenrouterApiKey,
+  invalidateListModelsCache,
+} = require("../lib/ollama-client");
 const { effectiveDoclingApiKey } = require("../lib/docling-client");
 const { isDictateTranscribeConfigured } = require("../lib/dictate-transcribe");
 const { logEvent, EVENT_TYPES } = require("../lib/audit-log");
@@ -68,11 +74,21 @@ function sanitizeConfigForClient(config) {
     safe.ollamaApiKey = "••••••••";
   }
 
+  // Provider toggle + OpenRouter key (masked; never return the raw value).
+  const provider = effectiveProvider(config);
+  safe.provider = provider;
+  safe.openrouterApiKeyConfigured = Boolean(effectiveOpenrouterApiKey(config));
+  safe.openrouterApiKey = safe.openrouterApiKeyConfigured ? "••••••••" : "";
+  safe.openrouterUrl = config.openrouterUrl || "https://openrouter.ai/api/v1";
+
   safe.dictateGroqConfigured = isDictateTranscribeConfigured(config);
   safe.dictateGroqApiKey = safe.dictateGroqConfigured ? "••••••••" : "";
 
-  safe.autoModelMap = mergeAutoModelMap(safe.autoModelMap);
-  safe.autoModelMapDefaults = { ...DEFAULT_AUTO_MODEL_MAP };
+  safe.autoModelMap = mergeAutoModelMap(safe.autoModelMap, provider);
+  safe.autoModelMapDefaults =
+    provider === "openrouter"
+      ? { ...DEFAULT_AUTO_MODEL_MAP_OPENROUTER }
+      : { ...DEFAULT_AUTO_MODEL_MAP };
 
   return safe;
 }
@@ -210,6 +226,63 @@ function createConfigRouter(appContext) {
         } else if (!/^•+$/.test(t)) {
           config.ollamaApiKey = t;
           log("INFO", "Ollama API key updated");
+        }
+      }
+    }
+
+    if (req.body.provider !== undefined) {
+      const p = String(req.body.provider || "").trim();
+      if (p === "ollama" || p === "openrouter") {
+        config.provider = p;
+        log("INFO", `LLM provider set to: ${config.provider}`);
+      } else {
+        log("WARN", `Ignored invalid provider: ${p}`);
+      }
+    }
+
+    if (req.body.openrouterUrl !== undefined) {
+      const raw = String(req.body.openrouterUrl || "").trim();
+      // Require http(s) and strip trailing slashes; fall back to the canonical
+      // host on anything malformed so a bad value can't redirect the API key.
+      const stripped = raw.replace(/\/+$/, "");
+      if (/^https?:\/\//i.test(stripped)) {
+        config.openrouterUrl = stripped;
+        // The OpenRouter Bearer key is sent to this host. Self-host proxies are
+        // allowed, but flag non-canonical, non-loopback targets so a redirected
+        // key is auditable in the logs.
+        try {
+          const host = new URL(stripped).hostname.toLowerCase();
+          const trusted =
+            host === "openrouter.ai" ||
+            host.endsWith(".openrouter.ai") ||
+            host === "localhost" ||
+            host === "127.0.0.1";
+          if (!trusted) {
+            log(
+              "WARN",
+              `OpenRouter base URL points at a non-canonical host (${host}); the API key will be sent there. Confirm this is a trusted proxy.`,
+            );
+          }
+        } catch {
+          /* parse guarded by the http(s) regex above */
+        }
+      } else {
+        config.openrouterUrl = "https://openrouter.ai/api/v1";
+        if (raw) log("WARN", `Ignored invalid openrouterUrl: ${raw}`);
+      }
+      log("INFO", `OpenRouter URL set to: ${config.openrouterUrl}`);
+    }
+
+    if (req.body.openrouterApiKey !== undefined) {
+      const v = req.body.openrouterApiKey;
+      if (typeof v === "string") {
+        const t = v.trim();
+        if (t === "") {
+          config.openrouterApiKey = "";
+          log("INFO", "OpenRouter API key cleared");
+        } else if (!/^•+$/.test(t)) {
+          config.openrouterApiKey = t;
+          log("INFO", "OpenRouter API key updated");
         }
       }
     }
@@ -479,6 +552,21 @@ function createConfigRouter(appContext) {
     }
 
     updateConfig(config);
+
+    // Drop the cached model catalog when a provider/connection field changed so
+    // the next /api/models fetch reflects the new provider/key/URL immediately
+    // (rather than serving a ≤45s-stale list). Clears both Ollama + OR caches.
+    if (
+      [
+        "provider",
+        "openrouterUrl",
+        "openrouterApiKey",
+        "ollamaUrl",
+        "ollamaApiKey",
+      ].some((k) => req.body[k] !== undefined)
+    ) {
+      invalidateListModelsCache();
+    }
 
     // Audit log: settings changed
     // Capture which top-level settings were modified

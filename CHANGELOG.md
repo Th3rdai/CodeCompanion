@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Privacy messaging (OpenRouter).** Bottom banner and onboarding copy now say **privacy-first by default** (Ollama local) and call out optional **OpenRouter** in Settings (chat goes to their API when enabled). Docs: **`docs/PRIVACY-MESSAGING.md`**.
+
+## [1.7.4] — 2026-06-04
+
+### Changed
+
+- **Jargon Glossary — right-side panel.** Header **📖 Glossary** now toggles a docked right panel (same layout as **GitHub** / **Files**), replacing the draggable modal overlay. Mutual exclusion: only one right panel open at a time. Docs: **`docs/JARGON-GLOSSARY.md`**.
+- **Dashboard default layout (v2).** Shipped home view: **Recent Work** + **Feature Access Grid** expanded; **Dashboard Settings**, **Quick Stats**, **7-Day Activity**, and breakdown sections collapsed by default. One-time migration via `cc.dashboard.layoutVersion` in `dashboard-section-defaults.js`.
+
+### Added
+
+- **OpenRouter LLM provider** (optional). Settings → General toggle to route chat, review, and related APIs through OpenRouter when enabled. See **`docs/ENVIRONMENT_VARIABLES.md`**.
+
+### Fixed
+
+- **Security audit (6 critical/high).** Async history save locking, file-browser path hardening, Mermaid XSS guard, chat/image attachment limits.
+- **Dashboard E2E tests** aligned with layout v2 defaults and `mode-tab-dashboard` selector.
+
 ## [1.7.3] — 2026-06-03
 
 ### Fixed

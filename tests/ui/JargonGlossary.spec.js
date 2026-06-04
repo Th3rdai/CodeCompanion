@@ -36,9 +36,9 @@ test.describe("JargonGlossary component", () => {
   });
 
   test("UX-03: category filtering works", async ({ page }) => {
-    // Scope to glossary dialog — mode tabs also include a Security button
+    // Scope to glossary panel — mode tabs also include a Security button
     await page
-      .getByRole("dialog", { name: "Jargon Glossary" })
+      .getByRole("region", { name: "Jargon Glossary" })
       .getByRole("button", { name: "Security", exact: true })
       .click();
 

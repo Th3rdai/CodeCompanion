@@ -70,6 +70,22 @@ src/lib/
 2. **Export Analytics** - ✅ DONE - CSV/JSON download with formatted data
 3. **Widget Visibility Toggles** - ✅ DONE - Show/hide sections with localStorage persistence
 
+### ✅ Default layout (layout v2 — 2026-06-04)
+
+Shipped home-screen defaults:
+
+| Section                      | Default                                        |
+| ---------------------------- | ---------------------------------------------- |
+| Dashboard Settings           | Collapsed                                      |
+| Recent Work                  | Expanded                                       |
+| Feature Access Grid          | Expanded                                       |
+| Quick Stats                  | Collapsed                                      |
+| Export (when history exists) | Visible between Quick Stats and 7-Day Activity |
+| 7-Day Activity               | Collapsed                                      |
+| Mode / Model breakdowns      | Collapsed                                      |
+
+Implementation: `src/components/dashboard/dashboard-section-defaults.js` (`DASHBOARD_LAYOUT_VERSION = 2`). One-time migration on dashboard mount resets collapse keys; widget visibility toggles unchanged. Unit tests: `tests/unit/dashboard-section-defaults.test.js`.
+
 ## 🔮 Future Enhancements
 
 ### Medium Value
@@ -90,6 +106,7 @@ src/lib/
 
 - [✅] `analytics.js` calculation logic (4 tests - empty input, list shape, full conversation shape, missing data)
 - [✅] `CollapsibleSection` localStorage persistence (8 tests - JSON parsing, defaults, namespacing, error handling, toggle behavior)
+- [✅] `dashboard-section-defaults.js` layout v2 migration (unit tests in `tests/unit/dashboard-section-defaults.test.js`)
 - [ ] `BarList` ARIA attributes (deferred - would require @testing-library/react)
 - [ ] `QuickStatsGrid` number formatting (deferred - would require @testing-library/react)
 
@@ -126,6 +143,7 @@ src/lib/
 - `DASHBOARD.md` - Complete implementation plan (1400+ lines)
 - `DASHBOARD-REVIEW-*.md` - Plan validation passes (4 iterations)
 - `DASHBOARD-UIPRO-*.md` - UI/UX review and fixes
+- `docs/JARGON-GLOSSARY.md` - Glossary right-panel UX and term reference
 - `docs/DESIGN-STANDARDS.md` - Design system guidelines
 
 ## 📝 Git Commits

@@ -13,6 +13,7 @@ export function useModels({ isElectron, setShowOllamaSetup, mode }) {
   };
   const [connected, setConnected] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState("");
+  const [provider, setProvider] = useState("ollama");
   const [autoResolvedLabel, setAutoResolvedLabel] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -32,6 +33,7 @@ export function useModels({ isElectron, setShowOllamaSetup, mode }) {
         setModels(data.models);
         setConnected(true);
         setOllamaUrl(data.ollamaUrl || "");
+        if (data.provider) setProvider(data.provider);
         if (data.models.length > 0 && !selectedModel) {
           const saved = localStorage.getItem("cc-selected-model");
           if (saved === "auto") setSelectedModel("auto");
@@ -39,6 +41,16 @@ export function useModels({ isElectron, setShowOllamaSetup, mode }) {
             const match = saved && data.models.find((m) => m.name === saved);
             setSelectedModel(match ? match.name : data.models[0].name);
           }
+        } else if (
+          selectedModel &&
+          selectedModel !== "auto" &&
+          data.models.length > 0 &&
+          !data.models.find((m) => m.name === selectedModel)
+        ) {
+          // Provider switch (or model removed): the persisted selection isn't in
+          // the new catalog — fall back to Auto so the toolbar isn't stuck on a
+          // model the active provider can't serve.
+          setSelectedModel("auto");
         }
       } else {
         setConnected(false);
@@ -62,6 +74,7 @@ export function useModels({ isElectron, setShowOllamaSetup, mode }) {
     connected,
     ollamaUrl,
     setOllamaUrl,
+    provider,
     selectedModel,
     setSelectedModel,
     autoResolvedLabel,

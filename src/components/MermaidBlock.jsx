@@ -14,6 +14,7 @@ import {
   Maximize2,
   X,
 } from "lucide-react";
+import DOMPurify from "dompurify";
 import { copyText } from "../lib/clipboard";
 import { resolveSvgExportDimensions } from "../lib/mermaid-export-dimensions";
 
@@ -516,7 +517,13 @@ export default function MermaidBlock({ code }) {
       })
       .then((result) => {
         if (!cancelled) {
-          setSvg(result.svg);
+          // Sanitize SVG to prevent XSS attacks from AI-generated malicious event handlers
+          const sanitizedSvg = DOMPurify.sanitize(result.svg, {
+            USE_PROFILES: { svg: true, svgFilters: true },
+            ADD_TAGS: ["foreignObject"], // Allow foreignObject for complex diagrams
+            FORBID_ATTR: ["onclick", "onerror", "onload", "onmouseover"], // Block event handlers
+          });
+          setSvg(sanitizedSvg);
           setLoading(false);
         }
         // Clean up any error elements mermaid injected into the DOM

@@ -25,7 +25,8 @@
       "Edit(/.claude/skills/plan-reviewer/**)",
       "Bash(sed -n '170,200p' /Users/james/Projects/CodeCompanion/lib/ollama-client.js)",
       "Bash(sed -n '215,260p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)",
-      "Bash(sed -n '290,335p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)"
+      "Bash(sed -n '290,335p' /Users/james/Projects/CodeCompanion/lib/auto-model.js)",
+      "Bash(node -e \"console.log\\('node', process.version, '| TransformStream:', typeof TransformStream, '| ReadableStream:', typeof ReadableStream, '| fetch:', typeof fetch\\)\")"
     ]
   },
   "hooks": {

@@ -119,12 +119,12 @@ module.exports = function createRouter(appContext) {
     }
   }
 
-  function moveConversationToFolder(conversationId, folderId) {
+  async function moveConversationToFolder(conversationId, folderId) {
     const targetFolder = getFolder(folderId);
     if (!targetFolder) throw new Error("Folder not found");
     const conv = getConversation(conversationId);
     conv.folderId = targetFolder.id;
-    saveConversation(conv);
+    await saveConversation(conv);
   }
 
   // ── GET /api/history ─────────────────────────────────
@@ -199,7 +199,7 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── DELETE /api/history/folders/:id ───────────────────
-  router.delete("/history/folders/:id", (req, res) => {
+  router.delete("/history/folders/:id", async (req, res) => {
     try {
       const folderId = req.params.id;
       const members = listConversations().filter(
@@ -211,7 +211,7 @@ module.exports = function createRouter(appContext) {
         });
       }
       for (const conv of members) {
-        moveConversationToFolder(conv.id, SYSTEM_FOLDER_ID);
+        await moveConversationToFolder(conv.id, SYSTEM_FOLDER_ID);
       }
       const deleted = deleteFolder(folderId);
       debug("History folder deleted", {
@@ -269,13 +269,13 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── PATCH /api/history/:id/folder ─────────────────────
-  router.patch("/history/:id/folder", (req, res) => {
+  router.patch("/history/:id/folder", async (req, res) => {
     try {
       const folderId =
         typeof req.body?.folderId === "string" && req.body.folderId.trim()
           ? req.body.folderId.trim()
           : SYSTEM_FOLDER_ID;
-      moveConversationToFolder(req.params.id, folderId);
+      await moveConversationToFolder(req.params.id, folderId);
       res.json({ ok: true, id: req.params.id, folderId });
     } catch (err) {
       let status = 500;
@@ -301,7 +301,7 @@ module.exports = function createRouter(appContext) {
   // ── POST /api/history ────────────────────────────────
   router.post("/history", async (req, res) => {
     try {
-      const id = saveConversation(req.body);
+      const id = await saveConversation(req.body);
       debug("Conversation saved", { id });
       res.json({ id });
 
@@ -357,7 +357,7 @@ module.exports = function createRouter(appContext) {
               const conv = getConversation(id);
               if (conv) {
                 conv.summary = summary.trim().slice(0, 500);
-                saveConversation(conv);
+                await saveConversation(conv);
                 log("INFO", `Conversation summary stored for ${id}`);
               }
             }
@@ -437,7 +437,7 @@ module.exports = function createRouter(appContext) {
   });
 
   // ── POST /api/history/batch-move ──────────────────────
-  router.post("/history/batch-move", (req, res) => {
+  router.post("/history/batch-move", async (req, res) => {
     const { ids } = req.body;
     const folderId =
       typeof req.body?.folderId === "string" && req.body.folderId.trim()
@@ -460,7 +460,7 @@ module.exports = function createRouter(appContext) {
     let failed = 0;
     for (const id of ids) {
       try {
-        moveConversationToFolder(id, folderId);
+        await moveConversationToFolder(id, folderId);
         ok++;
       } catch {
         failed++;

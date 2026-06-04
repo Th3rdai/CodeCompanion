@@ -82,8 +82,8 @@ const STEPS = [
           the risks are.
         </p>
         <p className="text-slate-400 text-sm">
-          Everything runs on your machine. Your code and conversations never
-          leave your computer.
+          By default, AI runs on your machine through Ollama. OpenRouter in
+          Settings is optional if you want cloud models.
         </p>
       </>
     ),
@@ -97,8 +97,10 @@ const STEPS = [
       <>
         <p className="text-slate-300 mb-3">
           Code Companion uses{" "}
-          <strong className="text-indigo-300">Ollama</strong> to run AI models
-          right on your machine — no API keys, no cloud, complete privacy.
+          <strong className="text-indigo-300">Ollama</strong> by default to run
+          AI on your machine — no cloud required. Optional{" "}
+          <strong className="text-indigo-300">OpenRouter</strong> in Settings
+          adds cloud models (your API key, their privacy policy).
         </p>
         <div className="glass rounded-lg p-3 text-xs text-slate-400 space-y-1.5">
           <p>
@@ -276,13 +278,13 @@ const STEPS = [
           {[
             {
               icon: "🏠",
-              title: "Runs locally",
-              desc: "AI models run on your machine through Ollama. No cloud APIs, no external servers.",
+              title: "Local by default",
+              desc: "Ollama runs AI on your machine. OpenRouter in Settings is optional for cloud models.",
             },
             {
               icon: "🔒",
               title: "No data collection",
-              desc: "We never track, log, or transmit your code or conversations anywhere.",
+              desc: "Code Companion never tracks, logs, or sells your code or conversations.",
             },
             {
               icon: "💾",
@@ -290,9 +292,9 @@ const STEPS = [
               desc: "Conversation history is saved as JSON files on your disk. Delete them anytime.",
             },
             {
-              icon: "🚫",
-              title: "No API keys needed",
-              desc: "No accounts, no sign-ups, no subscriptions. Just install and go.",
+              icon: "☁️",
+              title: "Optional cloud models",
+              desc: "OpenRouter uses your API key when enabled; Ollama works without one.",
             },
           ].map((item) => (
             <div key={item.title} className="flex items-start gap-3">

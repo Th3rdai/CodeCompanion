@@ -15,11 +15,11 @@ function makeTmpRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "cc-history-defaults-"));
 }
 
-test("history defaults folderId to inbox on save/list/get", () => {
+test("history defaults folderId to inbox on save/list/get", async () => {
   const root = makeTmpRoot();
   initHistory(root);
 
-  const id = saveConversation({
+  const id = await saveConversation({
     title: "No folder payload",
     mode: "chat",
     model: "llama3.2",

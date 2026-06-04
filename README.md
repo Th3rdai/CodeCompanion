@@ -8,7 +8,7 @@
   <em>by <a href="https://github.com/Th3rdai">Th3rdAI</a></em>
 </p>
 
-A locally-hosted AI code reviewer that helps vibe coders (non-technical users who generate code with AI tools) understand, review, and improve their AI-generated code. Powered by [Ollama](https://ollama.com) LLMs — no API keys, no cloud, full privacy.
+A locally-hosted AI code reviewer that helps vibe coders (non-technical users who generate code with AI tools) understand, review, and improve their AI-generated code. **Ollama** runs AI on your machine by default; optional **OpenRouter** in Settings adds cloud models. Code Companion doesn't track you or collect your data.
 
 Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io), acting as both an **MCP server** (exposing its tools to other AI agents) and an **MCP client** (connecting to external MCP servers like GitHub, Archon, etc.).
 
@@ -26,7 +26,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support, then **Open in Build** to continue in Build mode. IDE command files from `IDE_COMMANDS/` are automatically copied to all IDE paths (Claude Code, Cursor, VS Code, OpenCode)
 - **Build mode** — GSD+ICM project scaffolding and dashboard with automatic IDE command file installation across all supported IDEs
 - **Tutorial for Build & Create** — Step-by-step walkthrough: click **Tutorial** for explanations; focus or click an empty field to get a suggestion (step 2+ uses AI-generated suggestions from your project info). Double-click a field to get a different suggestion; right-click to accept. **Fill with example** prefills the current step.
-- **23+ Ollama models** supported locally — no API keys, no cloud, full privacy
+- **23+ Ollama models** supported locally by default; optional **OpenRouter** catalog when enabled in Settings
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
 - **MCP Client** — connects to external MCP servers (GitHub, Archon, etc.) and lets Ollama use their tools automatically
 - **File browser** — navigate project files, launch Claude Code, Cursor, Windsurf, or OpenCode directly
@@ -128,7 +128,8 @@ Full checklist, fork vs canonical repo, and **emergency** local `electron:publis
 | [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)                                               | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc.                               |
 | [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md)                                                   | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing                                    |
 | [docs/TESTING.md](docs/TESTING.md)                                                                           | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes                                                                    |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)                                                           | “Failed to fetch”, MCP clients / `.cc-config.json` paths, log files, Ollama errors in logs                                                          |
+| [docs/PROVIDERS.md](docs/PROVIDERS.md)                                                                       | Ollama vs OpenRouter provider toggle (developer map)                                                                                                |
+| [docs/PRIVACY-MESSAGING.md](docs/PRIVACY-MESSAGING.md)                                                       | Privacy banner, onboarding copy, and OpenRouter disclosure                                                                                          |
 | [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                                                            |
 | [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                                              |
 | [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                                                   |
@@ -194,10 +195,12 @@ Configure image support in Settings → Image Support:
 
 **Supported formats:** PNG, JPEG, GIF (first frame only for animated GIFs)
 
-### File Browser and "Load into Form"
+### File Browser, Glossary, and GitHub (header panels)
 
-- Open **Files** in the toolbar to browse your project. You can **Load into Form** in Prompting, Skillz, or Agentic to pull a file’s content into the current builder. In Review or Security, use **Load for Review** to attach code for review or scan.
-- **Share with AI** copies your project structure (tree) so you can paste it into chats or other tools.
+- **📂 Files** — browse your project tree; **Load into Form** in builder modes or **Load for Review** in Review/Security.
+- **📖 Glossary** — plain-English tech term definitions in the right panel (search + category filters). See **[docs/JARGON-GLOSSARY.md](docs/JARGON-GLOSSARY.md)**.
+- **🐙 GitHub** — clone and browse repos; opening Files or GitHub closes the other panels (including Glossary).
+- **Share with AI** (File Browser) copies your project structure (tree) so you can paste it into chats or other tools.
 
 ### Conversation history
 

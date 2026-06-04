@@ -392,6 +392,7 @@ export default function App() {
     connected,
     ollamaUrl,
     setOllamaUrl,
+    provider: modelProvider,
     selectedModel,
     setSelectedModel,
     autoResolvedLabel,
@@ -400,6 +401,15 @@ export default function App() {
     refreshModels,
     refreshing,
   } = useModels({ isElectron, setShowOllamaSetup, mode });
+  // Free-text filter for the model dropdown — OpenRouter exposes 300+ models, so
+  // the raw native <select> is unusable; we show a search box above it.
+  const [modelFilter, setModelFilter] = useState("");
+  // Clear the filter on provider switch — the input only renders for OpenRouter,
+  // so a leftover query (e.g. "gpt") would otherwise silently collapse the
+  // Ollama dropdown after switching back, with no visible box to clear it.
+  useEffect(() => {
+    setModelFilter("");
+  }, [modelProvider]);
 
   const [input, setInput] = useState("");
   const [dismissedModeSuggestion, setDismissedModeSuggestion] = useState(null);
@@ -926,7 +936,10 @@ export default function App() {
       }
       setDictateGroqConfigured(!!data.dictateGroqConfigured);
       await refreshModels();
-      if (newFolder && String(newFolder).trim()) setShowFileBrowser(true);
+      if (newFolder && String(newFolder).trim()) {
+        setShowFileBrowser(true);
+        setShowGlossary(false);
+      }
     } catch {}
   }
 
@@ -1103,7 +1116,9 @@ export default function App() {
       showToast(`Switched to vision model: ${visionModel.name}`);
     } else {
       showToast(
-        "No vision models available. Install one with: ollama pull llava",
+        modelProvider === "openrouter"
+          ? "No vision-capable model in the loaded OpenRouter catalog. Refresh models, or pick one with the 👁️ badge."
+          : "No vision models available. Install one with: ollama pull llava",
       );
     }
   }
@@ -1207,6 +1222,7 @@ export default function App() {
     } catch {}
     setShowFileBrowser(true);
     setShowGitHub(false);
+    setShowGlossary(false);
   }
 
   async function handleBuildProjectCreated(projectPath, data) {
@@ -1434,8 +1450,18 @@ export default function App() {
           <div className="flex-1 min-w-[1rem] shrink" aria-hidden="true" />
           <div className="flex items-center gap-2 shrink-0 relative z-10 flex-wrap">
             <button
-              onClick={() => setShowGlossary(true)}
-              className="flex min-h-11 items-center gap-1 text-xs px-3 py-2 rounded-lg border transition-colors text-slate-400 border-slate-600 hover:bg-indigo-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70"
+              onClick={() => {
+                setShowGlossary(!showGlossary);
+                if (!showGlossary) {
+                  setShowGitHub(false);
+                  setShowFileBrowser(false);
+                }
+              }}
+              className={`flex min-h-11 items-center gap-1 text-xs px-3 py-2 rounded-lg border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70 ${
+                showGlossary
+                  ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm"
+                  : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"
+              }`}
               title="Jargon Glossary"
             >
               📖 Glossary
@@ -1443,7 +1469,10 @@ export default function App() {
             <button
               onClick={() => {
                 setShowGitHub(!showGitHub);
-                if (!showGitHub) setShowFileBrowser(false);
+                if (!showGitHub) {
+                  setShowFileBrowser(false);
+                  setShowGlossary(false);
+                }
               }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
                 ${showGitHub ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"} min-h-11 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70`}
@@ -1454,7 +1483,10 @@ export default function App() {
             <button
               onClick={() => {
                 setShowFileBrowser(!showFileBrowser);
-                if (!showFileBrowser) setShowGitHub(false);
+                if (!showFileBrowser) {
+                  setShowGitHub(false);
+                  setShowGlossary(false);
+                }
               }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border transition-colors
                 ${showFileBrowser ? "text-indigo-300 border-indigo-500/30 bg-indigo-600/10 neon-glow-sm" : "text-slate-400 border-slate-600 hover:bg-indigo-500/10"} min-h-11 px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300/70`}
@@ -1571,6 +1603,16 @@ export default function App() {
             <label htmlFor="model-select" className="sr-only">
               Select AI model
             </label>
+            {modelProvider === "openrouter" && models.length > 0 && (
+              <input
+                type="text"
+                value={modelFilter}
+                onChange={(e) => setModelFilter(e.target.value)}
+                placeholder="Filter models…"
+                aria-label="Filter OpenRouter models"
+                className="input-glow text-slate-200 text-sm rounded-lg px-3 py-1.5 max-w-[160px]"
+              />
+            )}
             <select
               id="model-select"
               value={selectedModel}
@@ -1582,6 +1624,14 @@ export default function App() {
                 <option value="auto">Auto (best per mode)</option>
               )}
               {[...models]
+                .filter((m) => {
+                  const q = modelFilter.trim().toLowerCase();
+                  if (!q) return true;
+                  // Always keep the currently-selected model visible so the
+                  // <select> value never points at a filtered-out option.
+                  if (m.name === selectedModel) return true;
+                  return m.name.toLowerCase().includes(q);
+                })
                 .sort((a, b) => {
                   // Sort vision models to top when images attached (Phase 4: Image Support)
                   if (hasImages) {
@@ -1591,12 +1641,18 @@ export default function App() {
                   }
                   return 0;
                 })
-                .map((m) => (
-                  <option key={m.name} value={m.name}>
-                    {m.supportsVision ? "👁️ " : ""}
-                    {m.name} ({m.paramSize || m.size + "GB"})
-                  </option>
-                ))}
+                .map((m) => {
+                  // OpenRouter models report size:0; show the friendly ctx tag
+                  // (paramSize) and drop the ugly "(0GB)" suffix.
+                  const tag = m.paramSize || (m.size ? `${m.size}GB` : "");
+                  return (
+                    <option key={m.name} value={m.name}>
+                      {m.supportsVision ? "👁️ " : ""}
+                      {m.name}
+                      {tag ? ` (${tag})` : ""}
+                    </option>
+                  );
+                })}
             </select>
             {selectedModel === "auto" && models.length > 0 && (
               <span
@@ -1899,6 +1955,7 @@ export default function App() {
                 onOpenFileBrowser={() => {
                   setShowFileBrowser(true);
                   setShowGitHub(false);
+                  setShowGlossary(false);
                 }}
                 onToast={showToast}
                 onSwitchToChat={(msgs) => {
@@ -1921,6 +1978,7 @@ export default function App() {
                 onOpenFileBrowser={() => {
                   setShowFileBrowser(true);
                   setShowGitHub(false);
+                  setShowGlossary(false);
                 }}
                 onToast={showToast}
                 savedPentest={savedPentest}
@@ -2138,6 +2196,7 @@ export default function App() {
                       onViewFiles={(p) => {
                         setProjectFolder(p);
                         setShowFileBrowser(true);
+                        setShowGlossary(false);
                       }}
                       onRefresh={fetchBuildProjects}
                       onToast={showToast}
@@ -2463,6 +2522,16 @@ export default function App() {
               )}
           </div>
 
+          {/* Glossary (right panel) */}
+          {showGlossary && (
+            <aside
+              className="w-80 flex-shrink-0 overflow-hidden min-h-0"
+              aria-label="Jargon glossary"
+            >
+              <GlossaryPanel onClose={() => setShowGlossary(false)} />
+            </aside>
+          )}
+
           {/* GitHub Panel (right panel) */}
           {showGitHub && (
             <aside
@@ -2474,6 +2543,7 @@ export default function App() {
                   setProjectFolder(folder);
                   setShowGitHub(false);
                   setShowFileBrowser(true);
+                  setShowGlossary(false);
                 }}
                 onClose={() => setShowGitHub(false)}
               />
@@ -2599,7 +2669,6 @@ export default function App() {
           onClose={() => setRenaming(null)}
         />
       )}
-      {showGlossary && <GlossaryPanel onClose={() => setShowGlossary(false)} />}
       {showOnboarding && (
         <OnboardingWizard
           onComplete={(payload) => {
@@ -2614,6 +2683,8 @@ export default function App() {
           onClose={() => setShowSetupAssistant(false)}
           onApplied={async () => {
             await fetchConfig();
+            // Repopulate the toolbar dropdown in case the provider/key changed.
+            await refreshModels();
             showToast("Settings updated");
           }}
         />
