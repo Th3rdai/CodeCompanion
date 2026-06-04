@@ -2,40 +2,35 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { apiFetch } from "./lib/api-fetch";
 import { copyText, pasteFromClipboardButton } from "./lib/clipboard";
 import { suggestMode } from "./lib/mode-suggestion";
-import Toast from "./components/Toast";
-import RenameModal from "./components/RenameModal";
-import SettingsPanel from "./components/SettingsPanel";
-import FileBrowser from "./components/FileBrowser";
-import GitHubPanel from "./components/GitHubPanel";
-import Sidebar from "./components/Sidebar";
-import Splite from "./components/ui/Splite";
-import PreflightBanner from "./components/ui/PreflightBanner";
-import SplashScreen from "./components/3d/SplashScreen";
-import HeaderScene from "./components/3d/HeaderScene";
+import Toast from "@/components/shared/Toast";
+import RenameModal from "@/components/shared/RenameModal";
+import SettingsPanel from "@/components/panels/SettingsPanel";
+import FileBrowser from "@/components/panels/FileBrowser";
+import GitHubPanel from "@/components/panels/GitHubPanel";
+import Sidebar from "@/components/shared/Sidebar";
+import Splite from "@/components/ui/Splite";
+import PreflightBanner from "@/components/ui/PreflightBanner";
+import SplashScreen from "@/components/3d/SplashScreen";
+import HeaderScene from "@/components/3d/HeaderScene";
 import OnboardingWizard, {
   isOnboardingComplete,
-} from "./components/OnboardingWizard";
-import SetupAssistantPanel from "./components/SetupAssistantPanel";
-import { GlossaryPanel } from "./components/JargonGlossary";
-import PrivacyBanner from "./components/PrivacyBanner";
-import ParticleBurst from "./components/3d/ParticleBurst";
-import TokenCounter from "./components/3d/TokenCounter";
-import OrbitingBadge from "./components/3d/OrbitingBadge";
-import OllamaSetup from "./components/OllamaSetup";
-import ConnectionDot from "./components/ConnectionDot";
-import MemoryPanel from "./components/MemoryPanel";
-import ImageLightbox from "./components/ImageLightbox";
-import ImagePrivacyWarning from "./components/ImagePrivacyWarning";
-import DictateButton from "./components/DictateButton";
-import ExportPanel from "./components/ExportPanel";
-import ConfirmRunModal from "./components/ConfirmRunModal";
+} from "@/components/wizards/OnboardingWizard";
+import SetupAssistantPanel from "@/components/panels/SetupAssistantPanel";
+import { GlossaryPanel } from "@/components/shared/JargonGlossary";
+import PrivacyBanner from "@/components/shared/PrivacyBanner";
+import ParticleBurst from "@/components/3d/ParticleBurst";
+import TokenCounter from "@/components/3d/TokenCounter";
+import OrbitingBadge from "@/components/3d/OrbitingBadge";
+import OllamaSetup from "@/components/panels/OllamaSetup";
+import ConnectionDot from "@/components/shared/ConnectionDot";
+import MemoryPanel from "@/components/panels/MemoryPanel";
+import ImageLightbox from "@/components/chat/ImageLightbox";
+import ImagePrivacyWarning from "@/components/chat/ImagePrivacyWarning";
+import DictateButton from "@/components/chat/DictateButton";
+import ExportPanel from "@/components/panels/ExportPanel";
+import ConfirmRunModal from "@/components/shared/ConfirmRunModal";
 import { joinAppend } from "./lib/dictationAppend";
-import {
-  ChevronLeft,
-  ChevronRight,
-  PanelLeft,
-  Brain,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelLeft, Brain } from "lucide-react";
 import { use3DEffects } from "./contexts/Effects3DContext";
 import { useModels } from "./hooks/useModels";
 import { useChat } from "./hooks/useChat";
@@ -1614,7 +1609,6 @@ export default function App() {
                 messagesEndRef,
               }}
             />
-
 
             {/* Stats — holographic token counter */}
             {stats &&

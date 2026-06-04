@@ -16,7 +16,7 @@ test("useChat buildAssistantMessage sanitizes streamed assistant text", () => {
 });
 
 test("ExperimentPanel buildAssistantMessage sanitizes streamed assistant text", () => {
-  const source = read("src/components/ExperimentPanel.jsx");
+  const source = read("src/components/panels/ExperimentPanel.jsx");
   assert.match(
     source,
     /content:\s*sanitizeUnconfirmedImageClaims\(\s*assistantContent,\s*assistantImages\.length\s*>\s*0,\s*\)/s,
@@ -24,7 +24,7 @@ test("ExperimentPanel buildAssistantMessage sanitizes streamed assistant text", 
 });
 
 test("DeepDivePanel sanitizes streamed assistant text while tool images accumulate", () => {
-  const source = read("src/components/DeepDivePanel.jsx");
+  const source = read("src/components/shared/DeepDivePanel.jsx");
   assert.match(
     source,
     /content:\s*sanitizeUnconfirmedImageClaims\(\s*assistant,\s*images\.length\s*>\s*0,\s*\)/s,

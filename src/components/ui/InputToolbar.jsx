@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { copyText, pasteFromClipboardButton } from "../../lib/clipboard";
-import ExportPanel from "../ExportPanel";
-import DictateButton from "../DictateButton";
+import ExportPanel from "../panels/ExportPanel";
+import DictateButton from "../chat/DictateButton";
 
 const btnClass =
   "text-xs px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/40";

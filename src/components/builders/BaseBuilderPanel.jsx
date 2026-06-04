@@ -4,10 +4,10 @@ import { useAbortable } from "../../hooks/useAbortable";
 import { registerAbort, unregisterAbort } from "../../hooks/useAbortRegistry";
 import StopButton from "../ui/StopButton";
 import ChatSessionProgress from "../ui/ChatSessionProgress";
-import LoadingAnimation from "../LoadingAnimation";
-import MarkdownContent from "../MarkdownContent";
+import LoadingAnimation from "../chat/LoadingAnimation";
+import MarkdownContent from "../chat/MarkdownContent";
 import BuilderScoreCard from "./BuilderScoreCard";
-import DictateButton from "../DictateButton";
+import DictateButton from "../chat/DictateButton";
 import InputToolbar from "../ui/InputToolbar";
 import { joinAppend } from "../../lib/dictationAppend";
 

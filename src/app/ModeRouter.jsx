@@ -1,25 +1,25 @@
 import { BookOpen } from "lucide-react";
-import CreateWizard from "../components/CreateWizard";
-import BuildWizard from "../components/BuildWizard";
-import BuildPanel from "../components/BuildPanel";
-import TutorialPanel from "../components/TutorialPanel";
+import CreateWizard from "@/components/wizards/CreateWizard";
+import BuildWizard from "@/components/wizards/BuildWizard";
+import BuildPanel from "@/components/panels/BuildPanel";
+import TutorialPanel from "@/components/shared/TutorialPanel";
 import {
   BUILD_TUTORIAL_STEPS,
   CREATE_TUTORIAL_STEPS,
 } from "../data/tutorialSteps";
-import ReviewPanel from "../components/ReviewPanel";
-import SecurityPanel from "../components/SecurityPanel";
-import ValidatePanel from "../components/ValidatePanel";
-import ExperimentPanel from "../components/ExperimentPanel";
-import PromptingPanel from "../components/builders/PromptingPanel";
-import SkillzPanel from "../components/builders/SkillzPanel";
-import AgenticPanel from "../components/builders/AgenticPanel";
-import PlannerPanel from "../components/builders/PlannerPanel";
-import DashboardView from "../components/dashboard/DashboardView";
-import TerminalPanel from "../components/TerminalPanel";
-import EmptyStateScene from "../components/3d/EmptyStateScene";
-import TypingIndicator3D from "../components/3d/TypingIndicator3D";
-import MessageBubble from "../components/MessageBubble";
+import ReviewPanel from "@/components/panels/ReviewPanel";
+import SecurityPanel from "@/components/panels/SecurityPanel";
+import ValidatePanel from "@/components/panels/ValidatePanel";
+import ExperimentPanel from "@/components/panels/ExperimentPanel";
+import PromptingPanel from "@/components/builders/PromptingPanel";
+import SkillzPanel from "@/components/builders/SkillzPanel";
+import AgenticPanel from "@/components/builders/AgenticPanel";
+import PlannerPanel from "@/components/builders/PlannerPanel";
+import DashboardView from "@/components/dashboard/DashboardView";
+import TerminalPanel from "@/components/panels/TerminalPanel";
+import EmptyStateScene from "@/components/3d/EmptyStateScene";
+import TypingIndicator3D from "@/components/3d/TypingIndicator3D";
+import MessageBubble from "@/components/chat/MessageBubble";
 import { CopyButton } from "./chat-ui-helpers";
 import { BUILDER_MODES, MODES } from "./modes";
 

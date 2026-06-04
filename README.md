@@ -343,32 +343,18 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 ├── src/                   # React frontend (Vite)
 │   ├── App.jsx            # Main app with 14 modes
 │   └── components/
-│       ├── builders/
-│       │   ├── BaseBuilderPanel.jsx  # Shared builder lifecycle component
-│       │   ├── BuilderScoreCard.jsx  # Score display with grade badges
-│       │   ├── PromptingPanel.jsx    # Prompt builder config
-│       │   ├── SkillzPanel.jsx       # Skill builder config
-│       │   └── AgenticPanel.jsx      # Agent designer config
-│       ├── ReviewPanel.jsx       # Code review input (paste/upload/browse tabs)
-│       ├── ReportCard.jsx        # Color-coded grade display + export
-│       ├── SecurityPanel.jsx     # Security (OWASP) scan input and fallback report
-│       ├── SecurityReport.jsx    # Structured security report with export (MD, HTML, PDF)
-│       ├── LoadingAnimation.jsx  # Animated review loading state
-│       ├── CreateWizard.jsx      # 5-step project creation wizard
-│       ├── FileBrowser.jsx       # File tree + IDE launchers
-│       ├── GitHubPanel.jsx       # GitHub repo browser + clone
-│       ├── SettingsPanel.jsx     # Settings with 3 tabs
-│       ├── McpServerPanel.jsx    # MCP server management UI
-│       ├── McpClientPanel.jsx    # MCP client management UI
-│       ├── DashboardPanel.jsx    # Usage analytics + report exports
-│       ├── OnboardingWizard.jsx  # First-time user experience
-│       ├── JargonGlossary.jsx    # Searchable tech term glossary
-│       ├── PrivacyBanner.jsx     # Privacy messaging banner
-│       ├── MarkdownContent.jsx   # Rendered markdown with code blocks
-│       ├── Sidebar.jsx           # Conversation history sidebar
-│       ├── DictateButton.jsx     # Voice input button
-│       ├── dashboard/            # Home view: collapsible sections, feature grid, ⓘ mode-detail modals
-│       └── 3d/                   # Visual effects (SplashScreen, etc.)
+│       ├── panels/             # Mode panels (Review, Security, Settings, FileBrowser, …)
+│       ├── chat/               # MessageBubble, MarkdownContent, images, dictation
+│       ├── wizards/          # Create, Build, Onboarding wizards
+│       ├── build-mode/       # Build dashboard views + planning viewer
+│       ├── experiment/       # Experiment report UI + linked chips
+│       ├── security/         # SecurityReport (structured OWASP export)
+│       ├── shared/           # Sidebar, Toast, ReportCard, Mermaid, glossary, …
+│       ├── builders/         # Prompting, Skillz, Agentic, Planner builder panels
+│       ├── dashboard/        # Home view: collapsible sections, feature grid, ⓘ modals
+│       ├── ui/               # Splite, InputToolbar, ChatSessionProgress, …
+│       └── 3d/               # Visual effects (SplashScreen, etc.)
+│   (orphaned legacy: !ARCHIVES/code-orphans/DashboardPanel.jsx)
 ├── tests/
 │   ├── unit/              # Node unit tests (node:test)
 │   ├── ui/                # Playwright UI tests

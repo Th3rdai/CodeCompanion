@@ -9,6 +9,7 @@ const {
   listDemotedModels,
   resolveAutoModel,
   DEFAULT_AUTO_MODEL_MAP,
+  isOpenrouterToolCapable,
 } = require("../../lib/auto-model");
 const { invalidateListModelsCache } = require("../../lib/ollama-client");
 
@@ -508,6 +509,34 @@ test("mergeAutoModelMap(saved, 'openrouter') uses the OpenRouter base map", () =
     Object.keys(m).length,
     Object.keys(DEFAULT_AUTO_MODEL_MAP).length,
   );
+});
+
+// Invariants the chat-post-handler OpenRouter explicit-model guard relies on:
+// `openrouter/auto` (the OR router) must read as NOT tool-capable so an agentic
+// turn swaps it out, and the swap target (the OR per-mode default) MUST be
+// tool-capable — otherwise the guard would either no-op or swap to another
+// non-capable model.
+test("isOpenrouterToolCapable: openrouter/auto is not tool-capable", () => {
+  assert.equal(isOpenrouterToolCapable("openrouter/auto"), false);
+});
+
+test("isOpenrouterToolCapable: prefix allowlist + small-Llama exclusion", () => {
+  assert.equal(isOpenrouterToolCapable("anthropic/claude-sonnet-4.5"), true);
+  assert.equal(isOpenrouterToolCapable("openai/gpt-4o-mini"), true);
+  assert.equal(isOpenrouterToolCapable("meta-llama/llama-4-scout"), true);
+  // Sub-8B Llamas narrate instead of emitting TOOL_CALL: — excluded.
+  assert.equal(isOpenrouterToolCapable("meta-llama/llama-3.2-3b-instruct"), false);
+});
+
+test("OpenRouter guard swap targets are all tool-capable", () => {
+  const m = mergeAutoModelMap(null, "openrouter");
+  for (const [mode, id] of Object.entries(m)) {
+    assert.equal(
+      isOpenrouterToolCapable(id),
+      true,
+      `OpenRouter default for mode "${mode}" (${id}) must be tool-capable so the agentic swap is valid`,
+    );
+  }
 });
 
 test("resolveAutoModel (OpenRouter): per-mode default map resolves against the catalog", async () => {

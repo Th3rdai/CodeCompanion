@@ -1,6 +1,6 @@
 # REORGPLAN — Code Companion file reorganization
 
-**Status:** **Phase 2 complete** (2026-06-04) — Phases 3–6 in progress  
+**Status:** **Phases 1–6 complete** (2026-06-04). Phase 5 used `lib/README.md` domain index (flat `lib/` unchanged). Phase 6: dev scripts → `scripts/`.  
 **Created:** 2026-06-04  
 **Goal:** Reduce root clutter, group related files into predictable folders, and park obsolete artifacts in `!ARCHIVES/` for later deletion — **without changing runtime behavior, packaging, or capabilities.**
 

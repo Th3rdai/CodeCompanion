@@ -1,7 +1,7 @@
 import { ChevronDown, Search } from "lucide-react";
-import FloatingGeometry from "../components/3d/FloatingGeometry";
-import ChatSessionProgress from "../components/ui/ChatSessionProgress";
-import LinkedExperimentChips from "../components/LinkedExperimentChips";
+import FloatingGeometry from "@/components/3d/FloatingGeometry";
+import ChatSessionProgress from "@/components/ui/ChatSessionProgress";
+import LinkedExperimentChips from "@/components/experiment/LinkedExperimentChips";
 import { MORE_MENU_GROUPS, modeById } from "./modes";
 
 export default function ModeTabs({
@@ -171,10 +171,7 @@ export default function ModeTabs({
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-slate-700/50 px-3 py-2">
-              <Search
-                className="h-4 w-4 shrink-0 text-slate-500"
-                aria-hidden
-              />
+              <Search className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
               <input
                 ref={paletteInputRef}
                 type="search"

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { copyText } from "../lib/clipboard";
-import ImageThumbnail from "../components/ImageThumbnail";
+import ImageThumbnail from "@/components/chat/ImageThumbnail";
 
 export function AttachedFiles({ files, onRemove, onImageClick }) {
   if (files.length === 0) return null;
