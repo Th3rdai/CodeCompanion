@@ -259,6 +259,10 @@ module.exports = function createRouter(appContext) {
         folder,
       });
     } catch (err) {
+      log("WARN", "Review folder preview failed", {
+        folder,
+        error: err.message,
+      });
       res.status(400).json({ error: err.message });
     }
   });
@@ -382,7 +386,11 @@ module.exports = function createRouter(appContext) {
 
       const ollamaRes = result.stream;
       if (!ollamaRes.ok) {
-        const _errText = await ollamaRes.text();
+        const errText = await ollamaRes.text();
+        log("WARN", "Review folder fallback stream: Ollama returned error", {
+          status: ollamaRes.status,
+          body: errText.slice(0, 200),
+        });
         sendEvent({
           error: `Ollama returned HTTP ${ollamaRes.status}. Check the model and try again.`,
         });
@@ -443,6 +451,9 @@ module.exports = function createRouter(appContext) {
             }
           }
         } catch (err) {
+          log("WARN", "Review folder stream interrupted", {
+            error: err.message,
+          });
           if (!res.writableEnded) {
             sendEvent({ error: STREAM_INTERNAL_ERROR });
             res.write("data: [DONE]\n\n");

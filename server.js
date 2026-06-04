@@ -170,7 +170,7 @@ function jsonBodyLimit(req) {
   if (
     p === "/api/chat" ||
     p.startsWith("/api/experiment/") ||
-    p === "/api/review" ||
+    p.startsWith("/api/review") ||
     p === "/api/convert-document" ||
     p.startsWith("/api/pentest") ||
     p.startsWith("/api/security") ||
