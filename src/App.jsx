@@ -2,53 +2,28 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { apiFetch } from "./lib/api-fetch";
 import { copyText, pasteFromClipboardButton } from "./lib/clipboard";
 import { suggestMode } from "./lib/mode-suggestion";
-import MessageBubble from "./components/MessageBubble";
 import Toast from "./components/Toast";
 import RenameModal from "./components/RenameModal";
 import SettingsPanel from "./components/SettingsPanel";
 import FileBrowser from "./components/FileBrowser";
 import GitHubPanel from "./components/GitHubPanel";
-import TerminalPanel from "./components/TerminalPanel";
 import Sidebar from "./components/Sidebar";
 import Splite from "./components/ui/Splite";
-import ChatSessionProgress from "./components/ui/ChatSessionProgress";
 import PreflightBanner from "./components/ui/PreflightBanner";
 import SplashScreen from "./components/3d/SplashScreen";
 import HeaderScene from "./components/3d/HeaderScene";
-import EmptyStateScene from "./components/3d/EmptyStateScene";
-import CreateWizard from "./components/CreateWizard";
-import BuildWizard from "./components/BuildWizard";
-import BuildPanel from "./components/BuildPanel";
-import TutorialPanel from "./components/TutorialPanel";
-import {
-  BUILD_TUTORIAL_STEPS,
-  CREATE_TUTORIAL_STEPS,
-} from "./data/tutorialSteps";
-import ReviewPanel from "./components/ReviewPanel";
-import SecurityPanel from "./components/SecurityPanel";
-import ValidatePanel from "./components/ValidatePanel";
-import ExperimentPanel from "./components/ExperimentPanel";
-import LinkedExperimentChips from "./components/LinkedExperimentChips";
-import PromptingPanel from "./components/builders/PromptingPanel";
-import SkillzPanel from "./components/builders/SkillzPanel";
-import AgenticPanel from "./components/builders/AgenticPanel";
-import PlannerPanel from "./components/builders/PlannerPanel";
-import DashboardView from "./components/dashboard/DashboardView";
 import OnboardingWizard, {
   isOnboardingComplete,
 } from "./components/OnboardingWizard";
 import SetupAssistantPanel from "./components/SetupAssistantPanel";
 import { GlossaryPanel } from "./components/JargonGlossary";
 import PrivacyBanner from "./components/PrivacyBanner";
-import FloatingGeometry from "./components/3d/FloatingGeometry";
-import TypingIndicator3D from "./components/3d/TypingIndicator3D";
 import ParticleBurst from "./components/3d/ParticleBurst";
 import TokenCounter from "./components/3d/TokenCounter";
 import OrbitingBadge from "./components/3d/OrbitingBadge";
 import OllamaSetup from "./components/OllamaSetup";
 import ConnectionDot from "./components/ConnectionDot";
 import MemoryPanel from "./components/MemoryPanel";
-import ImageThumbnail from "./components/ImageThumbnail";
 import ImageLightbox from "./components/ImageLightbox";
 import ImagePrivacyWarning from "./components/ImagePrivacyWarning";
 import DictateButton from "./components/DictateButton";
@@ -58,292 +33,29 @@ import { joinAppend } from "./lib/dictationAppend";
 import {
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
   PanelLeft,
   Brain,
-  BookOpen,
-  Search,
 } from "lucide-react";
 import { use3DEffects } from "./contexts/Effects3DContext";
 import { useModels } from "./hooks/useModels";
 import { useChat } from "./hooks/useChat";
 import { useImageAttachments } from "./hooks/useImageAttachments";
 import { estimateMessageTokens } from "./lib/context-budget";
-
-/** Per Settings project folder: last File Browser root (survives restarts if server fell back to project root). */
-const FILE_BROWSER_ROOTS_KEY = "cc_file_browser_roots";
-
-function readFileBrowserRootsMap() {
-  try {
-    return JSON.parse(localStorage.getItem(FILE_BROWSER_ROOTS_KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-
-function writeFileBrowserRootsMap(map) {
-  try {
-    localStorage.setItem(FILE_BROWSER_ROOTS_KEY, JSON.stringify(map));
-  } catch {
-    /* private mode / quota */
-  }
-}
-
-function isPathUnderProjectRoot(projectRoot, candidate) {
-  const pr = String(projectRoot || "").replace(/\/+$/, "");
-  const c = String(candidate || "").replace(/\/+$/, "");
-  if (!pr || !c) return false;
-  return c === pr || c.startsWith(`${pr}/`);
-}
-
-const MODES = [
-  {
-    id: "dashboard",
-    label: "See Home →",
-    icon: "🏠",
-    desc: "Your home for recent work and feature discovery",
-    placeholder: "", // Dashboard has no chat input
-  },
-  {
-    id: "chat",
-    label: "Chat",
-    icon: "💬",
-    desc: "Let's talk about anything",
-    placeholder:
-      "What's on your mind? Ask about code, building with AI, or just say hey...",
-  },
-  {
-    id: "explain",
-    label: "Explain This",
-    icon: "💡",
-    desc: "Walk me through this code",
-    placeholder: "Paste some code and I'll walk you through it step by step...",
-  },
-  {
-    id: "bugs",
-    label: "Safety Check",
-    icon: "🐛",
-    desc: "Spot issues before they bite",
-    placeholder:
-      "Drop your code here — I'll look for anything that could cause trouble...",
-  },
-  {
-    id: "refactor",
-    label: "Clean Up",
-    icon: "✨",
-    desc: "Help me make this better",
-    placeholder:
-      "Paste code you'd like to improve — I'll show you what I'd change and why...",
-  },
-  {
-    id: "translate-tech",
-    label: "Code → Plain English",
-    icon: "📋",
-    desc: "Make this make sense to everyone",
-    placeholder:
-      "Paste code or a technical description...\nI'll explain it in plain English.",
-  },
-  {
-    id: "translate-biz",
-    label: "Idea → Code Spec",
-    icon: "🔧",
-    desc: "Turn ideas into buildable specs",
-    placeholder:
-      "Describe what you want built...\nI'll turn it into clear instructions for your AI coding tool.",
-  },
-  {
-    id: "diagram",
-    label: "Diagram",
-    icon: "📊",
-    desc: "Visualize systems and processes",
-    placeholder:
-      "Describe a system, process, or relationship and I'll create a diagram...",
-  },
-  {
-    id: "pentest",
-    label: "Security",
-    icon: "🛡️",
-    desc: "OWASP security assessment",
-    placeholder: "",
-  },
-  {
-    id: "validate",
-    label: "Validate",
-    icon: "✅",
-    desc: "Generate project validation",
-    placeholder: "",
-  },
-  {
-    id: "experiment",
-    label: "Experiment",
-    icon: "🧪",
-    desc: "Bounded hypothesis → change → measure loops",
-    placeholder: "",
-  },
-  {
-    id: "review",
-    label: "Review",
-    icon: "📝",
-    desc: "Get a code report card",
-    placeholder:
-      "Submit code for a structured review with color-coded grades...",
-  },
-  {
-    id: "prompting",
-    label: "Prompting",
-    icon: "🎯",
-    desc: "Craft and score AI prompts",
-    placeholder: "",
-  },
-  {
-    id: "skillz",
-    label: "Skillz",
-    icon: "⚡",
-    desc: "Build Claude Code skills",
-    placeholder: "",
-  },
-  {
-    id: "agentic",
-    label: "Agentic",
-    icon: "🤖",
-    desc: "Design AI agents",
-    placeholder: "",
-  },
-  {
-    id: "planner",
-    label: "Planner",
-    icon: "📋",
-    desc: "Design and score plans",
-    placeholder: "",
-  },
-  {
-    id: "create",
-    label: "Create",
-    icon: "🛠️",
-    desc: "Start something new",
-    placeholder:
-      "Tell me what you want to build and I'll help you get started...",
-  },
-  {
-    id: "build",
-    label: "Build",
-    icon: "🏗️",
-    desc: "Start a GSD+ICM project to build apps and tools",
-    placeholder: "Scaffold a project with planning and stages...",
-  },
-  {
-    id: "terminal",
-    label: "Terminal",
-    icon: "⌨️",
-    desc: "Interactive shell in your project folder",
-    placeholder: "",
-  },
-];
-
-const BUILDER_MODES = ["prompting", "skillz", "agentic", "planner"];
-
-/**
- * Modes that run the agentic TOOL_CALL loop and therefore consume agentMaxRounds.
- * Mirrors AGENTIC_TOOL_MODES in lib/chat-post-handler.js — transform modes
- * (explain, bugs, refactor, translate-tech, translate-biz, diagram) stream
- * without tools, so the Rounds control would be a no-op there.
- */
-const AGENTIC_TOOL_MODES = ["chat", "experiment"];
-
-/** Modes where POST /api/chat uses agentMaxRounds and the user should see the header control. */
-function showAgentRoundsInHeader(mode) {
-  return AGENTIC_TOOL_MODES.includes(mode);
-}
-
-/** Shown in the main strip; everything else lives under More or the command palette. */
-const PRIMARY_MODE_IDS = [
-  "dashboard",
-  "chat",
-  "review",
-  "pentest",
-  "build",
-  "create",
-  "diagram",
-  "experiment",
-];
-
-const MORE_MENU_GROUPS = [
-  {
-    label: "Assist",
-    ids: ["explain", "bugs", "refactor", "translate-tech", "translate-biz"],
-  },
-  {
-    label: "Builders",
-    ids: ["prompting", "skillz", "agentic", "planner"],
-  },
-  { label: "Analyze", ids: ["validate"] },
-  { label: "Tools", ids: ["terminal"] },
-];
-
-function modeById(id) {
-  return MODES.find((m) => m.id === id);
-}
-
-function AttachedFiles({ files, onRemove, onImageClick }) {
-  if (files.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-2 mb-2">
-      {files.map((f, i) =>
-        f.isImage || f.type === "image" ? (
-          <ImageThumbnail
-            key={i}
-            src={f.thumbnail}
-            filename={f.name}
-            size={f.size}
-            format={f.format}
-            dimensions={f.dimensions}
-            onRemove={() => onRemove(i)}
-            onClick={() => onImageClick && onImageClick(i)}
-          />
-        ) : (
-          <div
-            key={i}
-            className="flex items-center gap-1.5 bg-indigo-600/15 border border-indigo-500/30 rounded-lg px-2.5 py-1 text-xs"
-          >
-            <span className="text-indigo-400">📄</span>
-            <span className="text-slate-300 max-w-[120px] truncate">
-              {f.name}
-            </span>
-            <span className="text-slate-600">
-              {f.lines ? `${f.lines}L` : ""}
-            </span>
-            <button
-              onClick={() => onRemove(i)}
-              className="text-slate-500 hover:text-red-400 ml-0.5"
-              aria-label={`Remove ${f.name}`}
-            >
-              ✕
-            </button>
-          </div>
-        ),
-      )}
-    </div>
-  );
-}
-
-function CopyButton({ text }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={async () => {
-        const ok = await copyText(text);
-        if (ok) {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        }
-      }}
-      className="glass text-xs text-slate-400 hover:text-indigo-300 px-2 py-1 rounded-lg transition-colors"
-      aria-label="Copy to clipboard"
-    >
-      {copied ? "✓ Copied" : "📋 Copy"}
-    </button>
-  );
-}
+import {
+  readFileBrowserRootsMap,
+  writeFileBrowserRootsMap,
+  isPathUnderProjectRoot,
+} from "./app/file-browser-roots";
+import {
+  MODES,
+  BUILDER_MODES,
+  PRIMARY_MODE_IDS,
+  modeById,
+  showAgentRoundsInHeader,
+} from "./app/modes";
+import { AttachedFiles } from "./app/chat-ui-helpers";
+import ModeTabs from "./app/ModeTabs";
+import ModeRouter from "./app/ModeRouter";
 
 export default function App() {
   // Electron detection
@@ -1729,563 +1441,180 @@ export default function App() {
         <div className="flex-1 flex overflow-hidden">
           {/* Main chat area */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Mode tabs: primary strip, More menu, command palette (⌘K / Ctrl+K) */}
-            <div className="glass border-b border-slate-700/30 px-3 sm:px-4 py-2 flex flex-wrap items-center gap-1.5 sm:gap-2 relative">
-              {showDecorative3D && <FloatingGeometry shapeCount={5} />}
-              {primaryModes.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  data-testid={`mode-tab-${m.id}`}
-                  onClick={() => selectMode(m.id)}
-                  className={`relative z-10 flex min-h-[36px] cursor-pointer items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419] ${
-                    mode === m.id
-                      ? "bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 font-medium neon-glow-sm"
-                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200 border border-transparent"
-                  }`}
-                >
-                  <span aria-hidden="true">{m.icon}</span>
-                  <span className="relative">
-                    {m.label}
-                    {m.id === "agentic" && agentTerminalEnabled && (
-                      <span
-                        className="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-green-400"
-                        title="Agent terminal is active"
-                      />
-                    )}
-                  </span>
-                </button>
-              ))}
-              <div className="relative z-10" ref={moreModesRef}>
-                <button
-                  type="button"
-                  data-testid="mode-tab-more"
-                  aria-expanded={showMoreModes}
-                  aria-haspopup="menu"
-                  onClick={() => {
-                    setShowMoreModes((v) => !v);
-                    setShowModePalette(false);
-                  }}
-                  className={`relative z-10 flex min-h-[36px] cursor-pointer items-center gap-0.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419] ${
-                    currentModeIsSecondary
-                      ? "bg-indigo-600/20 text-indigo-200 border border-indigo-500/35 font-medium"
-                      : "text-slate-400 hover:bg-indigo-500/10 hover:text-slate-200 border border-transparent"
-                  }`}
-                >
-                  More
-                  <ChevronDown
-                    className={`h-3.5 w-3.5 shrink-0 opacity-70 transition-transform ${showMoreModes ? "rotate-180" : ""}`}
-                    aria-hidden
-                  />
-                </button>
-                {showMoreModes && (
-                  <div
-                    className="absolute left-0 top-full z-50 mt-1 min-w-[min(100vw-2rem,16rem)] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border border-slate-600/40 bg-[#141a24]/95 py-2 shadow-xl backdrop-blur-md"
-                    role="menu"
-                  >
-                    {MORE_MENU_GROUPS.map((group) => (
-                      <div key={group.label} className="px-1 pb-1">
-                        <div
-                          className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500"
-                          role="presentation"
-                        >
-                          {group.label}
-                        </div>
-                        {group.ids.map((id) => {
-                          const m = modeById(id);
-                          if (!m) return null;
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              role="menuitem"
-                              data-testid={`mode-tab-${m.id}`}
-                              onClick={() => selectMode(m.id)}
-                              className={`flex w-full min-h-[40px] items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors ${
-                                mode === m.id
-                                  ? "bg-indigo-600/25 text-indigo-200"
-                                  : "text-slate-300 hover:bg-slate-600/30"
-                              }`}
-                            >
-                              <span aria-hidden="true">{m.icon}</span>
-                              <span className="relative flex-1">
-                                {m.label}
-                                {m.id === "agentic" && agentTerminalEnabled && (
-                                  <span
-                                    className="absolute -top-0.5 right-0 w-2 h-2 rounded-full bg-green-400"
-                                    title="Agent terminal is active"
-                                  />
-                                )}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                data-testid="mode-tab-palette-open"
-                title="Search modes (⌘K or Ctrl+K)"
-                aria-label="Search modes, keyboard shortcut Command K or Control K"
-                onClick={() => {
-                  setShowModePalette(true);
-                  setShowMoreModes(false);
-                }}
-                className="relative z-10 ml-auto flex min-h-[36px] min-w-[36px] cursor-pointer items-center justify-center rounded-lg border border-transparent text-slate-400 transition-colors hover:bg-indigo-500/10 hover:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1419]"
-              >
-                <Search className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
-
-            <ChatSessionProgress
-              active={streaming}
-              modeLabel={currentMode?.label || ""}
+            <ModeTabs
+              showDecorative3D={showDecorative3D}
+              primaryModes={primaryModes}
+              mode={mode}
+              selectMode={selectMode}
+              agentTerminalEnabled={agentTerminalEnabled}
+              moreModesRef={moreModesRef}
+              showMoreModes={showMoreModes}
+              setShowMoreModes={setShowMoreModes}
+              currentModeIsSecondary={currentModeIsSecondary}
+              showModePalette={showModePalette}
+              setShowModePalette={setShowModePalette}
+              paletteQuery={paletteQuery}
+              setPaletteQuery={setPaletteQuery}
+              paletteInputRef={paletteInputRef}
+              paletteModes={paletteModes}
+              paletteHighlightIndex={paletteHighlightIndex}
+              setPaletteHighlightIndex={setPaletteHighlightIndex}
+              streaming={streaming}
+              currentMode={currentMode}
+              linkedExperimentIds={linkedExperimentIds}
+              setRestoreExperimentId={setRestoreExperimentId}
+              setMode={setMode}
             />
 
-            {mode !== "experiment" && (
-              <LinkedExperimentChips
-                ids={linkedExperimentIds}
-                onOpen={(id) => {
-                  setRestoreExperimentId(id);
-                  setMode("experiment");
-                }}
-              />
-            )}
-
-            {showModePalette && (
-              <div
-                className="fixed inset-0 z-[200] flex items-start justify-center bg-black/55 px-4 pt-[12vh] pb-8"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Switch mode"
-                onMouseDown={(e) => {
-                  if (e.target === e.currentTarget) setShowModePalette(false);
-                }}
-              >
-                <div
-                  className="w-full max-w-lg overflow-hidden rounded-xl border border-slate-600/50 bg-[#141a24] shadow-2xl"
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  <div className="flex items-center gap-2 border-b border-slate-700/50 px-3 py-2">
-                    <Search
-                      className="h-4 w-4 shrink-0 text-slate-500"
-                      aria-hidden
-                    />
-                    <input
-                      ref={paletteInputRef}
-                      type="search"
-                      value={paletteQuery}
-                      onChange={(e) => setPaletteQuery(e.target.value)}
-                      placeholder="Filter modes…"
-                      className="min-w-0 flex-1 bg-transparent py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
-                      aria-autocomplete="list"
-                      aria-controls="mode-palette-list"
-                    />
-                    <kbd className="hidden shrink-0 rounded border border-slate-600/60 bg-slate-800/80 px-1.5 py-0.5 text-[10px] text-slate-400 sm:inline">
-                      esc
-                    </kbd>
-                  </div>
-                  <ul
-                    id="mode-palette-list"
-                    className="max-h-[min(50vh,20rem)] overflow-y-auto py-1"
-                    role="listbox"
-                  >
-                    {paletteModes.map((m, idx) => (
-                      <li key={m.id} role="presentation">
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={idx === paletteHighlightIndex}
-                          data-testid={`mode-tab-${m.id}`}
-                          onMouseEnter={() => setPaletteHighlightIndex(idx)}
-                          onClick={() => selectMode(m.id)}
-                          className={`flex w-full min-h-[44px] items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors ${
-                            idx === paletteHighlightIndex
-                              ? "bg-indigo-600/30 text-indigo-100"
-                              : "text-slate-300 hover:bg-slate-700/40"
-                          }`}
-                        >
-                          <span aria-hidden="true">{m.icon}</span>
-                          <span className="relative flex min-w-0 flex-1 flex-col gap-0.5">
-                            <span className="font-medium">{m.label}</span>
-                            {m.desc ? (
-                              <span className="truncate text-xs text-slate-500">
-                                {m.desc}
-                              </span>
-                            ) : null}
-                            {m.id === "agentic" && agentTerminalEnabled && (
-                              <span
-                                className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-green-400"
-                                title="Agent terminal is active"
-                              />
-                            )}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {paletteModes.length === 0 && (
-                    <p className="px-3 py-6 text-center text-sm text-slate-500">
-                      No modes match that filter.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Messages / Create Wizard / Review Panel / Dashboard */}
-            {mode === "dashboard" ? (
-              <DashboardView
-                modes={MODES}
-                currentMode={mode}
-                onModeSelect={setMode}
-                isElectron={isElectron}
-                history={history}
-                onResumeConversation={handleResumeConversation}
-              />
-            ) : mode === "review" ? (
-              <ReviewPanel
-                selectedModel={selectedModel}
-                connected={connected}
-                streaming={streaming}
-                onAttachFromBrowser={reviewAttachRef}
-                onOpenFileBrowser={() => {
+            <ModeRouter
+              mode={mode}
+              isElectron={isElectron}
+              history={history}
+              onResumeConversation={handleResumeConversation}
+              setMode={setMode}
+              review={{
+                selectedModel,
+                connected,
+                streaming,
+                onAttachFromBrowser: reviewAttachRef,
+                onOpenFileBrowser: () => {
                   setShowFileBrowser(true);
                   setShowGitHub(false);
                   setShowGlossary(false);
-                }}
-                onToast={showToast}
-                onSwitchToChat={(msgs) => {
+                },
+                onToast: showToast,
+                onSwitchToChat: (msgs) => {
                   setMode("chat");
                   if (msgs) setMessages(msgs);
-                }}
-                savedReview={savedReview}
-                onSaveReview={handleSaveReview}
-                models={models}
-                onSetSelectedModel={setSelectedModel}
-                onUpdateReviewDeepDive={handleUpdateReviewDeepDive}
-                setPendingConfirm={setPendingConfirm}
-              />
-            ) : mode === "pentest" ? (
-              <SecurityPanel
-                selectedModel={selectedModel}
-                connected={connected}
-                streaming={streaming}
-                onAttachFromBrowser={pentestAttachRef}
-                onOpenFileBrowser={() => {
+                },
+                savedReview,
+                onSaveReview: handleSaveReview,
+                models,
+                onSetSelectedModel: setSelectedModel,
+                onUpdateReviewDeepDive: handleUpdateReviewDeepDive,
+                setPendingConfirm,
+              }}
+              pentest={{
+                selectedModel,
+                connected,
+                streaming,
+                onAttachFromBrowser: pentestAttachRef,
+                onOpenFileBrowser: () => {
                   setShowFileBrowser(true);
                   setShowGitHub(false);
                   setShowGlossary(false);
-                }}
-                onToast={showToast}
-                savedPentest={savedPentest}
-                onSavePentest={handleSavePentest}
-                models={models}
-                onSetSelectedModel={setSelectedModel}
-                onUpdatePentestDeepDive={handleUpdatePentestDeepDive}
-                setPendingConfirm={setPendingConfirm}
-              />
-            ) : mode === "validate" ? (
-              <ValidatePanel
-                selectedModel={selectedModel}
-                connected={connected}
-                onToast={showToast}
-                models={models}
-              />
-            ) : mode === "experiment" ? (
-              <ExperimentPanel
-                selectedModel={selectedModel}
-                connected={connected}
-                onToast={showToast}
-                projectFolder={projectFolder}
-                chatFolder={chatFolder}
-                agentMaxRounds={agentMaxRounds}
-                setPendingConfirm={setPendingConfirm}
-                restoreExperimentId={restoreExperimentId}
-                onRestoreComplete={() => setRestoreExperimentId(null)}
-              />
-            ) : mode === "terminal" ? (
-              <TerminalPanel projectFolder={chatFolder || projectFolder} />
-            ) : BUILDER_MODES.includes(mode) ? (
-              mode === "prompting" ? (
-                <PromptingPanel
-                  selectedModel={selectedModel}
-                  connected={connected}
-                  models={models}
-                  onToast={setToast}
-                  savedData={savedBuilderData}
-                  onSaveBuilder={handleSaveBuilder}
-                  onLoadFile={builderAttachRef}
-                  projectFolder={projectFolder}
-                />
-              ) : mode === "skillz" ? (
-                <SkillzPanel
-                  selectedModel={selectedModel}
-                  connected={connected}
-                  models={models}
-                  onToast={setToast}
-                  savedData={savedBuilderData}
-                  onSaveBuilder={handleSaveBuilder}
-                  onLoadFile={builderAttachRef}
-                  projectFolder={projectFolder}
-                />
-              ) : mode === "agentic" ? (
-                <AgenticPanel
-                  selectedModel={selectedModel}
-                  connected={connected}
-                  models={models}
-                  onToast={setToast}
-                  savedData={savedBuilderData}
-                  onSaveBuilder={handleSaveBuilder}
-                  onLoadFile={builderAttachRef}
-                  projectFolder={projectFolder}
-                />
-              ) : (
-                <PlannerPanel
-                  selectedModel={selectedModel}
-                  connected={connected}
-                  models={models}
-                  onToast={setToast}
-                  savedData={savedBuilderData}
-                  onSaveBuilder={handleSaveBuilder}
-                  onLoadFile={builderAttachRef}
-                  projectFolder={projectFolder}
-                />
-              )
-            ) : (
-              <div
-                className="flex-1 overflow-y-auto scrollbar-thin px-4 py-4"
-                role="log"
-                aria-label="Chat messages"
-                aria-live="polite"
-              >
-                {mode === "create" ? (
-                  <>
-                    <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-slate-500">
-                          Create project
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowTutorial(!showTutorial);
-                            if (!showTutorial) setTutorialStep(1);
-                            setWizardPrefill(null);
-                          }}
-                          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? "bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900" : "bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse"}`}
-                          aria-label={
-                            showTutorial
-                              ? "Hide tutorial"
-                              : "Show step-by-step tutorial"
-                          }
-                        >
-                          <BookOpen className="w-5 h-5 shrink-0" aria-hidden />
-                          {showTutorial ? "Tutorial on" : "Start tutorial"}
-                        </button>
-                      </div>
-                    </div>
-                    {showTutorial && (
-                      <TutorialPanel
-                        mode="create"
-                        currentStep={tutorialStep}
-                        onStepChange={(s) => {
-                          setTutorialStep(s);
-                          setWizardPrefill(null);
-                        }}
-                        onPrefillStep={(stepNum, data) =>
-                          setWizardPrefill({ step: stepNum, data })
-                        }
-                        onClose={() => setShowTutorial(false)}
-                        totalSteps={5}
-                      />
-                    )}
-                    <CreateWizard
-                      defaultOutputRoot={projectFolder || "~/AI_Dev/"}
-                      onSuccess={handleCreateSuccess}
-                      onGeneratePRP={handleGeneratePRP}
-                      onToast={showToast}
-                      step={showTutorial ? tutorialStep : undefined}
-                      onStepChange={showTutorial ? setTutorialStep : undefined}
-                      prefill={wizardPrefill}
-                      tutorialActive={showTutorial}
-                      tutorialSuggestions={
-                        showTutorial
-                          ? (CREATE_TUTORIAL_STEPS[tutorialStep - 1]?.prefill ??
-                            null)
-                          : null
-                      }
-                    />
-                  </>
-                ) : mode === "build" ? (
-                  showBuildWizard ? (
-                    <>
-                      <div className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 mb-2 bg-slate-900/95 backdrop-blur border-b border-slate-700/50">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-slate-500">
-                            New build project
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowTutorial(!showTutorial);
-                              if (!showTutorial) setTutorialStep(1);
-                              setWizardPrefill(null);
-                            }}
-                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-base shadow-lg transition-all ${showTutorial ? "bg-amber-500 text-slate-900 ring-2 ring-amber-400 ring-offset-2 ring-offset-slate-900" : "bg-amber-400 text-slate-900 hover:bg-amber-300 ring-2 ring-amber-400/50 animate-pulse"}`}
-                            aria-label={
-                              showTutorial
-                                ? "Hide tutorial"
-                                : "Show step-by-step tutorial"
-                            }
-                          >
-                            <BookOpen
-                              className="w-5 h-5 shrink-0"
-                              aria-hidden
-                            />
-                            {showTutorial ? "Tutorial on" : "Start tutorial"}
-                          </button>
-                        </div>
-                      </div>
-                      {showTutorial && (
-                        <TutorialPanel
-                          mode="build"
-                          currentStep={tutorialStep}
-                          onStepChange={(s) => {
-                            setTutorialStep(s);
-                            setWizardPrefill(null);
-                          }}
-                          onPrefillStep={(stepNum, data) =>
-                            setWizardPrefill({ step: stepNum, data })
-                          }
-                          onClose={() => setShowTutorial(false)}
-                          totalSteps={4}
-                        />
-                      )}
-                      <BuildWizard
-                        defaultOutputRoot={projectFolder || "~/AI_Dev/"}
-                        onSuccess={handleBuildProjectCreated}
-                        onToast={showToast}
-                        onCancel={() => {
-                          setShowBuildWizard(false);
-                          setShowTutorial(false);
-                        }}
-                        step={showTutorial ? tutorialStep : undefined}
-                        onStepChange={
-                          showTutorial ? setTutorialStep : undefined
-                        }
-                        prefill={wizardPrefill}
-                        tutorialActive={showTutorial}
-                        tutorialSuggestions={
-                          showTutorial
-                            ? (BUILD_TUTORIAL_STEPS[tutorialStep - 1]
-                                ?.prefill ?? null)
-                            : null
-                        }
-                      />
-                    </>
-                  ) : (
-                    <BuildPanel
-                      projects={buildProjects}
-                      activeProject={activeBuildProject}
-                      onSelectProject={setActiveBuildProject}
-                      onNewProject={() => setShowBuildWizard(true)}
-                      onViewFiles={(p) => {
-                        setProjectFolder(p);
-                        setShowFileBrowser(true);
-                        setShowGlossary(false);
-                      }}
-                      onRefresh={fetchBuildProjects}
-                      onToast={showToast}
-                      selectedModel={selectedModel}
-                      ollamaConnected={connected}
-                    />
-                  )
-                ) : (
-                  <>
-                    {messages.length === 0 ? (
-                      <EmptyStateScene
-                        mode={mode}
-                        currentMode={currentMode}
-                        connected={connected}
-                        selectedModel={selectedModel}
-                        onSettingsClick={() => setShowSettings(true)}
-                        onGoCreate={() => setMode("create")}
-                        onGoBuild={() => setMode("build")}
-                      />
-                    ) : null}
-                    {messages.map((msg, i) =>
-                      msg._toolContext ? null : (
-                        <div key={i} className="relative group">
-                          <MessageBubble
-                            role={msg.role}
-                            content={msg.content}
-                            streaming={
-                              streaming &&
-                              i === messages.length - 1 &&
-                              msg.role === "assistant"
-                            }
-                            images={msg.images}
-                            onImageClick={openLightboxFromMessage}
-                          />
-                          {msg.role === "assistant" && !streaming && (
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <CopyButton text={msg.content} />
-                            </div>
-                          )}
-                        </div>
-                      ),
-                    )}
-                    {streaming &&
-                      messages[messages.length - 1]?.role !== "assistant" && (
-                        <TypingIndicator3D mode={mode} />
-                      )}
-                    {terminalOutput && (
-                      <div className="mx-4 my-2 glass rounded-xl border border-indigo-500/20 overflow-hidden">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-indigo-500/10 border-b border-indigo-500/20">
-                          <span className="text-xs font-mono text-indigo-300">
-                            {terminalOutput.status === "running" ? (
-                              <>
-                                <span className="inline-block animate-spin mr-1">
-                                  &#x27F3;
-                                </span>{" "}
-                                Running command...
-                              </>
-                            ) : terminalOutput.status === "error" ? (
-                              <span className="text-red-400">
-                                ✕ Command failed
-                              </span>
-                            ) : terminalOutput.status === "timeout" ? (
-                              <span className="text-yellow-400">
-                                ⏱ Command timed out
-                              </span>
-                            ) : (
-                              <span className="text-green-400">
-                                ✓ Command completed
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        {terminalOutput.command && (
-                          <pre className="px-3 py-2 text-xs text-slate-400 font-mono whitespace-pre-wrap border-b border-indigo-500/10">
-                            $ {terminalOutput.command}
-                          </pre>
-                        )}
-                        {terminalOutput.output && (
-                          <pre className="px-3 py-2 text-xs text-slate-300 font-mono whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-thin">
-                            {terminalOutput.output}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </>
-                )}
-              </div>
-            )}
+                },
+                onToast: showToast,
+                savedPentest,
+                onSavePentest: handleSavePentest,
+                models,
+                onSetSelectedModel: setSelectedModel,
+                onUpdatePentestDeepDive: handleUpdatePentestDeepDive,
+                setPendingConfirm,
+              }}
+              validate={{
+                selectedModel,
+                connected,
+                onToast: showToast,
+                models,
+              }}
+              experiment={{
+                selectedModel,
+                connected,
+                onToast: showToast,
+                projectFolder,
+                chatFolder,
+                agentMaxRounds,
+                setPendingConfirm,
+                restoreExperimentId,
+                onRestoreComplete: () => setRestoreExperimentId(null),
+              }}
+              terminal={{
+                projectFolder: chatFolder || projectFolder,
+              }}
+              builder={{
+                selectedModel,
+                connected,
+                models,
+                onToast: setToast,
+                savedData: savedBuilderData,
+                onSaveBuilder: handleSaveBuilder,
+                onLoadFile: builderAttachRef,
+                projectFolder,
+              }}
+              create={{
+                showTutorial,
+                tutorialStep,
+                wizardPrefill,
+                defaultOutputRoot: projectFolder || "~/AI_Dev/",
+                onToggleTutorial: () => {
+                  setShowTutorial(!showTutorial);
+                  if (!showTutorial) setTutorialStep(1);
+                  setWizardPrefill(null);
+                },
+                onTutorialStepChange: (s) => {
+                  setTutorialStep(s);
+                  setWizardPrefill(null);
+                },
+                onPrefillStep: (stepNum, data) =>
+                  setWizardPrefill({ step: stepNum, data }),
+                onCloseTutorial: () => setShowTutorial(false),
+                onSetTutorialStep: setTutorialStep,
+                onSuccess: handleCreateSuccess,
+                onGeneratePRP: handleGeneratePRP,
+                onToast: showToast,
+              }}
+              build={{
+                showBuildWizard,
+                showTutorial,
+                tutorialStep,
+                wizardPrefill,
+                defaultOutputRoot: projectFolder || "~/AI_Dev/",
+                onToggleTutorial: () => {
+                  setShowTutorial(!showTutorial);
+                  if (!showTutorial) setTutorialStep(1);
+                  setWizardPrefill(null);
+                },
+                onTutorialStepChange: (s) => {
+                  setTutorialStep(s);
+                  setWizardPrefill(null);
+                },
+                onPrefillStep: (stepNum, data) =>
+                  setWizardPrefill({ step: stepNum, data }),
+                onCloseTutorial: () => setShowTutorial(false),
+                onSetTutorialStep: setTutorialStep,
+                onSuccess: handleBuildProjectCreated,
+                onCancelWizard: () => {
+                  setShowBuildWizard(false);
+                  setShowTutorial(false);
+                },
+                onToast: showToast,
+                projects: buildProjects,
+                activeProject: activeBuildProject,
+                onSelectProject: setActiveBuildProject,
+                onNewProject: () => setShowBuildWizard(true),
+                onViewFiles: (p) => {
+                  setProjectFolder(p);
+                  setShowFileBrowser(true);
+                  setShowGlossary(false);
+                },
+                onRefresh: fetchBuildProjects,
+                selectedModel,
+                ollamaConnected: connected,
+              }}
+              chat={{
+                messages,
+                streaming,
+                currentMode,
+                connected,
+                selectedModel,
+                onSettingsClick: () => setShowSettings(true),
+                onImageClick: openLightboxFromMessage,
+                terminalOutput,
+                messagesEndRef,
+              }}
+            />
+
 
             {/* Stats — holographic token counter */}
             {stats &&
