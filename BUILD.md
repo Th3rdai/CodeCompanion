@@ -292,4 +292,4 @@ Example (conceptual): proxy `location /api/` and `location /mcp` to `http://127.
 
 ## Hosting
 
-Upload built artifacts to `https://th3rdai.com/downloads/`. The landing page at `landing/index.html` links to these URLs.
+Upload built artifacts to `https://th3rdai.com/downloads/`. The archived marketing stub at `!ARCHIVES/landing/index.html` links to these URLs (not shipped in Electron builds).

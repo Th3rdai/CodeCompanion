@@ -13,6 +13,7 @@ package-lock.json
 pnpm-lock.yaml
 *.min.js
 ARCHIVES
+!ARCHIVES
 github-repos
 # Single-quoted template literals in artifactName must not be reformatted
 electron-builder.config.js

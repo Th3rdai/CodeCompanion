@@ -140,9 +140,9 @@ Implementation: `src/components/dashboard/dashboard-section-defaults.js` (`DASHB
 
 ## 🔗 Related Documents
 
-- `DASHBOARD.md` - Complete implementation plan (1400+ lines)
-- `DASHBOARD-REVIEW-*.md` - Plan validation passes (4 iterations)
-- `DASHBOARD-UIPRO-*.md` - UI/UX review and fixes
+- `!ARCHIVES/root-plans/DASHBOARD.md` - Complete implementation plan (1400+ lines)
+- `!ARCHIVES/root-plans/DASHBOARD-REVIEW-*.md` - Plan validation passes (4 iterations)
+- `!ARCHIVES/root-plans/DASHBOARD-UIPRO-*.md` - UI/UX review and fixes
 - `docs/JARGON-GLOSSARY.md` - Glossary right-panel UX and term reference
 - `docs/DESIGN-STANDARDS.md` - Design system guidelines
 

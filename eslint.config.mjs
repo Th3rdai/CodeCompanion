@@ -15,6 +15,7 @@ const ignorePatterns = [
   "**/.gitnexus/**",
   "**/.claude/worktrees/**",
   "**/ARCHIVES/**",
+  "**/!ARCHIVES/**",
   "**/*.min.js",
   "**/patches/**",
   "**/github-repos/**",

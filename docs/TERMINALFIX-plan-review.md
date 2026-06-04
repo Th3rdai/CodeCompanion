@@ -1,7 +1,7 @@
 # TERMINALFIX — plan review (plan-reviewer skill)
 
 **Skill:** `.cursor/skills/plan-reviewer`  
-**Subject:** `TERMINALFIX.md` (revised after implementation)  
+**Subject:** `!ARCHIVES/root-plans/TERMINALFIX.md` (revised after implementation)  
 **Review date:** 2026-04-03
 
 **Verdict:** **Approved — matches shipped behavior.** Suitable as the record of what was built; no blocking gaps for this scope.
@@ -71,7 +71,7 @@ Execution-time denials (allowlist, etc.) unchanged.
 | Unit (builtin) | Preamble substrings for `includeTerminal` true/false/default |
 | Unit (handler) | `buildToolsPrompt` with terminal enabled/disabled config     |
 
-Manual checklist in `TERMINALFIX.md` for bind/Electron scenarios.
+Manual checklist in `!ARCHIVES/root-plans/TERMINALFIX.md` for bind/Electron scenarios.
 
 ---
 

@@ -1,6 +1,6 @@
 # REORGPLAN — Code Companion file reorganization
 
-**Status:** Reviewed (iteration 3) — **READY for Phase 1–2**; Phases 3–6 ready with corrected order  
+**Status:** **Phase 1 complete** (2026-06-04) — Phase 2–6 ready; Phase 1 merged locally (awaiting commit/PR)  
 **Created:** 2026-06-04  
 **Goal:** Reduce root clutter, group related files into predictable folders, and park obsolete artifacts in `!ARCHIVES/` for later deletion — **without changing runtime behavior, packaging, or capabilities.**
 

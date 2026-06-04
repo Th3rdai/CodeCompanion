@@ -375,7 +375,7 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   └── e2e/               # Playwright end-to-end tests
 ├── playwright.config.js   # Playwright test runner configuration
 ├── startup.sh             # Production-style server start (see Quick Start)
-├── fix_cache.html         # Optional: open locally to clear browser localStorage (troubleshooting)
+├── !ARCHIVES/root-html/fix_cache.html  # Optional: open locally to clear browser localStorage (troubleshooting)
 └── dist/                  # Production build output
 ```
 
