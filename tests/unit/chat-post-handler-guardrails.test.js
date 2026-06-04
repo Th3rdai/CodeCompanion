@@ -551,6 +551,33 @@ test("shell-promote: a real narrated command (`git status`) is still promoted", 
   assert.match(out, /"command":"git"/);
 });
 
+test("shell-promote: a mangled inline tool ref (`builtin.list_dir`) is NOT promoted", () => {
+  // Regression (observed live: `spawn builtin.list_dir ENOENT`): the model
+  // narrated a builtin tool name in backticks and the promoter spawned it as a
+  // shell binary. Builtin/MCP tool refs must never become shell commands.
+  assert.equal(
+    tryPromoteNarratedShellToToolCall(
+      "Let me check — the tool `builtin.list_dir` failed with an error.",
+    ),
+    null,
+  );
+  assert.equal(
+    tryPromoteNarratedShellToToolCall(
+      "Let me run `builtin.run_terminal_cmd` to inspect the project.",
+    ),
+    null,
+  );
+});
+
+test("shell-promote: a mangled MCP tool ref (snake_case) is NOT promoted", () => {
+  assert.equal(
+    tryPromoteNarratedShellToToolCall(
+      "Let me call `aistudio.generate_content` to draft this.",
+    ),
+    null,
+  );
+});
+
 // ─── claimed-completion-without-tool-call ("accepts prose, never does work") ─
 test("claimed-completion: 'I've created the config file' → true", () => {
   assert.equal(
