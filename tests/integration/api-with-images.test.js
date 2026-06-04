@@ -1,7 +1,17 @@
 const test = require("node:test");
+const { after } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
+const os = require("os");
+const fs = require("fs");
 const { spawn } = require("child_process");
+
+// Isolate the spawned server's data/log dir so test traffic (e.g. model=llava
+// 404s, image-limit 400s) never pollutes the real app.log under the Electron
+// data dir. Matches the CC_DATA_DIR pattern used across the other integration
+// tests (e.g. openrouter-api.test.js).
+const TEST_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "cc-images-test-"));
+after(() => fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true }));
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -62,6 +72,7 @@ test("POST /api/chat accepts images array parameter", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
       OLLAMA_URL: "http://localhost:11434",
@@ -123,6 +134,7 @@ test("POST /api/chat rejects invalid image data", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
     },
@@ -163,6 +175,7 @@ test("POST /api/review accepts images array parameter", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
       OLLAMA_URL: "http://localhost:11434",
@@ -218,6 +231,7 @@ test("POST /api/review handles missing images gracefully", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
     },
@@ -256,6 +270,7 @@ test("POST /api/pentest accepts images array parameter", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
       OLLAMA_URL: "http://localhost:11434",
@@ -311,6 +326,7 @@ test("POST /api/pentest/remediate streams SSE with code + findings", async () =>
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
       OLLAMA_URL: "http://localhost:11434",
@@ -383,6 +399,7 @@ test("POST /api/chat limits number of images", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
     },
@@ -434,6 +451,7 @@ test("POST /api/review respects timeout configuration", async () => {
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
       OLLAMA_URL: "http://localhost:11434",

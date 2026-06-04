@@ -1,8 +1,19 @@
 const test = require("node:test");
+const { after } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
+const os = require("os");
+const fs = require("fs");
 const net = require("net");
 const { spawn } = require("child_process");
+
+// Isolate the spawned server's data/log dir so the 429 burst-traffic test does
+// not pollute the real app.log under the Electron data dir (CC_DATA_DIR pattern,
+// as in the integration tests).
+const TEST_DATA_DIR = fs.mkdtempSync(
+  path.join(os.tmpdir(), "cc-ratelimit-test-"),
+);
+after(() => fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true }));
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,6 +57,7 @@ test("rate limiting blocks burst traffic on create-project endpoint", async () =
     env: {
       ...process.env,
       PORT: String(port),
+      CC_DATA_DIR: TEST_DATA_DIR,
       DEBUG: "0",
       FORCE_HTTP: "1",
       // Full suite may run test files concurrently; skip MCP handshakes so
