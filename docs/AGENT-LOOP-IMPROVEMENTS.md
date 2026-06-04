@@ -746,7 +746,7 @@ Potential enhancements (not currently planned):
 **Agent-loop Improvements:**
 
 - `docs/PCI-ASSISTANT-SPEED-OPTIMIZATION.md` - Model selection and reliability analysis
-- `CLIPLAN.md` - Agent terminal specification
+- `docs/CLIPLAN.md` - Agent terminal specification
 - `lib/chat-post-handler.js` - Core chat handler implementation
 - `lib/builtin-agent-tools.js` - Builtin agent tools implementation
 

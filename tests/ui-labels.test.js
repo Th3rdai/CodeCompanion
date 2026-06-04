@@ -6,13 +6,15 @@ const path = require("path");
 describe("UI Label Validation", () => {
   let modes = [];
 
-  it("should parse MODES from App.jsx", () => {
-    const appContent = fs.readFileSync(
-      path.join(__dirname, "../src/App.jsx"),
+  it("should parse MODES from src/app/modes.js", () => {
+    const modesContent = fs.readFileSync(
+      path.join(__dirname, "../src/app/modes.js"),
       "utf-8",
     );
-    const modesMatch = appContent.match(/const MODES = \[([\s\S]*?)\];/);
-    assert.ok(modesMatch, "MODES array not found in App.jsx");
+    const modesMatch = modesContent.match(
+      /export const MODES = \[([\s\S]*?)\];/,
+    );
+    assert.ok(modesMatch, "MODES array not found in src/app/modes.js");
 
     // Extract mode objects (Prettier may use single or double quotes; placeholder may break across lines)
     const modesText = modesMatch[1];
@@ -23,7 +25,7 @@ describe("UI Label Validation", () => {
       modes.push({ id: match[1], label: match[2], placeholder: match[3] });
     }
     assert.ok(modes.length > 0, "No modes parsed from MODES array");
-    console.log(`Parsed ${modes.length} modes from App.jsx`);
+    console.log(`Parsed ${modes.length} modes from src/app/modes.js`);
   });
 
   it("should not contain jargon in labels", () => {

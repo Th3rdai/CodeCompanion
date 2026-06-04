@@ -50,8 +50,8 @@
 
 ```javascript
 import { useState, useEffect, useRef, useCallback } from "react";
-import MarkdownContent from "./components/MarkdownContent";
-import MessageBubble from "./components/MessageBubble";
+import MarkdownContent from "./components/chat/MarkdownContent";
+import MessageBubble from "./components/chat/MessageBubble";
 // ...
 ```
 

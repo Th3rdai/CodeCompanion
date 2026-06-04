@@ -180,18 +180,18 @@ Ship it behind `config.toolExec.parallel = true` for one release so anyone who o
 
 ## 7. Files that would change in Option 1 (for planning purposes only — not a commit)
 
-| File                                    | Change                                                                                                                                                                                 |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `routes/chat.js`                        | Replace the `for (const call of toolCalls)` loop with a `runWithLimit` call; ensure `toolResults` is assembled in original order; wire `chatAbortController` into each concurrent call |
-| `lib/concurrency.js` (new)              | Export `runWithLimit(items, concurrency, fn)` — small p-limit-style helper, ~30 lines                                                                                                  |
-| `lib/builtin-agent-tools.js`            | Add `parallelSafe` boolean to tool metadata emitted by `getBuiltinTools()`; default `true`, flip `false` for terminal + office + any future stateful tool                              |
-| `lib/tool-call-handler.js`              | Partition incoming tool calls into parallel-safe and serial buckets based on tool metadata; run the parallel bucket concurrently, serial bucket sequentially                           |
-| `lib/config.js`                         | Add `toolExec: { parallel: false, maxConcurrent: 4 }` default config                                                                                                                   |
-| `src/components/SettingsPanel.jsx`      | Optional: expose the toggle under General → Performance                                                                                                                                |
-| `tests/unit/concurrency.test.js` (new)  | Unit-test `runWithLimit` (ordering, cap, error propagation, abort)                                                                                                                     |
-| `tests/unit/tool-call-handler.test.js`  | Add tests for parallel vs serial partitioning                                                                                                                                          |
-| `tests/e2e/tool-parallel.spec.js` (new) | One e2e spec that mocks two slow tool calls and asserts total wall-clock < 2× slowest                                                                                                  |
-| `CHANGELOG.md`                          | Note the new flag and default                                                                                                                                                          |
+| File                                      | Change                                                                                                                                                                                 |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routes/chat.js`                          | Replace the `for (const call of toolCalls)` loop with a `runWithLimit` call; ensure `toolResults` is assembled in original order; wire `chatAbortController` into each concurrent call |
+| `lib/concurrency.js` (new)                | Export `runWithLimit(items, concurrency, fn)` — small p-limit-style helper, ~30 lines                                                                                                  |
+| `lib/builtin-agent-tools.js`              | Add `parallelSafe` boolean to tool metadata emitted by `getBuiltinTools()`; default `true`, flip `false` for terminal + office + any future stateful tool                              |
+| `lib/tool-call-handler.js`                | Partition incoming tool calls into parallel-safe and serial buckets based on tool metadata; run the parallel bucket concurrently, serial bucket sequentially                           |
+| `lib/config.js`                           | Add `toolExec: { parallel: false, maxConcurrent: 4 }` default config                                                                                                                   |
+| `src/components/panels/SettingsPanel.jsx` | Optional: expose the toggle under General → Performance                                                                                                                                |
+| `tests/unit/concurrency.test.js` (new)    | Unit-test `runWithLimit` (ordering, cap, error propagation, abort)                                                                                                                     |
+| `tests/unit/tool-call-handler.test.js`    | Add tests for parallel vs serial partitioning                                                                                                                                          |
+| `tests/e2e/tool-parallel.spec.js` (new)   | One e2e spec that mocks two slow tool calls and asserts total wall-clock < 2× slowest                                                                                                  |
+| `CHANGELOG.md`                            | Note the new flag and default                                                                                                                                                          |
 
 No changes to the MCP SDK integration, tool schemas, or wire format. The parallelism lives entirely inside Code Companion.
 

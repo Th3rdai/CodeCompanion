@@ -8,7 +8,7 @@ Successfully implemented full headers support for SSE and HTTP MCP client connec
 
 ## Code Changes Verified ✅
 
-### 1. Frontend UI (src/components/McpClientPanel.jsx)
+### 1. Frontend UI (src/components/panels/McpClientPanel.jsx)
 
 **State Management:**
 

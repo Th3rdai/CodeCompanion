@@ -36,7 +36,7 @@ npm run electron:run
 
 | Piece         | Location                                                                    |
 | ------------- | --------------------------------------------------------------------------- |
-| Panel UI      | `src/components/JargonGlossary.jsx` → `GlossaryPanel`                       |
+| Panel UI      | `src/components/shared/JargonGlossary.jsx` → `GlossaryPanel`                |
 | Header toggle | `src/App.jsx` (`showGlossary`, mutual exclusion with GitHub / File Browser) |
 | Term data     | `GLOSSARY` export in `JargonGlossary.jsx` (~69 terms, 7 categories)         |
 | UI tests      | `tests/ui/glossary.spec.js`, `tests/ui/JargonGlossary.spec.js`              |

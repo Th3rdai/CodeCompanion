@@ -6,12 +6,12 @@
 
 **Existing building blocks**
 
-| Asset                              | Role                                                                                                                   |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `src/components/DictateButton.jsx` | Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`), `continuous: true`, appends via `onResult(text)`     |
-| `CreateWizard.jsx`                 | ✅ Dictation on step 1–2 fields, output path; ❌ **Step 3 stage name / purpose** (two `<input>`s per row) — **no mic** |
-| `BuildWizard.jsx`                  | ✅ Same pattern as Create (verify parity with Create step 3)                                                           |
-| `ReviewPanel.jsx`                  | ✅ Dictation on **Paste code** textarea only                                                                           |
+| Asset                                   | Role                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `src/components/chat/DictateButton.jsx` | Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`), `continuous: true`, appends via `onResult(text)`     |
+| `CreateWizard.jsx`                      | ✅ Dictation on step 1–2 fields, output path; ❌ **Step 3 stage name / purpose** (two `<input>`s per row) — **no mic** |
+| `BuildWizard.jsx`                       | ✅ Same pattern as Create (verify parity with Create step 3)                                                           |
+| `ReviewPanel.jsx`                       | ✅ Dictation on **Paste code** textarea only                                                                           |
 
 **Browsers:** Chromium & Safari (webkit) generally; Firefox limited. Requires **secure context** (HTTPS or localhost). Electron uses Chromium — OK.
 

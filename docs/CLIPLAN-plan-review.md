@@ -1,7 +1,7 @@
 # CLIPLAN — plan review (plan-reviewer skill)
 
 **Skill:** `.cursor/skills/plan-reviewer`  
-**Subject:** `CLIPLAN.md` (agent terminal / builtin tools)  
+**Subject:** `docs/CLIPLAN.md` (agent terminal / builtin tools)  
 **Review date:** 2026-03-19  
 **Implementation status (2026-03-20):** **Shipped** — `lib/builtin-agent-tools.js`, `ToolCallHandler` + `hasAgentTools`, Settings **Agent terminal**, intra-request rate limiting, remote guard env. See git history (`feat: add agent terminal`, `feat: add intra-request rate limit…`). Optional follow-ups: §4.7 live SSE stream, Phase 4 confirm-before-run; review-table items (local-server definition, `input` fallback policy) should be re-checked against **current** `builtin-agent-tools.js` if hardening continues.
 

@@ -38,7 +38,7 @@ Day-after follow-ups to the v1.6.24 → v1.6.33 ship cycle. Master is **7 commit
 
 **Dashboard (See Home →) — Phases 1–5 shipped (2026-05-25)**
 
-- **Feature grid**, Recent Work, client-side analytics, collapsible sections, 7-day activity chart, CSV/JSON export, widget visibility toggles. Settings startup toggle. Status: **`DASHBOARD-STATUS.md`**; commits `eb81ae0`–`f8d261c` on `master`.
+- **Feature grid**, Recent Work, client-side analytics, collapsible sections, 7-day activity chart, CSV/JSON export, widget visibility toggles. Settings startup toggle. Status: **`docs/DASHBOARD-STATUS.md`**; commits `eb81ae0`–`f8d261c` on `master`.
 - **Tests:** `analytics.test.js` (4), `dashboard-collapsible-section.test.js` (8); agent-rounds Playwright fixed for agentic-only `#rounds-select`.
 - **Validation:** `/validate-project --thorough` P1–P8 green 2026-05-25 15:04 — unit **918**, UI **40**/15 skip, E2E **23** (`journal/2026-05-25.md`).
 - **Archon:** tasks synced 2026-05-25 (API healthy); see project **Code Companion — Vibe Coder Edition** feature **Dashboard**.
@@ -132,7 +132,7 @@ Two follow-up commits after the morning's chat-timeout + Terminal-CWD work, trig
 
 **MCP per-tool enable/disable — complete and verified (2026-04-25)**
 
-- **ToolsModal UX** (`src/components/McpClientPanel.jsx`):
+- **ToolsModal UX** (`src/components/panels/McpClientPanel.jsx`):
   - `SERVICE_LABELS` map + `getGroup()` added at module level (handles Google Workspace verb_service_noun naming; includes plural keys: `calendars`, `tasks`, `contacts`, `forms`).
   - Flat 121-item list replaced with grouped collapsible sections by service.
   - Real-time search input (name + description); auto-expands collapsed groups while typing.

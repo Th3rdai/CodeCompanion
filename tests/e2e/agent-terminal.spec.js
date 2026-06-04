@@ -2,7 +2,7 @@
  * tests/e2e/agent-terminal.spec.js
  *
  * E2E coverage for the agent terminal builtin (`run_terminal_cmd`) per
- * CLIPLAN.md §8 review checklist. Three scenarios:
+ * docs/CLIPLAN.md §8 review checklist. Three scenarios:
  *
  *   1. Enable/disable — terminal disabled → tool not advertised in prompt
  *      (LLM never sees it, can't call it).
