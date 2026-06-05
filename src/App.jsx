@@ -61,7 +61,8 @@ export default function App() {
   const [splashDismissed, setSplashDismissed] = useState(
     () => sessionStorage.getItem("th3rdai_splash_dismissed") === "true",
   );
-  const [agentMaxRounds, setAgentMaxRounds] = useState(15);
+  const [agentMaxRounds, setAgentMaxRounds] = useState(25);
+  const [autoContinueEnabled, setAutoContinueEnabled] = useState(true);
   const [projectFolder, setProjectFolder] = useState("");
   const [chatFolder, setChatFolder] = useState("");
   const [icmTemplatePath, setIcmTemplatePath] = useState("");
@@ -607,8 +608,27 @@ export default function App() {
       );
       setDictateGroqConfigured(!!data.dictateGroqConfigured);
       setEnablePreflightBanner(data.enablePreflightBanner ?? false);
+      if (data.autoContinue) {
+        setAutoContinueEnabled(data.autoContinue.enabled !== false);
+      }
     } catch {}
   }
+
+  const persistAutoContinue = useCallback(
+    (enabled, maxSteps = agentMaxRounds) => {
+      return apiFetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          autoContinue: {
+            enabled,
+            maxSteps: Math.min(Math.max(parseInt(maxSteps, 10) || 15, 1), 25),
+          },
+        }),
+      }).catch(() => {});
+    },
+    [agentMaxRounds],
+  );
 
   async function handleSaveSettings(
     newUrl,
@@ -1370,26 +1390,53 @@ export default function App() {
               </span>
             )}
             {showAgentRoundsInHeader(mode) && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <label
+                    htmlFor="rounds-select"
+                    className="text-xs text-slate-500 whitespace-nowrap"
+                  >
+                    Rounds
+                  </label>
+                  <select
+                    id="rounds-select"
+                    value={agentMaxRounds}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      setAgentMaxRounds(n);
+                      if (autoContinueEnabled) {
+                        persistAutoContinue(true, n);
+                      }
+                    }}
+                    className="input-glow text-slate-200 text-sm rounded-lg px-2 py-1.5"
+                    title="Max tool-call rounds per message (write / run / fix cycles)"
+                  >
+                    {[1, 3, 5, 10, 15, 20, 25].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <label
-                  htmlFor="rounds-select"
-                  className="text-xs text-slate-500 whitespace-nowrap"
+                  className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-400 hover:text-slate-300"
+                  title="Keep working after tools until TASK_COMPLETE or NEEDS_USER_INPUT: (autonomous / until-done requests). Step cap matches Rounds."
                 >
-                  Rounds
+                  <input
+                    type="checkbox"
+                    checked={autoContinueEnabled}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setAutoContinueEnabled(enabled);
+                      persistAutoContinue(enabled, agentMaxRounds);
+                    }}
+                    className="w-3.5 h-3.5 accent-indigo-500 cursor-pointer"
+                  />
+                  <span className="whitespace-nowrap hidden sm:inline">
+                    Auto-continue
+                  </span>
+                  <span className="whitespace-nowrap sm:hidden">Auto</span>
                 </label>
-                <select
-                  id="rounds-select"
-                  value={agentMaxRounds}
-                  onChange={(e) => setAgentMaxRounds(Number(e.target.value))}
-                  className="input-glow text-slate-200 text-sm rounded-lg px-2 py-1.5"
-                  title="Max agent tool rounds per message (how many write/run/fix cycles the agent can do)"
-                >
-                  {[1, 3, 5, 10, 15, 20, 25].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
               </div>
             )}
           </div>

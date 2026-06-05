@@ -94,8 +94,8 @@ export default function SettingsPanel({
   const [autoAdjustContext, setAutoAdjustContext] = useState(true);
 
   // Auto-continue (chat mode) state
-  const [autoContinueEnabled, setAutoContinueEnabled] = useState(false);
-  const [autoContinueMaxSteps, setAutoContinueMaxSteps] = useState(5);
+  const [autoContinueEnabled, setAutoContinueEnabled] = useState(true);
+  const [autoContinueMaxSteps, setAutoContinueMaxSteps] = useState(15);
 
   /** When true, Chat mode blocks write_file / generate_office_file unless the user clearly asks for a file. */
   const [chatRequireExplicitFileWrites, setChatRequireExplicitFileWrites] =
@@ -144,6 +144,8 @@ export default function SettingsPanel({
     useState(false);
   const [terminalAllowShellChaining, setTerminalAllowShellChaining] =
     useState(true);
+  const [terminalAllowWhenExposed, setTerminalAllowWhenExposed] =
+    useState(false);
 
   // Agent tool toggles
   const [validateEnabled, setValidateEnabled] = useState(true);
@@ -217,8 +219,8 @@ export default function SettingsPanel({
           if (data.autoAdjustContext != null)
             setAutoAdjustContext(data.autoAdjustContext);
           if (data.autoContinue) {
-            setAutoContinueEnabled(data.autoContinue.enabled ?? false);
-            setAutoContinueMaxSteps(data.autoContinue.maxSteps ?? 5);
+            setAutoContinueEnabled(data.autoContinue.enabled !== false);
+            setAutoContinueMaxSteps(data.autoContinue.maxSteps ?? 15);
           }
           if (data.chatRequireExplicitFileWrites != null) {
             setChatRequireExplicitFileWrites(
@@ -264,6 +266,9 @@ export default function SettingsPanel({
             );
             setTerminalAllowShellChaining(
               data.agentTerminal.allowShellChaining !== false,
+            );
+            setTerminalAllowWhenExposed(
+              data.agentTerminal.allowWhenExposed ?? false,
             );
           }
           if (data.agentValidate != null)
@@ -1408,6 +1413,31 @@ export default function SettingsPanel({
                       />
                     </button>
                   </div>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="pr-3">
+                      <p className="text-sm text-slate-300 font-medium">
+                        Allow on a network-exposed server
+                      </p>
+                      <p className="text-xs text-amber-300/90">
+                        ⚠️ Your server is reachable on your local network (bound
+                        to <span className="font-mono">0.0.0.0</span>). By
+                        default the agent can’t run shell commands in that mode.
+                        Turn this on only if you trust everyone on your network
+                        — anyone who can reach this server could trigger
+                        commands. The desktop (Electron) app is unaffected.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setTerminalAllowWhenExposed((v) => !v)}
+                      className={`relative w-9 h-5 rounded-full transition-colors shrink-0 ${terminalAllowWhenExposed ? "bg-amber-500" : "bg-slate-600"}`}
+                      aria-label="Toggle allow agent terminal on a network-exposed server"
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${terminalAllowWhenExposed ? "translate-x-4" : ""}`}
+                      />
+                    </button>
+                  </div>
                 </>
               )}
             </div>
@@ -2024,9 +2054,10 @@ export default function SettingsPanel({
                     <code className="px-1 py-0.5 rounded bg-slate-800 text-indigo-300">
                       NEEDS_USER_INPUT:
                     </code>{" "}
-                    (Chat tool loop + streaming modes), or hits the step cap /
-                    tool round limit. Turn off for legacy single-step behavior
-                    after one tool. Build / Create use separate endpoints.
+                    (Chat tool loop + streaming modes). Strongest when you ask
+                    to work autonomously, until done, or without asking. Hits
+                    step / round caps otherwise. Turn off for legacy single-step
+                    behavior after one tool.
                   </p>
                 </div>
               </label>
@@ -3532,6 +3563,7 @@ export default function SettingsPanel({
                       maxTimeoutSec: terminalTimeout,
                       confirmBeforeRun: terminalConfirmBeforeRun,
                       allowShellChaining: terminalAllowShellChaining,
+                      allowWhenExposed: terminalAllowWhenExposed,
                     },
                   }),
                 });
