@@ -14,10 +14,7 @@ const {
 } = require("../../lib/chat-continuation-policy");
 
 test("isExplicitTaskComplete: TASK_COMPLETE line", () => {
-  assert.equal(
-    isExplicitTaskComplete("Done.\n\nTASK_COMPLETE"),
-    true,
-  );
+  assert.equal(isExplicitTaskComplete("Done.\n\nTASK_COMPLETE"), true);
 });
 
 test("isExplicitTaskComplete: rhetorical question is not complete", () => {
@@ -52,6 +49,16 @@ test("userRequestedSustainedWork detects until-done phrasing", () => {
   assert.equal(
     userRequestedSustainedWork([
       { role: "user", content: "Implement everything until done" },
+    ]),
+    true,
+  );
+  assert.equal(
+    userRequestedSustainedWork([
+      {
+        role: "user",
+        content:
+          "Fix the app so the agent can continue autonomously without asking me",
+      },
     ]),
     true,
   );

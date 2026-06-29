@@ -12,7 +12,7 @@ import {
 import { copyText } from "../../lib/clipboard";
 
 /**
- * ClaudeCodeHandoff — Copy-pasteable GSD slash commands for Claude Code / Cursor / Windsurf.
+ * ClaudeCodeHandoff — Copy-pasteable th3rdai-harness slash commands for Claude Code / Cursor / Windsurf.
  * Shows contextual commands based on project state (phases, plans, completion).
  */
 export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
@@ -75,7 +75,7 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
     commands.push({
       name: "Start new project",
       description: "Set up your project roadmap and requirements",
-      command: "/gsd:new-project",
+      command: "/harness:new-project",
       icon: Rocket,
     });
   }
@@ -85,7 +85,7 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
     commands.push({
       name: `Plan phase ${nextPhaseNum}`,
       description: "Plan the next phase of development",
-      command: `/gsd:plan-phase ${nextPhaseNum}`,
+      command: `/harness:plan ${nextPhaseNum}`,
       icon: FileText,
     });
   }
@@ -95,7 +95,7 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
     commands.push({
       name: `Execute phase ${currentPhaseNum}`,
       description: "Execute the current phase plans",
-      command: `/gsd:execute-phase ${currentPhaseNum}`,
+      command: `/harness:build ${currentPhaseNum}`,
       icon: Terminal,
     });
   }
@@ -105,7 +105,7 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
     commands.push({
       name: `Verify phase ${currentPhaseNum}`,
       description: "Verify the current phase is complete",
-      command: `/gsd:verify-work ${currentPhaseNum}`,
+      command: `/harness:review ${currentPhaseNum}`,
       icon: CheckCircle,
     });
   }
@@ -115,7 +115,7 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
     commands.push({
       name: `Research phase ${nextPhaseNum}`,
       description: "Deep research before planning a complex phase",
-      command: `/gsd:research-phase ${nextPhaseNum}`,
+      command: `/harness:research ${nextPhaseNum}`,
       icon: Search,
     });
   }
@@ -162,7 +162,9 @@ export default function ClaudeCodeHandoff({ project, projectData, onToast }) {
                 )}
               </button>
             </div>
-            <p className="text-xs text-slate-400 pl-5.5">{cmd.description}</p>
+            <p className="text-xs text-slate-400 pl-[22px]">
+              {cmd.description}
+            </p>
             <div className="bg-slate-900/60 rounded-lg px-4 py-2.5">
               <code className="font-mono text-sm text-indigo-300">
                 {cmd.command}

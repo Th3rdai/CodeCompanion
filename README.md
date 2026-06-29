@@ -24,7 +24,7 @@ Th3rdAI Code Companion also implements the [Model Context Protocol (MCP)](https:
 - **Agent Designer** — design, score, and download AI agent definitions with grades for purpose, tool design, workflow logic, and safety guardrails
 - **Friendly-teacher tone** — analogies, zero jargon, patience across all modes
 - **Create mode** — 5-step wizard to scaffold new AI-assisted projects with ICM/MAKER framework support, then **Open in Build** to continue in Build mode. IDE command files from `IDE_COMMANDS/` are automatically copied to all IDE paths (Claude Code, Cursor, VS Code, OpenCode)
-- **Build mode** — GSD+ICM project scaffolding and dashboard with automatic IDE command file installation across all supported IDEs
+- **Build mode** — th3rdai-harness project scaffolding and dashboard with automatic IDE command file installation across all supported IDEs
 - **Tutorial for Build & Create** — Step-by-step walkthrough: click **Tutorial** for explanations; focus or click an empty field to get a suggestion (step 2+ uses AI-generated suggestions from your project info). Double-click a field to get a different suggestion; right-click to accept. **Fill with example** prefills the current step.
 - **23+ Ollama models** supported locally by default; optional **OpenRouter** catalog when enabled in Settings
 - **MCP Server** — exposes 11 tools via HTTP and stdio transports for other AI agents to use
@@ -120,21 +120,60 @@ npm run audit:security  # npm audit — fails on critical advisories (same gate 
 
 Full checklist, fork vs canonical repo, and **emergency** local `electron:publish:*` (CI broken only): **[docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md)**. Local **`npm run electron:build`** / per-platform scripts are for **development and packaging smoke tests** — see **[BUILD.md](BUILD.md)**.
 
+## VIRA Integration
+
+CodeCompanion's MCP server is integrated with **VIRA** — a local voice-interactive reasoning agent. VIRA calls CodeCompanion tools for IDE automation, project building, testing, and code analysis.
+
+### Quick Setup
+
+1. **VIRA Configuration** — Already configured in `~/.vira/config.yaml`:
+
+   ```yaml
+   mcp_servers:
+     - name: codeCompanion
+       command: node
+       args:
+         - /Users/james/Projects/CodeCompanion/mcp-server.js
+       transport: stdio
+   ```
+
+2. **Verify Connection** — In VIRA chat or CLI:
+
+   ```bash
+   vira mcp list-servers
+   # Should show: codeCompanion (connected)
+   ```
+
+3. **Call Tools** — From VIRA chat:
+   ```
+   You: "Use CodeCompanion to build and test the project"
+   VIRA: [calls codeCompanion tools via MCP]
+   ```
+
+### Documentation
+
+- **[docs/VIRA-MCP-INTEGRATION.md](docs/VIRA-MCP-INTEGRATION.md)** — Setup, verification, troubleshooting
+- **Memory Vault** — `~/.vira/memory_vault/Memory/CodeCompanion-MCP.md`
+- **VIRA Config** — `~/.vira/README.md`
+
+---
+
 ### More documentation
 
-| Doc                                                                                                          | Contents                                                                                                                                            |
-| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SECURITY.md](SECURITY.md)                                                                                   | How to report vulnerabilities; security and privacy design                                                                                          |
-| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)                                               | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc.                               |
-| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md)                                                   | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing                                    |
-| [docs/TESTING.md](docs/TESTING.md)                                                                           | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes                                                                    |
-| [docs/PROVIDERS.md](docs/PROVIDERS.md)                                                                       | Ollama vs OpenRouter provider toggle (developer map)                                                                                                |
-| [docs/PRIVACY-MESSAGING.md](docs/PRIVACY-MESSAGING.md)                                                       | Privacy banner, onboarding copy, and OpenRouter disclosure                                                                                          |
-| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                                                            |
-| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                                              |
-| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                                                   |
-| [docs/AGENT-APP-CAPABILITIES-ROADMAP.md](docs/AGENT-APP-CAPABILITIES-ROADMAP.md)                             | **Planned (Phases 25–27):** chat agent builtins for Validate + Planner (+ optional GSD); linked from [`.planning/ROADMAP.md`](.planning/ROADMAP.md) |
-| [docs/AGENT-READINESS.md](docs/AGENT-READINESS.md)                                                           | **Chat agent checklist:** Ollama, project/File Browser, agent terminal allowlist, optional validate/planner/browser/MCP — idea → running software   |
+| Doc                                                                                                          | Contents                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SECURITY.md](SECURITY.md)                                                                                   | How to report vulnerabilities; security and privacy design                                                                                                     |
+| [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md)                                               | `HOST`, **`CC_BIND_ALL`**, **`CC_API_SECRET`**, **`VITE_CC_API_KEY`**, CORS, rate limits, Playwright `BASE_URL`, etc.                                          |
+| [docs/SECURITY-OPERATIONS.md](docs/SECURITY-OPERATIONS.md)                                                   | Network binding, API protection, SPA `apiFetch`, CSP nonces, **`npm audit`** CI, pentest report, release signing                                               |
+| [docs/VIRA-MCP-INTEGRATION.md](docs/VIRA-MCP-INTEGRATION.md)                                                 | VIRA MCP server setup, verification, troubleshooting, and tool invocation                                                                                      |
+| [docs/TESTING.md](docs/TESTING.md)                                                                           | Unit vs Playwright, folder layout, `BASE_URL` tips, validate-project HTTPS notes                                                                               |
+| [docs/PROVIDERS.md](docs/PROVIDERS.md)                                                                       | Ollama vs OpenRouter provider toggle (developer map)                                                                                                           |
+| [docs/PRIVACY-MESSAGING.md](docs/PRIVACY-MESSAGING.md)                                                       | Privacy banner, onboarding copy, and OpenRouter disclosure                                                                                                     |
+| [docs/IDE_COMMANDS.md](docs/IDE_COMMANDS.md)                                                                 | What `IDE_COMMANDS/` is and pointer to full README there                                                                                                       |
+| [docs/RELEASES-AND-UPDATES.md](docs/RELEASES-AND-UPDATES.md) ([PDF](docs/RELEASES-AND-UPDATES.pdf))          | Versioning, tag-based CI releases, manual publish, Software Updates / electron-updater                                                                         |
+| [docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md](docs/PENTEST-REPORT-CodeCompanion-Static-Analysis.md) | OWASP-oriented static pen-test report (network/API risks, findings, remediations)                                                                              |
+| [docs/AGENT-APP-CAPABILITIES-ROADMAP.md](docs/AGENT-APP-CAPABILITIES-ROADMAP.md)                             | **Planned (Phases 25–27):** chat agent builtins for Validate + Planner (+ optional harness bridge); linked from [`.planning/ROADMAP.md`](.planning/ROADMAP.md) |
+| [docs/AGENT-READINESS.md](docs/AGENT-READINESS.md)                                                           | **Chat agent checklist:** Ollama, project/File Browser, agent terminal allowlist, optional validate/planner/browser/MCP — idea → running software              |
 
 ## User Guide
 
@@ -155,7 +194,7 @@ Full checklist, fork vs canonical repo, and **emergency** local `electron:publis
 | **Skillz**               | Build and score SKILL.md files for Claude Code (Agent Skills Spec). Load, revise, export.                                                                                                                                            |
 | **Agentic**              | Design and score AI agent definitions (CrewAI/LangGraph style). Load, revise, export.                                                                                                                                                |
 | **Create**               | 5-step wizard to scaffold a new project with ICM/MAKER framework support. Voice dictation on fields.                                                                                                                                 |
-| **Build**                | Start a GSD+ICM project: scaffold planning and stages, then manage it from the Build dashboard.                                                                                                                                      |
+| **Build**                | Start a th3rdai-harness project: scaffold planning and stages, then manage it from the Build dashboard.                                                                                                                              |
 
 ### Tutorial (Build & Create)
 
@@ -325,9 +364,9 @@ When external MCP servers are connected, Th3rdAI Code Companion enriches the Oll
 │   ├── builder-score.js      # Builder mode scoring orchestration
 │   ├── builder-schemas.js    # Zod schemas for prompt/skill/agent scoring
 │   ├── icm-scaffolder.js     # Create mode workspace scaffolding engine
-│   ├── build-scaffolder.js   # Build mode GSD+ICM project scaffolding
+│   ├── build-scaffolder.js   # Build mode th3rdai-harness project scaffolding
 │   ├── build-registry.js     # Build dashboard project registry
-│   ├── gsd-bridge.js         # GSD CLI bridge for build mode
+│   ├── harness-bridge.js     # In-process .planning/ state reader for build mode
 │   ├── maker-skill.js        # MAKER framework integration
 │   ├── pentest.js            # Security (OWASP) assessment orchestration
 │   ├── pentest-schema.js     # Pentest report Zod schema

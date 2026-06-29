@@ -193,15 +193,26 @@ export default function DictateButton({
 
     if (window.electronAPI?.getMicrophoneAccessStatus) {
       try {
-        const pre = await window.electronAPI.getMicrophoneAccessStatus();
+        let micStatus = await window.electronAPI.getMicrophoneAccessStatus();
         if (
-          window.electronAPI.requestMicrophoneAccess &&
-          (pre === "not-determined" || pre === "denied" || pre === "restricted")
+          micStatus !== "granted" &&
+          window.electronAPI.requestMicrophoneAccess
         ) {
-          await window.electronAPI.requestMicrophoneAccess();
+          micStatus = await window.electronAPI.requestMicrophoneAccess();
+        }
+        if (micStatus !== "granted") {
+          if (window.electronAPI.openMicrophoneSettings) {
+            await window.electronAPI.openMicrophoneSettings();
+          }
+          setError(
+            micStatus === "denied" || micStatus === "restricted"
+              ? "Microphone access denied. System Settings → Privacy & Security → Microphone — enable Code Companion, then relaunch the app."
+              : "Microphone permission required. Allow access when prompted, or enable Code Companion under Privacy & Security → Microphone.",
+          );
+          return;
         }
       } catch {
-        /* non-fatal */
+        /* fall through to getUserMedia probe */
       }
     }
 
@@ -213,27 +224,14 @@ export default function DictateButton({
         err.name === "NotAllowedError" ||
         err.name === "PermissionDeniedError"
       ) {
-        if (window.electronAPI?.requestMicrophoneAccess) {
-          try {
-            await window.electronAPI.requestMicrophoneAccess();
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
-            });
-            stream.getTracks().forEach((t) => t.stop());
-          } catch (err2) {
-            setError(
-              "Microphone access denied. Check System Settings → Privacy & Security → Microphone for Code Companion, then relaunch the app.",
-            );
-            console.warn("Microphone permission denied after retry:", err2);
-            return;
-          }
-        } else {
-          setError(
-            "Microphone access denied. Check System Settings → Privacy & Security → Microphone.",
-          );
-          console.warn("Microphone permission denied:", err);
-          return;
+        if (window.electronAPI?.openMicrophoneSettings) {
+          await window.electronAPI.openMicrophoneSettings();
         }
+        setError(
+          "Microphone access denied. Check System Settings → Privacy & Security → Microphone for Code Companion, then relaunch the app. If it is already enabled, install the latest app update (older builds lacked the microphone entitlement).",
+        );
+        console.warn("Microphone permission denied:", err);
+        return;
       } else if (
         err.name === "NotFoundError" ||
         err.name === "DevicesNotFoundError"

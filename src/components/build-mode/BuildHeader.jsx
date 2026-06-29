@@ -12,6 +12,8 @@ export default function BuildHeader({
   onToggleViewMode,
   onRefresh,
   onBack,
+  agentRole,
+  autonomyMode,
 }) {
   const percent = progress?.percent ?? 0;
   const done = progress?.total_summaries ?? 0;
@@ -50,6 +52,16 @@ export default function BuildHeader({
           >
             {badgeLabel}
           </span>
+          {agentRole && (
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              {agentRole}
+              {autonomyMode && (
+                <span className="text-indigo-400/70 ml-1">
+                  · {autonomyMode}
+                </span>
+              )}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button

@@ -1,0 +1,54 @@
+# CodeCompanion Harness — Routing
+# Maps UI modes to agent roles and stages.
+# Each mode in the desktop app routes to one or more agents.
+
+routes:
+  chat:
+    mode: Chat
+    agents:
+      - researcher
+      - reviewer
+    description: General coding questions, explanations, code walkthroughs
+
+  review:
+    mode: Review
+    agents:
+      - reviewer
+      - evaluator
+    description: AI code review with letter grades and report cards
+
+  security:
+    mode: Security
+    agents:
+      - reviewer
+      - evaluator
+    description: OWASP-style security assessment and pentest scanning
+
+  builder:
+    mode: Builder
+    agents:
+      - builder
+      - evaluator
+    description: Score prompting, skillz, agentic, and planner content
+
+  planner:
+    mode: Planner
+    agents:
+      - planner
+      - reviewer
+    description: Score and validate implementation plans
+
+  create:
+    mode: Create
+    agents:
+      - researcher
+      - planner
+      - builder
+    description: Scaffold new projects with ICM templates
+
+  build:
+    mode: Build
+    agents:
+      - builder
+      - reviewer
+    description: Build scaffolding wizard with IDE integration

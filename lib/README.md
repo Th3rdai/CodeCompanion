@@ -60,13 +60,13 @@ Top-level **`mcp/`** (not here) registers built-in server tools.
 
 ## Integrations
 
-| Module                  | Role                          |
-| ----------------------- | ----------------------------- |
-| `github.js`             | GitHub clone/browse API       |
-| `docling-client.js`     | Docling-serve client          |
-| `docling-starter.js`    | Docling auto-start (web)      |
-| `gsd-bridge.js`         | GSD CLI bridge                |
-| `dictate-transcribe.js` | Voice dictation transcription |
+| Module                  | Role                                                                                                |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| `github.js`             | GitHub clone/browse API                                                                             |
+| `docling-client.js`     | Docling-serve client                                                                                |
+| `docling-starter.js`    | Docling auto-start (web)                                                                            |
+| `harness-bridge.js`     | th3rdai-harness project state reader (.planning/) — replaced a removed external planning-CLI bridge |
+| `dictate-transcribe.js` | Voice dictation transcription                                                                       |
 
 ## Scaffold & validate
 

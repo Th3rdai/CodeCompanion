@@ -1,0 +1,56 @@
+# CodeCompanion Harness — Autonomy Modes
+# Defines how much human approval is needed for each operation risk level.
+
+autonomy_modes:
+  full:
+    description: All operations auto-approved. For trusted batch operations with comprehensive test coverage.
+    risk_levels:
+      LOW: auto
+      MEDIUM: auto
+      HIGH: auto
+      CRITICAL: auto
+
+  cautious:
+    description: Default mode. Auto-approves LOW/MEDIUM, prompts for HIGH, blocks CRITICAL.
+    risk_levels:
+      LOW: auto
+      MEDIUM: auto
+      HIGH: prompt
+      CRITICAL: block
+
+  ask:
+    description: Prompts for all operations except pure reads.
+    risk_levels:
+      LOW: auto
+      MEDIUM: prompt
+      HIGH: prompt
+      CRITICAL: block
+
+# Default mode for CodeCompanion
+default_mode: cautious
+
+# Risk classification rules
+risk_classification:
+  LOW:
+    - read_files
+    - search_files
+    - find_files
+    - list_dir
+    - score_plan
+    - builder_score
+    - review_run
+    - web_search
+    - web_crawl
+  MEDIUM:
+    - write_file
+    - edit_file
+    - generate_image
+    - stitch_design
+  HIGH:
+    - run_terminal_cmd
+    - delete_file
+    - move_file
+    - pentest_scan
+  CRITICAL:
+    - delete_file (with .gitignore)
+    - run_terminal_cmd (destructive: rm, drop, truncate, mkfs)

@@ -29,7 +29,7 @@ created: 2026-03-13
 
 - **After every task commit:** Run `node --test tests/tone-validation.test.js`
 - **After every plan wave:** Run `node --test tests/*.test.js`
-- **Before `/gsd:verify-work`:** Full suite must be green
+- **Before `/harness:verify-work`:** Full suite must be green
 - **Max feedback latency:** 5 seconds
 
 ---

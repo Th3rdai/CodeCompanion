@@ -9,7 +9,7 @@ const {
   getProject,
   removeProject,
 } = require("../lib/build-registry");
-const GsdBridge = require("../lib/gsd-bridge");
+const HarnessBridge = require("../lib/harness-bridge");
 const { isWithinBasePath } = require("../lib/file-browser");
 const { resolveAutoModel, mergeAutoModelMap } = require("../lib/auto-model");
 const { ollamaAuthOpts, chatComplete } = require("../lib/ollama-client");
@@ -144,7 +144,7 @@ module.exports = function createRouter(appContext) {
     const project = _resolveBuildProject(req, res);
     if (!project) return;
     try {
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       res.json(bridge.getState());
     } catch (err) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -156,7 +156,7 @@ module.exports = function createRouter(appContext) {
     const project = _resolveBuildProject(req, res);
     if (!project) return;
     try {
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       res.json(bridge.getRoadmap());
     } catch (err) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -168,7 +168,7 @@ module.exports = function createRouter(appContext) {
     const project = _resolveBuildProject(req, res);
     if (!project) return;
     try {
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       res.json(bridge.getProgress());
     } catch (err) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -180,7 +180,7 @@ module.exports = function createRouter(appContext) {
     const project = _resolveBuildProject(req, res);
     if (!project) return;
     try {
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       res.json(bridge.getPhaseDetail(req.params.n));
     } catch (err) {
       res.status(500).json({ error: CLIENT_INTERNAL_ERROR });
@@ -194,7 +194,7 @@ module.exports = function createRouter(appContext) {
     if (!project) return;
     try {
       const config = getConfig();
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       const state = bridge.getState();
       const progress = bridge.getProgress();
 
@@ -264,7 +264,7 @@ module.exports = function createRouter(appContext) {
         return res.end();
       }
 
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       const state = bridge.getState();
       const roadmap = bridge.getRoadmap();
 
@@ -350,7 +350,7 @@ module.exports = function createRouter(appContext) {
         return res.end();
       }
 
-      const bridge = new GsdBridge(project.path);
+      const bridge = new HarnessBridge(project.path);
       const state = bridge.getState();
 
       const stateStr = JSON.stringify(state).slice(0, 3000);

@@ -20,7 +20,7 @@
 ## Optional later
 
 - **REORGPLAN Phase 5 (full)** — subfolders under `lib/` only if a module grows painful; flat `lib/` is fine for now.
-- **Archon / GSD** — use for task tracking; do not keep parallel git branches for the same work.
+- **Archon / th3rdai-harness** — use for task tracking; do not keep parallel git branches for the same work.
 
 ## Branch hygiene
 

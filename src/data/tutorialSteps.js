@@ -10,7 +10,7 @@ export const BUILD_TUTORIAL_STEPS = [
     prefill: {
       name: "My First Build",
       description:
-        "A small app or tool I want to plan and build step by step using GSD (planning) and ICM (stages).",
+        "A small app or tool I want to plan and build step by step using the th3rdai-harness lifecycle (7 stages, 5 agent roles).",
     },
   },
   {
@@ -30,7 +30,7 @@ export const BUILD_TUTORIAL_STEPS = [
   },
   {
     title: "Review & Create",
-    body: 'Check the summary. When you click "Create Build Project", Code Companion will scaffold a full project with .planning/ and stages so you can use the Build dashboard and GSD workflows. You can then open the project in Cursor or Claude Code.',
+    body: 'Check the summary. When you click "Create Build Project", Code Companion will scaffold a full project with .planning/ and stages so you can use the Build dashboard and th3rdai-harness workflows. You can then open the project in Cursor or Claude Code.',
     prefill: null,
   },
 ];

@@ -143,5 +143,5 @@ If invoking research for this phase:
 ---
 
 _Context captured: 2026-03-14_
-_Captured by: Claude (gsd-phase-researcher workflow)_
+_Captured by: Claude (harness-phase-researcher workflow)_
 _Next step: Planning (create 05-01-PLAN.md based on this context)_

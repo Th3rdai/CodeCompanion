@@ -139,7 +139,7 @@ module.exports = function createRouter(appContext) {
     }
   });
 
-  // ── POST /api/build-project (GSD + ICM scaffold) ─────
+  // ── POST /api/build-project (th3rdai-harness scaffold) ─────
   router.post("/build-project", (req, res) => {
     const { name, description, outputRoot, audience, tone, overwrite } =
       req.body || {};

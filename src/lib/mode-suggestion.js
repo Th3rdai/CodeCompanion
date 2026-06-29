@@ -54,7 +54,7 @@ const MODE_PATTERNS = [
   ],
   [
     "build",
-    /\b(build (?:me )?an app|gsd[+\- ]?icm|start (?:a |an )?build (?:project|cycle)|spin up (?:a |an )?(?:project|app))\b/i,
+    /\b(build (?:me )?an app|th3rdai-?harness|harness|start (?:a |an )?build (?:project|cycle)|spin up (?:a |an )?(?:project|app))\b/i,
   ],
   [
     "planner",

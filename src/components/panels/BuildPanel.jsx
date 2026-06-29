@@ -283,7 +283,7 @@ export default function BuildPanel({
 
   // ── View: Phase Detail ──────────────────────────────
   if (view === "phase" && phaseDetail) {
-    const gsdCmd = `/gsd:execute-phase ${selectedPhase}`;
+    const harnessCmd = `/harness:build ${selectedPhase}`;
     return (
       <div className="flex-1 overflow-y-auto scrollbar-thin p-4 sm:p-6 space-y-4">
         <button
@@ -307,10 +307,10 @@ export default function BuildPanel({
           </p>
           <div className="flex items-center gap-2">
             <code className="flex-1 input-glow text-indigo-300 font-mono text-sm rounded-lg px-4 py-2.5">
-              {gsdCmd}
+              {harnessCmd}
             </code>
             <button
-              onClick={() => copyCommand(gsdCmd)}
+              onClick={() => copyCommand(harnessCmd)}
               className="glass text-xs text-slate-400 hover:text-indigo-300 px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap"
             >
               📋 Copy

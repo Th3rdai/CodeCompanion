@@ -1,6 +1,6 @@
 ---
 status: testing
-phase: build-mode-gsd-icm
+phase: build-mode-harness-icm
 source: DRAFT-PLAN.md, APPROVED.md
 started: 2026-03-14T23:00:00Z
 updated: 2026-03-14T23:00:00Z
@@ -41,9 +41,9 @@ result: [pending]
 expected: Click Next from Step 3. Step 4 shows all entered values in a summary (Name, Slug, Description, Audience, Tone, Path, Overwrite). "Create Build Project" button is at bottom.
 result: [pending]
 
-### 6. Scaffold Creates Combined GSD+ICM Structure
+### 6. Scaffold Creates Combined th3rdai-harness Structure
 
-expected: Complete wizard to create a project. Check the created folder on disk. It should contain: .planning/ (PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json, phases/), stages/ (01-research, 02-draft, 03-review each with CONTEXT.md and output/), \_config/brand-voice.md, skills/gsd-workflows.md, CLAUDE.md, CONTEXT.md, README.md, .editorconfig.
+expected: Complete wizard to create a project. Check the created folder on disk. It should contain: .planning/ (PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json, phases/), stages/ (01-research, 02-draft, 03-review each with CONTEXT.md and output/), \_config/brand-voice.md, skills/harness-workflows.md, CLAUDE.md, CONTEXT.md, README.md, .editorconfig.
 result: [pending]
 
 ### 7. Multi-Tool Convention Files

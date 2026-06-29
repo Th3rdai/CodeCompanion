@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–18 add Build, Dashboard, Installer, Security; Phases 19–24 cover deployment hardening and new features. **Phases 25–26** extend the **chat agent** with first-party **Validate** and **Planner** capabilities — full requirements and risks: **[`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)**. Phase 27 (GSD bridge) is deferred.
+This roadmap transforms Code Companion from a PM-focused code analysis tool into a vibe-coder-friendly code reviewer, then packages it as a self-contained desktop application. The build order is architecturally constrained: the structured review engine must exist before any UI can consume it, tone must be unified before user-facing testing, and the report card UI must be functional before layering on history, fix prompts, and onboarding. Phases 1–7 deliver core v1 (Review, Tone, UX, Desktop, License); Phases 8–14 cover license distribution; Phases 15–18 add Build, Dashboard, Installer, Security; Phases 19–24 cover deployment hardening and new features. **Phases 25–26** extend the **chat agent** with first-party **Validate** and **Planner** capabilities — full requirements and risks: **[`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md)**. Phase 27 (th3rdai-harness bridge) is deferred.
 
 ## Phases
 
@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] ~~**Phase 12: License Key Pool**~~ - Pre-generated key pool, claim API (DEFERRED)
 - [ ] ~~**Phase 13: License Email Delivery**~~ - Send keys via email with template (DEFERRED)
 - [ ] ~~**Phase 14: License Revocation**~~ - Revoke keys, audit log (DEFERRED)
-- [x] **Phase 15: Build Mode (GSD + ICM)** - New Build mode next to Create; scaffolds combined GSD + ICM project for apps/tools (approved plan 2026-03-14; implementation complete)
+- [x] **Phase 15: Build Mode (th3rdai-harness)** - New Build mode next to Create; scaffolds combined th3rdai-harness project for apps/tools (approved plan 2026-03-14; implementation complete)
 - [x] **Phase 16: Build Dashboard** - Full project dashboard for Build mode: registry + shell, Simple View, AI Research/Planning, Advanced View, Handoff+Polish (completed 2026-03-15)
 - [x] **Phase 17: Auto-Update, Portable Mode & Installer Design** - Self-contained portable data directory, auto-update UI with download progress, premium splash screen/DMG/NSIS branding (completed 2026-03-15)
 - [x] **Phase 18: Security Pen Test Mode** - OWASP-based web app and API penetration testing agent with Elite Agent skill, added as a mode next to Build (planned) (completed 2026-03-16)
@@ -41,7 +41,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 25: Agent — Validate builtins** — Builtin tools so chat can run the same project scan + `validate.md` generation as Validate mode (`lib/validate.js`, `/api/validate/*`); optional save under project folder; Settings gate added. **Detail:** [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](../docs/AGENT-APP-CAPABILITIES-ROADMAP.md) (AAP-01–AAP-05). (completed 2026-04-09)
 - [x] **Phase 26: Agent — Planner tools** — Builtin(s) so chat can score planner-shaped content via the same `/api/score` path as Planner mode (`PlannerPanel`); Settings gate added. **Detail:** same doc (AAP-06–AAP-10). (completed 2026-04-09)
 - [x] **Phase 28: Multi-File Code Review** — Extend Review mode to accept multiple files and whole folders (mirror Security mode's multi-file scanning), producing a unified report card across the full project rather than a single paste. (completed 2026-04-09)
-- [ ] ~~**Phase 27 (optional): Agent — GSD bridge builtins**~~ — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for safe planning queries from chat. **Detail:** same doc (AAP-11–AAP-14). (DEFERRED — low value for most users; Build mode already surfaces GSD data; skip unless real demand emerges)
+- [ ] ~~**Phase 27 (optional): Agent — th3rdai-harness bridge builtins**~~ — Thin, allowlisted wrappers around `lib/harness-bridge.js` for safe planning queries from chat. **Detail:** same doc (AAP-11–AAP-14). (DEFERRED — low value for most users; Build mode already surfaces th3rdai-harness data; skip unless real demand emerges)
 
 ## Post–roadmap enhancements (tracked in repo history)
 
@@ -219,21 +219,21 @@ Plans:
 **Depends on**: Phase 10 or 11
 **Plans**: 14-01-PLAN.md
 
-### Phase 15: Build Mode (GSD + ICM)
+### Phase 15: Build Mode (th3rdai-harness)
 
-**Goal**: Add a Build mode that scaffolds a new project combining get-shit-done (GSD) and ICM Framework so users can build apps, tools, or software using both methodologies
+**Goal**: Add a Build mode that scaffolds a new project combining th3rdai-harness (th3rdai-harness) and ICM Framework so users can build apps, tools, or software using both methodologies
 **Depends on**: Phase 5 (Create mode and wizard patterns exist)
 **Requirements**: BUILD-01, BUILD-02, BUILD-03
 **Success Criteria** (what must be TRUE):
 
-1. Build mode appears in mode tabs next to Create; BuildWizard completes and scaffolds a project with `.planning/` (GSD) and `stages/` (ICM)
-2. Scaffolded project has CLAUDE.md, CONTEXT.md, skills/gsd-workflows.md; user can open in Cursor/Claude Code and use GSD and ICM workflows
+1. Build mode appears in mode tabs next to Create; BuildWizard completes and scaffolds a project with `.planning/` (th3rdai-harness) and `stages/` (ICM)
+2. Scaffolded project has CLAUDE.md, CONTEXT.md, skills/harness-workflows.md; user can open in Cursor/Claude Code and use th3rdai-harness and ICM workflows
 3. Path outside allowed root returns 403; already exists without overwrite returns 409; chat input hidden when Build selected
-   **Plans**: Approved plan in `.planning/phases/build-mode-gsd-icm/` (DRAFT-PLAN.md revised and approved 2026-03-14)
+   **Plans**: Approved plan in `.planning/phases/build-mode-harness-icm/` (DRAFT-PLAN.md revised and approved 2026-03-14)
 
 ### Phase 16: Build Dashboard
 
-**Goal**: Full project dashboard for Build mode — list projects, view phases/plans, run GSD commands, AI research/planning, advanced view, handoff and polish
+**Goal**: Full project dashboard for Build mode — list projects, view phases/plans, run th3rdai-harness commands, AI research/planning, advanced view, handoff and polish
 **Depends on**: Phase 15 (Build mode and scaffold)
 **Success Criteria** (what must be TRUE):
 
@@ -250,7 +250,7 @@ Plans:
 - [x] 16-03-PLAN.md — Advanced View: BuildAdvancedView, PlanningFileViewer, file read/write whitelist endpoints
 - [x] 16-04-PLAN.md — Handoff+Polish: ClaudeCodeHandoff, prop threading, error states, refresh-from-disk
 
-**Notes**: Uses lib/build-registry.js, lib/gsd-bridge.js, BuildPanel.jsx; POST /api/build/projects for import; isWithinBasePath, getAppRoot() added
+**Notes**: Uses lib/build-registry.js, lib/harness-bridge.js, BuildPanel.jsx; POST /api/build/projects for import; isWithinBasePath, getAppRoot() added
 
 ### Phase 17: Auto-Update, Portable Mode & Installer Design
 
@@ -424,37 +424,37 @@ Plans (N/A — feature was already complete):
 Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 (Phases 1 and 2 have no dependency on each other and could execute in either order)
 
-| Phase                         | Plans Complete | Status   | Completed  |
-| ----------------------------- | -------------- | -------- | ---------- |
-| 1. Review Engine              | 2/2            | Complete | 2026-03-13 |
-| 2. Tone Unification           | 2/2            | Complete | 2026-03-13 |
-| 3. Report Card UI             | 2/2            | Complete | 2026-03-14 |
-| 4. Actionable Guidance        | 2/2            | Complete | 2026-03-14 |
-| 5. Onboarding and Help        | 2/2            | Complete | 2026-03-14 |
-| 6. Desktop App                | 4/4            | Complete | 2026-03-14 |
-| 7. License Gating             | 1/1            | Complete | 2026-03-14 |
-| 8. Payment Integration        | —              | Deferred | —          |
-| 9. License Batch Generation   | —              | Deferred | —          |
-| 10. License Payment Webhook   | —              | Deferred | —          |
-| 11. License Server API        | —              | Deferred | —          |
-| 12. License Key Pool          | —              | Deferred | —          |
-| 13. License Email Delivery    | —              | Deferred | —          |
-| 14. License Revocation        | —              | Deferred | —          |
-| 15. Build Mode (GSD + ICM)    | 1/1            | Complete | 2026-03-14 |
-| 16. Build Dashboard           | 5/5            | Complete | 2026-03-16 |
-| 17. Auto-Update & Installer   | ad-hoc         | Complete | 2026-03-16 |
-| 18. Security Pen Test Mode    | 3/3            | Complete | 2026-03-16 |
-| 19. Security Enhancements     | ad-hoc         | Complete | 2026-03-19 |
-| 20. Validate Mode             | ad-hoc         | Complete | 2026-03-19 |
-| 21. Deployment Hardening      | ad-hoc         | Complete | 2026-03-19 |
-| 22. Stability Fixes           | ad-hoc         | Complete | 2026-03-19 |
-| 23. Save Chat                 | ad-hoc         | Complete | 2026-03-19 |
-| 24. IDE Command Distribution  | ad-hoc         | Complete | 2026-03-19 |
-| 24.5. Tech Health             | 3 plans        | Complete | 2026-04-09 |
-| 25. Agent — Validate builtins | ad-hoc         | Complete | 2026-04-09 |
-| 26. Agent — Planner tools     | ad-hoc         | Complete | 2026-04-09 |
-| 27. Agent — GSD bridge (opt.) | —              | Deferred | —          |
-| 28. Multi-File Code Review    | 3/3            | Complete | 2026-04-09 |
+| Phase                                     | Plans Complete | Status   | Completed  |
+| ----------------------------------------- | -------------- | -------- | ---------- |
+| 1. Review Engine                          | 2/2            | Complete | 2026-03-13 |
+| 2. Tone Unification                       | 2/2            | Complete | 2026-03-13 |
+| 3. Report Card UI                         | 2/2            | Complete | 2026-03-14 |
+| 4. Actionable Guidance                    | 2/2            | Complete | 2026-03-14 |
+| 5. Onboarding and Help                    | 2/2            | Complete | 2026-03-14 |
+| 6. Desktop App                            | 4/4            | Complete | 2026-03-14 |
+| 7. License Gating                         | 1/1            | Complete | 2026-03-14 |
+| 8. Payment Integration                    | —              | Deferred | —          |
+| 9. License Batch Generation               | —              | Deferred | —          |
+| 10. License Payment Webhook               | —              | Deferred | —          |
+| 11. License Server API                    | —              | Deferred | —          |
+| 12. License Key Pool                      | —              | Deferred | —          |
+| 13. License Email Delivery                | —              | Deferred | —          |
+| 14. License Revocation                    | —              | Deferred | —          |
+| 15. Build Mode (th3rdai-harness)          | 1/1            | Complete | 2026-03-14 |
+| 16. Build Dashboard                       | 5/5            | Complete | 2026-03-16 |
+| 17. Auto-Update & Installer               | ad-hoc         | Complete | 2026-03-16 |
+| 18. Security Pen Test Mode                | 3/3            | Complete | 2026-03-16 |
+| 19. Security Enhancements                 | ad-hoc         | Complete | 2026-03-19 |
+| 20. Validate Mode                         | ad-hoc         | Complete | 2026-03-19 |
+| 21. Deployment Hardening                  | ad-hoc         | Complete | 2026-03-19 |
+| 22. Stability Fixes                       | ad-hoc         | Complete | 2026-03-19 |
+| 23. Save Chat                             | ad-hoc         | Complete | 2026-03-19 |
+| 24. IDE Command Distribution              | ad-hoc         | Complete | 2026-03-19 |
+| 24.5. Tech Health                         | 3 plans        | Complete | 2026-04-09 |
+| 25. Agent — Validate builtins             | ad-hoc         | Complete | 2026-04-09 |
+| 26. Agent — Planner tools                 | ad-hoc         | Complete | 2026-04-09 |
+| 27. Agent — th3rdai-harness bridge (opt.) | —              | Deferred | —          |
+| 28. Multi-File Code Review                | 3/3            | Complete | 2026-04-09 |
 
 ## License Distribution Roadmap (Phases 8–14) — DEFERRED
 

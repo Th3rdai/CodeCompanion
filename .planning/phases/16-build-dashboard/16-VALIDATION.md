@@ -29,7 +29,7 @@ created: 2026-03-15
 
 - **After every task commit:** Run `npx playwright test tests/ui/build-*.spec.js --project=chromium`
 - **After every plan wave:** Run `npx playwright test`
-- **Before `/gsd:verify-work`:** Full suite must be green
+- **Before `/harness:verify-work`:** Full suite must be green
 - **Max feedback latency:** 30 seconds
 
 ---

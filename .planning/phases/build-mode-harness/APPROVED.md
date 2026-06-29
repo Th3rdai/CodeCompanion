@@ -1,4 +1,4 @@
-# Build Mode (GSD + ICM) — Plan Approved
+# Build Mode (th3rdai-harness) — Plan Approved
 
 **Approved:** 2026-03-14  
 **Status:** Approved for implementation (implementation complete)
@@ -10,4 +10,4 @@ The Build Mode plan has been reviewed for gaps, oversights, hidden issues, and f
 - **State:** Recorded in [.planning/STATE.md](../../STATE.md)
 - **Requirements:** BUILD-01, BUILD-02, BUILD-03 in [.planning/REQUIREMENTS.md](../../REQUIREMENTS.md)
 
-Implementation follows the five phases described in the plan: Build Scaffolder → API → BuildWizard → App Integration → GSD/Skills (embedded).
+Implementation follows the five phases described in the plan: Build Scaffolder → API → BuildWizard → App Integration → th3rdai-harness/Skills (embedded).

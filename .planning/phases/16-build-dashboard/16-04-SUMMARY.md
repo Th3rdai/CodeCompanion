@@ -2,7 +2,7 @@
 phase: 16-build-dashboard
 plan: 04
 subsystem: ui
-tags: [react, clipboard-api, gsd-commands, handoff, error-states, ux-polish]
+tags: [react, clipboard-api, harness-commands, handoff, error-states, ux-polish]
 
 # Dependency graph
 requires:
@@ -13,7 +13,7 @@ requires:
   - phase: 16-build-dashboard plan 03
     provides: BuildAdvancedView, PlanningFileViewer
 provides:
-  - ClaudeCodeHandoff component with context-aware GSD slash commands
+  - ClaudeCodeHandoff component with context-aware th3rdai-harness slash commands
   - Polished error states with friendly messages and retry buttons
   - Loading skeleton for projectData null state
   - Props threaded from App.jsx (connected, selectedModel) to BuildPanel
@@ -49,7 +49,7 @@ completed: 2026-03-15
 
 # Phase 16 Plan 04: Handoff + Polish Summary
 
-**ClaudeCodeHandoff component with copy-pasteable GSD commands, polished error states with retry, and loading skeleton for BuildSimpleView**
+**ClaudeCodeHandoff component with copy-pasteable th3rdai-harness commands, polished error states with retry, and loading skeleton for BuildSimpleView**
 
 ## Performance
 
@@ -61,7 +61,7 @@ completed: 2026-03-15
 
 ## Accomplishments
 
-- ClaudeCodeHandoff component shows context-aware GSD slash commands (cd, new-project, plan-phase, execute-phase, verify-work, research-phase) based on project state
+- ClaudeCodeHandoff component shows context-aware th3rdai-harness slash commands (cd, new-project, plan-phase, execute-phase, verify-work, research-phase) based on project state
 - Copy buttons use Clipboard API with per-card feedback state and toast confirmation
 - Error states throughout dashboard show friendly messages with AlertTriangle icon and retry buttons
 - Network errors display "Could not reach the server. Is it running?" instead of raw error
@@ -72,12 +72,12 @@ completed: 2026-03-15
 
 Each task was committed atomically:
 
-1. **Task 1: ClaudeCodeHandoff component with copy-pasteable GSD commands** - `342e7bf` (feat)
+1. **Task 1: ClaudeCodeHandoff component with copy-pasteable th3rdai-harness commands** - `342e7bf` (feat)
 2. **Task 2: Wire handoff into BuildSimpleView, thread props from App.jsx, polish error states** - `84b036a` (feat)
 
 ## Files Created/Modified
 
-- `src/components/ClaudeCodeHandoff.jsx` - Context-aware GSD slash commands panel with copy buttons
+- `src/components/ClaudeCodeHandoff.jsx` - Context-aware th3rdai-harness slash commands panel with copy buttons
 - `src/components/BuildSimpleView.jsx` - Added ClaudeCodeHandoff import, loading skeleton, polished error cards
 - `src/App.jsx` - Added selectedModel and ollamaConnected props to BuildPanel render
 

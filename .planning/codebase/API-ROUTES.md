@@ -45,11 +45,11 @@ Express routes live primarily in `server.js`; MCP **management** REST routes are
 
 ## Project files & scaffolding
 
-| Cluster                     | Routes                                                                                                                                                                           | Notes                                                   |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **File browser**            | `GET /api/files/tree`, `/read`, `/read-raw`, `POST /save`, `/upload`                                                                                                             | Scoped to `config.projectFolder`; `lib/file-browser.js` |
-| **Create / Build scaffold** | `POST /api/create-project`, `/api/build-project`                                                                                                                                 | ICM / build scaffolders                                 |
-| **Build registry & GSD**    | `GET/POST/DELETE /api/build/projects`, `/register`, `/:id/state`, `/roadmap`, `/progress`, `/phase/:n`, `POST …/next-action`, `/research`, `/plan`, file CRUD under `/:id/files` | `lib/build-registry.js`, `lib/gsd-bridge.js`, etc.      |
+| Cluster                              | Routes                                                                                                                                                                           | Notes                                                   |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **File browser**                     | `GET /api/files/tree`, `/read`, `/read-raw`, `POST /save`, `/upload`                                                                                                             | Scoped to `config.projectFolder`; `lib/file-browser.js` |
+| **Create / Build scaffold**          | `POST /api/create-project`, `/api/build-project`                                                                                                                                 | ICM / build scaffolders                                 |
+| **Build registry & th3rdai-harness** | `GET/POST/DELETE /api/build/projects`, `/register`, `/:id/state`, `/roadmap`, `/progress`, `/phase/:n`, `POST …/next-action`, `/research`, `/plan`, file CRUD under `/:id/files` | `lib/build-registry.js`, `lib/harness-bridge.js`, etc.  |
 
 ## GitHub & local git
 

@@ -170,4 +170,4 @@ The Plan 02 human checkpoint was marked `auto_advance=true` in the summary (not 
 ---
 
 _Verified: 2026-04-09T22:15:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verifier: Claude (harness-verifier)_

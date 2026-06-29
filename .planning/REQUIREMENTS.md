@@ -42,8 +42,8 @@
 
 ### Build Mode (Phase 15)
 
-- [x] **BUILD-01**: Build mode appears in mode tabs next to Create; BuildWizard scaffolds a project with `.planning/` (GSD) and `stages/` (ICM)
-- [x] **BUILD-02**: Scaffolded project includes CLAUDE.md, CONTEXT.md, skills/gsd-workflows.md; user can use GSD and ICM in Cursor/Claude Code
+- [x] **BUILD-01**: Build mode appears in mode tabs next to Create; BuildWizard scaffolds a project with `.planning/` (th3rdai-harness) and `stages/` (ICM)
+- [x] **BUILD-02**: Scaffolded project includes CLAUDE.md, CONTEXT.md, skills/harness-workflows.md; user can use th3rdai-harness and ICM in Cursor/Claude Code
 - [x] **BUILD-03**: API returns 403 for path outside allowed root, 409 for already exists without overwrite; chat input hidden when Build selected
 
 ### Build Dashboard (Phase 16)
@@ -54,7 +54,7 @@
 - [ ] **BDASH-P3-01**: Research and plan endpoints return SSE streams
 - [ ] **BDASH-P4-01**: File viewer displays whitelisted planning files
 - [ ] **BDASH-P4-02**: File editor saves with atomic write
-- [ ] **BDASH-P5-01**: Handoff shows copy-pasteable GSD commands
+- [ ] **BDASH-P5-01**: Handoff shows copy-pasteable th3rdai-harness commands
 
 ### Security Pen Test Mode (Phase 18)
 

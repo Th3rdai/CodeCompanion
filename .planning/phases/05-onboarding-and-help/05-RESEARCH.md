@@ -618,7 +618,7 @@ function finish() {
 
 - **Per task commit:** `npm run test:ui` (UI component tests only, < 30 seconds)
 - **Per wave merge:** `npm test` (full Playwright suite, E2E + component)
-- **Phase gate:** Full suite green before `/gsd:verify-work`
+- **Phase gate:** Full suite green before `/harness:verify-work`
 
 ### Wave 0 Gaps
 

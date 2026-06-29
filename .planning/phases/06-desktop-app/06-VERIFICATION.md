@@ -289,4 +289,4 @@ All 41 must-haves (21 truths + 16 artifacts + 4 from key links) verified against
 ---
 
 _Verified: 2026-03-14T23:30:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verifier: Claude (harness-verifier)_

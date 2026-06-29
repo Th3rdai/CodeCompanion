@@ -12,7 +12,7 @@
 
 ## Executive Summary
 
-Dashboard **Feature Access Grid** tiles truncate every mode description to one line (`line-clamp-1`) inside narrow columns (`minmax(140px, 1fr)`). Sighted users cannot read copy such as _"Bounded hypothesis → change → measure loops"_ or _"Start a GSD+ICM project to build apps and tools"_ even though full text exists in `aria-label`.
+Dashboard **Feature Access Grid** tiles truncate every mode description to one line (`line-clamp-1`) inside narrow columns (`minmax(140px, 1fr)`). Sighted users cannot read copy such as _"Bounded hypothesis → change → measure loops"_ or _"Start a th3rdai-harness project to build apps and tools"_ even though full text exists in `aria-label`.
 
 **TABLEFIX** adds progressive disclosure: **card click still navigates to the mode**; a **44×44 info control** opens a **detail modal** with the full description and an explicit **Open {label}** action.
 

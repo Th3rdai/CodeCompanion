@@ -247,6 +247,14 @@ function findFreePort(preferredPort) {
  */
 function getPreferredPort() {
   try {
+    // Check CC_PORT env var first
+    if (process.env.CC_PORT) {
+      const port = parseInt(process.env.CC_PORT, 10);
+      if (port >= 1024 && port <= 65535) {
+        return port;
+      }
+    }
+
     const configPath = path.join(dataDir, ".cc-config.json");
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -541,7 +549,7 @@ async function startApp() {
       minWidth: 1024,
       minHeight: 768,
       backgroundColor: "#0f172a",
-      show: false,
+      show: true,
       webPreferences: {
         preload: path.join(__dirname, "preload.js"),
         contextIsolation: true,
@@ -999,10 +1007,22 @@ ipcMain.handle("get-microphone-access-status", () => {
 
 ipcMain.handle("request-microphone-access", async () => {
   if (process.platform === "darwin") {
-    const granted = await systemPreferences.askForMediaAccess("microphone");
-    return granted ? "granted" : "denied";
+    await systemPreferences.askForMediaAccess("microphone");
+    return systemPreferences.getMediaAccessStatus("microphone");
   }
   return "granted";
+});
+
+ipcMain.handle("open-microphone-settings", async () => {
+  if (process.platform !== "darwin") return { success: false };
+  try {
+    await shell.openExternal(
+      "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+    );
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 // Docling status

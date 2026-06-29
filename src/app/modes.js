@@ -130,7 +130,7 @@ export const MODES = [
     id: "build",
     label: "Build",
     icon: "🏗️",
-    desc: "Start a GSD+ICM project to build apps and tools",
+    desc: "Start a th3rdai-harness project to build apps and tools",
     placeholder: "Scaffold a project with planning and stages...",
   },
   {

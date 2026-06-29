@@ -49,7 +49,7 @@ Single unit file: `node --test tests/unit/<name>.test.js`. Testing details in **
 | `IDE_COMMANDS/`             | IDE command files copied into scaffolded projects (Create & Build)                                                                                                                                                                                                                                                                    |
 | `dist/`                     | Production build output                                                                                                                                                                                                                                                                                                               |
 
-**`lib/` modules**: config, ollama-client, chat-post-handler, prompts, review, **auto-model** (per-mode default model when toolbar = Auto), builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder, build-registry, gsd-bridge, maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, resolve-mcp-test-config-root (`npm run mcp:clients:test` path), tool-call-handler, **security-helpers** (loopback/API-key gate, CORS, path allowlists), **client-errors** (generic 5xx/SSE messages), builtin-agent-tools, docling-client, docling-starter, builtin-doc-converter, **office-generator** (chat/office export), memory, spawn-path.
+**`lib/` modules**: config, ollama-client, chat-post-handler, prompts, review, **auto-model** (per-mode default model when toolbar = Auto), builder-score, builder-schemas, file-browser, history, github, icm-scaffolder, build-scaffolder (th3rdai-harness 7-stage scaffold), build-registry, **harness-bridge** (Build project `.planning/` state reader — in-process, replaced a removed external planning-CLI bridge), maker-skill, pentest, pentest-schema, validate, mcp-client-manager, mcp-api-routes, resolve-mcp-test-config-root (`npm run mcp:clients:test` path), tool-call-handler, **security-helpers** (loopback/API-key gate, CORS, path allowlists), **client-errors** (generic 5xx/SSE messages), builtin-agent-tools, docling-client, docling-starter, builtin-doc-converter, **office-generator** (chat/office export), memory, spawn-path.
 
 ## Critical Rules & Invariants
 
@@ -120,7 +120,7 @@ HTTPS via auto-generated self-signed cert (`deploy.sh`, falls back to HTTP); con
 
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **CodeCompanion** (12535 symbols, 17529 relationships, 243 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **CodeCompanion** (12595 symbols, 17604 relationships, 242 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

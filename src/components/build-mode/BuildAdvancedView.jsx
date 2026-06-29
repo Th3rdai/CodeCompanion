@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch } from "../../lib/api-fetch";
 import { ChevronDown, ChevronRight, FileText, CheckCircle } from "lucide-react";
 import PlanningFileViewer from "./PlanningFileViewer";
@@ -19,16 +19,49 @@ export default function BuildAdvancedView({
 
   const phases = projectData?.roadmap?.phases || [];
 
-  // Load available planning files on first render
-  useState(() => {
+  // Load available planning files when project changes (not on every render)
+  useEffect(() => {
     if (!project?.id) return;
+    let cancelled = false;
+    const controller = new AbortController();
     setFilesLoading(true);
-    apiFetch(`/api/build/projects/${project.id}/files`)
+    apiFetch(`/api/build/projects/${project.id}/files`, {
+      signal: controller.signal,
+    })
       .then((r) => r.json())
-      .then((data) => setFiles(data.files || []))
-      .catch(() => setFiles([]))
-      .finally(() => setFilesLoading(false));
-  });
+      .then((data) => {
+        if (!cancelled) setFiles(data.files || []);
+      })
+      .catch((err) => {
+        if (err?.name === "AbortError") return;
+        if (!cancelled) setFiles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setFilesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [project?.id]);
+
+  // Lifecycle stage breadcrumb — maps phase number to 7-stage harness lifecycle
+  const LIFECYCLE_STAGES = [
+    "Task Definition",
+    "Agent Design",
+    "Prompt Design",
+    "Tool Integration",
+    "Evaluation",
+    "Iteration",
+    "Release",
+  ];
+  const currentStage = (() => {
+    const incomplete = phases.find(
+      (p) => p.status !== "complete" && p.status !== "completed",
+    );
+    const phaseNum = incomplete?.number || 1;
+    return Math.min(Math.max(phaseNum, 1), 7) - 1;
+  })();
 
   function togglePhase(num) {
     setExpandedPhases((prev) => {

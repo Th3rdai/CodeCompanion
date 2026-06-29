@@ -101,4 +101,4 @@ Phase 7 goal achieved. Feature-based license model implemented with:
 ---
 
 _Verified: 2026-03-14T23:59:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verifier: Claude (harness-verifier)_

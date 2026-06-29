@@ -1,7 +1,7 @@
 # Roadmap: Chat agent — first-party app capabilities
 
-**Status:** Active — promoted as **Phases 25–27** in [`.planning/ROADMAP.md`](../.planning/ROADMAP.md) (Phase 25 = Validate builtins, 26 = Planner tools, 27 = optional GSD bridge).  
-**Scope:** Extend the **builtin agent** (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`, `/api/chat` in `server.js`) so the model can invoke the same **Validate** and **Planner** behaviors users get from the UI, with optional later **GSD** read-only helpers.  
+**Status:** Active — promoted as **Phases 25–27** in [`.planning/ROADMAP.md`](../.planning/ROADMAP.md) (Phase 25 = Validate builtins, 26 = Planner tools, 27 = optional harness bridge).  
+**Scope:** Extend the **builtin agent** (`lib/builtin-agent-tools.js`, `lib/tool-call-handler.js`, `/api/chat` in `server.js`) so the model can invoke the same **Validate** and **Planner** behaviors users get from the UI, with optional later **harness** read-only helpers.  
 **Principles:** Reuse `lib/` entry points already used by HTTP routes; do not fork prompts; align security, aborts, and timeouts with existing chat and API patterns.
 
 **Milestone mapping:** This file’s “Phase 1 / 2 / 3” correspond to **ROADMAP Phase 25 / 26 / 27** respectively.
@@ -12,7 +12,7 @@
 | ---------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | Phase 1 — Validate builtins (`validate_scan_project`, `validate_generate_command`) | **Shipped**                                           |
 | Phase 2 — Planner tool (`score_plan` parity with Planner mode)                     | **Shipped**                                           |
-| Phase 3 — GSD bridge builtins (read-only / bounded)                                | **Planned / optional** — gated, not required for Chat |
+| Phase 3 — harness bridge builtins (read-only / bounded)                            | **Planned / optional** — gated, not required for Chat |
 
 Other agent ideas (browser, terminal, MCP, app skills) are documented in **CLAUDE.md** and **docs/AGENT-READINESS.md**, not in this file.
 
@@ -20,7 +20,7 @@ Other agent ideas (browser, terminal, MCP, app skills) are documented in **CLAUD
 
 ## Problem statement
 
-Today, chat agent tools cover terminal, office export, and MCP. **Validate mode** and **Planner mode** already exist as UI + REST (`POST /api/validate/scan`, `POST /api/validate/generate`; `POST /api/score` with `mode: "planner"`). Users in **Chat** cannot ask the agent to “run the same validate scan” or “score this plan” without duplicating logic or hand-copying API calls. This roadmap phases wiring those capabilities through **builtin tools** (and optional Settings toggles) without reimplementing `lib/validate.js`, scoring prompts, or GSD semantics in a second place.
+Today, chat agent tools cover terminal, office export, and MCP. **Validate mode** and **Planner mode** already exist as UI + REST (`POST /api/validate/scan`, `POST /api/validate/generate`; `POST /api/score` with `mode: "planner"`). Users in **Chat** cannot ask the agent to “run the same validate scan” or “score this plan” without duplicating logic or hand-copying API calls. This roadmap phases wiring those capabilities through **builtin tools** (and optional Settings toggles) without reimplementing `lib/validate.js`, scoring prompts, or harness semantics in a second place.
 
 ---
 
@@ -28,7 +28,7 @@ Today, chat agent tools cover terminal, office export, and MCP. **Validate mode*
 
 - [x] **Phase 1: Validate builtins** — Agent can trigger project scan and `validate.md`-style generation consistent with Validate mode APIs; optional write to an allowed path under the project folder. (complete 2026-04-09)
 - [x] **Phase 2: Planner tool(s)** — Agent can submit planner-shaped content for scoring (and optionally draft/revise flows) consistent with `PlannerPanel` + `/api/score` for `planner`. (complete 2026-04-09)
-- [ ] **Phase 3 (optional): GSD bridge builtins** — Thin, allowlisted wrappers around `lib/gsd-bridge.js` for read-only or safe planning queries; strict command allowlist and config gates.
+- [ ] **Phase 3 (optional): harness bridge builtins** — Thin, allowlisted wrappers around `lib/harness-bridge.js` for read-only or safe planning queries; strict command allowlist and config gates.
 
 ---
 
@@ -87,24 +87,24 @@ Today, chat agent tools cover terminal, office export, and MCP. **Validate mode*
 
 ---
 
-### Phase 3 (optional): GSD bridge builtins
+### Phase 3 (optional): harness bridge builtins
 
-**Goal:** Optional builtin tool(s) expose **read-only or strictly bounded** GSD operations via `lib/gsd-bridge.js` (same bridge used by Build dashboard), for “what phase are we in?” / “show roadmap snippet” style workflows — **not** a general shell.
+**Goal:** Optional builtin tool(s) expose **read-only or strictly bounded** harness operations via `lib/harness-bridge.js` (same bridge used by Build dashboard), for “what phase are we in?” / “show roadmap snippet” style workflows — **not** a general shell.
 
 **Depends on:** Phase 1–2 recommended complete so agent surface area and Settings patterns are stable; technically can ship independently if tightly scoped.
 
 **Requirements mapping:**
 
-| ID     | Requirement                                                                                                                     |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| AAP-11 | Allowlisted operations only (explicit map of allowed bridge commands or methods); reject everything else at the boundary.       |
-| AAP-12 | Project must be registered / path valid per existing GSD expectations (align with Build registry and `gsd-bridge` constraints). |
-| AAP-13 | No arbitrary command strings from the model — only structured args validated with the same rigor as server routes.              |
-| AAP-14 | **Settings** gate (default off or restricted) for any GSD agent capability.                                                     |
+| ID     | Requirement                                                                                                                             |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| AAP-11 | Allowlisted operations only (explicit map of allowed bridge commands or methods); reject everything else at the boundary.               |
+| AAP-12 | Project must be registered / path valid per existing harness expectations (align with Build registry and `harness-bridge` constraints). |
+| AAP-13 | No arbitrary command strings from the model — only structured args validated with the same rigor as server routes.                      |
+| AAP-14 | **Settings** gate (default off or restricted) for any harness agent capability.                                                         |
 
 **Success criteria** (observable):
 
-1. With the toggle off, the model cannot invoke GSD bridge tools (tools absent from prompt or execution returns a clear “disabled” result).
+1. With the toggle off, the model cannot invoke harness bridge tools (tools absent from prompt or execution returns a clear “disabled” result).
 2. With the toggle on, only documented operations succeed; fuzzed or out-of-scope requests fail closed.
 3. Behavior matches Build mode’s bridge semantics for the same project (no second source of truth).
 
@@ -118,14 +118,14 @@ Today, chat agent tools cover terminal, office export, and MCP. **Validate mode*
 flowchart LR
   P1[Phase 1 Validate]
   P2[Phase 2 Planner]
-  P3[Phase 3 GSD optional]
+  P3[Phase 3 harness optional]
   P1 --> P2
   P1 --> P3
   P2 --> P3
 ```
 
 - **Phase 1 → Phase 2:** Soft dependency (shared conventions: toggles, error JSON, tests).
-- **Phase 3** depends on stable **Settings** + security patterns from 1–2 and on `gsd-bridge` remaining the single integration point.
+- **Phase 3** depends on stable **Settings** + security patterns from 1–2 and on `harness-bridge` remaining the single integration point.
 
 ---
 
@@ -139,7 +139,7 @@ flowchart LR
 | **Path traversal / data exfil**                                                                                | Only `config.projectFolder`-relative resolution; reuse `isWithinBasePath` / file-browser validation; never pass raw user paths without checks. |
 | **Electron vs web**                                                                                            | Project folder and `CC_DATA_DIR` behavior must match Validate/Build; manual check on packaged app if paths differ from browser.                |
 | **Agent loop abuse** — Many tool rounds burning CPU.                                                           | Existing max tool rounds + rate limits; optional stricter limits for heavy tools.                                                              |
-| **GSD phase 3** — Arbitrary process execution if mis-wired.                                                    | No shell; allowlist only; default off; audit `gsd-bridge` entry points before exposing.                                                        |
+| **harness phase 3** — Arbitrary process execution if mis-wired.                                                | No shell; allowlist only; default off; audit `harness-bridge` entry points before exposing.                                                    |
 
 ---
 
@@ -172,12 +172,12 @@ Existing tests to extend or mirror: `tests/unit/builtin-agent-tools.test.js`, `t
 - Agent pipeline: `lib/tool-call-handler.js`, `lib/builtin-agent-tools.js`, `server.js` (`/api/chat`).
 - Validate: `lib/validate.js`, validate routes in `server.js`.
 - Planner UI: `src/components/builders/PlannerPanel.jsx`; score: `POST /api/score`, `lib/builder-schemas.js`, `lib/prompts.js`.
-- GSD: `lib/gsd-bridge.js`, Build dashboard consumers.
+- harness: `lib/harness-bridge.js`, Build dashboard consumers.
 
 ---
 
 ## Document history
 
-| Date       | Change                                                                     |
-| ---------- | -------------------------------------------------------------------------- |
-| 2026-04-04 | Initial roadmap (agent app capabilities: Validate, Planner, optional GSD). |
+| Date       | Change                                                                         |
+| ---------- | ------------------------------------------------------------------------------ |
+| 2026-04-04 | Initial roadmap (agent app capabilities: Validate, Planner, optional harness). |

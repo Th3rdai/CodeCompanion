@@ -1,0 +1,40 @@
+# CodeCompanion Harness — Model Profiles
+# CodeCompanion uses Ollama (local) + OpenRouter (cloud) as its LLM stack.
+# Profiles bind agents to provider/model settings.
+
+model_profiles:
+  research:
+    provider: ollama
+    model: qwen3:32b
+    temperature: 0.3
+    notes: Source-grounded synthesis and context gathering. Large context window for code reading.
+
+  planning:
+    provider: ollama
+    model: qwen3:32b
+    temperature: 0.2
+    notes: Structured planning with low randomness. Deep reasoning for scope control.
+
+  building:
+    provider: ollama
+    model: qwen3:14b
+    temperature: 0.2
+    notes: Code generation and scaffolding. Balanced speed and quality.
+
+  review:
+    provider: ollama
+    model: qwen3:32b
+    temperature: 0.1
+    notes: Code review with precise, low-randomness analysis. Letter grade accuracy.
+
+  evaluation:
+    provider: ollama
+    model: qwen3:14b
+    temperature: 0.1
+    notes: Evaluation and rubric scoring. Deterministic outputs for consistency.
+
+# Fallback chain — if local Ollama is unavailable, use OpenRouter cloud models
+fallbacks:
+  - provider: openrouter
+    model: auto
+    notes: Cloud fallback when local models are not available

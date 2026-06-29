@@ -254,7 +254,7 @@ All AI conversation history is accessible without authentication. Sessions conta
   },
   {
     "id": "44a79176",
-    "title": "GSD P3 Tests: buggy-discount.js",
+    "title": "th3rdai-harness P3 Tests: buggy-discount.js",
     "mode": "refactor"
   }
 ]

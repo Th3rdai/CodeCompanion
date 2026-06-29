@@ -129,4 +129,4 @@ None — all phase goals verifiable programmatically through file inspection and
 ---
 
 _Verified: 2026-03-14T22:15:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verifier: Claude (harness-verifier)_

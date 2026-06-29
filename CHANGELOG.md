@@ -595,7 +595,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planning
 
-- **Agent first-party capabilities** — [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](docs/AGENT-APP-CAPABILITIES-ROADMAP.md) promoted to [`.planning/ROADMAP.md`](.planning/ROADMAP.md) as **Phases 25–27** (Validate / Planner / optional GSD builtins from chat). Pointers added in README, CLAUDE.md, `whats-next.md`, STATE.
+- **Agent first-party capabilities** — [`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`](docs/AGENT-APP-CAPABILITIES-ROADMAP.md) promoted to [`.planning/ROADMAP.md`](.planning/ROADMAP.md) as **Phases 25–27** (Validate / Planner / optional harness-bridge builtins from chat). Pointers added in README, CLAUDE.md, `whats-next.md`, STATE.
 
 ---
 

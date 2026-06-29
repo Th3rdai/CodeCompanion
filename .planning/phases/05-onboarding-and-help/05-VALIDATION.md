@@ -29,7 +29,7 @@ created: 2026-03-14
 
 - **After every task commit:** Run `npm run test:ui`
 - **After every plan wave:** Run `npm test`
-- **Before `/gsd:verify-work`:** Full suite must be green
+- **Before `/harness:verify-work`:** Full suite must be green
 - **Max feedback latency:** 45 seconds
 
 ---

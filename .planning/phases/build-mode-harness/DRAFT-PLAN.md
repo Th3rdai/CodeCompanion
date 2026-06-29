@@ -1,7 +1,7 @@
-# Build Mode: GSD + ICM Integration — Draft Plan (for review)
+# Build Mode: th3rdai-harness Integration — Draft Plan (for review)
 
 **Status:** Draft for review (revised for gaps, edge cases, and implementation risks)  
-**Purpose:** Add a **Build** mode that scaffolds a new project combining [get-shit-done](https://github.com/gsd-build/get-shit-done) (GSD) and the ICM Framework so users can build apps, tools, or other software using both methodologies.
+**Purpose:** Add a **Build** mode that scaffolds a new project combining [th3rdai-harness](https://github.com/harness-build/th3rdai-harness) (th3rdai-harness) and the ICM Framework so users can build apps, tools, or other software using both methodologies.
 
 ---
 
@@ -9,7 +9,7 @@
 
 - Add a **Build** mode with a button next to **Create** in Code Companion.
 - When selected, scaffold a new project that combines:
-  - **GSD**: meta-prompting, research → plan → execute workflows, `.planning/` structure.
+  - **th3rdai-harness**: meta-prompting, research → plan → execute workflows, `.planning/` structure.
   - **ICM**: stage-based Research → Draft → Review, `stages/` structure.
 - The scaffold should combine the **commands and skills** of both so the user can leverage them in Claude Code / Cursor to build what they want.
 
@@ -55,7 +55,7 @@ flowchart TB
 
 ```
 project-name/
-├── .planning/           # GSD
+├── .planning/           # th3rdai-harness
 │   ├── PROJECT.md
 │   ├── ROADMAP.md
 │   ├── STATE.md
@@ -76,7 +76,7 @@ project-name/
 ├── _config/
 │   └── brand-voice.md
 ├── shared/
-├── skills/              # Combined: GSD workflow refs + ICM skills
+├── skills/              # Combined: th3rdai-harness workflow refs + ICM skills
 ├── CLAUDE.md            # Identity + routing for both
 ├── CONTEXT.md           # Routing table (stages + planning)
 └── README.md
@@ -91,15 +91,15 @@ project-name/
 - **File:** `lib/build-scaffolder.js` (new).
 - Reuse logic from `lib/icm-scaffolder.js`: `slugify`, `resolveOutputRoot`, `getWritableRoots`, `isUnderRoot`, `normalizeStages`.
 - Create combined structure:
-  - **GSD .planning/**: PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json, `phases/.gitkeep`.
+  - **th3rdai-harness .planning/**: PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json, `phases/.gitkeep`.
   - **ICM stages/**: Same as Create mode (01-research, 02-draft, 03-review) with CONTEXT.md per stage; `output/.gitkeep` and `references/.gitkeep` (research only).
   - **Root**: CLAUDE.md referencing both `.planning/` and `stages/`; CONTEXT.md with routing; README.md; `.editorconfig` (optional but recommended).
 - Input options: `name`, `description`, `outputRoot`, `audience`, `tone`, `overwrite`. Trim `name` and `outputRoot`; treat empty `name` as invalid.
 - **Scaffold strategy:** Write all files into a **temp directory** (e.g. `.build-scaffold-{slug}-{timestamp}`) under the same parent; on success, `renameSync` temp → project path. On any failure, **delete the temp dir** so no orphaned partial scaffolds. Write all files with **UTF-8 encoding** so content and paths are consistent across platforms.
 - **Error codes** (return from scaffolder for API to map to HTTP): `MISSING_FIELDS`, `INVALID_OUTPUT_ROOT`, `PATH_OUTSIDE_ROOT`, `ALREADY_EXISTS`, `CLEANUP_FAILED` (overwrite delete failed), `TEMP_CREATE_FAILED`, `SCAFFOLD_FAILED`.
 - **Path safety:** Resolve `outputRoot` (expand `~`), then require resolved path to be **under one of the writable roots** (same as Create). Reject path traversal and paths outside allowed roots.
-- **Optional:** `.gitignore` in scaffold (e.g. `node_modules/`, `.env`, `dist/`) if project type is code-focused; otherwise leave to user. **Optional:** `gsdWorkflowsPath` config to copy or reference GSD workflows.
-- **Dependencies:** Embed minimal GSD template content in build-scaffolder (recommended) so there is **no runtime dependency** on `~/.claude/get-shit-done/`; ICM structure from `lib/icm-scaffolder.js`.
+- **Optional:** `.gitignore` in scaffold (e.g. `node_modules/`, `.env`, `dist/`) if project type is code-focused; otherwise leave to user. **Optional:** `harnessWorkflowsPath` config to copy or reference th3rdai-harness workflows.
+- **Dependencies:** Embed minimal th3rdai-harness template content in build-scaffolder (recommended) so there is **no runtime dependency** on `~/.claude/th3rdai-harness/`; ICM structure from `lib/icm-scaffolder.js`.
 
 ### Phase 2: Build API and Server
 
@@ -130,10 +130,10 @@ project-name/
 - **src/constants/tiers.js:** Add `build: 'free'` to MODE_TIERS (or `'pro'` if Build is gated later).
 - **lib/license-manager.js:** Add `'mode:build': 'free'` to FEATURE_TIERS so tier checks stay in sync; add `requireTier('mode:build')` on the route only if/when Build is gated.
 
-### Phase 5: GSD Template and Skills Integration
+### Phase 5: th3rdai-harness Template and Skills Integration
 
-- **Decision (recommended):** Embed minimal GSD template content (PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json) **inside** build-scaffolder. No runtime dependency on `~/.claude/get-shit-done/` or `GSD_HOME`; works even when GSD is not installed. Alternative: read from install path at scaffold time (simpler to stay in sync with GSD but fails if GSD not present).
-- **Skills/commands:** Add `skills/gsd-workflows.md` in the scaffold describing how to run GSD commands from the project root (e.g. `/gsd:plan-phase`, `/gsd:execute-phase`, `/gsd:progress`) and that the project was scaffolded by Build mode. Add `skills/README.md` pointing to `gsd-workflows.md`. ICM usage is already described in CLAUDE.md and CONTEXT.md; no separate ICM skill file required unless we add reusable ICM snippets later.
+- **Decision (recommended):** Embed minimal th3rdai-harness template content (PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json) **inside** build-scaffolder. No runtime dependency on `~/.claude/th3rdai-harness/` or `HARNESS_HOME`; works even when th3rdai-harness is not installed. Alternative: read from install path at scaffold time (simpler to stay in sync with th3rdai-harness but fails if th3rdai-harness not present).
+- **Skills/commands:** Add `skills/harness-workflows.md` in the scaffold describing how to run th3rdai-harness commands from the project root (e.g. `/harness:plan-phase`, `/harness:execute-phase`, `/harness:progress`) and that the project was scaffolded by Build mode. Add `skills/README.md` pointing to `harness-workflows.md`. ICM usage is already described in CLAUDE.md and CONTEXT.md; no separate ICM skill file required unless we add reusable ICM snippets later.
 
 ---
 
@@ -149,7 +149,7 @@ project-name/
 | Empty or whitespace-only project name                          | Treat as invalid; require non-empty after trim; backend returns `MISSING_FIELDS` if missing.                                                                                                                 |
 | Path traversal in `outputRoot` (e.g. `../../../etc`)           | Resolve to absolute and check `isUnderRoot`; only paths under allowed roots accepted.                                                                                                                        |
 | Very long project name                                         | Slugify with same max length as ICM (e.g. 64 chars); no new risk.                                                                                                                                            |
-| GSD not installed on user machine                              | Scaffold is self-contained; skills/gsd-workflows.md explains that GSD must be installed to run commands. No runtime dependency in Code Companion.                                                            |
+| th3rdai-harness not installed on user machine                  | Scaffold is self-contained; skills/harness-workflows.md explains that th3rdai-harness must be installed to run commands. No runtime dependency in Code Companion.                                            |
 | Windows reserved folder names (e.g. con, prn, aux)             | slugify yields lowercase; if project name becomes one of these, mkdir/rename can fail on Windows. Optional: add a reserved-name check and suffix (e.g. `con` → `con-project`) or document as rare edge case. |
 | Non-JSON or missing API response                               | Frontend: catch parse errors and network errors; show generic message and keep form state so user can retry.                                                                                                 |
 
@@ -158,7 +158,7 @@ project-name/
 ## Implementation Pitfalls (avoid these)
 
 - **Do not** add a separate config key for Build allowed roots unless product requires it; reusing `createModeAllowedRoots` keeps behavior consistent and avoids config drift.
-- **Do not** read GSD templates from disk at request time if you want zero dependency on GSD install; embed minimal content in build-scaffolder.
+- **Do not** read th3rdai-harness templates from disk at request time if you want zero dependency on th3rdai-harness install; embed minimal content in build-scaffolder.
 - **Do not** forget to hide the chat input when `mode === 'build'` (same as Create), or users will see an input that does nothing.
 - **Do not** return 200 for scaffold failure; use 201 for success and 400/403/409/500 with a `code` so the client can show specific messages.
 - **Do not** skip temp-dir strategy: writing directly into the final path can leave a half-created project on failure; temp dir + rename keeps atomicity.
@@ -170,7 +170,7 @@ project-name/
 
 ## Implementation Order
 
-Implement in phase order: **1 → 2 → 3 → 4 → 5**. Phase 2 depends on Phase 1 (scaffolder); Phase 3 depends on Phase 2 (API); Phase 4 depends on Phase 3 (BuildWizard); Phase 5 is covered by Phase 1 content (embedded GSD + skills in scaffold). Unit tests for the scaffolder can be added alongside Phase 1; E2E for the full flow after Phase 4.
+Implement in phase order: **1 → 2 → 3 → 4 → 5**. Phase 2 depends on Phase 1 (scaffolder); Phase 3 depends on Phase 2 (API); Phase 4 depends on Phase 3 (BuildWizard); Phase 5 is covered by Phase 1 content (embedded th3rdai-harness + skills in scaffold). Unit tests for the scaffolder can be added alongside Phase 1; E2E for the full flow after Phase 4.
 
 ---
 
@@ -189,11 +189,11 @@ Implement in phase order: **1 → 2 → 3 → 4 → 5**. Phase 2 depends on Phas
 
 ## Out of Scope (future)
 
-- Running GSD commands from within Code Companion (would require MCP or subprocess to gsd-tools).
+- Running th3rdai-harness commands from within Code Companion (would require MCP or subprocess to harness-tools).
 - ICM_FW shell scripts (e.g. 01-create-project.sh) — scaffold produces structure; scripts are optional.
 - License gating for Build (assume free for now; can add later).
 - Adding a default `.gitignore` to the scaffold (user can add manually; optional enhancement).
-- Supporting custom GSD workflow files or custom stage names in the wizard (fixed GSD + ICM structure for v1).
+- Supporting custom th3rdai-harness workflow files or custom stage names in the wizard (fixed th3rdai-harness structure for v1).
 
 ---
 
@@ -202,8 +202,8 @@ Implement in phase order: **1 → 2 → 3 → 4 → 5**. Phase 2 depends on Phas
 - [ ] Build mode appears in mode tabs next to Create.
 - [ ] BuildWizard completes and scaffolds project; success shows path and file list; File Browser opens to new folder when configured.
 - [ ] Scaffolded project has both `.planning/` (with PROJECT.md, ROADMAP.md, STATE.md, REQUIREMENTS.md, config.json, phases/) and `stages/` (01-research, 02-draft, 03-review with CONTEXT.md and output/).
-- [ ] CLAUDE.md and CONTEXT.md route to both GSD and ICM; skills/gsd-workflows.md exists and describes GSD commands.
-- [ ] User can open project in Cursor/Claude Code and use GSD and ICM commands/skills (no runtime dependency on GSD inside Code Companion).
+- [ ] CLAUDE.md and CONTEXT.md route to both th3rdai-harness and ICM; skills/harness-workflows.md exists and describes th3rdai-harness commands.
+- [ ] User can open project in Cursor/Claude Code and use th3rdai-harness and ICM commands/skills (no runtime dependency on th3rdai-harness inside Code Companion).
 - [ ] Path outside allowed root: API returns 403 with `PATH_OUTSIDE_ROOT`; UI shows clear message (e.g. add folder in Settings).
 - [ ] Project already exists without Overwrite: API returns 409 with `ALREADY_EXISTS`; UI suggests different name or Overwrite.
 - [ ] Chat input is hidden when Build mode is selected (same as Create).
@@ -214,7 +214,7 @@ Implement in phase order: **1 → 2 → 3 → 4 → 5**. Phase 2 depends on Phas
 ## Review notes
 
 - Confirm phase order and scope.
-- Confirm GSD template strategy: **embedded** (recommended) vs. read from install path.
+- Confirm th3rdai-harness template strategy: **embedded** (recommended) vs. read from install path.
 - Confirm Build is **free** for now; gating can be added later via `requireTier('mode:build')` and FEATURE_TIERS.
 - Confirm **single config key** `createModeAllowedRoots` for both Create and Build (no separate build roots unless required).
 - Optional: add `.gitignore` to scaffold (e.g. `node_modules/`, `.env`) for code projects; currently out of scope.

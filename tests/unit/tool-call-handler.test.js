@@ -591,6 +591,7 @@ test("buildToolsPrompt includes agent identity override forbidding teacher-defle
   );
   const p = h.buildToolsPrompt();
   assert.ok(p.includes("AGENT IDENTITY OVERRIDE"), "expected override header");
+  assert.ok(p.includes("AUTONOMOUS AGENT"), "expected autonomy directive");
   assert.ok(
     p.includes("you'll need to run this yourself"),
     "expected explicit forbidden phrase listed",

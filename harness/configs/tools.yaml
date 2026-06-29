@@ -1,0 +1,96 @@
+# CodeCompanion Harness — Tool Policies
+# Defines which tools each agent role can use.
+# MCP server integrations are mapped to the agents that use them.
+
+tool_policies:
+  researcher:
+    allowed:
+      - read_files
+      - search_files
+      - find_files
+      - list_dir
+      - web_search # crawl4ai-rag
+      - web_crawl # crawl4ai-rag
+      - web_extract # crawl4ai-rag
+      - google_ai # google-ai-studio
+    denied:
+      - write_file
+      - edit_file
+      - delete_file
+      - run_terminal_cmd
+
+  planner:
+    allowed:
+      - read_files
+      - search_files
+      - find_files
+      - list_dir
+      - score_plan # builtin.score_plan
+    denied:
+      - write_file
+      - edit_file
+      - delete_file
+
+  builder:
+    allowed:
+      - read_files
+      - search_files
+      - find_files
+      - list_dir
+      - write_file
+      - edit_file
+      - run_terminal_cmd
+      - generate_image # nano-banana
+      - stitch_design # stitch MCP
+    denied:
+      - delete_file
+
+  reviewer:
+    allowed:
+      - read_files
+      - search_files
+      - find_files
+      - list_dir
+      - review_run # builtin.review_run
+      - pentest_scan # builtin.pentest_scan
+      - builder_score # builtin.builder_score
+    denied:
+      - write_file
+      - edit_file
+      - delete_file
+      - run_terminal_cmd
+
+  evaluator:
+    allowed:
+      - read_files
+      - search_files
+      - find_files
+      - list_dir
+      - score_plan
+      - builder_score
+    denied:
+      - write_file
+      - edit_file
+      - delete_file
+
+# MCP server → agent mapping
+mcp_servers:
+  crawl4ai-rag:
+    used_by: [researcher, reviewer]
+    tools: [search_web, crawl_website, extract_content]
+
+  google-ai-studio:
+    used_by: [researcher]
+    tools: [generate_content]
+
+  nano-banana:
+    used_by: [builder]
+    tools: [generate_image, upload_file]
+
+  stitch:
+    used_by: [builder]
+    tools: [create_project, generate_screen_from_text, edit_screens]
+
+  archon:
+    used_by: [planner, builder, evaluator]
+    tools: [find_projects, manage_project, find_tasks, manage_task]

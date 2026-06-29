@@ -180,4 +180,4 @@ Five items require human verification in a running browser with Ollama connected
 ---
 
 _Verified: 2026-03-14T18:00:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verifier: Claude (harness-verifier)_

@@ -141,7 +141,7 @@ Validation, auto-model resolution, and the call into the underlying `reviewCode`
 
 - **`pentest_remediate`** — patch-generation surface; not callable from Chat (high blast radius). Use the **Remediate** button in Security mode.
 - **Create / Build wizards** — heavy UX coupling; agents return structured results instead of opening tabs.
-- **GSD bridge** — roadmap Phase 3 (`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`); read-only / allowlisted, default off.
+- **harness bridge** — roadmap Phase 3 (`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`); read-only / allowlisted, default off.
 
 ## Troubleshooting
 
@@ -159,4 +159,4 @@ Validation, auto-model resolution, and the call into the underlying `reviewCode`
 
 - **`AGENTSKILL.md`** — full plan with phase breakdown, envelope contracts, experiment-mode interaction.
 - **`docs/AGENTSKILL-plan-review.md`** — three plan-reviewer passes; final verdict READY.
-- **`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`** — Phase 3 (Validate + GSD); future expansion.
+- **`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`** — Phase 3 (Validate + harness bridge); future expansion.

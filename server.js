@@ -73,6 +73,18 @@ initExperimentStore(dataRoot);
 initMemory(dataRoot);
 initAuditLog(dataRoot);
 const { log, debug, logDir } = createLogger(dataRoot, { debugEnabled: DEBUG });
+const { ensureAgentAutonomyMemory } = require("./lib/memory");
+setImmediate(() => {
+  ensureAgentAutonomyMemory(getConfig())
+    .then((r) => {
+      if (r?.created) {
+        log("INFO", "Seeded pinned agent-autonomy memory");
+      }
+    })
+    .catch((err) => {
+      log("WARN", "Agent autonomy memory seed failed", { error: err.message });
+    });
+});
 const memoryPruneCheckScheduler = startMemoryPruneCheckScheduler({
   getConfig,
   log,
@@ -813,16 +825,31 @@ if (useHttps) {
 
   // Also start an HTTP server on PORT+1 that redirects to HTTPS on PORT.
   // Users with old http://localhost:PORT bookmarks can update to the new URL.
-  const HTTP_REDIRECT_PORT = PORT + 1;
-  http
-    .createServer((req, res) => {
-      const host = (req.headers.host || `localhost:${PORT}`).split(":")[0];
-      res.writeHead(301, { Location: `https://${host}:${PORT}${req.url}` });
-      res.end();
-    })
-    .listen(HTTP_REDIRECT_PORT, HOST, () => {
-      log("INFO", `HTTP→HTTPS redirect on port ${HTTP_REDIRECT_PORT}`);
-    });
+  // Skip in dev mode (Vite handles routing) to avoid Node v24 socket issues.
+  const isDevMode =
+    process.env.NODE_ENV !== "production" &&
+    process.env.CC_SKIP_REDIRECT !== "1";
+  if (!isDevMode || process.env.CC_FORCE_REDIRECT === "1") {
+    const HTTP_REDIRECT_PORT = PORT + 1;
+    http
+      .createServer((req, res) => {
+        // Guard against null res (Node v24 socket compatibility)
+        if (!res || typeof res.writeHead !== "function") return;
+        try {
+          const host = (req.headers.host || `localhost:${PORT}`).split(":")[0];
+          res.writeHead(301, { Location: `https://${host}:${PORT}${req.url}` });
+          res.end();
+        } catch (_) {
+          // Socket already closed — ignore
+        }
+      })
+      .on("connection", (socket) => {
+        socket.on("error", () => {}); // Swallow ECONNRESET on redirect server
+      })
+      .listen(HTTP_REDIRECT_PORT, HOST, () => {
+        log("INFO", `HTTP→HTTPS redirect on port ${HTTP_REDIRECT_PORT}`);
+      });
+  }
 } else {
   serverInstance = http.createServer(app);
 }

@@ -363,7 +363,7 @@ refactor: `You are a supportive coding mentor... Think of yourself as a friendly
 
 - **Per task commit:** `node --test tests/tone-validation.test.js` (quick validation of prompt content)
 - **Per wave merge:** `node --test tests/` (full suite including UI labels)
-- **Phase gate:** Full suite green + manual conversation spot-check before `/gsd:verify-work`
+- **Phase gate:** Full suite green + manual conversation spot-check before `/harness:verify-work`
 
 ### Wave 0 Gaps
 

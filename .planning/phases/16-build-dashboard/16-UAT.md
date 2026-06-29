@@ -33,7 +33,7 @@ result: [pending]
 
 ### 4. Dashboard View Opens
 
-expected: Click a project card in the list. Dashboard view opens showing project name, path, "All Projects" back link, Refresh button, and View Files button. Phase list loads from GSD roadmap (or shows "No phases found" with /gsd:new-project hint).
+expected: Click a project card in the list. Dashboard view opens showing project name, path, "All Projects" back link, Refresh button, and View Files button. Phase list loads from th3rdai-harness roadmap (or shows "No phases found" with /harness:new-project hint).
 result: [pending]
 
 ### 5. Import Existing Project

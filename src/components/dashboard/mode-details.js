@@ -171,7 +171,7 @@ export const MODE_DETAILS = {
   },
   build: {
     summary:
-      "Scaffold and grow a full project using the GSD+ICM workflow — planning, stages, and IDE commands wired in from the start.",
+      "Scaffold and grow a full project using the th3rdai-harness workflow — 7-stage lifecycle, 5 agent roles, and IDE commands wired in from the start.",
     bestFor: [
       "Building apps and tools step by step",
       "Keeping a bigger project organized",

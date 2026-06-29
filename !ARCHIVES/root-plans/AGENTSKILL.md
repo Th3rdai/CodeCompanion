@@ -4,7 +4,7 @@
 **Formal review:** [docs/AGENTSKILL-plan-review.md](docs/AGENTSKILL-plan-review.md) — **Verdict: READY**  
 **Goal:** Let the **Chat** agent (and other agent-tool modes where appropriate) invoke **first-party Code Companion features** through **bounded builtin tools**, reusing the same `lib/*` pipelines and security patterns as the UI and HTTP routes—**not** reimplementing prompts or duplicating business logic.
 
-**Related:** `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (Validate + Planner + optional GSD); `lib/builtin-agent-tools.js`; `lib/tool-call-handler.js`; `lib/chat-post-handler.js`; `server.js` (`POST /api/chat`).
+**Related:** `docs/AGENT-APP-CAPABILITIES-ROADMAP.md` (Validate + Planner + optional th3rdai-harness); `lib/builtin-agent-tools.js`; `lib/tool-call-handler.js`; `lib/chat-post-handler.js`; `server.js` (`POST /api/chat`).
 
 ---
 
@@ -38,7 +38,7 @@ Today, the agent already has **builtins** (terminal, `write_file`, PDF/office, *
 | **Security / OWASP scan**                        | `lib/pentest.js` / `routes/pentest.js`, folder + file constraints                                 |
 | **Experiment**                                   | `routes/experiment.js`, `lib/experiment-store.js` — **deferred for Chat builtins (v1)**; see §5.4 |
 | **Builder score (Prompting / Skillz / Agentic)** | `routes/score.js` → `POST /api/score` with `mode` keys + `lib/builder-schemas.js`                 |
-| **GSD (optional)**                               | `lib/gsd-bridge.js` — roadmap Phase 3; allowlist-only, default off                                |
+| **th3rdai-harness (optional)**                   | `lib/harness-bridge.js` — roadmap Phase 3; allowlist-only, default off                            |
 
 **Explicitly out of scope for v1 (unless product expands):** Replacing **Create/Build wizards** with agent tools (high UX coupling); arbitrary **mode switching** in the renderer from the server (prefer **return structured results** to the model, not “open a tab”).
 
@@ -151,9 +151,9 @@ Reuse pattern: **`lib/pentest.js`** + thin **`routes/pentest.js`** → shared **
 
 Revisit only with explicit product sign-off and a mini-spec for **idempotency**, **budget**, and **conversation linkage**.
 
-### 5.5 Phase 5 — GSD bridge (optional)
+### 5.5 Phase 5 — th3rdai-harness bridge (optional)
 
-- Follow **`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`** Phase 3: read-only / allowlisted `gsd-bridge` ops, default off.
+- Follow **`docs/AGENT-APP-CAPABILITIES-ROADMAP.md`** Phase 3: read-only / allowlisted `harness-bridge` ops, default off.
 
 ### Phase 0 — Foundation (1–2 PRs)
 

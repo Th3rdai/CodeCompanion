@@ -6,7 +6,7 @@ tags: [react, tailwind, express, ollama, lucide, localStorage]
 
 requires:
   - phase: 16-build-dashboard
-    provides: "BuildPanel dashboard view, GsdBridge, build API routes"
+    provides: "BuildPanel dashboard view, HarnessBridge, build API routes"
 provides:
   - "BuildHeader component with status badge, progress bar, simple/advanced toggle"
   - "BuildSimpleView component with What's Next AI card and quick actions"

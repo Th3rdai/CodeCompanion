@@ -129,7 +129,7 @@ Post-roadmap enhancements also complete:
      Detail: docs/AGENT-APP-CAPABILITIES-ROADMAP.md (AAP-06–AAP-10)
      Plans: TBD
 
-[🔵] Phase 27 (optional): Agent — GSD bridge builtins
+[🔵] Phase 27 (optional): Agent — th3rdai-harness bridge builtins
      Detail: docs/AGENT-APP-CAPABILITIES-ROADMAP.md (AAP-11–AAP-14)
      Plans: TBD
 ```
@@ -192,7 +192,7 @@ Lines 1–619 of server.js are startup + middleware + rate limiter registrations
 [🔵] Write Phase 25 plans (Validate builtins)
 [🔵] Execute Phase 25
 [🔵] Write + execute Phase 26 (Planner tools)
-[🔵] Decide Phase 27 (GSD bridge) — optional
+[🔵] Decide Phase 27 (th3rdai-harness bridge) — optional
 ```
 
 ---

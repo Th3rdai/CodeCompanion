@@ -6,11 +6,11 @@
 
 ## Summary
 
-Phase 16 Phases 2-5 extend the existing Build Dashboard (Phase 1 already complete with registry, GSD bridge, and BuildPanel) into a full project management interface. The work divides cleanly into four sub-phases: Simple View (status header + "What's Next" AI card), AI Research/Planning (SSE endpoints that call Ollama for research and planning), Advanced View (phase accordion with file viewer/editor), and Handoff + Polish (Claude Code command generation, UX improvements).
+Phase 16 Phases 2-5 extend the existing Build Dashboard (Phase 1 already complete with registry, th3rdai-harness bridge, and BuildPanel) into a full project management interface. The work divides cleanly into four sub-phases: Simple View (status header + "What's Next" AI card), AI Research/Planning (SSE endpoints that call Ollama for research and planning), Advanced View (phase accordion with file viewer/editor), and Handoff + Polish (Claude Code command generation, UX improvements).
 
-The existing codebase provides strong foundations: `lib/gsd-bridge.js` for reading project state, `lib/ollama-client.js` with `chatComplete`/`chatStructured`/`chatStream` functions, and established SSE patterns in the `/api/chat`, `/api/review`, and `/api/score` endpoints. The `BuildPanel.jsx` component already has project list, dashboard, and phase detail views with auto-refresh. All new work builds on these patterns -- no new libraries needed.
+The existing codebase provides strong foundations: `lib/harness-bridge.js` for reading project state, `lib/ollama-client.js` with `chatComplete`/`chatStructured`/`chatStream` functions, and established SSE patterns in the `/api/chat`, `/api/review`, and `/api/score` endpoints. The `BuildPanel.jsx` component already has project list, dashboard, and phase detail views with auto-refresh. All new work builds on these patterns -- no new libraries needed.
 
-**Primary recommendation:** Use the existing `chatComplete` for the next-action endpoint (Phase 2), add SSE streaming via `chatStream` for research/planning endpoints (Phase 3), add file read/write endpoints with strict filename whitelist (Phase 4), and generate copy-pasteable GSD slash commands for Claude Code handoff (Phase 5).
+**Primary recommendation:** Use the existing `chatComplete` for the next-action endpoint (Phase 2), add SSE streaming via `chatStream` for research/planning endpoints (Phase 3), add file read/write endpoints with strict filename whitelist (Phase 4), and generate copy-pasteable th3rdai-harness slash commands for Claude Code handoff (Phase 5).
 
 ## Standard Stack
 
@@ -52,7 +52,7 @@ src/components/
   BuildSimpleView.jsx      # NEW — "What's Next" AI card, quick action buttons
   BuildAdvancedView.jsx    # NEW — phase accordion, file viewer
   PlanningFileViewer.jsx   # NEW — read/edit .planning/ files with save
-  ClaudeCodeHandoff.jsx    # NEW — copy-pasteable GSD commands
+  ClaudeCodeHandoff.jsx    # NEW — copy-pasteable th3rdai-harness commands
 ```
 
 ### Pattern 1: View Toggle in BuildPanel
@@ -95,7 +95,7 @@ app.post("/api/build/projects/:id/research", async (req, res) => {
 
   const { model, phaseNumber } = req.body;
   const config = getConfig();
-  const bridge = new GsdBridge(project.path);
+  const bridge = new HarnessBridge(project.path);
 
   // Gather context from project files
   const state = bridge.getState();
@@ -194,7 +194,7 @@ app.post("/api/build/projects/:id/next-action", async (req, res) => {
 
   const { model } = req.body;
   const config = getConfig();
-  const bridge = new GsdBridge(project.path);
+  const bridge = new HarnessBridge(project.path);
 
   const state = bridge.getState();
   const progress = bridge.getProgress();
@@ -233,7 +233,7 @@ app.post("/api/build/projects/:id/next-action", async (req, res) => {
 | Markdown rendering    | Custom parser                | `MarkdownContent` component (already exists)                       | Already handles code blocks, mermaid, DOMPurify           |
 | Path security         | Custom path checks           | `isWithinBasePath` from `lib/file-browser.js` + filename whitelist | Battle-tested, already used in server.js                  |
 | SSE streaming         | WebSocket or custom protocol | Express SSE pattern from `/api/chat`                               | Project standard, client already handles it               |
-| Project state reading | Direct file reads            | `GsdBridge` class methods                                          | Handles `@file:` references, error handling, JSON parsing |
+| Project state reading | Direct file reads            | `HarnessBridge` class methods                                      | Handles `@file:` references, error handling, JSON parsing |
 | Rate limiting         | Custom middleware            | `createRateLimiter` (already imported in server.js)                | Consistent with all other endpoints                       |
 
 **Key insight:** Every infrastructure piece needed already exists in the codebase. This phase is purely about composing existing patterns into new endpoints and UI components.
@@ -291,7 +291,7 @@ function sendEvent(data) {
 }
 ```
 
-### Existing GsdBridge Usage (from server.js)
+### Existing HarnessBridge Usage (from server.js)
 
 ```javascript
 // Source: server.js lines 1099-1108
@@ -299,7 +299,7 @@ app.get("/api/build/projects/:id/state", (req, res) => {
   const project = _resolveBuildProject(req, res);
   if (!project) return;
   try {
-    const bridge = new GsdBridge(project.path);
+    const bridge = new HarnessBridge(project.path);
     res.json(bridge.getState());
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -380,21 +380,21 @@ app.use(
 
 ### Phase Requirements -> Test Map
 
-| Req ID | Behavior                                        | Test Type | Automated Command                                             | File Exists? |
-| ------ | ----------------------------------------------- | --------- | ------------------------------------------------------------- | ------------ |
-| P2-01  | BuildHeader shows status badge and progress     | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | No - Wave 0  |
-| P2-02  | Simple/advanced toggle persists in localStorage | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | No - Wave 0  |
-| P2-03  | "What's Next" card displays AI recommendation   | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | No - Wave 0  |
-| P3-01  | Research endpoint returns SSE stream            | unit      | `npx playwright test tests/ui/build-ai-ops.spec.js -x`        | No - Wave 0  |
-| P4-01  | File viewer displays whitelisted files          | unit      | `npx playwright test tests/ui/build-advanced-view.spec.js -x` | No - Wave 0  |
-| P4-02  | File editor saves with atomic write             | unit      | `node --test tests/unit/build-file-ops.test.js`               | No - Wave 0  |
-| P5-01  | Handoff shows copy-pasteable GSD commands       | unit      | `npx playwright test tests/ui/build-handoff.spec.js -x`       | No - Wave 0  |
+| Req ID | Behavior                                              | Test Type | Automated Command                                             | File Exists? |
+| ------ | ----------------------------------------------------- | --------- | ------------------------------------------------------------- | ------------ |
+| P2-01  | BuildHeader shows status badge and progress           | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | No - Wave 0  |
+| P2-02  | Simple/advanced toggle persists in localStorage       | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | No - Wave 0  |
+| P2-03  | "What's Next" card displays AI recommendation         | unit      | `npx playwright test tests/ui/build-simple-view.spec.js -x`   | No - Wave 0  |
+| P3-01  | Research endpoint returns SSE stream                  | unit      | `npx playwright test tests/ui/build-ai-ops.spec.js -x`        | No - Wave 0  |
+| P4-01  | File viewer displays whitelisted files                | unit      | `npx playwright test tests/ui/build-advanced-view.spec.js -x` | No - Wave 0  |
+| P4-02  | File editor saves with atomic write                   | unit      | `node --test tests/unit/build-file-ops.test.js`               | No - Wave 0  |
+| P5-01  | Handoff shows copy-pasteable th3rdai-harness commands | unit      | `npx playwright test tests/ui/build-handoff.spec.js -x`       | No - Wave 0  |
 
 ### Sampling Rate
 
 - **Per task commit:** `npx playwright test tests/ui/build-*.spec.js --project=chromium`
 - **Per wave merge:** `npx playwright test`
-- **Phase gate:** Full suite green before `/gsd:verify-work`
+- **Phase gate:** Full suite green before `/harness:verify-work`
 
 ### Wave 0 Gaps
 
@@ -408,7 +408,7 @@ app.use(
 
 ### Primary (HIGH confidence)
 
-- Direct codebase inspection: `lib/ollama-client.js`, `lib/gsd-bridge.js`, `lib/build-registry.js`, `lib/file-browser.js`
+- Direct codebase inspection: `lib/ollama-client.js`, `lib/harness-bridge.js`, `lib/build-registry.js`, `lib/file-browser.js`
 - Direct codebase inspection: `server.js` (lines 271-380 SSE pattern, lines 1042-1141 build routes)
 - Direct codebase inspection: `src/components/BuildPanel.jsx` (full component, 378 lines)
 - Direct codebase inspection: `src/App.jsx` (build state management)

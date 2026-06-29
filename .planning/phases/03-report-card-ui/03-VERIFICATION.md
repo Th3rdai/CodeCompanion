@@ -294,5 +294,5 @@ Phase 3 is complete and ready for production use.
 
 _Initial Verification: 2026-03-13T22:30:00Z_
 _Re-Verification: 2026-03-14T06:15:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verifier: Claude (harness-verifier)_
 _Method: Static code analysis, UAT with user testing, gap closure, commit verification_

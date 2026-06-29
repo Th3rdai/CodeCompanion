@@ -74,6 +74,15 @@ export default function PlanningFileViewer({
     setError(null);
   }
 
+  const isDirty = editing && editedContent !== content;
+
+  function handleClose() {
+    if (isDirty) {
+      if (!window.confirm("You have unsaved changes. Discard them?")) return;
+    }
+    onClose();
+  }
+
   return (
     <div className="glass rounded-xl border border-slate-700/50 overflow-hidden">
       {/* Header */}

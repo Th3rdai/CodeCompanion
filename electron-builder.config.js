@@ -119,6 +119,8 @@ module.exports = {
     icon: "resources/icon.icns",
     category: "public.app-category.developer-tools",
     hardenedRuntime: macDistributionSign,
+    entitlements: "resources/entitlements.mac.plist",
+    entitlementsInherit: "resources/entitlements.mac.inherit.plist",
     identity: macDistributionSign ? macCodesignIdentity : "-",
     // electron-builder 26+ auto-notarizes when APPLE_ID is in the environment.
     // Explicitly set notarize: false when not requested to prevent that.

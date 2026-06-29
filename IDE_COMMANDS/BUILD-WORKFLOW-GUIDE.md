@@ -1,6 +1,6 @@
 # Build feature — step-by-step PRP workflow
 
-This guide is for **Build mode** in Code Companion: you’re driving a **GSD+ICM-style project** (or any app you scaffold and track in Build) with a repeatable loop—requirements → plan → implement → validate → summarize. The **slash-commands** below live in `IDE_COMMANDS/`; new projects created from Code Companion get copies under `.cursor/commands/`, `.claude/commands/`, etc.
+This guide is for **Build mode** in Code Companion: you’re driving a **th3rdai-harness project** (or any app you scaffold and track in Build) with a repeatable loop—requirements → plan → implement → validate → summarize. The **slash-commands** below live in `IDE_COMMANDS/`; new projects created from Code Companion get copies under `.cursor/commands/`, `.claude/commands/`, etc.
 
 Use this flow **in the project you are building** (open that folder in your IDE), not necessarily inside the Code Companion app repo—unless your task _is_ to change Code Companion itself.
 
@@ -110,7 +110,7 @@ Supporting tools: **`/new-project`** for a new repo, **`/generate-prompt`** for 
 
 ## How this ties to Code Companion **Build** mode
 
-- **Build** is where you register and work on **local projects** (GSD+ICM scaffolding, stages, handoffs).
+- **Build** is where you register and work on **local projects** (th3rdai-harness scaffolding, stages, handoffs).
 - This **PRP workflow** is how you—or the AI in your IDE—turn **what to build** into **ordered, verifiable work** on that project’s codebase.
 - Keep **PRDs/PRPs/journal** in the **project repository** you’re building so history stays with the product, not only in chat.
 

@@ -15,7 +15,7 @@ Two Phase 6 directories exist under `.planning/phases/`:
 - `06-desktop-app/` — appears to be from initial roadmap setup, likely empty or minimal
 - `06-desktop-packaging/` — has the actual `06-CONTEXT.md` from the discuss-phase session
 
-The `gsd-tools init progress` output shows both as separate phases, which inflates the phase count and causes confusion in routing.
+The `harness-tools init progress` output shows both as separate phases, which inflates the phase count and causes confusion in routing.
 
 ## Solution
 
@@ -23,4 +23,4 @@ The `gsd-tools init progress` output shows both as separate phases, which inflat
 2. Consolidate to one directory (likely keep `06-desktop-packaging` since it has CONTEXT.md, or rename to match ROADMAP.md)
 3. Update ROADMAP.md phase name/directory if needed
 4. Delete the empty/duplicate directory
-5. Verify `gsd-tools init progress` shows correct phase count after cleanup
+5. Verify `harness-tools init progress` shows correct phase count after cleanup

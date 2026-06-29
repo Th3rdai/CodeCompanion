@@ -70,6 +70,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("get-microphone-access-status"),
   requestMicrophoneAccess: () =>
     ipcRenderer.invoke("request-microphone-access"),
+  openMicrophoneSettings: () => ipcRenderer.invoke("open-microphone-settings"),
 
   // Docling (managed document conversion service)
   getDoclingStatus: () => ipcRenderer.invoke("get-docling-status"),

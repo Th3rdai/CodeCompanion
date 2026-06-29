@@ -421,6 +421,17 @@ test("regression: 'review and summarize this pdf' + attached PDF content stays N
   assert.equal(userLikelyRequestedActionableToolWork(m), false);
 });
 
+test("autonomous / until-done phrasing is actionable without paths", () => {
+  const m = [
+    {
+      role: "user",
+      content:
+        "help me fix the app so the agent can continue autonomously if told to do so",
+    },
+  ];
+  assert.equal(userLikelyRequestedActionableToolWork(m), true);
+});
+
 test("regression: actual actionable prompt + attached PDF stays TRUE", () => {
   // Sanity: the strip mustn't break legitimate cases. User is asking for a
   // real action against the file.

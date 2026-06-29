@@ -162,6 +162,32 @@ test("getBuiltinTools includes run_terminal_cmd when exposed bind but CC_ALLOW_A
   );
 });
 
+test("getBuiltinTools includes run_terminal_cmd on exposed bind via agentTerminal.allowWhenExposed (no env var)", () => {
+  // Settings → Agent toggle path: the config flag enables the terminal on a
+  // network-exposed bind without needing CC_ALLOW_AGENT_TERMINAL.
+  withProcessEnv(
+    {
+      HOST: "0.0.0.0",
+      CC_ALLOW_AGENT_TERMINAL: undefined,
+      ELECTRON_RUN_AS_NODE: undefined,
+    },
+    () => {
+      const blocked = getBuiltinTools({ agentTerminal: { enabled: true } });
+      assert.ok(
+        !blocked.some((t) => t.name === "run_terminal_cmd"),
+        "without the flag the terminal stays gated on an exposed bind",
+      );
+      const allowed = getBuiltinTools({
+        agentTerminal: { enabled: true, allowWhenExposed: true },
+      });
+      assert.ok(
+        allowed.some((t) => t.name === "run_terminal_cmd"),
+        "allowWhenExposed=true must re-enable the terminal on an exposed bind",
+      );
+    },
+  );
+});
+
 // ── Planner tool tests ────────────────────────────
 
 test("getBuiltinTools includes score_plan by default (agentPlanner not set)", () => {

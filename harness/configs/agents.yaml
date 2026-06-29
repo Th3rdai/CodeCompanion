@@ -1,0 +1,28 @@
+# CodeCompanion Harness — Agent Contracts
+# Maps each agent role to its contract file, default skill, and model profile.
+
+agents:
+  researcher:
+    contract: agents/researcher.agent.md
+    default_skill: skills/research/research.md
+    model_profile: research
+
+  planner:
+    contract: agents/planner.agent.md
+    default_skill: skills/plan/planner.md
+    model_profile: planning
+
+  builder:
+    contract: agents/builder.agent.md
+    default_skill: skills/build/build.md
+    model_profile: building
+
+  reviewer:
+    contract: agents/reviewer.agent.md
+    default_skill: skills/review/review.md
+    model_profile: review
+
+  evaluator:
+    contract: agents/evaluator.agent.md
+    default_skill: skills/eval/eval.md
+    model_profile: evaluation

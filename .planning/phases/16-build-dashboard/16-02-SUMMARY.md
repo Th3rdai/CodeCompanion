@@ -7,7 +7,7 @@ tags: [sse, streaming, ollama, chatComplete, react, ai-research, ai-planning]
 # Dependency graph
 requires:
   - phase: 16-build-dashboard
-    provides: BuildSimpleView, next-action endpoint, _resolveBuildProject, GsdBridge
+    provides: BuildSimpleView, next-action endpoint, _resolveBuildProject, HarnessBridge
 provides:
   - POST /api/build/projects/:id/research SSE endpoint
   - POST /api/build/projects/:id/plan SSE endpoint with write-after-validate

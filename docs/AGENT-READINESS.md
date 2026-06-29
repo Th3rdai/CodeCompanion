@@ -67,7 +67,7 @@ For **guided** scaffolding, use **Create** / **Build** wizards and IDE command i
 
 ## 11. Roadmap and limits
 
-- [ ] **docs/AGENT-APP-CAPABILITIES-ROADMAP.md** — shipped vs planned agent capabilities (Validate/Planner builtins vs optional GSD).
+- [ ] **docs/AGENT-APP-CAPABILITIES-ROADMAP.md** — shipped vs planned agent capabilities (Validate/Planner builtins vs optional harness bridge).
 - [ ] **Agent browser** cannot drive `http://localhost:…` for your app UI; use **terminal** (`curl`, tests) or open the app in your OS browser.
 - [ ] **Network**: default bind is loopback; remote access needs explicit config — **docs/ENVIRONMENT_VARIABLES.md**, **SECURITY.md**.
 

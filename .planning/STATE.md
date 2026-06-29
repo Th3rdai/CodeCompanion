@@ -1,5 +1,5 @@
 ---
-gsd_state_version: 1.0
+harness_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
 status: complete
@@ -72,12 +72,12 @@ Next (maintenance): When cutting a release, add a dated **`CHANGELOG`** section 
 
 **Rate limiting (Plan Risk #8):** Added `app.use('/api/build/projects', createRateLimiter(...))` for POST/DELETE methods on all build registry routes.
 
-**Multi-tool convention files:** Build scaffolder now generates identical project instructions in all four AI coding tool convention files: `CLAUDE.md` (Claude Code), `.cursorrules` (Cursor), `.windsurfrules` (Windsurf), `.opencode/instructions.md` (OpenCode). Users open the project in any supported tool and get GSD + ICM context automatically.
+**Multi-tool convention files:** Build scaffolder now generates identical project instructions in all four AI coding tool convention files: `CLAUDE.md` (Claude Code), `.cursorrules` (Cursor), `.windsurfrules` (Windsurf), `.opencode/instructions.md` (OpenCode). Users open the project in any supported tool and get th3rdai-harness context automatically.
 
 **Discovery:** Full Build dashboard infrastructure already existed from prior session:
 
 - `lib/build-registry.js` — project registry with atomic writes and path validation
-- `lib/gsd-bridge.js` — GSD CLI bridge using `gsd-tools.cjs` (execFileSync, no shell)
+- `lib/harness-bridge.js` — th3rdai-harness CLI bridge using `harness-tools.cjs` (execFileSync, no shell)
 - `src/components/BuildPanel.jsx` — full dashboard with project list, phase list, plan viewer, auto-refresh
 - Server routes: state/roadmap/progress/phase-detail endpoints
 - App.jsx: `buildProjects`, `activeBuildProject`, `showBuildWizard` state management
@@ -267,7 +267,7 @@ Recent decisions affecting current work:
 - [Phase 16]: PlanningFileViewer renders inline (not modal) with atomic write saves
 - [Phase 16]: Used chatComplete + word-split progressive delivery for research/plan SSE endpoints
 - [Phase 16]: SSE-over-POST pattern with ReadableStream reader in React for POST-based SSE endpoints
-- [Phase 16]: Context-aware GSD command list in ClaudeCodeHandoff derived from project phase/plan state
+- [Phase 16]: Context-aware th3rdai-harness command list in ClaudeCodeHandoff derived from project phase/plan state
 - [Phase 16]: Friendly network error messages with retry buttons and loading skeletons for null state
 - [Phase 18]: Pentest getTimeoutForModel uses longer timeouts (90s-240s) than review due to 6-category output complexity
 - [Phase 18]: CVSS bands use descriptive strings not numeric scores for vibe-coder accessibility
@@ -282,11 +282,11 @@ Recent decisions affecting current work:
 - [Phase 28-multi-file-code-review]: Folder drag-drop sets folder name only (not full absolute path) — identical to SecurityPanel limitation; user types or confirms full path before clicking Preview
 - [Phase 28-multi-file-code-review]: handleSubmitFolderReview() mirrors handleSubmitReview() exactly — same JSON/SSE branching, same onSaveReview call shape, abort via second useAbortable() instance
 
-### Phase 15: Build Mode (GSD + ICM) — Approved and Implemented
+### Phase 15: Build Mode (th3rdai-harness) — Approved and Implemented
 
-- **Approved plan:** `.planning/phases/build-mode-gsd-icm/DRAFT-PLAN.md` (revised for gaps, edge cases, implementation risks; approved 2026-03-14)
+- **Approved plan:** `.planning/phases/build-mode-harness-icm/DRAFT-PLAN.md` (revised for gaps, edge cases, implementation risks; approved 2026-03-14)
 - **Implementation:** lib/build-scaffolder.js, POST /api/build-project, BuildWizard.jsx, App.jsx (Build in MODES, handleBuildSuccess), tiers.js and license-manager.js (mode:build free)
-- **Scope:** Scaffold combines GSD (.planning/) and ICM (stages/); temp-dir strategy; path safety and error codes; Build reuses createModeAllowedRoots
+- **Scope:** Scaffold combines th3rdai-harness (.planning/) and ICM (stages/); temp-dir strategy; path safety and error codes; Build reuses createModeAllowedRoots
 
 ### Mermaid.js Diagram Rendering (completed 2026-03-15)
 

@@ -39,7 +39,7 @@ const TUTORIAL_CLICK_HINT =
 const STEP1_ALTERNATIVES = {
   name: ["My First Build", "My Side Project", "My Tool", "My App"],
   description: [
-    "A small app or tool I want to plan and build step by step using GSD (planning) and ICM (stages).",
+    "A small app or tool I want to plan and build step by step using the th3rdai-harness lifecycle (7 stages, 5 agent roles).",
     "A project I want to scaffold with planning and stages so I can build it incrementally.",
     "An app or script I want to design and implement with clear phases and checkpoints.",
     "A tool or automation I want to build with structured planning and stage-based workflow.",
@@ -286,8 +286,8 @@ export default function BuildWizard({
         </h2>
         <p className="text-sm text-slate-300">{result.projectPath}</p>
         <p className="text-xs text-slate-500">
-          Open it in Cursor or Claude Code to use GSD (planning) and ICM
-          (stages) workflows.
+          Open it in Cursor or Claude Code to use the th3rdai-harness workflows
+          (7-stage lifecycle + 5 agent roles).
         </p>
         <ul className="text-xs text-slate-400 list-disc list-inside space-y-1">
           {(result.files || []).slice(0, 20).map((f, i) => (

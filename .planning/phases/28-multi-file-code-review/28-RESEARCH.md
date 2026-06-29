@@ -456,7 +456,7 @@ Note: SecurityPanel uses `border-orange-500` accent. ReviewPanel uses `border-in
 
 - **Per task commit:** `node --test tests/unit/*.test.js`
 - **Per wave merge:** `npm run test:integration`
-- **Phase gate:** Full E2E suite green before `/gsd:verify-work`
+- **Phase gate:** Full E2E suite green before `/harness:verify-work`
 
 ### Wave 0 Gaps
 

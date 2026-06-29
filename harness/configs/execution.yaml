@@ -1,0 +1,34 @@
+# CodeCompanion Harness — Execution Settings
+# Controls how the harness executes operations.
+
+execution:
+  # Dry-run by default — no side effects unless explicitly enabled
+  dry_run: true
+
+  # Enable with --execute flag
+  execute_enabled: false
+
+  # Max concurrent operations
+  max_concurrent: 3
+
+  # Timeout for individual operations (seconds)
+  operation_timeout: 120
+
+  # Run logging
+  log_runs: true
+  runs_dir: harness/runs
+
+  # Telemetry
+  telemetry_enabled: true
+  telemetry_dir: harness/telemetry
+
+  # Validation gate — must pass before marking a run complete
+  validation_required: true
+  validation_commands:
+    - npm run test:unit
+    - npm run validate:static
+
+  # Git integration
+  auto_commit: false
+  commit_per_phase: true
+  branch_prefix: harness/
